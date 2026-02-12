@@ -82,3 +82,10 @@
 -   \[ \] 수집 스케줄러(Spring Scheduler) 적용을 통한 자동화
 -   \[ \] 키워드 기반 채용 공고 필터링 기능
 -   \[ \] React를 활용한 대시보드 UI 구현
+
+
+# 🚀 DevJobCollector
+
+[![Notion](https://img.shields.io/badge/Project_Documentation-000000?style=for-the-badge&logo=notion&logoColor=white)](https://www.notion.so/DJC-Project-2d89cc8ccb4a8094a818f92fcc4fd8d4?source=copy_link)
+
+**공공데이터 기반 채용 정보 수집 DJC 엔진** 프로젝트의 상세한 개발 일지, 트러블슈팅 및 기술적 의사결정 과정은 위 배지를 클릭하여 확인 가능하다.
