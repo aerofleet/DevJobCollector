@@ -5,7 +5,7 @@ spring:
     # MySQL 연결 정보
     url: jdbc:mysql://localhost:3306/devjob?serverTimezone=Asia/Seoul&useSSL=false&allowPublicKeyRetrieval=true
     username: root          # MySQL 사용자명
-    password: Hong1221##  # MySQL 비밀번호 (본인 설정값으로 수정)
+    password:   # MySQL 비밀번호 (본인 설정값으로 수정)
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -20,4 +20,4 @@ spring:
 data-api:
   public-data:
     base-url: https://apis.data.go.kr/1051000/recruitment
-    service-key: "44bfd2d82b03c82343d4032b3e2321a0e7ee3f71dff737615f6f614d3246e43b"
+    service-key: ""
