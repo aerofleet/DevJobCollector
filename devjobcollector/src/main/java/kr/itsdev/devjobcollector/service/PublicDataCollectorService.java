@@ -1,6 +1,7 @@
 ﻿package kr.itsdev.devjobcollector.service;
 
 import kr.itsdev.devjobcollector.domain.JobPost;
+import kr.itsdev.devjobcollector.domain.SourcePlatform;
 import kr.itsdev.devjobcollector.dto.PublicDataDetailResponse;
 import kr.itsdev.devjobcollector.dto.PublicDataResponse;
 import kr.itsdev.devjobcollector.dto.PublicJobDto;
@@ -48,7 +49,7 @@ public class PublicDataCollectorService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
 
         return JobPost.builder()
-                .sourcePlatform("PUBLIC_ALIO")
+                .sourcePlatform(SourcePlatform.PUBLIC_ALIO)
                 .originalSn(dto.getRecrutPblntSn())
                 .companyName(dto.getInstNm())
                 .title(dto.getRecrutPbancTtl())
@@ -66,7 +67,7 @@ public class PublicDataCollectorService {
     public void collectAll() {
         log.info("공공데이터 수집 시작...");
         // 1. 목록 조회
-        PublicDataResponse listResponse = apiClient.fetchJobList(0, 10);
+        PublicDataResponse listResponse = apiClient.fetchJobList(0, 100);
         
         if (listResponse == null || listResponse.getResult() == null) {
             log.error("API 응답이 비어있습니다.");

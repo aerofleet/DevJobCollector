@@ -29,8 +29,9 @@ public class JobPost {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Enumerated(EnumType.STRING) // Enum의 이름을 문자열 그대로 DB에 저장 (추천)
     @Column(name = "source_platform", nullable = false, length = 50)
-    private String sourcePlatform;     //수집 출처 (예: PUBLIC_ALTO, SARAMIN)
+    private SourcePlatform sourcePlatform;     //수집 출처 (예: PUBLIC_ALIO, SARAMIN)
 
     @Column(name = "original_sn", nullable = false)
     private String originalSn;         //플렛폼별 고유 번호
