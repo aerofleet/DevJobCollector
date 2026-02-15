@@ -1,14 +1,39 @@
-﻿package kr.itsdev.devjobcollector.dto;
+package kr.itsdev.devjobcollector.dto;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
+import lombok.NoArgsConstructor;
 
-@Getter @Setter
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.AllArgsConstructor;
+
+@Getter
+@Setter
+@ToString
+@NoArgsConstructor
+@AllArgsConstructor
 public class PublicDataDetailResponse {
-    private int resultCode;
+
+    @JsonProperty("resultCode")
+    private Integer resultCode;
+
+    @JsonProperty("resultMsg")
     private String resultMsg;
+
+    @JsonProperty("totalCount")
     private int totalCount;
 
-    private PublicJobDto result; // 상세 조회는 List가 아니라 단일 객체(Object)로 온다.
+    @JsonProperty("result")
+    private PublicJobDto result;
+
+    public boolean isSuccess(){
+        return resultCode != null && resultCode == 200;
+    }
+
+    public boolean hasDate(){
+        return isSuccess() && result != null;
+    }
 
 }
