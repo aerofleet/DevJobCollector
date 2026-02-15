@@ -1,6 +1,7 @@
-﻿package kr.itsdev.devjobcollector.controller;
+package kr.itsdev.devjobcollector.controller;
 
-import kr.itsdev.devjobcollector.domain.JobPost;
+import kr.itsdev.devjobcollector.dto.JobPostDetailDto;
+import kr.itsdev.devjobcollector.dto.JobPostDto;
 import kr.itsdev.devjobcollector.service.JobPostService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -8,13 +9,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.lang.NonNull;
-
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/jobs")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
 public class JobPostController {
 
     private final JobPostService jobPostService;
@@ -24,9 +23,9 @@ public class JobPostController {
      * GET /api/v1/jobs?page=0&size=10
      */
     @GetMapping
-    public ResponseEntity<Page<JobPost>> getAllJobs(
+    public ResponseEntity<Page<JobPostDto>> getAllJobs(
                 @PageableDefault(size = 10) Pageable pageable) {
-            Page<JobPost> jobs = jobPostService.getJobPosts(pageable);
+            Page<JobPostDto> jobs = jobPostService.getJobPosts(pageable);
             return ResponseEntity.ok(jobs);
     }
 
@@ -35,8 +34,8 @@ public class JobPostController {
      * GET /api/v1/jobs/1
      */    
     @GetMapping("/{id}")
-    public ResponseEntity<JobPost> getJobDetail(@PathVariable @NonNull Long id) {
-        JobPost job = jobPostService.getJobPostDetail(id);
+    public ResponseEntity<JobPostDetailDto> getJobDetail(@PathVariable Long id) {
+        JobPostDetailDto job = jobPostService.getJobPostDetail(id);
         return ResponseEntity.ok(job);
     }
 }
