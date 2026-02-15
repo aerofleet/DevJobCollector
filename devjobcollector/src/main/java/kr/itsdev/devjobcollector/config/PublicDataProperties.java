@@ -1,4 +1,4 @@
-﻿package kr.itsdev.devjobcollector.config;
+package kr.itsdev.devjobcollector.config;
 
 import lombok.Getter;
 import lombok.Setter;

@@ -1,4 +1,4 @@
-﻿package kr.itsdev.devjobcollector.domain;
+package kr.itsdev.devjobcollector.domain;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 
