@@ -1,13 +1,23 @@
-﻿package kr.itsdev.devjobcollector.dto;
-
-import lombok.Getter;
-import lombok.Setter;
-import java.util.List;
+package kr.itsdev.devjobcollector.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.*;
 
-@Getter @Setter
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
+
+
+
+@Getter 
+@Setter
+@ToString
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @JsonIgnoreProperties(ignoreUnknown = true) // JSON에 있는 필드가 DTO에 없어도 무시하여 에러 방지
 public class PublicJobDto {
 
@@ -48,15 +58,61 @@ public class PublicJobDto {
     private String scrnprcdrMthdExpln;  // 전형 방법 (Detail API용)
 
     @JsonProperty("files")
-    private List<FileDto> files;        // 첨부파일 목록
+    @Builder.Default
+    private List<FileDto> files = new ArrayList<>();        // 첨부파일 목록
 
-    @Getter @Setter
+    public LocalDate getStartDate(){
+        return parseDate(pbancBgngYmd);
+    }
+
+    public LocalDate getEndDate(){
+        return parseDate(pbancEndYmd);
+    }
+
+    private LocalDate parseDate(String dateStr) {
+        if (dateStr == null || dateStr.trim().isEmpty()){
+            return null;
+        } 
+        dateStr = dateStr.trim();
+
+        if (dateStr.length() != 8){
+            return null;
+        }
+
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+            return LocalDate.parse(dateStr, formatter);
+        } catch (DateTimeParseException e) {
+            return null;
+        }
+    }
+
+    public boolean hasFiles() {
+        return files != null && !files.isEmpty();
+    }
+
+    public int getFileCount(){
+        return files != null ? files.size() : 0;
+    }
+
+    @Getter
+    @Setter
+    @ToString
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class FileDto {
+
         @JsonProperty("atchFileNm")
-        private String atchFileNm;      // 파일명
+        private String atchFileNm;
 
         @JsonProperty("url")
-        private String url;             // 다운로드 주소
+        private String url;
+
+        public boolean isValid(){
+            return atchFileNm != null && !atchFileNm.isEmpty()
+            && url != null && !url.isEmpty();
+        }        
     }
 }
