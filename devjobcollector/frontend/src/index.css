@@ -1,0 +1,14 @@
+/* 모던한 느낌을 위한 커스텀 스타일 */
+.card {
+  border-radius: 12px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+}
+
+.navbar {
+  background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+}
