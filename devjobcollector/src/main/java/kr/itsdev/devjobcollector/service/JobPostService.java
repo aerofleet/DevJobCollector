@@ -1,54 +1,120 @@
-﻿package kr.itsdev.devjobcollector.service;
+package kr.itsdev.devjobcollector.service;
 
-import kr.itsdev.devjobcollector.dto.JobPostDto;
 import kr.itsdev.devjobcollector.domain.JobPost;
-import kr.itsdev.devjobcollector.domain.SourcePlatform;
+import kr.itsdev.devjobcollector.dto.JobPostDto;
+import kr.itsdev.devjobcollector.dto.JobPostDetailDto;
+import kr.itsdev.devjobcollector.dto.JobFileDto;
 import kr.itsdev.devjobcollector.repository.JobPostRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.Objects;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true) // 기본은 읽기 전용
+@Transactional(readOnly = true)
 public class JobPostService {
 
     private final JobPostRepository jobPostRepository;
 
     /**
-     * 공고 목록 조회 (활성화된 공고 위주, 최신순)
+     * 채용 공고 목록 조회 (페이징)
      */
-    public Page<JobPost> getJobPosts(Pageable pageable) {
-        return jobPostRepository.findAllByIsActiveTrueOrderByCreatedAtDesc(pageable);        
+    public Page<JobPostDto> getJobPosts(Pageable pageable) {
+        log.info("채용 공고 목록 조회: page={}, size={}", pageable.getPageNumber(), pageable.getPageSize());
+        return jobPostRepository.findAll(pageable)
+            .map(this::convertToDto);
     }
 
     /**
-     * 공고 상세 조회
+     * 채용 공고 상세 조회
      */
-    public JobPost getJobPostDetail(@NonNull Long id) {
-        return jobPostRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공고입니다. ID: " + id));
+    @SuppressWarnings("null") 
+    public JobPostDetailDto getJobPostDetail(Long id) {
+        log.info("채용 공고 상세 조회: id={}", id);
+        JobPost jobPost = jobPostRepository.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("채용 공고를 찾을 수 없습니다. ID: " + id));
+        
+        return convertToDetailDto(jobPost);
     }
 
     /**
-     * 공고 데이터 저장 (Enum 적용)
-     * 클래스 레벨의 readOnly를 덮어쓰기 위해 @Transactional 추가
+     * Entity → DTO 변환 (목록용)
      */
-    @Transactional 
-    public Long saveJobPost(JobPostDto dto) { // DTO는 프로젝트 상황에 맞게 조정
-        JobPost jobPost = JobPost.builder()
-                .title(dto.getTitle())
-                .companyName(dto.getCompanyName())
-                .location(dto.getLocation())
-                .sourcePlatform(SourcePlatform.valueOf(dto.getSourcePlatform()))
-                .isActive(true)
-                .build();
+    private JobPostDto convertToDto(JobPost jobPost) {
+        return JobPostDto.builder()
+            .id(jobPost.getId())
+            .sourcePlatform(jobPost.getSourcePlatform().name())
+            .companyName(jobPost.getCompanyName())
+            .title(jobPost.getTitle())
+            .jobCategory(jobPost.getJobCategory())
+            .location(jobPost.getLocation())
+            .hireType(jobPost.getHireType())
+            .startDate(jobPost.getStartDate())
+            .endDate(jobPost.getEndDate())
+            .originalUrl(jobPost.getOriginalUrl())
+            .isActive(jobPost.isActive())
+            .techStacks(extractTechStacks(jobPost))
+            .build();
+    }
 
-        JobPost savedPost = jobPostRepository.save(Objects.requireNonNull(jobPost));
-        return Objects.requireNonNull(savedPost, "저장 실패").getId();
+    /**
+     * Entity → DetailDTO 변환 (상세용)
+     */
+    private JobPostDetailDto convertToDetailDto(JobPost jobPost) {
+        return JobPostDetailDto.builder()
+            .id(jobPost.getId())
+            .sourcePlatform(jobPost.getSourcePlatform().name())
+            .companyName(jobPost.getCompanyName())
+            .title(jobPost.getTitle())
+            .jobCategory(jobPost.getJobCategory())
+            .location(jobPost.getLocation())
+            .hireType(jobPost.getHireType())
+            .startDate(jobPost.getStartDate())
+            .endDate(jobPost.getEndDate())
+            .createdAt(jobPost.getCreatedAt())
+            .originalUrl(jobPost.getOriginalUrl())
+            .applyQual(jobPost.getApplyQual())
+            .processInfo(jobPost.getProcessInfo())
+            .isActive(jobPost.isActive())
+            .techStacks(extractTechStacks(jobPost))
+            .files(extractFiles(jobPost))
+            .build();
+    }
+
+    /**
+     * 기술 스택 추출
+     */
+    private List<String> extractTechStacks(JobPost jobPost) {
+        if (jobPost.getPostTags() == null || jobPost.getPostTags().isEmpty()) {
+            return List.of();
+        }
+        
+        return jobPost.getPostTags().stream()
+            .map(postTag -> postTag.getTechStack().getStackName())
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * 파일 목록 추출
+     */
+    private List<JobFileDto> extractFiles(JobPost jobPost) {
+        if (jobPost.getFiles() == null || jobPost.getFiles().isEmpty()) {
+            return List.of();
+        }
+        
+        return jobPost.getFiles().stream()
+            .map(file -> JobFileDto.builder()
+                .id(file.getId())
+                .fileName(file.getFileName())
+                .fileUrl(file.getFileUrl())
+                .build())
+            .collect(Collectors.toList());
     }
 }
