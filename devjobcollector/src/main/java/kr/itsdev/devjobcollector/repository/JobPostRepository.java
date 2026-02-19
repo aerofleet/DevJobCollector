@@ -96,6 +96,17 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
         @Param("today") LocalDate today, 
         Pageable pageable
     );
+
+    /**
+     * 마감일이 지나지 않은 공고만 조회
+     */
+    @Query("SELECT j FROM JobPost j WHERE j.endDate >= :today AND j.isActive = true")
+    Page<JobPost> findActiveJobPosts(@Param("today") LocalDate today, Pageable pageable);
+    
+    /**
+     * 또는 Spring Data JPA 메서드 명명 규칙 사용
+     */
+    Page<JobPost> findByEndDateGreaterThanEqualAndIsActiveTrue(LocalDate today, Pageable pageable);
     
     // ===== 기술 스택 검색 =====
     
