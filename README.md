@@ -75,7 +75,55 @@
 -   **공고 목록**: GET /api/v1/jobs?page=0&size=10
 -   **공고 상세**: GET /api/v1/jobs/{id}
 
----
+
+## 🗂️ 파일 구조
+
+src/main/java/kr/itsdev/devjobcollector/  
+src/  
+└── main/  
+├── java/  
+│ └── kr/  
+│ └── itsdev/  
+│ └── devjobcollector/  
+│ │  
+│ ├── 📂 config/  
+│ │ ├── 📄 PublicDataProperties.java  
+│ │ └── 📄 RestTemplateConfig.java  
+│ │  
+│ ├── 📂 controller/  
+│ │ └── 📄 JobPostController.java  
+│ │  
+│ ├── 📂 domain/  
+│ │ ├── 📄 JobFile.java  
+│ │ ├── 📄 JobPost.java  
+│ │ ├── 📄 PostTag.java  
+│ │ ├── 📄 SourcePlatform.java  
+│ │ └── 📄 TechStack.java  
+│ │  
+│ ├── 📂 dto/  
+│ │ ├── 📄 JobFileDto.java  
+│ │ ├── 📄 JobPostDetailDto.java  
+│ │ ├── 📄 JobPostDto.java  
+│ │ ├── 📄 PublicDataDetailResponse.java  
+│ │ ├── 📄 PublicDataListResponse.java  
+│ │ └── 📄 PublicJobDto.java  
+│ │  
+│ ├── 📂 repository/  
+│ │ └── 📄 JobPostRepository.java  
+│ │  
+│ ├── 📂 service/  
+│ │ ├── 📄 JobPostService.java  
+│ │ ├── 📄 PublicDataApiClient.java  
+│ │ └── 📄 PublicDataCollectorService.java  
+│ │  
+│ └── 📄 DevjobcollectorApplication.java  
+│  
+└── resources/  
+├── application.properties  
+├── application.yml  
+├── static/  
+└── templates/
+
 
 ## 📈 Future Roadmap
 
