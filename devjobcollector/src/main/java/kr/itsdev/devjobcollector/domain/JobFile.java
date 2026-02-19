@@ -18,7 +18,7 @@ public class JobFile {
 
     @Setter
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id", nullable = false)
+    @JoinColumn(name = "job_post_id", nullable = false)
     private JobPost jobPost;        //대상 공고와 연결 (FK)
 
     @Column(name = "file_name",  nullable = false)
@@ -32,6 +32,8 @@ public class JobFile {
         JobPost jobPost,
         String fileName,
         String fileUrl
+
+        
     ){
         this.jobPost = jobPost;
         this.fileName = fileName;
