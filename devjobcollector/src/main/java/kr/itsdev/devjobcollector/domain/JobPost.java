@@ -10,11 +10,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
-/**
- * 채용 공고 메인 엔티티
- * 복합 유니크 키(source_platform, original_sn)를 통해 데이터 중복 수집을 방지한다.
- */
 @Entity
 @Table(name = "job_posts", 
     uniqueConstraints = {
@@ -28,19 +23,18 @@ import java.util.stream.Collectors;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @ToString(exclude = {"files", "postTags"})
 @EqualsAndHashCode(of ={"sourcePlatform", "originalSn"})
-
 public class JobPost {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Enumerated(EnumType.STRING) // Enum의 이름을 문자열 그대로 DB에 저장 (추천)
+    @Enumerated(EnumType.STRING)
     @Column(name = "source_platform", nullable = false, length = 50)
-    private SourcePlatform sourcePlatform;     //수집 출처 (예: PUBLIC_ALIO, SARAMIN)
+    private SourcePlatform sourcePlatform;
 
     @Column(name = "original_sn", nullable = false)
-    private String originalSn;         //플렛폼별 고유 번호
+    private String originalSn;
 
     @Column(name = "company_name", nullable = false, length = 150)
     private String companyName;
@@ -51,6 +45,10 @@ public class JobPost {
     @Column(name = "job_category")
     private String jobCategory;
 
+    @Column(name = "experience")
+    private String experience;
+
+    @Column(name = "location")
     private String location;
     
     @Column(name = "hire_type")
@@ -66,13 +64,13 @@ public class JobPost {
     private String originalUrl;
 
     @Column(name = "apply_qual", columnDefinition = "LONGTEXT")
-    private String applyQual;           //상세 지원 자격 (Detail API 수집 데이터)
+    private String applyQual;
 
     @Column(name = "process_info", columnDefinition = "LONGTEXT")
-    private String processInfo;         //전형 방법 실시
+    private String processInfo;
    
     @Column(name = "is_active", nullable = false, columnDefinition = "BOOLEAN DEFAULT true")
-    private boolean isActive = true;    //Soft Delete용 필드
+    private boolean isActive = true;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -93,18 +91,20 @@ public class JobPost {
         String companyName,
         String title,
         String jobCategory,
+        String experience,
         String location,
         String hireType,
         LocalDate startDate,
         LocalDate endDate,
         String originalUrl,
         String applyQual,
-        String processInfo){
-            this.sourcePlatform =sourcePlatform;
+        String processInfo) {
+            this.sourcePlatform = sourcePlatform;
             this.originalSn = originalSn;
             this.companyName = companyName;
             this.title = title;
             this.jobCategory = jobCategory;
+            this.experience = experience;
             this.location = location;
             this.hireType = hireType;
             this.startDate = startDate;
@@ -113,55 +113,65 @@ public class JobPost {
             this.applyQual = applyQual;
             this.processInfo = processInfo;            
             this.isActive = true;
-        }
+            this.postTags = new ArrayList<>();  // ✅ 초기화
+            this.files = new ArrayList<>();     // ✅ 초기화
+    }
 
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
-        if (this.isActive == false){
+        if (this.isActive == false) {
             this.isActive = true;
         }
         validateDates();
     }
 
     @PreUpdate
-    public void  preUpdate(){
+    public void preUpdate() {
         validateDates();
     }
 
-    private void validateDates(){
-        if (endDate != null && startDate != null && endDate.isBefore(startDate)){
+    private void validateDates() {
+        if (endDate != null && startDate != null && endDate.isBefore(startDate)) {
             throw new IllegalStateException("종료일은 시작일보다 이전일 수 없습니다.");
         }
     }
 
-    public void addFile(JobFile file){
+    public void addFile(JobFile file) {
         files.add(file);
         file.setJobPost(this);
     }
 
-    public void removeFile(JobFile file){
+    public void removeFile(JobFile file) {
         files.remove(file);
         file.setJobPost(null);
     }
 
-    public void addPostTag(PostTag postTag){
-        postTags.add(postTag);
-        if (postTag.getJobPost() != this) {
-            postTag.setJobPost(this);
+    public void addPostTag(PostTag postTag) {
+        if (!postTags.contains(postTag)) {
+            postTags.add(postTag);
+            if (postTag.getJobPost() != this) {
+                postTag.setJobPost(this);
+            }
         }
     }
 
-    public void removePostTag(PostTag postTag){
+    public void removePostTag(PostTag postTag) {
         postTags.remove(postTag);
         postTag.setJobPost(null);
     }
 
-    public void addTechStack(TechStack techStack){
-        PostTag.of(this, techStack);
+    /**
+     * ✅ 기술스택 추가 - PostTag 생성 및 양방향 연관관계 설정
+     */
+    public void addTechStack(TechStack techStack) {
+         // 중복이 아닌 경우에만 생성
+        if (postTags.stream().noneMatch(pt -> pt.getTechStack().equals(techStack))) {
+            PostTag.of(this, techStack);
+        }
     }
 
-    public void removeTechStack(TechStack techStack){
+    public void removeTechStack(TechStack techStack) {
         postTags.removeIf(pt -> pt.getTechStack().equals(techStack));
     }
 
@@ -171,12 +181,11 @@ public class JobPost {
             .collect(Collectors.toList());
     }
 
-    public void deactivate(){
+    public void deactivate() {
         this.isActive = false;
     }
 
-    public void activate(){
+    public void activate() {
         this.isActive = true;
     }
-
 }
