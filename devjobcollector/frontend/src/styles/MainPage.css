@@ -1,0 +1,60 @@
+
+.main-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-top: 120px;
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.page-header h1 {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.page-header p {
+  color: #666;
+}
+
+/* 점핏 스타일 그리드 */
+.job-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.end-message {
+  text-align: center;
+  padding: 40px;
+  color: #999;
+  font-size: 14px;
+  grid-column: 1 / -1;
+}
+
+/* 반응형 */
+@media (max-width: 1024px) {
+  .job-list {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-page {
+    padding: 16px;
+  }
+  
+  .job-list {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .job-list {
+    grid-template-columns: 1fr;
+  }
+}

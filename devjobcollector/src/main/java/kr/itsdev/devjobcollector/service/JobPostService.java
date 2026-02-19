@@ -2,6 +2,7 @@ package kr.itsdev.devjobcollector.service;
 
 import kr.itsdev.devjobcollector.domain.JobPost;
 import kr.itsdev.devjobcollector.dto.JobPostDto;
+import kr.itsdev.devjobcollector.dto.TechStackDto;
 import kr.itsdev.devjobcollector.dto.JobPostDetailDto;
 import kr.itsdev.devjobcollector.dto.JobFileDto;
 import kr.itsdev.devjobcollector.repository.JobPostRepository;
@@ -12,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,7 +30,10 @@ public class JobPostService {
      */
     public Page<JobPostDto> getJobPosts(Pageable pageable) {
         log.info("채용 공고 목록 조회: page={}, size={}", pageable.getPageNumber(), pageable.getPageSize());
-        return jobPostRepository.findAll(pageable)
+
+        LocalDate today = LocalDate.now();
+
+        return jobPostRepository.findActiveJobPosts(today, pageable)
             .map(this::convertToDto);
     }
 
@@ -54,13 +59,14 @@ public class JobPostService {
             .companyName(jobPost.getCompanyName())
             .title(jobPost.getTitle())
             .jobCategory(jobPost.getJobCategory())
+            .experience(jobPost.getExperience())
             .location(jobPost.getLocation())
             .hireType(jobPost.getHireType())
             .startDate(jobPost.getStartDate())
             .endDate(jobPost.getEndDate())
             .originalUrl(jobPost.getOriginalUrl())
             .isActive(jobPost.isActive())
-            .techStacks(extractTechStacks(jobPost))
+            .techStacks(convertTechStacks(jobPost))
             .build();
     }
 
@@ -74,6 +80,7 @@ public class JobPostService {
             .companyName(jobPost.getCompanyName())
             .title(jobPost.getTitle())
             .jobCategory(jobPost.getJobCategory())
+            .experience(jobPost.getExperience())
             .location(jobPost.getLocation())
             .hireType(jobPost.getHireType())
             .startDate(jobPost.getStartDate())
@@ -83,7 +90,7 @@ public class JobPostService {
             .applyQual(jobPost.getApplyQual())
             .processInfo(jobPost.getProcessInfo())
             .isActive(jobPost.isActive())
-            .techStacks(extractTechStacks(jobPost))
+            .techStacks(convertTechStacks(jobPost))
             .files(extractFiles(jobPost))
             .build();
     }
@@ -91,14 +98,13 @@ public class JobPostService {
     /**
      * 기술 스택 추출
      */
-    private List<String> extractTechStacks(JobPost jobPost) {
-        if (jobPost.getPostTags() == null || jobPost.getPostTags().isEmpty()) {
-            return List.of();
-        }
-        
+    private List<TechStackDto> convertTechStacks(JobPost jobPost) {
         return jobPost.getPostTags().stream()
-            .map(postTag -> postTag.getTechStack().getStackName())
-            .collect(Collectors.toList());
+        .map(postTag -> TechStackDto.builder()
+            .id(postTag.getTechStack().getId())
+            .stackName(postTag.getTechStack().getStackName())
+            .build())
+        .collect(Collectors.toList());
     }
 
     /**

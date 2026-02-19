@@ -1,0 +1,9 @@
+.tech-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    margin: 4px;
+    background-color: #e3f2fd;
+    color: #1976d2;
+    border-radius: 16px;
+    font-size: 12px;
+}

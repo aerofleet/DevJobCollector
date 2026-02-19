@@ -1,0 +1,182 @@
+.scroll-to-top {
+  position: fixed;
+  bottom: 40px;
+  right: 40px;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1000;
+  
+  /* 기본: 반투명 */
+  opacity: 0.4;
+  
+  /* 부드러운 전환 */
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* 나타날 때 애니메이션 */
+  animation: slideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* 배경 */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  /* box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3); */
+  
+}
+
+/* 마우스 오버 시: 완전 불투명 */
+.scroll-to-top:hover {
+  opacity: 1 !important;
+  transform: translateY(-5px) scale(1.00);
+  /* box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5); */
+}
+
+/* 클릭 시 */
+.scroll-to-top:active {
+  transform: scale(0.95);
+}
+
+/* 진행률 표시 원 */
+.progress-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: rotate(-90deg);
+  pointer-events: none;
+}
+
+.progress-ring-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.2);
+  stroke-width: 2;
+}
+
+.progress-ring-progress {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.8);
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.3s ease;
+}
+
+/* 클릭 단계 표시 */
+.click-indicator {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.up-arrow {
+  color: white;
+  font-size: 22px;
+  transition: transform 0.3s ease;
+}
+
+/* 펄스 애니메이션 (마지막 단계) */
+.up-arrow.pulse {
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+/* 나타날 때 애니메이션 */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 0.4;
+    transform: translateY(0);
+  }
+}
+
+/* 호버 시 화살표 애니메이션 */
+.scroll-to-top:hover .up-arrow {
+  animation: arrowBounce 0.8s ease-in-out infinite;
+}
+
+@keyframes arrowBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* 모바일: 터치 디바이스 */
+@media (max-width: 768px) {
+  .scroll-to-top {
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    
+    /* 기본: 더 투명 */
+    opacity: 0.25;
+  }
+  
+  /* 터치 시: 불투명 */
+  .scroll-to-top:active {
+    opacity: 1;
+  }
+  
+  .up-arrow {
+    font-size: 20px;
+  }
+  
+  .progress-ring {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .progress-ring-bg,
+  .progress-ring-progress {
+    cx: 25;
+    cy: 25;
+    r: 22;
+  }
+}
+
+/* 태블릿 */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .scroll-to-top {
+    opacity: 0.35;
+  }
+  
+  .scroll-to-top:hover {
+    opacity: 1;
+  }
+}
+
+/* 데스크톱: 호버 가능한 디바이스만 */
+@media (hover: hover) and (pointer: fine) {
+  .scroll-to-top:hover {
+    opacity: 1;
+  }
+}
+
+/* 접근성: 포커스 */
+/* .scroll-to-top:focus {
+  outline: 3px solid rgba(102, 126, 234, 0.5);
+  outline-offset: 4px;
+  opacity: 1;
+} */
+
+/* 키보드 네비게이션 */
+.scroll-to-top:focus-visible {
+  opacity: 1;
+}

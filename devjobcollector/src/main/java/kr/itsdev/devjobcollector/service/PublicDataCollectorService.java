@@ -2,10 +2,12 @@ package kr.itsdev.devjobcollector.service;
 
 import kr.itsdev.devjobcollector.domain.JobPost;
 import kr.itsdev.devjobcollector.domain.SourcePlatform;
+import kr.itsdev.devjobcollector.domain.TechStack;
 import kr.itsdev.devjobcollector.dto.PublicDataDetailResponse;
 import kr.itsdev.devjobcollector.dto.PublicDataListResponse;
 import kr.itsdev.devjobcollector.dto.PublicJobDto;
 import kr.itsdev.devjobcollector.repository.JobPostRepository;
+import kr.itsdev.devjobcollector.repository.TechStackRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -16,6 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * 공공데이터 포털 채용 공고 수집 서비스
@@ -26,6 +31,7 @@ import java.time.LocalDate;
 public class PublicDataCollectorService {
 
     private final JobPostRepository jobPostRepository;
+    private final TechStackRepository techStackRepository;
     private final PublicDataApiClient apiClient;
     
     /**
@@ -56,15 +62,19 @@ public class PublicDataCollectorService {
         try {
             // 1. 목록 조회
             PublicDataListResponse listResponse = apiClient.fetchJobList(0, size);
-            
-            // 디버깅 로그
-            log.debug("📡 원본 응답: {}", listResponse);
 
             // 응답 검증
-            if (listResponse == null) {
-                log.error("❌ API 응답이 null입니다.");
+            if (listResponse == null || !listResponse.isSuccess()) {
+                log.error("❌ API 응답이 실패");
                 return;
             }
+
+            if (listResponse.getResult() == null || listResponse.getResult().isEmpty()) {
+                log.warn("조회된 공고가 없습니다.");
+                return;
+            }
+
+            log.info("API 응답 수신 성공: {} 건", listResponse.getResult().size());
             
             // 상세 로그
             log.info("📊 API 응답 상태:");
@@ -75,26 +85,6 @@ public class PublicDataCollectorService {
                 listResponse.getResult() != null ? listResponse.getResult().size() : "null");
             log.info("  - isSuccess(): {}", listResponse.isSuccess());
             
-            // 성공 여부 확인
-            if (!listResponse.isSuccess()) {
-                log.error("❌ API 응답 실패: {} - {}", 
-                    listResponse.getResultCode(), 
-                    listResponse.getResultMsg());
-                return;
-            }
-            
-            if (listResponse.getResult() == null) {
-                log.error("❌ result 필드가 null입니다.");
-                return;
-            }
-            
-            if (listResponse.getResult().isEmpty()) {
-                log.warn("⚠️ 조회된 공고가 없습니다.");
-                return;
-            }
-
-            log.info("✅ API 응답 수신 성공: {} 건", listResponse.getResult().size());
-
             // 2. 각 공고 처리
             for (PublicJobDto item : listResponse.getResult()) {
                 try {
@@ -201,8 +191,36 @@ public class PublicDataCollectorService {
                 return false;
             }
 
+            if (dto.getNcsCdNmLst() != null && !dto.getNcsCdNmLst().isEmpty()) {
+                log.debug("🔧 기술스택 문자열: '{}'", dto.getNcsCdNmLst());
+
+                List<TechStack> techStacks = parseTechStacks(dto.getNcsCdNmLst());
+                log.debug("📋 파싱된 기술스택: {}개", techStacks.size());
+
+                for (TechStack techStack : techStacks) {
+                    if (techStack != null) {
+                        jobPost.addTechStack(techStack);
+                        log.debug("추가: {} (ID: {})", techStack.getStackName(), techStack.getId());
+                    }
+                }
+
+                log.debug("기술 스택 {}개 추가: {}",
+                    techStacks.size(),
+                    techStacks.stream()
+                        .map(TechStack::getStackName)
+                        .collect(java.util.stream.Collectors.joining(", ")));
+            }
+
             // DB 저장
-            jobPostRepository.save(jobPost);
+            log.debug("💾 저장 시작...");
+            JobPost savedJobPost = jobPostRepository.save(jobPost);
+            jobPostRepository.flush();
+
+            if (savedJobPost.getId() == null) {
+                log.error("❌ 저장 실패: ID가 생성되지 않음");
+                return false;
+            }
+
             log.debug("💾 DB 저장 완료: {}", dto.getRecrutPblntSn());
             return true;
 
@@ -210,6 +228,107 @@ public class PublicDataCollectorService {
             log.error("❌ 저장 중 오류: {}", dto.getRecrutPblntSn(), e);
             return false;
         }
+    }
+
+    /**
+     * 기술 스택 문자열 파싱
+     */
+    private List<TechStack> parseTechStacks(String techStackString) {
+        List<TechStack> techStacks = new ArrayList<>();
+        
+        if(techStackString == null || techStackString.trim().isEmpty()) {
+            return techStacks;
+        }
+
+        log.debug("기술스택 파싱 시작: '{}'", techStackString);
+
+        String[] stackNames = techStackString.split("[,./·\\s]+");
+
+        for (String stackName : stackNames) {
+            String trimmedName = stackName.trim();
+            
+            // 유효성 검사
+            if (!isValidStackName(trimmedName)) {
+                continue;
+            }
+            
+            try {
+                // ✅ 동기화된 방식으로 조회/생성
+                TechStack techStack = getOrCreateTechStack(trimmedName);
+
+                if (techStack != null) {
+                    techStacks.add(techStack);
+                } else {
+                    log.warn("기술스택이 null로 반환됨: {}", trimmedName);
+                }                
+            } catch (Exception e) {
+                log.error("❌ 기술스택 처리 실패: {}", trimmedName, e);
+            }
+        }
+        
+        log.debug("파싱 완료: {} → {}개", techStackString, techStacks.size());
+
+        return techStacks;
+    }
+
+    /**
+     * ✅ 기술스택 조회 또는 생성 (동시성 문제 해결)
+     */
+    @Transactional
+    private TechStack getOrCreateTechStack(String stackName) {
+        Objects.requireNonNull(stackName, "stackName cannot be null");
+        // 1. 먼저 조회 시도
+        return techStackRepository.findByStackName(stackName)
+                .orElseGet(() -> {
+                    try {
+                        // 2. 없으면 생성
+                        TechStack newStack = TechStack.builder()
+                                .stackName(stackName)
+                                .build();
+                        
+                        @SuppressWarnings("null")
+                        TechStack saved = techStackRepository.save(newStack);
+                        techStackRepository.flush(); // ✅ 즉시 DB 반영
+                        
+                        log.debug("  ✅ 새 기술스택 생성: {} (id={})", stackName, saved.getId());
+                        return saved;
+                        
+                    } catch (Exception e) {
+                        // 3. 동시성으로 인한 중복 생성 시도 시 재조회
+                        log.warn("⚠️ 중복 생성 시도 감지, 재조회: {}", stackName);
+                        return techStackRepository.findByStackName(stackName)
+                                .orElseThrow(() -> new RuntimeException("기술스택 조회/생성 실패: " + stackName));
+                    }
+                });
+    }
+
+        /**
+     * 기술스택 이름 유효성 검사
+     */
+    private boolean isValidStackName(String stackName) {
+        if (stackName == null || stackName.isEmpty()) {
+            return false;
+        }
+        
+        // 2~50자
+        if (stackName.length() < 2 || stackName.length() > 50) {
+            log.debug("  ⏭️ 길이 제한: '{}'", stackName);
+            return false;
+        }
+        
+        // 숫자만 있는 경우 제외
+        if (stackName.matches("^[0-9]+$")) {
+            log.debug("  ⏭️ 숫자만: '{}'", stackName);
+            return false;
+        }
+        
+        // 특수문자만 있는 경우 제외
+        if (stackName.matches("^[^a-zA-Z0-9가-힣]+$")) {
+            log.debug("  ⏭️ 특수문자만: '{}'", stackName);
+            return false;
+        }
+        
+        return true;
     }
 
     /**
@@ -228,12 +347,19 @@ public class PublicDataCollectorService {
                 return null;
             }
 
+            String experience = dto.getRecrutSeNm();
+            if (experience == null || experience.trim().isEmpty()) {
+                experience = "경력무관";
+            }
+
             return JobPost.builder()
                 .sourcePlatform(SourcePlatform.PUBLIC_ALIO)
                 .originalSn(dto.getRecrutPblntSn())
                 .companyName(dto.getInstNm())
                 .title(dto.getRecrutPbancTtl())
                 .jobCategory(dto.getNcsCdNmLst())
+                // .experience(dto.getRecrutSeNm())
+                .experience(experience)                
                 .location(dto.getWorkRgnNmLst())
                 .hireType(dto.getHireTypeNmLst())
                 .startDate(startDate)
@@ -305,6 +431,6 @@ public class PublicDataCollectorService {
         log.info("┌─────────────────────────────────────────────┐");
         log.info("│  🚀 [시스템 시작] 초기 데이터 수집 시작        │");
         log.info("└─────────────────────────────────────────────┘");
-        this.collectAll(10);
+        this.collectAll(50);
     }
 }

@@ -2,7 +2,6 @@
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
-  text-align: center;
 }
 
 .logo {
@@ -108,15 +107,6 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-/* ===== 네비게이션 ===== */
-
-/* 스티키 네비게이션 */
-.navbar.sticky-top {
-  z-index: 1030;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);  /* Safari 지원 */
 }
 
 /* ===== 스크롤바 스타일 ===== */
