@@ -49,7 +49,6 @@ public class PostTag {
         
         // 양방향 연관관계 설정
         jobPost.getPostTags().add(postTag);
-        techStack.getPostTags().add(postTag);
         
         return postTag;
     }

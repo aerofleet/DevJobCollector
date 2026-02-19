@@ -166,9 +166,12 @@ public class JobPost {
      */
     public void addTechStack(TechStack techStack) {
          // 중복이 아닌 경우에만 생성
-        if (postTags.stream().noneMatch(pt -> pt.getTechStack().equals(techStack))) {
-            PostTag.of(this, techStack);
-        }
+        PostTag postTag = PostTag.builder()
+            .jobPost(this)
+            .techStack(techStack)
+            .build();
+    
+        this.postTags.add(postTag);
     }
 
     public void removeTechStack(TechStack techStack) {
