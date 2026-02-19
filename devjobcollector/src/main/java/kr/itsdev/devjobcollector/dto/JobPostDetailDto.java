@@ -21,6 +21,7 @@ public class JobPostDetailDto {
     private String companyName;
     private String title;
     private String jobCategory;
+    private String experience;
     private String location;
     private String hireType;
     private LocalDate startDate;
@@ -35,7 +36,7 @@ public class JobPostDetailDto {
     private boolean isActive;
 
     // 연관 데이터
-    private List<String> techStacks;
+    private List<TechStackDto> techStacks;
     private List<JobFileDto> files;
 
 }
