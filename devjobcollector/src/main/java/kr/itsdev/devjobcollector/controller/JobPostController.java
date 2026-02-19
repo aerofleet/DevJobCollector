@@ -34,7 +34,7 @@ public class JobPostController {
      * GET /api/v1/jobs/1
      */    
     @GetMapping("/{id}")
-    public ResponseEntity<JobPostDetailDto> getJobDetail(@PathVariable Long id) {
+    public ResponseEntity<JobPostDetailDto> getJobDetail(@PathVariable("id") Long id) {
         JobPostDetailDto job = jobPostService.getJobPostDetail(id);
         return ResponseEntity.ok(job);
     }
