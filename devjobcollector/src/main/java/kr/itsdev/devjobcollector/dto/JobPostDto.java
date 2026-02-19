@@ -18,14 +18,13 @@ public class JobPostDto {
     private String companyName;
     private String title;
     private String jobCategory;
+    private String experience;
     private String location;
     private String hireType;
     private LocalDate startDate;
     private LocalDate endDate;
     private String originalUrl;
     private boolean isActive;
-
-    // 기술 스택 목록
-    private List<String> techStacks;
+    private List<TechStackDto> techStacks;
     
 }
