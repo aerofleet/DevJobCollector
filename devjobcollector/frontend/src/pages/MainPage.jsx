@@ -1,45 +1,56 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { fetchJobs } from '../api/jobApi';
+import { fetchJobs, searchJobs } from '../api/jobApi';
 import JobCard from '../components/job/JobCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import '../styles/MainPage.css';
 
-const MainPage = () => {
+const MainPage = ({ searchParams = { keyword: '' } }) => {
   const [jobs, setJobs] = useState([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const keyword = searchParams.keyword?.trim() || '';
 
-  // 초기 데이터 로드
-  useEffect(() => {  
-  const loadInitialData = async () => {
-    try {
-      const data = await fetchJobs(0, 10);
-      setJobs(data.content);
-      setTotalPages(data.totalPages);
-      setPage(1);
-    } catch (error) {
-      console.error('데이터 로드 실패:', error);
+  // 공통 데이터 요청 함수
+  const fetchPage = useCallback(async (pageToLoad = 0) => {
+    if (keyword) {
+      return searchJobs(keyword, pageToLoad, 10);
     }
-  };
-  
-  loadInitialData();
-  }, []);
+    return fetchJobs(pageToLoad, 10);
+  }, [keyword]);
+
+  // 초기/검색 데이터 로드
+  useEffect(() => {  
+    const loadInitialData = async () => {
+      try {
+        const data = await fetchPage(0);
+        setJobs(data.content);
+        setTotalPages(data.totalPages);
+        setPage(1);
+      } catch (error) {
+        console.error('데이터 로드 실패:', error);
+      }
+    };
+
+    loadInitialData();
+  }, [fetchPage]);
 
   // 추가 데이터 로드
   const loadMoreData = useCallback(async () => {
     if (page >= totalPages) return false;
 
     try {
-      const data = await fetchJobs(page, 10);
+      const data = await fetchPage(page);
       setJobs(prev => [...prev, ...data.content]);
-      setPage(prev => prev + 1);
-      return page + 1 < totalPages;
+      setTotalPages(data.totalPages);
+      const nextPage = page + 1;
+      setPage(nextPage);
+      return nextPage < data.totalPages;
     } catch (error) {
       console.error('추가 데이터 로드 실패:', error);
       return false;
     }
-  }, [page, totalPages]);
+  }, [page, totalPages, fetchPage]);
 
   const { loading } = useInfiniteScroll(loadMoreData);
 
@@ -47,7 +58,9 @@ const MainPage = () => {
     <div className="main-page">
       <header className="page-header">
         <h1>개발자 채용공고</h1>
-        <p>총 {jobs.length}개의 공고</p>
+        <p>
+          {keyword ? `"${keyword}" 검색 결과: ${jobs.length}개` : `총 ${jobs.length}개의 공고`}
+        </p>
       </header>
 
       <div className="job-list">
