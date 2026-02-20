@@ -18,6 +18,14 @@ export const fetchJobs = async (page = 0, size = 10) => {
   return response.data;
 };
 
+// 채용공고 검색
+export const searchJobs = async (keyword = '', page = 0, size = 10) => {
+  const response = await apiClient.get('/jobs/search', {
+    params: { keyword, page, size },
+  });
+  return response.data;
+};
+
 // 채용공고 상세 조회
 export const fetchJobDetail = async (jobId) => {
   const response = await apiClient.get(`/jobs/${jobId}`);
