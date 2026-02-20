@@ -3,14 +3,19 @@ import React, { useState } from 'react';
 import { useScrollDirection } from '../hooks/useScrollDirection';
 import '../styles/Header.css';
 
-const Header = () => {
+const Header = ({ onSearch }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const isNavVisible = useScrollDirection(100); // 100px 이상 스크롤 시 작동
 
   const handleSearch = (e) => {
     e.preventDefault();
-    console.log('검색:', searchQuery);
+    const keyword = searchQuery.trim();
+    onSearch?.(keyword);
+    // 모바일에서는 검색 후 패널 닫기
+    if (window.innerWidth <= 768) {
+      setIsSearchOpen(false);
+    }
   };
 
   return (
@@ -29,27 +34,28 @@ const Header = () => {
           {/* 검색 영역 */}
           <div className={`search-wrap ${isSearchOpen ? 'active' : ''}`}>
             <div className="search-box">
-              <input
-                type="text"
-                placeholder="검색어를 입력해주세요"
-                maxLength={50}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                autoComplete="off"
-              />
-              <button 
-                className="search-button" 
-                type="button"
-                aria-label="검색"
-                onClick={handleSearch}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24">
-                  <g fill="none" fillRule="evenodd" stroke="#222" strokeWidth="2">
-                    <circle cx="11.111" cy="11.111" r="7.111" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="m20 20-3.867-3.867" />
-                  </g>
-                </svg>
-              </button>
+              <form onSubmit={handleSearch}>
+                <input
+                  type="text"
+                  placeholder="검색어를 입력해주세요"
+                  maxLength={50}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  autoComplete="off"
+                />
+                <button 
+                  className="search-button" 
+                  type="submit"
+                  aria-label="검색"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24">
+                    <g fill="none" fillRule="evenodd" stroke="#222" strokeWidth="2">
+                      <circle cx="11.111" cy="11.111" r="7.111" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="m20 20-3.867-3.867" />
+                    </g>
+                  </svg>
+                </button>
+              </form>
             </div>
             <button 
               className="close-button"
