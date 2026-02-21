@@ -53,17 +53,25 @@ public class JobPostController {
      */
     @GetMapping("/search")
     public ResponseEntity<Page<JobPostDto>> searchJobPosts(
-        @RequestParam(required = false) String keyword,
-        @RequestParam(required = false) String location,
-        @RequestParam(required = false) String experience,
-        @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "20") int size,
-        @RequestParam(defaultValue = "createdAt") String sortBy,
-        @RequestParam(defaultValue = "DESC") Sort.Direction direction
+        @RequestParam(name = "keyword", required = false) String keyword,
+        @RequestParam(name = "location", required = false) String location,
+        @RequestParam(name = "experience", required = false) String experience,
+        @RequestParam(name = "page", defaultValue = "0") int page,
+        @RequestParam(name = "size", defaultValue = "20") int size,
+        @RequestParam(name = "sortBy", defaultValue = "endDate") String sortBy,
+        @RequestParam(name = "direction", defaultValue = "ASC") Sort.Direction direction
     ) {
         log.info("검색 요청 - keyword: {}, location: {}, experience: {}, page: {}, size: {}",
                 keyword, location, experience, page, size);
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Sort.Direction sortDirection = (direction != null) ? direction : Sort.Direction.ASC;
+
+        String sortProperty = (sortBy != null && !sortBy.isBlank()) ? sortBy : "endDate";
+
+        // 1순위: D-Day(마감일) 오름차순, 2순위: 최근 등록 내림차순
+        Sort sort = Sort.by(new Sort.Order(sortDirection, sortProperty))
+                        .and(Sort.by(Sort.Order.desc("createdAt")));
+
+        Pageable pageable = PageRequest.of(page, size, sort);
 
         Page<JobPostDto> results = jobPostService.searchJobPosts(
                 keyword, location, experience, pageable);
@@ -79,7 +87,7 @@ public class JobPostController {
     @GetMapping("/active")
     public ResponseEntity<Page<JobPostDto>> getActiveJobs(
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        log.info("활성 채용공고 조회 요청 - page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSizer());
+        log.info("활성 채용공고 조회 요청 - page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
         Page<JobPostDto> jobs = jobPostService.getActiveJobPosts(pageable);
         return ResponseEntity.ok(jobs);       
     }
@@ -89,7 +97,7 @@ public class JobPostController {
      */
     @GetMapping("/tech-stack")
     public ResponseEntity<Page<JobPostDto>> getJobsByTechStack(
-            @RequestParam String stackName,
+            @RequestParam(name = "stackName") String stackName,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         log.info("기술스택 필터링 요청 - stackName: {}, page: {}, size: {}", 
                 stackName, pageable.getPageNumber(), pageable.getPageSize());
