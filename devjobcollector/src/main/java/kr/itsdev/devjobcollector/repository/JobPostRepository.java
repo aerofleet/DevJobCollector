@@ -52,8 +52,36 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
      * 복합 검색 (제목 또는 회사명)
      */
     @Query("SELECT j FROM JobPost j WHERE " +
-           "j.title LIKE %:keyword% OR j.companyName LIKE %:keyword%")
+           "LOWER(j.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "LOWER(j.companyName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     Page<JobPost> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
+
+    /**
+     * 전 필드 통합 검색 (제목/회사명/지역/경력/직무/고용형태/요약/전형/원문 URL/기술스택)
+     * - 활성 상태 + 마감일 유효 조건 포함
+     * - DISTINCT로 중복 제거 (기술스택 JOIN 시 다중 행 방지)
+     */
+    @Query("SELECT DISTINCT j FROM JobPost j " +
+           "LEFT JOIN j.postTags pt " +
+           "LEFT JOIN pt.techStack ts " +
+           "WHERE j.isActive = true " +
+           "AND j.endDate >= :today " +
+           "AND ( :keyword IS NULL OR :keyword = '' " +
+           "   OR LOWER(j.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "   OR LOWER(j.companyName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "   OR LOWER(j.location) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "   OR LOWER(j.experience) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "   OR LOWER(j.jobCategory) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "   OR LOWER(j.hireType) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "   OR LOWER(j.applyQual) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "   OR LOWER(j.processInfo) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "   OR LOWER(j.originalUrl) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "   OR LOWER(ts.stackName) LIKE LOWER(CONCAT('%', :keyword, '%')) )")
+    Page<JobPost> searchByAllFields(
+        @Param("keyword") String keyword,
+        @Param("today") LocalDate today,
+        Pageable pageable
+    );
     
     // ===== 중복 체크 =====
     
