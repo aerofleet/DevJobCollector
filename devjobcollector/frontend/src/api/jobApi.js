@@ -21,7 +21,13 @@ export const fetchJobs = async (page = 0, size = 10) => {
 // 채용공고 검색
 export const searchJobs = async (keyword = '', page = 0, size = 10) => {
   const response = await apiClient.get('/jobs/search', {
-    params: { keyword, page, size },
+    // 백엔드 @RequestParam 이름과 일치하도록 명시
+    params: { 
+      keyword: keyword?.trim() || '', 
+      page, 
+      size,
+      // location, experience 필요 시 추가 전달 가능
+    },
   });
   return response.data;
 };
