@@ -38,6 +38,47 @@ public class JobPostService {
     }
 
     /**
+     * 통합 검색 (모든 텍스트 필드 + 기술스택)
+     * - keyword 없으면 활성 공고 전체 반환
+     * - 마감일 지난 공고 제외
+     */
+    public Page<JobPostDto> searchJobPosts(String keyword, String location, String experience, Pageable pageable) {
+        log.info("채용 공고 검색: keyword={}, location={}, experience={}, page={}, size={}",
+                keyword, location, experience, pageable.getPageNumber(), pageable.getPageSize());
+
+        LocalDate today = LocalDate.now();
+        Page<JobPost> results;
+
+        if (keyword != null && !keyword.isBlank()) {
+            results = jobPostRepository.searchByAllFields(keyword, today, pageable);
+        } else {
+            // 키워드 없으면 활성/유효 공고 전체
+            results = jobPostRepository.findActiveJobPosts(today, pageable);
+        }
+
+        return results.map(this::convertToDto);
+    }
+
+    /**
+     * 활성 공고 조회
+     */
+    public Page<JobPostDto> getActiveJobPosts(Pageable pageable) {
+        log.info("활성 채용 공고 조회: page={}, size={}", pageable.getPageNumber(), pageable.getPageSize());
+        LocalDate today = LocalDate.now();
+        return jobPostRepository.findActiveJobPosts(today, pageable)
+                .map(this::convertToDto);
+    }
+
+    /**
+     * 기술 스택 기준 조회
+     */
+    public Page<JobPostDto> getJobPostsByTechStack(String stackName, Pageable pageable) {
+        log.info("기술 스택 기준 조회: stackName={}, page={}, size={}", stackName, pageable.getPageNumber(), pageable.getPageSize());
+        return jobPostRepository.findByTechStackName(stackName, pageable)
+                .map(this::convertToDto);
+    }
+
+    /**
      * 채용 공고 상세 조회
      */
     @SuppressWarnings("null") 
@@ -99,12 +140,17 @@ public class JobPostService {
      * 기술 스택 추출
      */
     private List<TechStackDto> convertTechStacks(JobPost jobPost) {
+        if (jobPost.getPostTags() == null || jobPost.getPostTags().isEmpty()) {
+            return List.of();
+        }
+
         return jobPost.getPostTags().stream()
-        .map(postTag -> TechStackDto.builder()
-            .id(postTag.getTechStack().getId())
-            .stackName(postTag.getTechStack().getStackName())
-            .build())
-        .collect(Collectors.toList());
+            .filter(pt -> pt.getTechStack() != null)
+            .map(postTag -> TechStackDto.builder()
+                .id(postTag.getTechStack().getId())
+                .stackName(postTag.getTechStack().getStackName())
+                .build())
+            .collect(Collectors.toList());
     }
 
     /**
