@@ -12,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -28,13 +29,15 @@ public class JobPostService {
     /**
      * 채용 공고 목록 조회 (페이징)
      */
+    @Transactional(readOnly = false)
     public Page<JobPostDto> getJobPosts(Pageable pageable) {
         log.info("채용 공고 목록 조회: page={}, size={}", pageable.getPageNumber(), pageable.getPageSize());
 
-        LocalDate today = LocalDate.now();
+        deactivateExpiredPosts();
 
+        LocalDate today = LocalDate.now();
         return jobPostRepository.findActiveJobPosts(today, pageable)
-            .map(this::convertToDto);
+                .map(this::convertToDto);
     }
 
     /**
@@ -42,11 +45,13 @@ public class JobPostService {
      * - keyword 없으면 활성 공고 전체 반환
      * - 마감일 지난 공고 제외
      */
+    @Transactional(readOnly = false)
     public Page<JobPostDto> searchJobPosts(String keyword, String location, String experience, Pageable pageable) {
         log.info("채용 공고 검색: keyword={}, location={}, experience={}, page={}, size={}",
                 keyword, location, experience, pageable.getPageNumber(), pageable.getPageSize());
 
         LocalDate today = LocalDate.now();
+        deactivateExpiredPosts();
         Page<JobPost> results;
 
         if (keyword != null && !keyword.isBlank()) {
@@ -168,5 +173,46 @@ public class JobPostService {
                 .fileUrl(file.getFileUrl())
                 .build())
             .collect(Collectors.toList());
+    }
+
+    /**
+     * 만료된 공고를 비활성화
+     */
+    @Transactional(readOnly = false)
+    public void deactivateExpiredPosts() {
+        LocalDate today = LocalDate.now();
+        int updated = jobPostRepository.deactivateExpired(today);
+        if (updated > 0) {
+            log.info("만료된 공고 {}건 비활성화 완료 (기준일: {})", updated, today);
+        }
+    }
+
+    /**
+     * 매일 00:05 만료 공고 비활성화
+     */
+    @Scheduled(cron = "0 5 0 * * *")
+    @Transactional(readOnly = false)
+    public void scheduledDeactivateExpiredPosts() {
+        deactivateExpiredPosts();
+    }
+
+    /**
+     * 매일 00:30 1년 이상된 비활성 공고 백업 로그 후 물리 삭제
+     */
+    @Scheduled(cron = "0 30 0 * * *")
+    @Transactional(readOnly = false)
+    public void purgeInactiveOlderThanOneYear() {
+        LocalDate threshold = LocalDate.now().minusYears(1);
+        List<Long> backupIds = jobPostRepository.findInactiveIdsOlderThan(threshold);
+        if (!backupIds.isEmpty()) {
+            // 간단 백업: ID 목록 로그 (필요 시 외부 백업 스토리지 연동)
+            List<Long> preview = backupIds.size() > 50 ? backupIds.subList(0, 50) : backupIds;
+            log.info("백업 대상 비활성 공고 {}건 (표본 50개): {}", backupIds.size(), preview);
+        }
+
+        int deleted = jobPostRepository.deleteInactiveOlderThan(threshold);
+        if (deleted > 0) {
+            log.info("1년 초과 비활성 공고 {}건 물리 삭제 완료 (기준일: {})", deleted, threshold);
+        }
     }
 }
