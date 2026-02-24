@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchJobDetail } from '../api/jobApi';
-import TechStackBadge from '../components/job/TechStackBadge';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import TechStackBadge from '../components/job/TechStackBadge';
 import { formatDate } from '../utils/dateParser';
+import { getDaysRemaining } from '../utils/dateParser';
 import '../styles/DetailPage.css';
 
 const DetailPage = () => {
@@ -36,6 +37,8 @@ const DetailPage = () => {
   if (error) return <div className="error-message">{error}</div>;
   if (!job) return <div className="error-message">공고를 찾을 수 없습니다.</div>;
 
+  const daysRemaining = getDaysRemaining(job.endDate);
+
   return (
     <div className="detail-page">
       <button className="back-button" onClick={() => navigate(-1)}>
@@ -45,11 +48,10 @@ const DetailPage = () => {
       <div className="detail-container">
         <header className="detail-header">
           <h1>{job.title}</h1>
-          <h2>{job.company}</h2>
+          <span>{job.companyName} {'>'}</span>
         </header>
 
-        <section className="detail-section">
-          <h3>📋 공고 정보</h3>
+        <section className="detail-section-top">
           <div className="info-grid">
             <div className="info-item">
               <span className="label">위치</span>
@@ -60,30 +62,44 @@ const DetailPage = () => {
               <span className="value">{job.experience || '경력무관'}</span>
             </div>
             <div className="info-item">
-              <span className="label">시작일</span>
+              <span className="label">공고일</span>
               <span className="value">{formatDate(job.startDate)}</span>
             </div>
             <div className="info-item">
               <span className="label">마감일</span>
               <span className="value">{formatDate(job.endDate)}</span>
             </div>
+            <div className="info-item">
+              {daysRemaining !== null && daysRemaining >= 0 && (
+                <span className='days-badge-d'>D-{daysRemaining}</span>
+              )}
+            </div>
           </div>
         </section>
 
         <section className="detail-section">
-          <h3>💻 기술 스택</h3>
+          <h3>카테고리</h3>
           <div className="tech-stack">
-            {job.techStack?.map((tech, index) => (
-              <TechStackBadge key={index} tech={tech} />
+            {job.techStacks?.map((tech) => (
+              <TechStackBadge key={tech.id} tech={tech} />
             ))}
           </div>
         </section>
 
-        {job.description && (
+        {job.processInfo && (
           <section className="detail-section">
-            <h3>📝 상세 설명</h3>
+            <h3>전형 절차</h3>
             <div className="description">
-              {job.description}
+              {job.processInfo}
+            </div>
+          </section>
+        )}
+
+        {job.applyQual && (
+          <section className="detail-section">
+            <h3>상세 설명</h3>
+            <div className="description">
+              {job.applyQual}
             </div>
           </section>
         )}

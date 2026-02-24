@@ -84,7 +84,7 @@ const Header = ({ onSearch }) => {
         <nav className={`nav ${isNavVisible ? 'nav-visible' : 'nav-hidden'}`} aria-label="Main navigation">
            
           <ul className="nav-left">
-            <li><a href="/positions?sort=popular">개발자 채용</a></li>
+            <li><a href="/">채용 공고</a></li>
             <li><a href="/resumes">이력서</a></li>
             <li><a href="/feed">#꿀 피드</a></li>
             <li><a href="/job-interview">개발자 인터뷰</a></li>

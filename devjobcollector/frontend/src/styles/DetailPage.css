@@ -2,7 +2,7 @@
 .detail-page {
   max-width: 900px;
   margin: 0 auto;
-  padding: 20px;
+  padding-top: 120px;
 }
 
 .back-button {
@@ -27,40 +27,101 @@
 }
 
 .detail-header {
-  border-bottom: 2px solid #f0f0f0;
-  padding-bottom: 20px;
-  margin-bottom: 30px;
+  border-bottom: 2px solid #dbdbdb3f;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
 }
 
 .detail-header h1 {
   font-size: 28px;
   margin-bottom: 8px;
+  color: #333;
 }
 
 .detail-header h2 {
-  color: #666;
+  color: #333;
   font-size: 20px;
   font-weight: 500;
 }
 
+.detail-header span {
+  color: #222;
+  font-size: 14px;
+}
+
 .detail-section {
-  margin: 30px 0;
+  margin: 30px 0 90px;
+}
+
+.detail-section-top {
+  margin: 50px 0;
 }
 
 .detail-section h3 {
   font-size: 20px;
   margin-bottom: 16px;
+  color: #222;
 }
 
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+/* Tablet: adjust grid and spacing */
+@media (max-width: 1024px) {
+  .detail-container {
+    padding: 28px;
+  }
+
+  .info-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .detail-section {
+    margin: 24px 0 60px;
+  }
+}
+
+/* Mobile: single column and compact layout */
+@media (max-width: 640px) {
+  .detail-page {
+    padding: 24px 16px 60px;
+  }
+
+  .detail-container {
+    padding: 20px;
+  }
+
+  .detail-header h1 {
+    font-size: 22px;
+  }
+
+  .detail-section {
+    margin: 20px 0 40px;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .info-item {
+    align-items: flex-start;
+  }
+
+  .apply-button {
+    width: 100%;
+    text-align: center;
+  }
 }
 
 .info-item {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 4px;
 }
 
@@ -88,8 +149,8 @@
 
 .apply-button {
   display: inline-block;
-  background-color: #1976d2;
-  color: white;
+  background-color: #eeeeee;
+  color: rgb(0, 0, 0);
   padding: 14px 40px;
   border-radius: 8px;
   text-decoration: none;
@@ -99,7 +160,7 @@
 }
 
 .apply-button:hover {
-  background-color: #1565c0;
+  background-color: #f8f9fa;
 }
 
 .error-message {
@@ -107,3 +168,36 @@
   padding: 60px 20px;
   color: #999;
 }
+
+/* 기술 스택 */
+.tech-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+  min-height: 28px; 
+  justify-content: left;
+}
+
+.tech-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  background-color: #f1f3f5;
+  color: #495057;
+  border-radius: 4px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.days-badge-d {
+  width: fit-content;
+  background-color: rgba(255, 255, 255, 0.8);
+  color: rgb(68, 68, 68);
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 700;
+  border: 1px solid rgb(255, 255, 255);
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 2px 0px, rgba(0, 0, 0, 0.08) 0px -2px 4px 0px;
+}
+

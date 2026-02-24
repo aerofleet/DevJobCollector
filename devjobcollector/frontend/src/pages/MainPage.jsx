@@ -61,7 +61,7 @@ const MainPage = ({ searchParams = { keyword: '' } }) => {
   return (
     <div className="main-page">
       <header className="page-header">
-        <h1>개발자 채용공고</h1>
+        <h1>채용 공고</h1>
         <p>
           {keyword
             ? `"${keyword}" 검색 결과: ${totalElements}개`
