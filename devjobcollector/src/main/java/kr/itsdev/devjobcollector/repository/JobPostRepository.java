@@ -5,11 +5,13 @@ import kr.itsdev.devjobcollector.domain.SourcePlatform;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -182,4 +184,24 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
     @Query("SELECT COUNT(j) FROM JobPost j " +
            "WHERE DATE(j.createdAt) = :today")
     long countTodayPosts(@Param("today") LocalDate today);
+
+    /**
+     * 만료된 공고 비활성화
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE JobPost j SET j.isActive = false WHERE j.endDate < :today AND j.isActive = true")
+    int deactivateExpired(@Param("today") LocalDate today);
+
+    /**
+     * 1년 이상 지난 비활성 공고 ID 조회 (백업용)
+     */
+    @Query("SELECT j.id FROM JobPost j WHERE j.isActive = false AND j.endDate < :threshold")
+    List<Long> findInactiveIdsOlderThan(@Param("threshold") LocalDate threshold);
+
+    /**
+     * 1년 이상 지난 비활성 공고 물리 삭제
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM JobPost j WHERE j.isActive = false AND j.endDate < :threshold")
+    int deleteInactiveOlderThan(@Param("threshold") LocalDate threshold);
 }
