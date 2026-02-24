@@ -9,6 +9,7 @@ const MainPage = ({ searchParams = { keyword: '' } }) => {
   const [jobs, setJobs] = useState([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
   const keyword = searchParams.keyword?.trim() || '';
 
   // 공통 데이터 요청 함수
@@ -25,7 +26,8 @@ const MainPage = ({ searchParams = { keyword: '' } }) => {
       try {
         const data = await fetchPage(0);
         setJobs(data.content);
-        setTotalPages(data.totalPages);
+        setTotalPages(data.totalPages ?? data.page?.totalPages ?? 0);
+        setTotalElements(data.totalElements ?? data.page?.totalElements ?? 0);
         setPage(1);
       } catch (error) {
         console.error('데이터 로드 실패:', error);
@@ -42,10 +44,12 @@ const MainPage = ({ searchParams = { keyword: '' } }) => {
     try {
       const data = await fetchPage(page);
       setJobs(prev => [...prev, ...data.content]);
-      setTotalPages(data.totalPages);
+      setTotalPages(data.totalPages ?? data.page?.totalPages ?? totalPages);
+      setTotalElements(prev => data.totalElements ?? data.page?.totalElements ?? prev);
       const nextPage = page + 1;
       setPage(nextPage);
-      return nextPage < data.totalPages;
+      const maxPages = data.totalPages ?? data.page?.totalPages ?? totalPages;
+      return nextPage < maxPages;
     } catch (error) {
       console.error('추가 데이터 로드 실패:', error);
       return false;
@@ -59,7 +63,9 @@ const MainPage = ({ searchParams = { keyword: '' } }) => {
       <header className="page-header">
         <h1>개발자 채용공고</h1>
         <p>
-          {keyword ? `"${keyword}" 검색 결과: ${jobs.length}개` : `총 ${jobs.length}개의 공고`}
+          {keyword
+            ? `"${keyword}" 검색 결과: ${totalElements}개`
+            : `총 ${totalElements}개의 공고`}
         </p>
       </header>
 
