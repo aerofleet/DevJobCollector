@@ -19,8 +19,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * 공공데이터 포털 채용 공고 수집 서비스
@@ -85,10 +87,22 @@ public class PublicDataCollectorService {
                 listResponse.getResult() != null ? listResponse.getResult().size() : "null");
             log.info("  - isSuccess(): {}", listResponse.isSuccess());
             
-            // 2. 각 공고 처리
+            // 2. 원본 일련번호 일괄 중복 체크 (쿼리 1회)
+            List<String> originalSnList = listResponse.getResult().stream()
+                    .map(PublicJobDto::getRecrutPblntSn)
+                    .filter(Objects::nonNull)
+                    .toList();
+
+            Set<String> existingSnSet = new HashSet<>(
+                    jobPostRepository.findExistingOriginalSns(SourcePlatform.PUBLIC_ALIO, originalSnList)
+            );
+            log.debug("✅ 중복 체크 완료: {} / {}건 기존 존재", existingSnSet.size(), originalSnList.size());
+
+            // 3. 각 공고 처리
             for (PublicJobDto item : listResponse.getResult()) {
+                String originalSn = null;
                 try {
-                    String originalSn = item.getRecrutPblntSn();
+                    originalSn = item.getRecrutPblntSn();
                     
                     log.debug("🔍 처리 중: {} - {}", item.getInstNm(), item.getRecrutPbancTtl());
                     
@@ -99,8 +113,8 @@ public class PublicDataCollectorService {
                         continue;
                     }
 
-                    // 중복 체크
-                    if (isDuplicate(originalSn)) {
+                    // 중복 체크 (일괄 조회 결과 사용)
+                    if (existingSnSet.contains(originalSn)) {
                         log.debug("⏭️ 중복 스킵: {}", originalSn);
                         skipCount++;
                         continue;
@@ -128,6 +142,11 @@ public class PublicDataCollectorService {
                 } catch (Exception e) {
                     log.error("❌ 개별 처리 실패: {}", item.getRecrutPblntSn(), e);
                     errorCount++;
+                }
+
+                // 신규 저장 시 중복 집합에 추가해 동일 배치 내 중복 방지
+                if (originalSn != null) {
+                    existingSnSet.add(originalSn);
                 }
             }
 

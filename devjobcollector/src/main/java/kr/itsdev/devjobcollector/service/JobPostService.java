@@ -9,7 +9,9 @@ import kr.itsdev.devjobcollector.repository.JobPostRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -30,14 +32,19 @@ public class JobPostService {
      * 채용 공고 목록 조회 (페이징)
      */
     @Transactional(readOnly = false)
+    @SuppressWarnings("null") // Stream.toList nullness noise from JDT
     public Page<JobPostDto> getJobPosts(Pageable pageable) {
         log.info("채용 공고 목록 조회: page={}, size={}", pageable.getPageNumber(), pageable.getPageSize());
 
         deactivateExpiredPosts();
 
         LocalDate today = LocalDate.now();
-        return jobPostRepository.findActiveJobPosts(today, pageable)
-                .map(this::convertToDto);
+        Slice<JobPost> slice = jobPostRepository.findActiveAndNotExpiredSlice(today, pageable);
+        long total = jobPostRepository.countActiveAndValid(today);
+        List<JobPostDto> content = slice.getContent().stream()
+                .map(this::convertToDto)
+                .toList();
+        return new PageImpl<>(content, pageable, total);
     }
 
     /**
@@ -46,32 +53,39 @@ public class JobPostService {
      * - 마감일 지난 공고 제외
      */
     @Transactional(readOnly = false)
+    @SuppressWarnings("null") // Stream.toList nullness noise from JDT
     public Page<JobPostDto> searchJobPosts(String keyword, String location, String experience, Pageable pageable) {
         log.info("채용 공고 검색: keyword={}, location={}, experience={}, page={}, size={}",
                 keyword, location, experience, pageable.getPageNumber(), pageable.getPageSize());
 
         LocalDate today = LocalDate.now();
         deactivateExpiredPosts();
-        Page<JobPost> results;
-
         if (keyword != null && !keyword.isBlank()) {
-            results = jobPostRepository.searchByAllFields(keyword, today, pageable);
-        } else {
-            // 키워드 없으면 활성/유효 공고 전체
-            results = jobPostRepository.findActiveJobPosts(today, pageable);
+            return jobPostRepository.searchByAllFieldsOptimized(keyword, today, pageable)
+                    .map(this::convertToDto);
         }
 
-        return results.map(this::convertToDto);
+        Slice<JobPost> slice = jobPostRepository.findActiveAndNotExpiredSlice(today, pageable);
+        long total = jobPostRepository.countActiveAndValid(today);
+        List<JobPostDto> content = slice.getContent().stream()
+                .map(this::convertToDto)
+                .toList();
+        return new PageImpl<>(content, pageable, total);
     }
 
     /**
      * 활성 공고 조회
      */
+    @SuppressWarnings("null") // Stream.toList nullness noise from JDT
     public Page<JobPostDto> getActiveJobPosts(Pageable pageable) {
         log.info("활성 채용 공고 조회: page={}, size={}", pageable.getPageNumber(), pageable.getPageSize());
         LocalDate today = LocalDate.now();
-        return jobPostRepository.findActiveJobPosts(today, pageable)
-                .map(this::convertToDto);
+        Slice<JobPost> slice = jobPostRepository.findActiveAndNotExpiredSlice(today, pageable);
+        long total = jobPostRepository.countActiveAndValid(today);
+        List<JobPostDto> content = slice.getContent().stream()
+                .map(this::convertToDto)
+                .toList();
+        return new PageImpl<>(content, pageable, total);
     }
 
     /**
@@ -79,7 +93,8 @@ public class JobPostService {
      */
     public Page<JobPostDto> getJobPostsByTechStack(String stackName, Pageable pageable) {
         log.info("기술 스택 기준 조회: stackName={}, page={}, size={}", stackName, pageable.getPageNumber(), pageable.getPageSize());
-        return jobPostRepository.findByTechStackName(stackName, pageable)
+        LocalDate today = LocalDate.now();
+        return jobPostRepository.findByTechStackNamesOptimized(List.of(stackName), today, pageable)
                 .map(this::convertToDto);
     }
 

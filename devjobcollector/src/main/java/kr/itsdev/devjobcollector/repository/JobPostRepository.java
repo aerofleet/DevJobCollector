@@ -4,6 +4,8 @@ import kr.itsdev.devjobcollector.domain.JobPost;
 import kr.itsdev.devjobcollector.domain.SourcePlatform;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -19,72 +21,40 @@ import java.util.Optional;
  * 채용 공고 데이터 접근 계층
  */
 @Repository
-public interface JobPostRepository extends JpaRepository<JobPost, Long> {
+public interface JobPostRepository extends JpaRepository<JobPost, Long>, JobPostRepositoryCustom {
     
-    // ===== 기본 조회 =====
+    // ===== 기본 조회 (무한 스크롤 대응 Slice) =====
     
-    /**
-     * 활성 공고만 조회
-     */
-    Page<JobPost> findByIsActiveTrue(Pageable pageable);
+    Slice<JobPost> findByIsActiveTrue(Pageable pageable);
     
-    /**
-     * 특정 플랫폼의 공고 조회
-     */
-    Page<JobPost> findBySourcePlatform(SourcePlatform sourcePlatform, Pageable pageable);
-    
-    // ===== 검색 =====
-    
-    /**
-     * 회사명으로 검색
-     */
-    Page<JobPost> findByCompanyNameContaining(String companyName, Pageable pageable);
-    
-    /**
-     * 제목으로 검색
-     */
-    Page<JobPost> findByTitleContaining(String title, Pageable pageable);
-    
-    /**
-     * 지역으로 검색
-     */
-    Page<JobPost> findByLocationContaining(String location, Pageable pageable);
-    
-    /**
-     * 복합 검색 (제목 또는 회사명)
-     */
-    @Query("SELECT j FROM JobPost j WHERE " +
-           "LOWER(j.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-           "LOWER(j.companyName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
-    Page<JobPost> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
+    Slice<JobPost> findBySourcePlatform(SourcePlatform sourcePlatform, Pageable pageable);
 
     /**
-     * 전 필드 통합 검색 (제목/회사명/지역/경력/직무/고용형태/요약/전형/원문 URL/기술스택)
-     * - 활성 상태 + 마감일 유효 조건 포함
-     * - DISTINCT로 중복 제거 (기술스택 JOIN 시 다중 행 방지)
+     * 활성 + 마감일이 지나지 않은 공고 조회 (무한 스크롤)
      */
-    @Query("SELECT DISTINCT j FROM JobPost j " +
-           "LEFT JOIN j.postTags pt " +
-           "LEFT JOIN pt.techStack ts " +
+    @Query("SELECT j FROM JobPost j " +
            "WHERE j.isActive = true " +
            "AND j.endDate >= :today " +
-           "AND ( :keyword IS NULL OR :keyword = '' " +
-           "   OR LOWER(j.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-           "   OR LOWER(j.companyName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-           "   OR LOWER(j.location) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-           "   OR LOWER(j.experience) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-           "   OR LOWER(j.jobCategory) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-           "   OR LOWER(j.hireType) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-           "   OR LOWER(j.applyQual) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-           "   OR LOWER(j.processInfo) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-           "   OR LOWER(j.originalUrl) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-           "   OR LOWER(ts.stackName) LIKE LOWER(CONCAT('%', :keyword, '%')) )")
-    Page<JobPost> searchByAllFields(
-        @Param("keyword") String keyword,
+           "ORDER BY j.createdAt DESC")
+    Slice<JobPost> findActiveAndNotExpiredSlice(
         @Param("today") LocalDate today,
         Pageable pageable
     );
     
+    // ===== 검색 =====
+    
+    @Query("SELECT j FROM JobPost j WHERE " +
+           "j.isActive = true " +
+           "AND j.endDate >= :today " +
+           "AND (LOWER(j.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "     LOWER(j.companyName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "     LOWER(j.location) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Slice<JobPost> searchByKeywordSlice(
+        @Param("keyword") String keyword,
+        @Param("today") LocalDate today,
+        Pageable pageable
+    );
+
     // ===== 중복 체크 =====
     
     /**
@@ -115,54 +85,17 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
      */
     Page<JobPost> findByEndDateBefore(LocalDate date, Pageable pageable);
     
-    /**
-     * 활성 + 마감일이 지나지 않은 공고 조회
-     */
-    @Query("SELECT j FROM JobPost j " +
-           "WHERE j.isActive = true " +
-           "AND j.endDate >= :today " +
-           "ORDER BY j.createdAt DESC")
-    Page<JobPost> findActiveAndNotExpired(
-        @Param("today") LocalDate today, 
-        Pageable pageable
-    );
-
-    /**
-     * 마감일이 지나지 않은 공고만 조회
-     */
-    @Query("SELECT j FROM JobPost j WHERE j.endDate >= :today AND j.isActive = true")
-    Page<JobPost> findActiveJobPosts(@Param("today") LocalDate today, Pageable pageable);
-    
-    /**
-     * 또는 Spring Data JPA 메서드 명명 규칙 사용
-     */
-    Page<JobPost> findByEndDateGreaterThanEqualAndIsActiveTrue(LocalDate today, Pageable pageable);
-    
-    // ===== 기술 스택 검색 =====
-    
-    /**
-     * 특정 기술 스택을 포함하는 공고 조회
-     */
-    @Query("SELECT DISTINCT j FROM JobPost j " +
-           "JOIN j.postTags pt " +
-           "JOIN pt.techStack ts " +
-           "WHERE ts.stackName = :stackName " +
-           "AND j.isActive = true")
-    Page<JobPost> findByTechStackName(
-        @Param("stackName") String stackName, 
-        Pageable pageable
-    );
-    
-    /**
-     * 여러 기술 스택 중 하나라도 포함하는 공고 조회
-     */
+    // ===== 기술 스택 검색 (Slice) =====
+    @EntityGraph(attributePaths = {"postTags", "postTags.techStack"})
     @Query("SELECT DISTINCT j FROM JobPost j " +
            "JOIN j.postTags pt " +
            "JOIN pt.techStack ts " +
            "WHERE ts.stackName IN :stackNames " +
-           "AND j.isActive = true")
-    Page<JobPost> findByTechStackNames(
-        @Param("stackNames") Iterable<String> stackNames, 
+           "AND j.isActive = true " +
+           "AND j.endDate >= :today")
+    Slice<JobPost> findByTechStackNamesSlice(
+        @Param("stackNames") List<String> stackNames,
+        @Param("today") LocalDate today,
         Pageable pageable
     );
     
@@ -172,12 +105,30 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
      * 활성 공고 개수
      */
     long countByIsActiveTrue();
-    
+
     /**
      * 특정 플랫폼의 공고 개수
      */
     long countBySourcePlatform(SourcePlatform sourcePlatform);
-    
+
+    /**
+     * 일괄 중복 체크: 플랫폼 + 원본 일련번호 목록 존재 여부
+     */
+    @Query("SELECT j.originalSn FROM JobPost j " +
+           "WHERE j.sourcePlatform = :platform " +
+           "AND j.originalSn IN :originalSnList")
+    List<String> findExistingOriginalSns(
+        @Param("platform") SourcePlatform platform,
+        @Param("originalSnList") List<String> originalSnList
+    );
+
+    /**
+     * 활성 + 마감일 유효 공고 개수
+     */
+    @Query("SELECT COUNT(j) FROM JobPost j " +
+           "WHERE j.isActive = true AND j.endDate >= :today")
+    long countActiveAndValid(@Param("today") LocalDate today);
+
     /**
      * 오늘 등록된 공고 개수
      */
