@@ -3,6 +3,14 @@
 /* Pretendard 폰트 */
 @import "pretendard/dist/web/static/pretendard.css";
 
+/* DJC 컬러 아이덴티티 */
+:root {
+  --djc-main-color: #004ea2;
+  --djc-hover-color: #003670;
+  --gray-light: #f4f4f4;
+  --text-dark: #333;
+}
+
 /* 전역 스타일 */
 * {
   margin: 0;
