@@ -21,7 +21,7 @@ const Header = ({ onSearch }) => {
   return (
     <header className={`header ${isNavVisible ? '' : 'nav-collapsed'}`}>
       <div className="header-container">
-        <div className="container">
+        <div className="container g-0">
           {/* 로고 영역 */}
           <div className="logo-wrap">
             <a href="/" aria-label="홈으로 이동">
@@ -91,8 +91,8 @@ const Header = ({ onSearch }) => {
           </ul>
 
           <ul className="nav-right">
-            <li><a href="/login">회원가입/로그인</a></li>
-            <li><a href="/business">기업 서비스</a></li>
+            <li><a href="/login">로그인</a></li>
+            <li><a href="/register">회원가입</a></li>
           </ul>
         </nav>
       </div>
