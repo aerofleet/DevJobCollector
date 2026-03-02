@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import MainPage from './pages/MainPage';
 import DetailPage from './pages/DetailPage';
+import LoginPage from './pages/LoginPage';
 import './styles/App.css';
 import ScrollToTop from './components/common/ScrollToTop';
 import Header from './pages/Header';
@@ -21,6 +22,7 @@ const AppRoutes = () => {
       <Routes>
         <Route path="/" element={<MainPage searchParams={searchParams} />} />
         <Route path="/job/:id" element={<DetailPage />} />
+        <Route path="/login" element={<LoginPage />} />
       </Routes>
       <ScrollToTop />
     </div>
