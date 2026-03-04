@@ -4,6 +4,10 @@ on:
   push:
     branches: [ main ]
   workflow_dispatch:
+  
+concurrency:
+  group: deploy
+  cancel-in-progress: true
 
 jobs:
   build-and-deploy:
@@ -36,7 +40,6 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SERVER_IP: ${{ secrets.SERVER_IP }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
-          DB_SERVER_IP: ${{ secrets.DB_SERVER_IP }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           API_SERVICE_KEY: ${{ secrets.API_SERVICE_KEY }}
         run: |
@@ -46,55 +49,48 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts 2>/dev/null
           
-          echo "=== Deploying JAR to $SERVER_IP ==="
-          
+          echo "=== Deploying JAR ==="
           scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
             devjobcollector/build/libs/devjobcollector-0.0.1-SNAPSHOT.jar \
             $SERVER_USER@$SERVER_IP:/home/ubuntu/app.jar
           
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
-            $SERVER_USER@$SERVER_IP << 'ENDSSH'
-            
-            echo "=== Checking Java installation ==="
-            if ! command -v java &> /dev/null; then
-              echo "Java not found. Installing OpenJDK 21..."
-              sudo apt update
-              sudo apt install -y openjdk-21-jdk
-            fi
-            
-            java -version
-            
-            echo "=== Stopping existing application ==="
-            pkill -f "java -jar" || true
-            sleep 2
-            
-            echo "=== Starting application ==="
-            export DB_SERVER_IP="${DB_SERVER_IP}"
-            export DB_PASSWORD="${DB_PASSWORD}"
-            export API_SERVICE_KEY="${API_SERVICE_KEY}"
-            
-            nohup java -jar /home/ubuntu/app.jar \
-              --spring.profiles.active=prod \
-              > /home/ubuntu/app.log 2>&1 &
-            
-            APP_PID=$!
-            echo "Started with PID: $APP_PID"
-            
-            echo "=== Waiting for application to start ==="
-            sleep 10
-            
-            if ps -p $APP_PID > /dev/null; then
-              echo "✅ Application is running (PID: $APP_PID)"
-              ps aux | grep "java -jar" | grep -v grep
-            else
-              echo "❌ Application failed to start"
-              echo "=== Last 50 lines of log ==="
-              tail -50 /home/ubuntu/app.log
-              exit 1
-            fi
-            
-            echo "=== Application log (last 20 lines) ==="
-            tail -20 /home/ubuntu/app.log
+          echo "=== Starting Application ==="
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP \
+            "DB_PASSWORD='$DB_PASSWORD' API_SERVICE_KEY='$API_SERVICE_KEY' bash -s" << 'ENDSSH'
+          
+          # 기존 프로세스 종료
+          pkill -f "java -jar" || true
+          sleep 2
+          
+          # 환경변수 확인
+          echo "DB_PASSWORD length: ${#DB_PASSWORD}"
+          echo "API_SERVICE_KEY length: ${#API_SERVICE_KEY}"
+          
+          # 애플리케이션 시작
+          nohup java -jar /home/ubuntu/app.jar \
+            --spring.profiles.active=prod \
+            --spring.datasource.url="jdbc:mysql://10.0.0.187:3306/devjob?serverTimezone=Asia/Seoul&useSSL=false&allowPublicKeyRetrieval=true" \
+            --spring.datasource.username=dbadmin \
+            --spring.datasource.password="${DB_PASSWORD}" \
+            --data-api.public-data.service-key="${API_SERVICE_KEY}" \
+            > /home/ubuntu/app.log 2>&1 &
+          
+          APP_PID=$!
+          echo "Started with PID: $APP_PID"
+          sleep 10
+          
+          if ps -p $APP_PID > /dev/null 2>&1; then
+            echo "✅ Application is running (PID: $APP_PID)"
+            ps aux | grep "java -jar" | grep -v grep
+            echo ""
+            echo "=== Last 30 lines of log ==="
+            tail -30 /home/ubuntu/app.log
+          else
+            echo "❌ Application failed to start"
+            echo "=== Last 100 lines of log ==="
+            tail -100 /home/ubuntu/app.log
+            exit 1
+          fi
           ENDSSH
       
       - name: Deployment completed
