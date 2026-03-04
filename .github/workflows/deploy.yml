@@ -3,74 +3,48 @@ name: Deploy to Oracle Cloud
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:  # 수동 실행 가능
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     
     steps:
-      # 1. 코드 체크아웃
       - name: Checkout code
         uses: actions/checkout@v3
       
-      # 2. JDK 21 설치
       - name: Set up JDK 21
         uses: actions/setup-java@v3
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: 'gradle'
       
-      # 3. Gradle 실행 권한 부여
-      - name: Grant execute permission for gradlew
+      - name: Make gradlew executable
+        working-directory: ./devjobcollector
         run: chmod +x gradlew
       
-      # 4. Gradle 빌드
       - name: Build with Gradle
-        run: ./gradlew clean build -x test
+        working-directory: ./devjobcollector
+        run: ./gradlew clean build -x test --no-daemon
       
-      # 5. JAR 파일 이름 확인
       - name: List JAR files
+        working-directory: ./devjobcollector
         run: ls -lh build/libs/
       
-      # 6. SSH 키 설정 및 서버 배포
       - name: Deploy to Oracle Cloud
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SERVER_IP: ${{ secrets.SERVER_IP }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
+          API_SERVICE_KEY: ${{ secrets.API_SERVICE_KEY }}
         run: |
-          # SSH 디렉토리 생성
           mkdir -p ~/.ssh
-          
-          # SSH 키 저장
+          chmod 700 ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          
-          # known_hosts에 서버 추가
-          ssh-keyscan -H $SERVER_IP >> ~/.ssh/known_hosts
-          
-          # JAR 파일 전송
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
-            build/libs/*.jar $SERVER_USER@$SERVER_IP:/home/ubuntu/app.jar
-          
-          # 서버에서 애플리케이션 재시작
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
-            $SERVER_USER@$SERVER_IP << 'ENDSSH'
-            # 기존 프로세스 종료
-            pkill -f 'java -jar' || true
-            
-            # 새 애플리케이션 시작 (백그라운드)
-            nohup java -jar /home/ubuntu/app.jar \
-              --spring.profiles.active=prod \
-              > /home/ubuntu/app.log 2>&1 &
-            
-            # 프로세스 확인
-            sleep 5
-            ps aux | grep 'java -jar'
-          ENDSSH
+          ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts 2>/dev/null
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no devjobcollector/build/libs/devjobcollector-0.0.1-SNAPSHOT.jar $SERVER_USER@$SERVER_IP:/home/ubuntu/app.jar
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP 'pkill -f "java -jar" || true; nohup java -jar /home/ubuntu/app.jar --spring.profiles.active=prod > /home/ubuntu/app.log 2>&1 & sleep 3; ps aux | grep "java -jar" | grep -v grep'
       
-      # 7. 배포 완료 알림
       - name: Deployment completed
-        run: echo "✅ Deployment to Oracle Cloud completed successfully!"
+        run: echo "✅ Deployment completed!"
