@@ -53,35 +53,38 @@ jobs:
             $SERVER_USER@$SERVER_IP:/home/ubuntu/app.jar
           
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
-            $SERVER_USER@$SERVER_IP << ENDSSH
+            $SERVER_USER@$SERVER_IP << 'ENDSSH'
+            
+            echo "=== Checking Java installation ==="
+            if ! command -v java &> /dev/null; then
+              echo "Java not found. Installing OpenJDK 21..."
+              sudo apt update
+              sudo apt install -y openjdk-21-jdk
+            fi
+            
+            java -version
             
             echo "=== Stopping existing application ==="
             pkill -f "java -jar" || true
             sleep 2
             
             echo "=== Starting application ==="
-            export DB_SERVER_IP="$DB_SERVER_IP"
-            export DB_PASSWORD="$DB_PASSWORD"
-            export API_SERVICE_KEY="$API_SERVICE_KEY"
+            export DB_SERVER_IP="${DB_SERVER_IP}"
+            export DB_PASSWORD="${DB_PASSWORD}"
+            export API_SERVICE_KEY="${API_SERVICE_KEY}"
             
-            # Java 버전 확인
-            java -version
-            
-            # 애플리케이션 시작
             nohup java -jar /home/ubuntu/app.jar \
               --spring.profiles.active=prod \
               > /home/ubuntu/app.log 2>&1 &
             
-            APP_PID=\$!
-            echo "Started with PID: \$APP_PID"
+            APP_PID=$!
+            echo "Started with PID: $APP_PID"
             
-            # 시작 대기
             echo "=== Waiting for application to start ==="
             sleep 10
             
-            # 프로세스 확인
-            if ps -p \$APP_PID > /dev/null; then
-              echo "✅ Application is running (PID: \$APP_PID)"
+            if ps -p $APP_PID > /dev/null; then
+              echo "✅ Application is running (PID: $APP_PID)"
               ps aux | grep "java -jar" | grep -v grep
             else
               echo "❌ Application failed to start"
@@ -90,7 +93,6 @@ jobs:
               exit 1
             fi
             
-            # 로그 마지막 부분 출력
             echo "=== Application log (last 20 lines) ==="
             tail -20 /home/ubuntu/app.log
           ENDSSH
