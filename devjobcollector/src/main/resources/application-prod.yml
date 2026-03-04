@@ -2,7 +2,7 @@
 
 spring:
   datasource:
-    url: jdbc:mysql://158.180.66.149:3306/devjob?serverTimezone=Asia/Seoul&useSSL=false
+    url: jdbc:mysql://${DB_SERVER_IP}:3306/devjob?serverTimezone=Asia/Seoul&useSSL=false
     username: itsdev
     password: ${DB_PASSWORD}  # 환경변수 사용 권장
     
