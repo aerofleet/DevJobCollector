@@ -3,8 +3,8 @@
 spring:
   datasource:
     url: jdbc:mysql://${DB_SERVER_IP}:3306/devjob?serverTimezone=Asia/Seoul&useSSL=false
-    username: dbadmin
-    password: ${DB_PASSWORD}  # 환경변수 사용 권장
+    username: ${DB_USERNAME} 
+    password: ${DB_PASSWORD} 
     
   jpa:
     hibernate:
