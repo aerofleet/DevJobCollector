@@ -9,13 +9,17 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     
-    defaults:
-      run:
-        working-directory: ./devjobcollector
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+      
+      # 파일 구조 확인
+      - name: Check directory structure
+        run: |
+          echo "=== Root directory ==="
+          ls -la
+          echo "=== devjobcollector directory ==="
+          ls -la devjobcollector/
       
       - name: Set up JDK 21
         uses: actions/setup-java@v3
@@ -23,13 +27,17 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
       
+      # devjobcollector 폴더로 이동해서 gradlew 실행
       - name: Make gradlew executable
+        working-directory: ./devjobcollector
         run: chmod +x gradlew
       
       - name: Build with Gradle
+        working-directory: ./devjobcollector
         run: ./gradlew clean build -x test --no-daemon
       
       - name: List JAR files
+        working-directory: ./devjobcollector
         run: ls -lh build/libs/
       
       - name: Deploy to Oracle Cloud
@@ -43,68 +51,9 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H $SERVER_IP >> ~/.ssh/known_hosts
           
+          # devjobcollector/build/libs/ 에서 JAR 파일 전송
           scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
-            build/libs/*.jar $SERVER_USER@$SERVER_IP:/home/ubuntu/app.jar
-          
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
-            $SERVER_USER@$SERVER_IP << 'ENDSSH'
-            pkill -f 'java -jar' || true
-            nohup java -jar /home/ubuntu/app.jar \
-              --spring.profiles.active=prod \
-              > /home/ubuntu/app.log 2>&1 &
-            sleep 5
-            ps aux | grep 'java -jar'
-          ENDSSH
-      
-      - name: Deployment completed
-        run: echo "✅ Deployment to Oracle Cloud completed!"name: Deploy to Oracle Cloud
-
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
-
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # 전체 히스토리 가져오기
-      
-      - name: Set up JDK 21
-        uses: actions/setup-java@v3
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-      
-      # Gradle 직접 사용 (Wrapper 문제 우회)
-      - name: Setup Gradle
-        uses: gradle/gradle-build-action@v2
-        with:
-          gradle-version: 8.5
-      
-      - name: Build with Gradle
-        run: gradle clean build -x test
-      
-      - name: List JAR files
-        run: ls -lh build/libs/
-      
-      - name: Deploy to Oracle Cloud
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SERVER_IP: ${{ secrets.SERVER_IP }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H $SERVER_IP >> ~/.ssh/known_hosts
-          
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
-            build/libs/*.jar $SERVER_USER@$SERVER_IP:/home/ubuntu/app.jar
+            devjobcollector/build/libs/*.jar $SERVER_USER@$SERVER_IP:/home/ubuntu/app.jar
           
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
             $SERVER_USER@$SERVER_IP << 'ENDSSH'
