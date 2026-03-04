@@ -36,6 +36,8 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SERVER_IP: ${{ secrets.SERVER_IP }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
+          DB_SERVER_IP: ${{ secrets.DB_SERVER_IP }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           API_SERVICE_KEY: ${{ secrets.API_SERVICE_KEY }}
         run: |
           mkdir -p ~/.ssh
@@ -43,8 +45,57 @@ jobs:
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts 2>/dev/null
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no devjobcollector/build/libs/devjobcollector-0.0.1-SNAPSHOT.jar $SERVER_USER@$SERVER_IP:/home/ubuntu/app.jar
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP 'pkill -f "java -jar" || true; nohup java -jar /home/ubuntu/app.jar --spring.profiles.active=prod > /home/ubuntu/app.log 2>&1 & sleep 3; ps aux | grep "java -jar" | grep -v grep'
+          
+          echo "=== Deploying JAR to $SERVER_IP ==="
+          
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+            devjobcollector/build/libs/devjobcollector-0.0.1-SNAPSHOT.jar \
+            $SERVER_USER@$SERVER_IP:/home/ubuntu/app.jar
+          
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+            $SERVER_USER@$SERVER_IP << 'ENDSSH'
+            
+            echo "=== Checking Java installation ==="
+            if ! command -v java &> /dev/null; then
+              echo "Java not found. Installing OpenJDK 21..."
+              sudo apt update
+              sudo apt install -y openjdk-21-jdk
+            fi
+            
+            java -version
+            
+            echo "=== Stopping existing application ==="
+            pkill -f "java -jar" || true
+            sleep 2
+            
+            echo "=== Starting application ==="
+            export DB_SERVER_IP="${DB_SERVER_IP}"
+            export DB_PASSWORD="${DB_PASSWORD}"
+            export API_SERVICE_KEY="${API_SERVICE_KEY}"
+            
+            nohup java -jar /home/ubuntu/app.jar \
+              --spring.profiles.active=prod \
+              > /home/ubuntu/app.log 2>&1 &
+            
+            APP_PID=$!
+            echo "Started with PID: $APP_PID"
+            
+            echo "=== Waiting for application to start ==="
+            sleep 10
+            
+            if ps -p $APP_PID > /dev/null; then
+              echo "✅ Application is running (PID: $APP_PID)"
+              ps aux | grep "java -jar" | grep -v grep
+            else
+              echo "❌ Application failed to start"
+              echo "=== Last 50 lines of log ==="
+              tail -50 /home/ubuntu/app.log
+              exit 1
+            fi
+            
+            echo "=== Application log (last 20 lines) ==="
+            tail -20 /home/ubuntu/app.log
+          ENDSSH
       
       - name: Deployment completed
         run: echo "✅ Deployment completed!"
