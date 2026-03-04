@@ -46,7 +46,7 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts 2>/dev/null
           
-          echo "=== Deploying to $SERVER_IP ==="
+          echo "=== Deploying JAR to $SERVER_IP ==="
           
           scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
             devjobcollector/build/libs/devjobcollector-0.0.1-SNAPSHOT.jar \
@@ -55,22 +55,44 @@ jobs:
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
             $SERVER_USER@$SERVER_IP << ENDSSH
             
-            # 환경변수 설정
+            echo "=== Stopping existing application ==="
+            pkill -f "java -jar" || true
+            sleep 2
+            
+            echo "=== Starting application ==="
             export DB_SERVER_IP="$DB_SERVER_IP"
             export DB_PASSWORD="$DB_PASSWORD"
             export API_SERVICE_KEY="$API_SERVICE_KEY"
             
-            # 기존 프로세스 종료
-            pkill -f "java -jar" || true
+            # Java 버전 확인
+            java -version
             
             # 애플리케이션 시작
             nohup java -jar /home/ubuntu/app.jar \
               --spring.profiles.active=prod \
               > /home/ubuntu/app.log 2>&1 &
             
-            sleep 3
-            echo "=== Application Status ==="
-            ps aux | grep "java -jar" | grep -v grep || echo "Application not running"
+            APP_PID=\$!
+            echo "Started with PID: \$APP_PID"
+            
+            # 시작 대기
+            echo "=== Waiting for application to start ==="
+            sleep 10
+            
+            # 프로세스 확인
+            if ps -p \$APP_PID > /dev/null; then
+              echo "✅ Application is running (PID: \$APP_PID)"
+              ps aux | grep "java -jar" | grep -v grep
+            else
+              echo "❌ Application failed to start"
+              echo "=== Last 50 lines of log ==="
+              tail -50 /home/ubuntu/app.log
+              exit 1
+            fi
+            
+            # 로그 마지막 부분 출력
+            echo "=== Application log (last 20 lines) ==="
+            tail -20 /home/ubuntu/app.log
           ENDSSH
       
       - name: Deployment completed
