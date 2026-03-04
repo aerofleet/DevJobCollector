@@ -40,29 +40,11 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          
           ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts 2>/dev/null
-          
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
-            devjobcollector/build/libs/devjobcollector-0.0.1-SNAPSHOT.jar \
-            $SERVER_USER@$SERVER_IP:/home/ubuntu/app.jar
-          
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
-            $SERVER_USER@$SERVER_IP << ENDSSH
-            export API_SERVICE_KEY="$API_SERVICE_KEY"
-            
-            pkill -f 'java -jar' || true
-            
-            nohup java -jar /home/ubuntu/app.jar \
-              --spring.profiles.active=prod \
-              > /home/ubuntu/app.log 2>&1 &
-            
-            sleep 5
-            ps aux | grep 'java -jar' | grep -v grep
-          ENDSSH
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no devjobcollector/build/libs/devjobcollector-0.0.1-SNAPSHOT.jar $SERVER_USER@$SERVER_IP:/home/ubuntu/app.jar
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP 'pkill -f "java -jar" || true; nohup java -jar /home/ubuntu/app.jar --spring.profiles.active=prod > /home/ubuntu/app.log 2>&1 & sleep 3; ps aux | grep "java -jar" | grep -v grep'
       
       - name: Deployment completed
         run: echo "✅ Deployment completed!"
