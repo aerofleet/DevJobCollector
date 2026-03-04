@@ -13,6 +13,86 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      
+      - name: Make gradlew executable
+        working-directory: ./devjobcollector
+        run: chmod +x gradlew
+      
+      - name: Build with Gradle
+        working-directory: ./devjobcollector
+        run: ./gradlew clean build -x test --no-daemon
+      
+      - name: List JAR files
+        working-directory: ./devjobcollector
+        run: ls -lh build/libs/
+      
+      - name: Check Secrets
+        env:
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          API_SERVICE_KEY: ${{ secrets.API_SERVICE_KEY }}
+        run: |
+          echo "SERVER_IP: ${SERVER_IP:0:3}...${SERVER_IP: -3}"
+          echo "SERVER_USER: $SERVER_USER"
+          echo "API_SERVICE_KEY length: ${#API_SERVICE_KEY}"
+          if [ -z "$SERVER_IP" ]; then echo "❌ SERVER_IP is empty!"; exit 1; fi
+          if [ -z "$SERVER_USER" ]; then echo "❌ SERVER_USER is empty!"; exit 1; fi
+          if [ -z "$API_SERVICE_KEY" ]; then echo "❌ API_SERVICE_KEY is empty!"; exit 1; fi
+      
+      - name: Deploy to Oracle Cloud
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          API_SERVICE_KEY: ${{ secrets.API_SERVICE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          
+          ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts 2>/dev/null
+          
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+            devjobcollector/build/libs/devjobcollector-0.0.1-SNAPSHOT.jar \
+            $SERVER_USER@$SERVER_IP:/home/ubuntu/app.jar
+          
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+            $SERVER_USER@$SERVER_IP << ENDSSH
+            export API_SERVICE_KEY="$API_SERVICE_KEY"
+            
+            pkill -f 'java -jar' || true
+            
+            nohup java -jar /home/ubuntu/app.jar \
+              --spring.profiles.active=prod \
+              > /home/ubuntu/app.log 2>&1 &
+            
+            sleep 5
+            ps aux | grep 'java -jar' | grep -v grep
+          ENDSSH
+      
+      - name: Deployment completed
+        run: echo "✅ Deployment to Oracle Cloud completed!"name: Deploy to Oracle Cloud
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
       # 파일 구조 확인
       - name: Check directory structure
         run: |
