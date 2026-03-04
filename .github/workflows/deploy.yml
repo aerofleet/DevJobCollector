@@ -9,6 +9,65 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     
+    defaults:
+      run:
+        working-directory: ./devjobcollector
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+      
+      - name: Build with Gradle
+        run: ./gradlew clean build -x test --no-daemon
+      
+      - name: List JAR files
+        run: ls -lh build/libs/
+      
+      - name: Deploy to Oracle Cloud
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H $SERVER_IP >> ~/.ssh/known_hosts
+          
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+            build/libs/*.jar $SERVER_USER@$SERVER_IP:/home/ubuntu/app.jar
+          
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+            $SERVER_USER@$SERVER_IP << 'ENDSSH'
+            pkill -f 'java -jar' || true
+            nohup java -jar /home/ubuntu/app.jar \
+              --spring.profiles.active=prod \
+              > /home/ubuntu/app.log 2>&1 &
+            sleep 5
+            ps aux | grep 'java -jar'
+          ENDSSH
+      
+      - name: Deployment completed
+        run: echo "✅ Deployment to Oracle Cloud completed!"name: Deploy to Oracle Cloud
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
