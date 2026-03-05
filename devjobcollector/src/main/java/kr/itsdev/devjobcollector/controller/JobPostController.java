@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.*;
                         "https://*.itsdev.kr",
                         "https://*.workers.dev"})
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/")
+@RequestMapping("/api/v1/jobs")
 
 public class JobPostController {
 
