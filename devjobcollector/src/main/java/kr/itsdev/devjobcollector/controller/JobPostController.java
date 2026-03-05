@@ -17,14 +17,15 @@ import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
-@RequiredArgsConstructor
-@RequestMapping("/api/v1/jobs")
+
 @CrossOrigin(origins = {"http://localhost:3000", 
                         "http://localhost:5173", 
                         "https://djc.itsdev.kr", 
                         "https://*.itsdev.kr",
                         "https://*.workers.dev"})
-                        
+@RequiredArgsConstructor
+@RequestMapping("/api/v1/")
+
 public class JobPostController {
 
     private final JobPostService jobPostService;
