@@ -7,6 +7,7 @@ const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
   headers: {
+    'Priority': 'u=0, i', // HTTP/2 우선순위 헤더
     'Content-Type': 'application/json',
     'Connection': 'keep-alive',
   },
