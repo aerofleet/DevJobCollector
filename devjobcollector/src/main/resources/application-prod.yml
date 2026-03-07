@@ -12,6 +12,7 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
+        "[session.events.log.LOG_QUERIES_SLOWER_THAN_MS]": 80
 
 # Actuator 설정
 management:
@@ -26,7 +27,15 @@ management:
 logging:
   level:
     "[kr.itsdev.devjobcollector]": INFO
+    "[kr.itsdev.devjobcollector.monitoring]": INFO
     "[org.hibernate.SQL]": WARN
+    "[org.hibernate.SQL_SLOW]": INFO
+
+perf:
+  log:
+    request-threshold-ms: 120
+    service-threshold-ms: 80
+    repository-threshold-ms: 50
     
 server:
   port: 8080
