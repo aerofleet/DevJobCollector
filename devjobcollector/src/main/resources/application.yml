@@ -13,6 +13,18 @@ spring:
       hibernate:
         "[format_sql]": true
         "[dialect]": org.hibernate.dialect.MySQLDialect
+        "[session.events.log.LOG_QUERIES_SLOWER_THAN_MS]": 50
+
+perf:
+  log:
+    request-threshold-ms: 80
+    service-threshold-ms: 60
+    repository-threshold-ms: 40
+
+logging:
+  level:
+    "[kr.itsdev.devjobcollector.monitoring]": INFO
+    "[org.hibernate.SQL_SLOW]": INFO
         
 data-api:
   public-data:
