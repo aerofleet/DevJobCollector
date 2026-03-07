@@ -30,3 +30,8 @@ data-api:
   public-data:
     base-url: https://apis.data.go.kr/1051000/recruitment
     service-key: ${API_SERVICE_KEY}
+
+# application.yml에 추가
+server:
+  compression:
+    enabled: true
