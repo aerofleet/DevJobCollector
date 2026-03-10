@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 공공데이터 포털 채용 공고 수집 서비스
@@ -133,7 +134,7 @@ public class PublicDataCollectorService {
                     }
 
                     // API Rate Limiting 방지
-                    Thread.sleep(100);
+                    TimeUnit.MILLISECONDS.sleep(100);
 
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
