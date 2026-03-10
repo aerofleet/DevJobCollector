@@ -1,0 +1,86 @@
+.nav {
+  width: 240px;
+  position: sticky;
+  top: 84px;
+  height: fit-content;
+}
+
+.section {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #ececec;
+}
+
+.title {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #212529;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item {
+  width: 100%;
+  padding: 9px 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: #333;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.item:hover,
+.active {
+  color: #00c471;
+  font-weight: 700;
+}
+
+.progress {
+  margin-top: 12px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  border: 1px solid #ececec;
+}
+
+.progressTitle {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #444;
+}
+
+.progressBar {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: #efefef;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: #00dd6d;
+  transition: width 0.2s ease;
+}
+
+.progressRate {
+  margin: 8px 0 0;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 700;
+  color: #00c471;
+}
+
+@media (max-width: 1080px) {
+  .nav {
+    width: 100%;
+    position: static;
+  }
+}
