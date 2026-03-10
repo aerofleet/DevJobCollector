@@ -4,7 +4,6 @@ import kr.itsdev.devjobcollector.config.PublicDataProperties;
 import kr.itsdev.devjobcollector.dto.PublicDataDetailResponse;
 import kr.itsdev.devjobcollector.dto.PublicDataListResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -16,12 +15,6 @@ import java.net.URI;
 public class PublicDataApiClient {
     private final RestTemplate restTemplate;
     private final PublicDataProperties properties;
-
-        @Value("${data-api.public-data.base-url}")
-        private String baseUrl;
-
-        @Value("${data-api.public-data.service-key}")
-        private String serviceKey;
 
         /**
          * 공공데이터 목록 API를 호출한다. [/list]
@@ -42,7 +35,7 @@ public class PublicDataApiClient {
          * 특정 공고의 상세 정보를 호출한다. [/detail]
          */
         public PublicDataDetailResponse fetchJobDetail(String sn) {
-            URI uri = UriComponentsBuilder.fromUriString(baseUrl + "/detail")
+            URI uri = UriComponentsBuilder.fromUriString(properties.getBaseUrl() + "/detail")
                     .queryParam("serviceKey", properties.getServiceKey())
                     .queryParam("sn", sn)
                     .queryParam("resultType", "json")
