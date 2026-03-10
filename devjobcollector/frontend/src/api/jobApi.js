@@ -11,7 +11,31 @@ const apiClient = axios.create({
     'Content-Type': 'application/json',
     'Connection': 'keep-alive',
   },
+  withCredentials: true,
 });
+
+// 요청 인터셉터 (불필요한 헤더 제거)
+apiClient.interceptors.request.use(
+  (config) => {
+    // Connection 헤더 제거 (브라우저가 자동 관리)
+    delete config.headers['Connection'];
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// 응답 인터셉터 (에러 처리)
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      console.error('API Error:', error.response.status, error.response.data);
+    } else if (error.request) {
+      console.error('Network Error:', error.message);
+    }
+    return Promise.reject(error);
+  }
+);
 
 // 채용공고 목록 조회 (페이징)
 export const fetchJobs = async (page = 0, size = 10) => {
