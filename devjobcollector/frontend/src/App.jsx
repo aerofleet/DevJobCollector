@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import MainPage from './pages/MainPage';
 import DetailPage from './pages/DetailPage';
 import LoginPage from './pages/LoginPage';
+import Resume from './pages/Resume';
 import './styles/App.css';
 import ScrollToTop from './components/common/ScrollToTop';
 import Header from './pages/Header';
@@ -23,6 +24,7 @@ const AppRoutes = () => {
         <Route path="/" element={<MainPage searchParams={searchParams} />} />
         <Route path="/job/:id" element={<DetailPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/resume" element={<Resume />} />
       </Routes>
       <ScrollToTop />
     </div>
