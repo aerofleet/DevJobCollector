@@ -85,7 +85,7 @@ const Header = ({ onSearch }) => {
            
           <ul className="nav-left">
             <li><a href="/">채용 공고</a></li>
-            <li><a href="/resumes">이력서</a></li>
+            <li><a href="/resume">이력서</a></li>
             <li><a href="/feed">#꿀 피드</a></li>
             <li><a href="/job-interview">개발자 인터뷰</a></li>
           </ul>
