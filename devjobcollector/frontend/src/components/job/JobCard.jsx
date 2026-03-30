@@ -13,6 +13,7 @@ const JobCard = ({ job }) => {
   };
 
   const daysRemaining = getDaysRemaining(job.endDate);
+  const endDateLabel = job.endDate || '미등록';
 
   return (
     <div className='job-card' onClick={handleCardClick}>
@@ -33,8 +34,11 @@ const JobCard = ({ job }) => {
       
       {/* 컨텐츠 영역 */}
       <div className='job-content'>
-        {/* 회사명 */}
-        <p className='job-company'>{job.companyName}</p>
+        {/* 회사명 + 마감일 */}
+        <div className='job-company-row'>
+          <p className='job-company'>{job.companyName}</p>
+          <span className='job-end-date'>[마감일: {endDateLabel}]</span>
+        </div>
 
         {/* 고용 카테고리 */}
         <h3  

@@ -4,6 +4,7 @@ import MainPage from './pages/MainPage';
 import DetailPage from './pages/DetailPage';
 import LoginPage from './pages/LoginPage';
 import Resume from './pages/Resume';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 import './styles/App.css';
 import ScrollToTop from './components/common/ScrollToTop';
 import Header from './pages/Header';
@@ -24,7 +25,15 @@ const AppRoutes = () => {
         <Route path="/" element={<MainPage searchParams={searchParams} />} />
         <Route path="/job/:id" element={<DetailPage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/resume" element={<Resume />} />
+        <Route path="/oauth/callback" element={<LoginPage />} />
+        <Route
+          path="/resume"
+          element={(
+            <ProtectedRoute>
+              <Resume />
+            </ProtectedRoute>
+          )}
+        />
       </Routes>
       <ScrollToTop />
     </div>

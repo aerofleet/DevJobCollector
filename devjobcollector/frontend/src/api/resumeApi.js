@@ -10,6 +10,14 @@ const resumeClient = axios.create({
   },
 });
 
+resumeClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('accessToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 export const saveResume = async (resumeData) => {
   const response = await resumeClient.post('/resume', resumeData);
   return response.data;

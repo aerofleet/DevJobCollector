@@ -81,6 +81,12 @@
 }
 
 /* 회사명 */
+.job-company-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .job-company {
   font-size: 14px;
   line-height: 20px;
@@ -88,6 +94,14 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+}
+
+.job-end-date {
+  font-size: 12px;
+  line-height: 20px;
+  color: rgb(120, 120, 120);
+  white-space: nowrap;
 }
 
 /* 제목 (고용 카테고리) */

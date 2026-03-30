@@ -14,6 +14,22 @@ spring:
         "[format_sql]": true
         "[dialect]": org.hibernate.dialect.MySQLDialect
         "[session.events.log.LOG_QUERIES_SLOWER_THAN_MS]": 50
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:}
+            client-secret: ${GOOGLE_CLIENT_SECRET:}
+            scope:
+              - profile
+              - email
+          github:
+            client-id: ${GITHUB_CLIENT_ID:}
+            client-secret: ${GITHUB_CLIENT_SECRET:}
+            scope:
+              - read:user
+              - user:email
 
 perf:
   log:
@@ -31,7 +47,24 @@ data-api:
     base-url: https://apis.data.go.kr/1051000/recruitment
     service-key: ${API_SERVICE_KEY}
 
-# application.yml에 추가
 server:
   compression:
     enabled: true
+
+auth:
+  common:
+    frontend-success-uri: ${AUTH_FRONTEND_SUCCESS_URI:http://localhost:5173/oauth/callback}
+    token-query-param: token
+  token:
+    issuer: ${AUTH_TOKEN_ISSUER:devjobcollector}
+    secret: ${AUTH_TOKEN_SECRET:change-this-secret-at-least-32chars}
+    expires-minutes: ${AUTH_TOKEN_EXPIRES_MINUTES:120}
+  local-login:
+    enabled: ${AUTH_LOCAL_LOGIN_ENABLED:true}
+    users:
+      - id: ${AUTH_LOCAL_USER_ID:1}
+        username: ${AUTH_LOCAL_USERNAME:admin}
+        email: ${AUTH_LOCAL_EMAIL:admin@example.com}
+        password: ${AUTH_LOCAL_PASSWORD:admin1234}
+        name: ${AUTH_LOCAL_NAME:Local Admin}
+        role: ${AUTH_LOCAL_ROLE:USER}
