@@ -42,7 +42,17 @@ jobs:
           SERVER_USER: ${{ secrets.SERVER_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           API_SERVICE_KEY: ${{ secrets.API_SERVICE_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: |
+          [ -n "$SSH_PRIVATE_KEY" ] || (echo "Missing SSH_PRIVATE_KEY"; exit 1)
+          [ -n "$SERVER_IP" ] || (echo "Missing SERVER_IP"; exit 1)
+          [ -n "$SERVER_USER" ] || (echo "Missing SERVER_USER"; exit 1)
+          [ -n "$DB_PASSWORD" ] || (echo "Missing DB_PASSWORD"; exit 1)
+          [ -n "$API_SERVICE_KEY" ] || (echo "Missing API_SERVICE_KEY"; exit 1)
+          [ -n "$GOOGLE_CLIENT_ID" ] || (echo "Missing GOOGLE_CLIENT_ID"; exit 1)
+          [ -n "$GOOGLE_CLIENT_SECRET" ] || (echo "Missing GOOGLE_CLIENT_SECRET"; exit 1)
+
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
@@ -56,7 +66,7 @@ jobs:
           
           echo "=== Starting Application ==="
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP \
-            "DB_PASSWORD='$DB_PASSWORD' API_SERVICE_KEY='$API_SERVICE_KEY' bash -s" << 'ENDSSH'
+            "DB_PASSWORD='$DB_PASSWORD' API_SERVICE_KEY='$API_SERVICE_KEY' GOOGLE_CLIENT_ID='$GOOGLE_CLIENT_ID' GOOGLE_CLIENT_SECRET='$GOOGLE_CLIENT_SECRET' bash -s" << 'ENDSSH'
           
           # 기존 프로세스 종료
           pkill -9 -f "java -jar" || true
@@ -80,6 +90,10 @@ jobs:
             --spring.datasource.username=dbadmin \
             --spring.datasource.password="${DB_PASSWORD}" \
             --data-api.public-data.service-key="${API_SERVICE_KEY}" \
+            --spring.security.oauth2.client.registration.google.client-id="${GOOGLE_CLIENT_ID}" \
+            --spring.security.oauth2.client.registration.google.client-secret="${GOOGLE_CLIENT_SECRET}" \
+            --spring.security.oauth2.client.registration.github.client-id="dummy" \
+            --spring.security.oauth2.client.registration.github.client-secret="dummy" \
             > /home/ubuntu/app.log 2>&1 &
           
           APP_PID=$!
