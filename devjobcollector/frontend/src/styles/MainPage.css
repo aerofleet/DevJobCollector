@@ -1,8 +1,10 @@
 
 .main-page {
+  width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding-top: 140px;
+  padding: 140px 50px 0;
+  box-sizing: border-box;
 }
 
 .page-header {
@@ -44,12 +46,27 @@
 
 @media (max-width: 768px) {
   .main-page {
-    padding: 16px;
+    padding: 20px;
+    margin-top: 50px;
+  }
+
+  .page-header {
+    margin-bottom: 28px;
+  }
+
+  .page-header h1 {
+    font-size: 28px;
   }
   
   .job-list {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 12px;
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .main-page {
+    width: 1200px;
   }
 }
 

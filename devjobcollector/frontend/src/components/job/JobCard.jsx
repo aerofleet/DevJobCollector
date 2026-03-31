@@ -37,7 +37,9 @@ const JobCard = ({ job }) => {
         {/* 회사명 + 마감일 */}
         <div className='job-company-row'>
           <p className='job-company'>{job.companyName}</p>
-          <span className='job-end-date'>[마감일: {endDateLabel}]</span>
+          <time className='job-end-date' dateTime={job.endDate || undefined}>
+            마감일: {endDateLabel}
+          </time>
         </div>
 
         {/* 고용 카테고리 */}
