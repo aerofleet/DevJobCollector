@@ -68,14 +68,34 @@ jobs:
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+          SSH_OPTS="-i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o ConnectTimeout=20 -o ConnectionAttempts=5 -o ServerAliveInterval=15 -o ServerAliveCountMax=3"
+
+          retry() {
+            local n=1
+            local max=5
+            local delay=6
+            while true; do
+              "$@" && break || {
+                if [ $n -lt $max ]; then
+                  n=$((n+1))
+                  echo "Retry $n/$max: $*"
+                  sleep $delay
+                else
+                  echo "Command failed after $max attempts: $*"
+                  return 1
+                fi
+              }
+            done
+          }
           
           echo "=== Deploying JAR ==="
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+          retry scp $SSH_OPTS \
             devjobcollector/build/libs/devjobcollector-0.0.1-SNAPSHOT.jar \
             $SERVER_USER@$SERVER_IP:/home/ubuntu/app.jar
           
           echo "=== Starting Application ==="
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP \
+          retry ssh $SSH_OPTS $SERVER_USER@$SERVER_IP \
             "DB_PASSWORD='$DB_PASSWORD' API_SERVICE_KEY='$API_SERVICE_KEY' GOOGLE_CLIENT_ID='$GOOGLE_CLIENT_ID' GOOGLE_CLIENT_SECRET='$GOOGLE_CLIENT_SECRET' bash -s" << 'ENDSSH'
           
           # 기존 프로세스 종료
