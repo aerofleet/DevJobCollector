@@ -36,6 +36,20 @@ out/
 ### VS Code ###
 .vscode/
 
-
+### Local Config / Secrets ###
 application-local.yml
+**/application-local.yml
 secrets-backup.txt
+**/secrets-backup.txt
+.env
+.env.*
+!.env.example
+!**/.env.example
+*.pem
+*.key
+*.p12
+*.jks
+
+### Runtime Logs ###
+*.log
+logs/
