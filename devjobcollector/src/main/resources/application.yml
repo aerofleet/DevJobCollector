@@ -14,23 +14,6 @@ spring:
         "[format_sql]": true
         "[dialect]": org.hibernate.dialect.MySQLDialect
         "[session.events.log.LOG_QUERIES_SLOWER_THAN_MS]": 50
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id: ${GOOGLE_CLIENT_ID:}
-            client-secret: ${GOOGLE_CLIENT_SECRET:}
-            scope:
-              - profile
-              - email
-          github:
-            client-id: ${GITHUB_CLIENT_ID:}
-            client-secret: ${GITHUB_CLIENT_SECRET:}
-            scope:
-              - read:user
-              - user:email
-
 perf:
   log:
     request-threshold-ms: 80
