@@ -1,0 +1,20 @@
+[Unit]
+Description=DevJobCollector Spring Boot API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu
+EnvironmentFile=-/home/ubuntu/djc.env
+ExecStart=/usr/local/bin/djc-start.sh
+SuccessExitStatus=143
+Restart=always
+RestartSec=5
+StandardOutput=append:/home/ubuntu/app.log
+StandardError=append:/home/ubuntu/app.log
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

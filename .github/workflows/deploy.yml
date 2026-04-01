@@ -97,51 +97,26 @@ jobs:
           echo "=== Starting Application ==="
           retry ssh $SSH_OPTS $SERVER_USER@$SERVER_IP \
             "DB_PASSWORD='$DB_PASSWORD' API_SERVICE_KEY='$API_SERVICE_KEY' GOOGLE_CLIENT_ID='$GOOGLE_CLIENT_ID' GOOGLE_CLIENT_SECRET='$GOOGLE_CLIENT_SECRET' bash -s" << 'ENDSSH'
-          
-          # 기존 프로세스 종료
-          pkill -9 -f "java -jar" || true
-          sleep 3
-          
-          # 재확인
-          if pgrep -f "java -jar"; then
-            echo "Still running, force killing..."
-            pkill -9 -f "java -jar"
-            sleep 2
-          fi          
-          
-          # 환경변수 확인
+          cat > /home/ubuntu/djc.env <<EOF
+          DB_PASSWORD=${DB_PASSWORD}
+          API_SERVICE_KEY=${API_SERVICE_KEY}
+          GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+          GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+          EOF
+          chmod 600 /home/ubuntu/djc.env
+
           echo "DB_PASSWORD length: ${#DB_PASSWORD}"
           echo "API_SERVICE_KEY length: ${#API_SERVICE_KEY}"
-          
-          # 애플리케이션 시작
-          nohup java -jar /home/ubuntu/app.jar \
-            --spring.profiles.active=prod \
-            --spring.datasource.url="jdbc:mysql://10.0.0.187:3306/devjob?serverTimezone=Asia/Seoul&useSSL=false&allowPublicKeyRetrieval=true" \
-            --spring.datasource.username=dbadmin \
-            --spring.datasource.password="${DB_PASSWORD}" \
-            --data-api.public-data.service-key="${API_SERVICE_KEY}" \
-            --spring.security.oauth2.client.registration.google.client-id="${GOOGLE_CLIENT_ID}" \
-            --spring.security.oauth2.client.registration.google.client-secret="${GOOGLE_CLIENT_SECRET}" \
-            --spring.security.oauth2.client.registration.github.client-id="dummy" \
-            --spring.security.oauth2.client.registration.github.client-secret="dummy" \
-            > /home/ubuntu/app.log 2>&1 &
-          
-          APP_PID=$!
-          echo "Started with PID: $APP_PID"
-          sleep 10
-          
-          if ps -p $APP_PID > /dev/null 2>&1; then
-            echo "✅ Application is running (PID: $APP_PID)"
-            ps aux | grep "java -jar" | grep -v grep
-            echo ""
-            echo "=== Last 30 lines of log ==="
-            tail -30 /home/ubuntu/app.log
-          else
-            echo "❌ Application failed to start"
-            echo "=== Last 100 lines of log ==="
-            tail -100 /home/ubuntu/app.log
-            exit 1
-          fi
+          echo "GOOGLE_CLIENT_ID length: ${#GOOGLE_CLIENT_ID}"
+          echo "GOOGLE_CLIENT_SECRET length: ${#GOOGLE_CLIENT_SECRET}"
+
+          sudo systemctl daemon-reload
+          sudo systemctl enable devjobcollector
+          sudo systemctl restart devjobcollector
+          sleep 8
+
+          sudo systemctl --no-pager -l status devjobcollector | sed -n '1,20p'
+          curl -fsS http://127.0.0.1:8080/actuator/health
           ENDSSH
       
       - name: Deployment completed
