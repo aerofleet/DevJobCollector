@@ -10,6 +10,7 @@ const MainPage = ({ searchParams = { keyword: '' } }) => {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
+  const [errorMessage, setErrorMessage] = useState('');
   const keyword = searchParams.keyword?.trim() || '';
 
   // 공통 데이터 요청 함수
@@ -24,12 +25,14 @@ const MainPage = ({ searchParams = { keyword: '' } }) => {
   useEffect(() => {  
     const loadInitialData = async () => {
       try {
+        setErrorMessage('');
         const data = await fetchPage(0);
         setJobs(data.content);
         setTotalPages(data.totalPages ?? data.page?.totalPages ?? 0);
         setTotalElements(data.totalElements ?? data.page?.totalElements ?? 0);
         setPage(1);
       } catch (error) {
+        setErrorMessage('데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
         console.error('데이터 로드 실패:', error);
       }
     };
@@ -51,6 +54,7 @@ const MainPage = ({ searchParams = { keyword: '' } }) => {
       const maxPages = data.totalPages ?? data.page?.totalPages ?? totalPages;
       return nextPage < maxPages;
     } catch (error) {
+      setErrorMessage('추가 데이터를 불러오지 못했습니다. 네트워크 상태를 확인해주세요.');
       console.error('추가 데이터 로드 실패:', error);
       return false;
     }
@@ -76,8 +80,14 @@ const MainPage = ({ searchParams = { keyword: '' } }) => {
       </div>
 
       {loading && <LoadingSpinner />}
+
+      {errorMessage && (
+        <div className="end-message">
+          {errorMessage}
+        </div>
+      )}
       
-      {!loading && page >= totalPages && (
+      {!loading && !errorMessage && page >= totalPages && (
         <div className="end-message">
           모든 공고를 불러왔습니다
         </div>

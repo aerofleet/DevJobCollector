@@ -2,23 +2,37 @@
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
+const RETRYABLE_METHODS = new Set(['get', 'head', 'options']);
+const RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 30000,
   headers: {
-    'Priority': 'u=0, i', // HTTP/2 우선순위 헤더
     'Content-Type': 'application/json',
-    'Connection': 'keep-alive',
   },
   withCredentials: true,
 });
 
-// 요청 인터셉터 (불필요한 헤더 제거)
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const shouldRetry = (error) => {
+  const method = error.config?.method?.toLowerCase();
+  if (!RETRYABLE_METHODS.has(method)) return false;
+
+  if (error.code === 'ECONNABORTED') return true;
+  if (error.message?.includes('Network Error')) return true;
+
+  const status = error.response?.status;
+  return status ? RETRYABLE_STATUSES.has(status) : false;
+};
+
+// 요청 인터셉터
 apiClient.interceptors.request.use(
   (config) => {
-    // Connection 헤더 제거 (브라우저가 자동 관리)
-    delete config.headers['Connection'];
+    config.metadata = {
+      retryCount: config.metadata?.retryCount ?? 0,
+    };
     return config;
   },
   (error) => Promise.reject(error)
@@ -27,7 +41,17 @@ apiClient.interceptors.request.use(
 // 응답 인터셉터 (에러 처리)
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const config = error.config;
+    const retryCount = config?.metadata?.retryCount ?? 0;
+
+    if (config && retryCount < 2 && shouldRetry(error)) {
+      config.metadata.retryCount = retryCount + 1;
+      const backoff = 600 * (retryCount + 1);
+      await sleep(backoff);
+      return apiClient.request(config);
+    }
+
     if (error.response) {
       console.error('API Error:', error.response.status, error.response.data);
     } else if (error.request) {
