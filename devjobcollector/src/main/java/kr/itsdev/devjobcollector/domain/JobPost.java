@@ -191,4 +191,30 @@ public class JobPost {
     public void activate() {
         this.isActive = true;
     }
+
+    public void refreshFromSource(
+        String companyName,
+        String title,
+        String jobCategory,
+        String experience,
+        String location,
+        String hireType,
+        LocalDate startDate,
+        LocalDate endDate,
+        String originalUrl,
+        String applyQual,
+        String processInfo) {
+        this.companyName = companyName;
+        this.title = title;
+        this.jobCategory = jobCategory;
+        this.experience = experience;
+        this.location = location;
+        this.hireType = hireType;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.originalUrl = originalUrl;
+        this.applyQual = applyQual;
+        this.processInfo = processInfo;
+        this.isActive = true;
+    }
 }

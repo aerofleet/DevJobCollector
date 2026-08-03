@@ -7,6 +7,8 @@ import lombok.Getter;
 @Getter
 public enum SourcePlatform {
     PUBLIC_ALIO("공공기관 알리오"),
+    GREENHOUSE("Greenhouse"),
+    LEVER("Lever"),
     SARAMIN("사람인"),
     JOBKOREA("잡코리아");
 

@@ -29,6 +29,9 @@ public class CompanySourceTarget {
     @Column(name = "company_id")
     private Long companyId;
 
+    @Column(name = "company_name", length = 150)
+    private String companyName;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private SourceType provider;
@@ -76,7 +79,13 @@ public class CompanySourceTarget {
 
     public CompanySourceTarget(Long companyId, SourceType provider, String sourceIdentifier,
                                String careersUrl, CollectionTier collectionTier) {
+        this(companyId, sourceIdentifier, provider, sourceIdentifier, careersUrl, collectionTier);
+    }
+
+    public CompanySourceTarget(Long companyId, String companyName, SourceType provider,
+                               String sourceIdentifier, String careersUrl, CollectionTier collectionTier) {
         this.companyId = companyId;
+        this.companyName = requireCompanyName(companyName, sourceIdentifier);
         this.provider = provider;
         this.sourceIdentifier = requireIdentifier(sourceIdentifier);
         this.careersUrl = careersUrl;
@@ -87,12 +96,25 @@ public class CompanySourceTarget {
     }
 
     public boolean isCollectable() {
-        return status == TargetStatus.ACTIVE || status == TargetStatus.VERIFYING;
+        return status == TargetStatus.ACTIVE
+                || status == TargetStatus.VERIFYING
+                || status == TargetStatus.DEGRADED;
     }
 
     public void activate() {
         status = TargetStatus.ACTIVE;
         updatedAt = Instant.now();
+    }
+
+    public void updateMetadata(String companyName, String careersUrl, CollectionTier collectionTier) {
+        this.companyName = requireCompanyName(companyName, sourceIdentifier);
+        this.careersUrl = careersUrl;
+        this.collectionTier = collectionTier;
+        this.updatedAt = Instant.now();
+    }
+
+    public String displayCompanyName() {
+        return companyName == null || companyName.isBlank() ? sourceIdentifier : companyName;
     }
 
     public void recordSuccess(Instant checkedAt, Integer httpStatus, String schemaVersion, Instant nextCollectAt) {
@@ -123,5 +145,9 @@ public class CompanySourceTarget {
             throw new IllegalArgumentException("sourceIdentifier is required");
         }
         return value.trim();
+    }
+
+    private static String requireCompanyName(String value, String fallback) {
+        return value == null || value.isBlank() ? requireIdentifier(fallback) : value.trim();
     }
 }

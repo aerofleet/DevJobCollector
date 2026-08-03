@@ -30,6 +30,26 @@ data-api:
     base-url: https://apis.data.go.kr/1051000/recruitment
     service-key: ${API_SERVICE_KEY}
 
+collection:
+  ats:
+    enabled: ${ATS_COLLECTION_ENABLED:true}
+    initial-delay-ms: ${ATS_COLLECTION_INITIAL_DELAY_MS:30000}
+    poll-delay-ms: ${ATS_COLLECTION_POLL_DELAY_MS:600000}
+    closure-miss-threshold: ${ATS_COLLECTION_CLOSURE_MISS_THRESHOLD:2}
+    targets:
+      - enabled: true
+        company-name: GitLab
+        provider: GREENHOUSE
+        source-identifier: gitlab
+        careers-url: https://about.gitlab.com/jobs
+        collection-tier: A
+      - enabled: true
+        company-name: Integrate
+        provider: LEVER
+        source-identifier: integrate
+        careers-url: https://jobs.lever.co/integrate
+        collection-tier: A
+
 server:
   compression:
     enabled: true

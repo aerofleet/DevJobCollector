@@ -1,6 +1,7 @@
 package kr.itsdev.devjobcollector.collection.service;
 
 import kr.itsdev.devjobcollector.collection.adapter.JobSourceAdapter;
+import kr.itsdev.devjobcollector.collection.config.AtsCollectionProperties;
 import kr.itsdev.devjobcollector.collection.domain.CollectionStatus;
 import kr.itsdev.devjobcollector.collection.domain.CompanySourceTarget;
 import kr.itsdev.devjobcollector.collection.domain.CrawlRun;
@@ -14,6 +15,8 @@ import kr.itsdev.devjobcollector.collection.repository.CompanySourceTargetReposi
 import kr.itsdev.devjobcollector.collection.repository.CrawlRunRepository;
 import kr.itsdev.devjobcollector.collection.repository.JobRawSnapshotRepository;
 import kr.itsdev.devjobcollector.collection.repository.JobSourceOccurrenceRepository;
+import kr.itsdev.devjobcollector.domain.JobPost;
+import kr.itsdev.devjobcollector.repository.JobPostRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -23,6 +26,8 @@ import java.time.Instant;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class CollectionOrchestrator {
@@ -35,6 +40,9 @@ public class CollectionOrchestrator {
     private final CrawlRunRepository crawlRunRepository;
     private final JobRawSnapshotRepository snapshotRepository;
     private final JobSourceOccurrenceRepository occurrenceRepository;
+    private final JobPostRepository jobPostRepository;
+    private final JobPostProjectionService projectionService;
+    private final AtsCollectionProperties properties;
     private final Map<SourceType, JobSourceAdapter> adapters;
     private final TransactionTemplate transactionTemplate;
 
@@ -43,6 +51,9 @@ public class CollectionOrchestrator {
             CrawlRunRepository crawlRunRepository,
             JobRawSnapshotRepository snapshotRepository,
             JobSourceOccurrenceRepository occurrenceRepository,
+            JobPostRepository jobPostRepository,
+            JobPostProjectionService projectionService,
+            AtsCollectionProperties properties,
             List<JobSourceAdapter> adapters,
             PlatformTransactionManager transactionManager
     ) {
@@ -50,6 +61,9 @@ public class CollectionOrchestrator {
         this.crawlRunRepository = crawlRunRepository;
         this.snapshotRepository = snapshotRepository;
         this.occurrenceRepository = occurrenceRepository;
+        this.jobPostRepository = jobPostRepository;
+        this.projectionService = projectionService;
+        this.properties = properties;
         this.adapters = new EnumMap<>(SourceType.class);
         adapters.forEach(adapter -> this.adapters.put(adapter.sourceType(), adapter));
         this.transactionTemplate = new TransactionTemplate(transactionManager);
@@ -66,8 +80,25 @@ public class CollectionOrchestrator {
             throw new IllegalStateException("No adapter registered for: " + state.target().getProvider());
         }
 
-        CollectionResult result = adapter.fetchJobs(state.target(), new CollectionContext(state.startedAt()));
-        transactionTemplate.executeWithoutResult(status -> finishRun(state.runId(), targetId, result));
+        CollectionResult result;
+        try {
+            result = adapter.fetchJobs(state.target(), new CollectionContext(state.startedAt()));
+        } catch (RuntimeException e) {
+            result = CollectionResult.failed(CollectionStatus.FAILED, null);
+            CollectionResult failedResult = result;
+            transactionTemplate.executeWithoutResult(status -> finishRun(state.runId(), targetId, failedResult));
+            throw e;
+        }
+        CollectionResult completedResult = result;
+        try {
+            transactionTemplate.executeWithoutResult(
+                    status -> finishRun(state.runId(), targetId, completedResult));
+        } catch (RuntimeException e) {
+            CollectionResult failedResult = CollectionResult.failed(CollectionStatus.FAILED, result.schemaVersion());
+            transactionTemplate.executeWithoutResult(
+                    status -> finishRun(state.runId(), targetId, failedResult));
+            throw e;
+        }
         return result;
     }
 
@@ -100,6 +131,9 @@ public class CollectionOrchestrator {
 
         if (successfulResponse(result.status())) {
             persistSuccessfulResult(run, target, result, finishedAt);
+            if (result.closureEvaluationAllowed()) {
+                reconcileMissingOccurrences(target, result.jobs());
+            }
             target.recordSuccess(finishedAt, httpStatus, result.schemaVersion(), finishedAt.plus(SUCCESS_INTERVAL));
         } else {
             target.recordFailure(finishedAt, httpStatus, DEGRADE_THRESHOLD, finishedAt.plus(FAILURE_BACKOFF));
@@ -112,11 +146,12 @@ public class CollectionOrchestrator {
             snapshotRepository.save(new JobRawSnapshot(
                     run, target, job.provider(), job.sourceJobId(), job.sourceUrl(), 200,
                     result.responseHash(), job.rawPayload(), fetchedAt));
-            upsertOccurrence(target, job, fetchedAt);
+            JobPost jobPost = projectionService.upsert(target, job);
+            upsertOccurrence(target, job, jobPost.getId(), fetchedAt);
         }
     }
 
-    private void upsertOccurrence(CompanySourceTarget target, JobRawDto job, Instant seenAt) {
+    private void upsertOccurrence(CompanySourceTarget target, JobRawDto job, Long jobPostingId, Instant seenAt) {
         JobSourceOccurrence occurrence = occurrenceRepository
                 .findByProviderAndTargetIdAndSourceJobId(job.provider(), target.getId(), job.sourceJobId())
                 .orElseGet(() -> new JobSourceOccurrence(
@@ -125,7 +160,26 @@ public class CollectionOrchestrator {
                         job.contentHash(), seenAt));
         occurrence.refresh(job.sourceUrl(), job.applyUrl(), job.title(), job.location(),
                 job.publishedAt(), job.updatedAtSource(), job.contentHash(), seenAt);
+        occurrence.linkJobPosting(jobPostingId);
         occurrenceRepository.save(occurrence);
+    }
+
+    private void reconcileMissingOccurrences(CompanySourceTarget target, List<JobRawDto> currentJobs) {
+        Set<String> seenSourceJobIds = currentJobs.stream()
+                .map(JobRawDto::sourceJobId)
+                .collect(Collectors.toSet());
+        List<JobSourceOccurrence> activeOccurrences =
+                occurrenceRepository.findByTargetIdAndSourceStatus(target.getId(), "ACTIVE");
+
+        for (JobSourceOccurrence occurrence : activeOccurrences) {
+            if (seenSourceJobIds.contains(occurrence.getSourceJobId())) {
+                continue;
+            }
+            boolean closed = occurrence.recordMissing(properties.closureMissThreshold());
+            if (closed && occurrence.getJobPostingId() != null) {
+                jobPostRepository.findById(occurrence.getJobPostingId()).ifPresent(JobPost::deactivate);
+            }
+        }
     }
 
     private static boolean successfulResponse(CollectionStatus status) {

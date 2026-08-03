@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS company_source_target (
     id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     company_id BIGINT NULL,
+    company_name VARCHAR(150) NULL,
     provider VARCHAR(30) NOT NULL,
     source_identifier VARCHAR(150) NOT NULL,
     careers_url VARCHAR(1000) NULL,
@@ -73,3 +74,6 @@ CREATE TABLE IF NOT EXISTS job_source_occurrence (
     INDEX idx_occurrence_seen (target_id, last_seen_at),
     INDEX idx_occurrence_status (source_status, last_seen_at)
 );
+
+ALTER TABLE company_source_target
+    ADD COLUMN IF NOT EXISTS company_name VARCHAR(150) NULL AFTER company_id;

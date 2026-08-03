@@ -99,4 +99,21 @@ public class JobSourceOccurrence {
         this.missedSuccessfulRuns = 0;
         this.sourceStatus = "ACTIVE";
     }
+
+    public void linkJobPosting(Long jobPostingId) {
+        this.jobPostingId = jobPostingId;
+        this.primary = true;
+    }
+
+    public boolean recordMissing(int closeThreshold) {
+        if (!"ACTIVE".equals(sourceStatus)) {
+            return false;
+        }
+        this.missedSuccessfulRuns++;
+        if (missedSuccessfulRuns >= closeThreshold) {
+            this.sourceStatus = "CLOSED";
+            return true;
+        }
+        return false;
+    }
 }

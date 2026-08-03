@@ -1,7 +1,7 @@
 ﻿import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TechStackBadge from './TechStackBadge';
-import { getDaysRemaining } from '../../utils/dateParser';
+import { formatDate, getDaysRemaining } from '../../utils/dateParser';
 import '../../styles/JobCard.css';
 
 const JobCard = ({ job }) => {
@@ -13,7 +13,7 @@ const JobCard = ({ job }) => {
   };
 
   const daysRemaining = getDaysRemaining(job.endDate);
-  const endDateLabel = job.endDate || '미등록';
+  const endDateLabel = job.endDate ? formatDate(job.endDate) : '미등록';
 
   return (
     <div className='job-card' onClick={handleCardClick}>
