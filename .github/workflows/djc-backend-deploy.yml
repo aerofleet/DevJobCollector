@@ -1,8 +1,18 @@
-name: Deploy to Oracle Cloud
+name: Deploy DJC Backend to Oracle Cloud
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+    paths:
+      - "devjobcollector/src/**"
+      - "devjobcollector/auth-common/**"
+      - "devjobcollector/build.gradle"
+      - "devjobcollector/settings.gradle"
+      - "devjobcollector/gradle/**"
+      - "devjobcollector/gradlew"
+      - "devjobcollector/ops/systemd/**"
+      - ".github/workflows/djc-backend-deploy.yml"
   workflow_dispatch:
   
 concurrency:
@@ -93,6 +103,14 @@ jobs:
           retry scp $SSH_OPTS \
             devjobcollector/build/libs/devjobcollector-0.0.1-SNAPSHOT.jar \
             $SERVER_USER@$SERVER_IP:/home/ubuntu/app.jar
+
+          echo "=== Deploying systemd files ==="
+          retry scp $SSH_OPTS \
+            devjobcollector/ops/systemd/djc-start.sh \
+            $SERVER_USER@$SERVER_IP:/home/ubuntu/djc-start.sh
+          retry scp $SSH_OPTS \
+            devjobcollector/ops/systemd/devjobcollector.service \
+            $SERVER_USER@$SERVER_IP:/home/ubuntu/devjobcollector.service
           
           echo "=== Starting Application ==="
           retry ssh $SSH_OPTS $SERVER_USER@$SERVER_IP \
@@ -110,13 +128,25 @@ jobs:
           echo "GOOGLE_CLIENT_ID length: ${#GOOGLE_CLIENT_ID}"
           echo "GOOGLE_CLIENT_SECRET length: ${#GOOGLE_CLIENT_SECRET}"
 
+          sudo install -m 0755 /home/ubuntu/djc-start.sh /usr/local/bin/djc-start.sh
+          sudo install -m 0644 /home/ubuntu/devjobcollector.service /etc/systemd/system/devjobcollector.service
           sudo systemctl daemon-reload
-          sudo systemctl enable devjobcollector
+          sudo systemctl enable devjobcollector.service
           sudo systemctl restart devjobcollector
-          sleep 8
 
-          sudo systemctl --no-pager -l status devjobcollector | sed -n '1,20p'
-          curl -fsS http://127.0.0.1:8080/actuator/health
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8080/actuator/health; then
+              echo
+              echo "Backend health check passed on attempt ${attempt}/30"
+              exit 0
+            fi
+            sleep 2
+          done
+
+          sudo systemctl --no-pager -l status devjobcollector.service | sed -n '1,40p' || true
+          sudo journalctl -u devjobcollector.service --no-pager -n 80 || true
+          echo "Backend health check failed after 60 seconds"
+          exit 1
           ENDSSH
       
       - name: Deployment completed
