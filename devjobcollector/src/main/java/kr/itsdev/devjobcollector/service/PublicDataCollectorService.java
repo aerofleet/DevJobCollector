@@ -41,7 +41,7 @@ public class PublicDataCollectorService {
      * 매일 오전 10시와 오후 4시에 공공데이터 수집 실행
      * cron = "초 분 시 일 월 요일"
      */
-    @Scheduled(cron = "0 0 10,16 * * *")
+    @Scheduled(cron = "0 0 10,16 * * *", zone = "Asia/Seoul")
     public void scheduleCollect() {
         log.info("┌─────────────────────────────────────────────┐");
         log.info("│  [자동 스케줄러] 정기 데이터 수집 시작       │");

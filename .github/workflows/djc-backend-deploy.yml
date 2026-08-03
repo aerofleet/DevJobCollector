@@ -134,18 +134,28 @@ jobs:
           sudo systemctl enable devjobcollector.service
           sudo systemctl restart devjobcollector
 
-          for attempt in $(seq 1 30); do
+          healthy=false
+          for attempt in $(seq 1 60); do
             if curl -fsS http://127.0.0.1:8080/actuator/health; then
               echo
-              echo "Backend health check passed on attempt ${attempt}/30"
-              exit 0
+              echo "Backend health check passed on attempt ${attempt}/60"
+              healthy=true
+              break
             fi
             sleep 2
           done
 
+          echo "=== Recent collector logs ==="
+          grep -E '공공데이터|수집|API 응답|신규 저장|중복 스킵|실패/오류|Exception|ERROR|WARN' /home/ubuntu/app.log | tail -n 120 || true
+
+          if [ "$healthy" = "true" ]; then
+            exit 0
+          fi
+
           sudo systemctl --no-pager -l status devjobcollector.service | sed -n '1,40p' || true
           sudo journalctl -u devjobcollector.service --no-pager -n 80 || true
-          echo "Backend health check failed after 60 seconds"
+          tail -n 120 /home/ubuntu/app.log || true
+          echo "Backend health check failed after 120 seconds"
           exit 1
           ENDSSH
       
