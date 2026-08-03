@@ -2,11 +2,13 @@
 import { useNavigate } from 'react-router-dom';
 import TechStackBadge from './TechStackBadge';
 import { formatDate, getDaysRemaining } from '../../utils/dateParser';
+import { getCompanyInitials, getCompanyLogoUrl } from '../../utils/companyLogo';
 import '../../styles/JobCard.css';
 
 const JobCard = ({ job }) => {
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [failedLogoUrl, setFailedLogoUrl] = useState(null);
 
   const handleCardClick = () => {
       navigate(`/job/${job.id}`);      
@@ -14,16 +16,28 @@ const JobCard = ({ job }) => {
 
   const daysRemaining = getDaysRemaining(job.endDate);
   const endDateLabel = job.endDate ? formatDate(job.endDate) : '미등록';
+  const logoUrl = getCompanyLogoUrl(job);
+  const showLogo = logoUrl && failedLogoUrl !== logoUrl;
 
   return (
     <div className='job-card' onClick={handleCardClick}>
       {/* 썸네일 영역 */}
       <div className='job-thumbnail'>
-        {job.thumbnail ? (
-          <img src={job.thumbnail} alt={job.title} className='thumbnail-image' />
+        {showLogo ? (
+          <div className='company-logo-surface'>
+            <img
+              src={logoUrl}
+              alt={`${job.companyName} 로고`}
+              className='company-logo-image'
+              loading='lazy'
+              onError={() => setFailedLogoUrl(logoUrl)}
+            />
+          </div>
         ) : (
           <div className='thumbnail-placeholder'>
-            <span className='placeholder-icon'>🏢</span>
+            <span className='company-initials' aria-hidden='true'>
+              {getCompanyInitials(job.companyName)}
+            </span>
           </div>
         )}
         {/* D-day 배지 */}
