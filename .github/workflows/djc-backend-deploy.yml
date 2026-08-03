@@ -39,7 +39,7 @@ jobs:
       
       - name: Build with Gradle
         working-directory: ./devjobcollector
-        run: ./gradlew clean build -x test --no-daemon
+        run: ./gradlew clean build --no-daemon
       
       - name: List JAR files
         working-directory: ./devjobcollector
@@ -102,7 +102,7 @@ jobs:
           echo "=== Deploying JAR ==="
           retry scp $SSH_OPTS \
             devjobcollector/build/libs/devjobcollector-0.0.1-SNAPSHOT.jar \
-            $SERVER_USER@$SERVER_IP:/home/ubuntu/app.jar
+            $SERVER_USER@$SERVER_IP:/home/ubuntu/app.jar.next
 
           echo "=== Deploying systemd files ==="
           retry scp $SSH_OPTS \
@@ -113,8 +113,10 @@ jobs:
             $SERVER_USER@$SERVER_IP:/home/ubuntu/devjobcollector.service
           
           echo "=== Starting Application ==="
-          retry ssh $SSH_OPTS $SERVER_USER@$SERVER_IP \
+          ssh $SSH_OPTS $SERVER_USER@$SERVER_IP \
             "DB_PASSWORD='$DB_PASSWORD' API_SERVICE_KEY='$API_SERVICE_KEY' GOOGLE_CLIENT_ID='$GOOGLE_CLIENT_ID' GOOGLE_CLIENT_SECRET='$GOOGLE_CLIENT_SECRET' bash -s" << 'ENDSSH'
+          set -euo pipefail
+
           cat > /home/ubuntu/djc.env <<EOF
           DB_PASSWORD=${DB_PASSWORD}
           API_SERVICE_KEY=${API_SERVICE_KEY}
@@ -132,11 +134,51 @@ jobs:
           sudo install -m 0644 /home/ubuntu/devjobcollector.service /etc/systemd/system/devjobcollector.service
           sudo systemctl daemon-reload
           sudo systemctl enable devjobcollector.service
-          sudo systemctl restart devjobcollector
+
+          echo "=== Stopping previous application ==="
+          sudo systemctl stop devjobcollector.service || true
+          for attempt in $(seq 1 30); do
+            if ! sudo systemctl is-active --quiet devjobcollector.service; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              echo "Previous application did not stop within 30 seconds"
+              exit 1
+            fi
+            sleep 1
+          done
+
+          echo "=== Replacing JAR atomically ==="
+          test -s /home/ubuntu/app.jar.next
+          mv /home/ubuntu/app.jar.next /home/ubuntu/app.jar
+
+          echo "=== Starting new application ==="
+          sudo systemctl start devjobcollector.service
+
+          expected_pid=""
+          for attempt in $(seq 1 20); do
+            expected_pid=$(sudo systemctl show devjobcollector.service --property MainPID --value)
+            if [ -n "$expected_pid" ] && [ "$expected_pid" -gt 0 ]; then
+              break
+            fi
+            sleep 1
+          done
+
+          if [ -z "$expected_pid" ] || [ "$expected_pid" -le 0 ]; then
+            echo "New application process did not start"
+            sudo systemctl --no-pager -l status devjobcollector.service || true
+            exit 1
+          fi
+          echo "New application PID: $expected_pid"
 
           healthy=false
           for attempt in $(seq 1 60); do
-            if curl -fsS http://127.0.0.1:8080/actuator/health; then
+            current_pid=$(sudo systemctl show devjobcollector.service --property MainPID --value)
+            if [ "$current_pid" != "$expected_pid" ]; then
+              echo "Application PID changed during startup: expected=$expected_pid current=$current_pid"
+              break
+            fi
+            if curl -fsS http://127.0.0.1:8080/actuator/health | grep -q '"status":"UP"'; then
               echo
               echo "Backend health check passed on attempt ${attempt}/60"
               healthy=true
@@ -146,7 +188,7 @@ jobs:
           done
 
           echo "=== Recent collector logs ==="
-          grep -E '공공데이터|수집|API 응답|신규 저장|중복 스킵|실패/오류|Exception|ERROR|WARN' /home/ubuntu/app.log | tail -n 120 || true
+          grep -E 'ATS target|ATS collection|공공데이터|수집|API 응답|신규 저장|중복 스킵|실패/오류|Exception|ERROR|WARN' /home/ubuntu/app.log | tail -n 120 || true
 
           if [ "$healthy" = "true" ]; then
             exit 0

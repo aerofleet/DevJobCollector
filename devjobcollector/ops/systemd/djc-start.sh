@@ -13,7 +13,6 @@ exec /usr/bin/java -jar /home/ubuntu/app.jar \
   --spring.datasource.username="dbadmin" \
   --spring.datasource.password="${DB_PASSWORD:-}" \
   --data-api.public-data.service-key="${API_SERVICE_KEY:-}" \
-  --spring.jpa.hibernate.ddl-auto=none \
   --spring.security.oauth2.client.registration.google.client-id="${GOOGLE_CLIENT_ID:-}" \
   --spring.security.oauth2.client.registration.google.client-secret="${GOOGLE_CLIENT_SECRET:-}" \
   --spring.security.oauth2.client.registration.github.client-id="dummy" \
