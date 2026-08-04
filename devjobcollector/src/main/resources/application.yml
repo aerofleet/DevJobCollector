@@ -31,6 +31,11 @@ data-api:
     service-key: ${API_SERVICE_KEY}
 
 collection:
+  saramin:
+    enabled: ${SARAMIN_COLLECTION_ENABLED:false}
+    access-key: ${SARAMIN_ACCESS_KEY:}
+    page-size: ${SARAMIN_PAGE_SIZE:110}
+    max-pages: ${SARAMIN_MAX_PAGES:10}
   ats:
     enabled: ${ATS_COLLECTION_ENABLED:true}
     initial-delay-ms: ${ATS_COLLECTION_INITIAL_DELAY_MS:30000}
@@ -49,6 +54,12 @@ collection:
         source-identifier: integrate
         careers-url: https://jobs.lever.co/integrate
         collection-tier: A
+      - enabled: ${SARAMIN_COLLECTION_ENABLED:false}
+        company-name: 사람인 IT개발·데이터
+        provider: SARAMIN
+        source-identifier: "22"
+        careers-url: https://www.saramin.co.kr/zf_user/jobs/list/job-category
+        collection-tier: B
 
 server:
   compression:

@@ -26,10 +26,18 @@ public class JobPostProjectionService {
         if (rawJob.sourceJobId() == null || rawJob.sourceJobId().isBlank()) {
             throw new IllegalArgumentException("ATS job requires source job ID");
         }
-        String originalSn = truncate(target.getSourceIdentifier() + ":" + rawJob.sourceJobId(), 255);
+        String originalSn = truncate(rawJob.provider() == SourceType.SARAMIN
+                ? rawJob.sourceJobId()
+                : target.getSourceIdentifier() + ":" + rawJob.sourceJobId(), 255);
         LocalDate startDate = rawJob.publishedAt() == null
                 ? LocalDate.now(SERVICE_ZONE)
                 : rawJob.publishedAt().atZone(SERVICE_ZONE).toLocalDate();
+        LocalDate sourceEndDate = rawJob.deadlineAt() == null
+                ? OPEN_ENDED_DATE
+                : rawJob.deadlineAt().atZone(SERVICE_ZONE).toLocalDate();
+        LocalDate endDate = sourceEndDate.isBefore(startDate) ? OPEN_ENDED_DATE : sourceEndDate;
+        String companyName = firstNonBlank(rawJob.companyName(), target.displayCompanyName());
+        String experience = firstNonBlank(rawJob.experience(), "경력무관");
         String sourceUrl = firstNonBlank(rawJob.sourceUrl(), rawJob.applyUrl());
         if (sourceUrl == null || rawJob.title() == null || rawJob.title().isBlank()) {
             throw new IllegalArgumentException("ATS job requires title and source URL: " + originalSn);
@@ -39,28 +47,28 @@ public class JobPostProjectionService {
                 .orElseGet(() -> JobPost.builder()
                         .sourcePlatform(platform)
                         .originalSn(originalSn)
-                        .companyName(truncate(target.displayCompanyName(), 150))
+                        .companyName(truncate(companyName, 150))
                         .title(truncate(rawJob.title(), 255))
                         .jobCategory(truncate(rawJob.team(), 255))
-                        .experience("경력무관")
+                        .experience(truncate(experience, 255))
                         .location(truncate(rawJob.location(), 255))
                         .hireType(truncate(rawJob.employmentType(), 255))
                         .startDate(startDate)
-                        .endDate(OPEN_ENDED_DATE)
+                        .endDate(endDate)
                         .originalUrl(sourceUrl)
                         .applyQual(rawJob.plainDescription())
                         .processInfo(null)
                         .build());
 
         jobPost.refreshFromSource(
-                truncate(target.displayCompanyName(), 150),
+                truncate(companyName, 150),
                 truncate(rawJob.title(), 255),
                 truncate(rawJob.team(), 255),
-                "경력무관",
+                truncate(experience, 255),
                 truncate(rawJob.location(), 255),
                 truncate(rawJob.employmentType(), 255),
                 startDate,
-                OPEN_ENDED_DATE,
+                endDate,
                 sourceUrl,
                 rawJob.plainDescription(),
                 null);
@@ -71,6 +79,7 @@ public class JobPostProjectionService {
         return switch (sourceType) {
             case GREENHOUSE -> SourcePlatform.GREENHOUSE;
             case LEVER -> SourcePlatform.LEVER;
+            case SARAMIN -> SourcePlatform.SARAMIN;
             default -> throw new IllegalArgumentException("Unsupported ATS provider: " + sourceType);
         };
     }

@@ -73,6 +73,38 @@ class JobPostProjectionServiceTest {
         verify(repository).save(existing);
     }
 
+    @Test
+    void createsSaraminJobWithSourceCompanyExperienceAndDeadline() {
+        CompanySourceTarget target = target("사람인 IT개발·데이터", SourceType.SARAMIN, "22");
+        JobRawDto rawJob = new JobRawDto(
+                SourceType.SARAMIN,
+                "12345",
+                "테스트회사",
+                "백엔드 개발자",
+                "서울 전체",
+                "정규직",
+                "신입·경력",
+                "IT개발·데이터",
+                "https://www.saramin.co.kr/jobs/12345",
+                "https://www.saramin.co.kr/jobs/12345",
+                null,
+                Instant.parse("2026-08-01T00:00:00Z"),
+                Instant.parse("2026-08-02T00:00:00Z"),
+                Instant.parse("2026-08-31T14:59:59Z"),
+                "a".repeat(64),
+                "{}");
+        when(repository.findBySourcePlatformAndOriginalSn(
+                SourcePlatform.SARAMIN, "12345")).thenReturn(Optional.empty());
+
+        JobPost result = service.upsert(target, rawJob);
+
+        assertThat(result.getSourcePlatform()).isEqualTo(SourcePlatform.SARAMIN);
+        assertThat(result.getOriginalSn()).isEqualTo("12345");
+        assertThat(result.getCompanyName()).isEqualTo("테스트회사");
+        assertThat(result.getExperience()).isEqualTo("신입·경력");
+        assertThat(result.getEndDate()).isEqualTo(LocalDate.of(2026, 8, 31));
+    }
+
     private static CompanySourceTarget target(String companyName, SourceType provider, String identifier) {
         return new CompanySourceTarget(
                 null, companyName, provider, identifier,
