@@ -1,7 +1,7 @@
 ﻿import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TechStackBadge from './TechStackBadge';
-import { formatDate, getDaysRemaining } from '../../utils/dateParser';
+import { formatDate, getDaysRemaining, isOpenEndedDate } from '../../utils/dateParser';
 import { getCompanyInitials, getCompanyLogoUrl } from '../../utils/companyLogo';
 import '../../styles/JobCard.css';
 
@@ -15,6 +15,7 @@ const JobCard = ({ job }) => {
   };
 
   const daysRemaining = getDaysRemaining(job.endDate);
+  const isOpenEnded = isOpenEndedDate(job.endDate);
   const endDateLabel = job.endDate ? formatDate(job.endDate) : '미등록';
   const logoUrl = getCompanyLogoUrl(job);
   const showLogo = logoUrl && failedLogoUrl !== logoUrl;
@@ -43,6 +44,9 @@ const JobCard = ({ job }) => {
         {/* D-day 배지 */}
         {daysRemaining !== null && daysRemaining >= 0 && (
           <span className='days-badge'>D-{daysRemaining}</span>
+        )}
+        {isOpenEnded && (
+          <span className='days-badge'>채용시마감</span>
         )}
       </div>
       
