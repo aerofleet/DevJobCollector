@@ -1,0 +1,31 @@
+companyName,url,httpStatus,robotsStatus,robotsAllowed,jobPostingCount,verdict,nextAction,checkedDate
+NAVER,https://recruit.navercorp.com/rcrt/list.do,200,404,true,0,REVIEW_REQUIRED,MANUAL_GATE_REVIEW,2026-08-05
+Kakao,https://careers.kakao.com/jobs,,401,false,0,BLOCKED,EXCLUDE,2026-08-05
+Kakao Entertainment,https://careers.kakaoent.com/ko/job,200,200,true,0,REVIEW_REQUIRED,MANUAL_GATE_REVIEW,2026-08-05
+Coupang,https://www.coupang.jobs/kr/jobs/,403,200,true,0,REVIEW_REQUIRED,MANUAL_HTTP_REVIEW,2026-08-05
+Woowa Brothers,https://career.woowahan.com/,200,200,true,0,SITEMAP_REQUIRED,LIST_LINK_DISCOVERY,2026-08-05
+Toss,https://toss.im/career,200,200,true,0,SITEMAP_REQUIRED,LIST_LINK_DISCOVERY,2026-08-05
+Daangn,https://about.daangn.com/jobs/,200,200,true,0,SITEMAP_REQUIRED,LIST_LINK_DISCOVERY,2026-08-05
+Kurly,https://recruit.kurly.com/,200,200,true,0,REVIEW_REQUIRED,MANUAL_GATE_REVIEW,2026-08-05
+Yanolja,https://careers.yanolja.co/,200,200,true,0,REVIEW_REQUIRED,MANUAL_GATE_REVIEW,2026-08-05
+KakaoBank,https://recruit.kakaobank.com/,200,200,true,0,SITEMAP_REQUIRED,LIST_LINK_DISCOVERY,2026-08-05
+KakaoPay,https://kakaopay.recruiter.co.kr/career/home,,200,false,0,BLOCKED,EXCLUDE,2026-08-05
+MUSINSA,https://www.musinsacareers.com/,200,200,true,0,REVIEW_REQUIRED,MANUAL_GATE_REVIEW,2026-08-05
+Zigbang,https://career.zigbang.com/,200,404,true,0,REVIEW_REQUIRED,MANUAL_GATE_REVIEW,2026-08-05
+Bucketplace,https://www.bucketplace.com/careers/,200,200,true,0,SITEMAP_REQUIRED,LIST_LINK_DISCOVERY,2026-08-05
+RIDI,https://ridi.career.greetinghr.com/,404,200,true,0,REVIEW_REQUIRED,URL_REDISCOVERY,2026-08-05
+SOCAR,https://www.socarcorp.kr/careers,200,200,true,0,SITEMAP_REQUIRED,LIST_LINK_DISCOVERY,2026-08-05
+WATCHA,https://watcha.team/career,200,200,true,0,SITEMAP_REQUIRED,LIST_LINK_DISCOVERY,2026-08-05
+Sendbird,https://sendbird.com/careers,200,200,true,0,SITEMAP_REQUIRED,LIST_LINK_DISCOVERY,2026-08-05
+Moloco,https://www.moloco.com/careers,200,200,true,0,SITEMAP_REQUIRED,LIST_LINK_DISCOVERY,2026-08-05
+Dunamu,https://careers.dunamu.com/,200,200,true,0,SITEMAP_REQUIRED,LIST_LINK_DISCOVERY,2026-08-05
+Bithumb,https://www.bithumbcorp.com/company/recruit,404,200,true,0,REVIEW_REQUIRED,URL_REDISCOVERY,2026-08-05
+Banksalad,https://www.banksalad.com/recruit,404,200,true,0,REVIEW_REQUIRED,URL_REDISCOVERY,2026-08-05
+NHN,https://recruit.nhn.com/,,,false,0,REVIEW_REQUIRED,URL_REDISCOVERY,2026-08-05
+SK planet,https://careers.skplanet.com/,,200,false,0,BLOCKED,EXCLUDE,2026-08-05
+11st,https://careers.11stcorp.com/,200,200,true,0,REVIEW_REQUIRED,MANUAL_GATE_REVIEW,2026-08-05
+NCSOFT,https://careers.ncsoft.com/,200,404,true,0,SITEMAP_REQUIRED,LIST_LINK_DISCOVERY,2026-08-05
+NEXON,https://career.nexon.com/,,,false,0,REVIEW_REQUIRED,URL_REDISCOVERY,2026-08-05
+KRAFTON,https://www.krafton.com/careers/jobs/,,403,false,0,BLOCKED,EXCLUDE,2026-08-05
+Smilegate,https://careers.smilegate.com/,200,200,true,0,SITEMAP_REQUIRED,LIST_LINK_DISCOVERY,2026-08-05
+Pearl Abyss,https://www.pearlabyss.com/ko-KR/Company/Careers/Intro,200,404,true,0,SITEMAP_REQUIRED,LIST_LINK_DISCOVERY,2026-08-05

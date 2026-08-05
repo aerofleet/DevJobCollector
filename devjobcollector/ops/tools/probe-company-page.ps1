@@ -268,9 +268,16 @@ function Measure-JsonLd {
 function Get-PageSignals {
     param([string] $Html)
 
+    $titleMatch = [regex]::Match($Html, '(?is)<title[^>]*>(.*?)</title>')
+    $pageTitle = if ($titleMatch.Success) {
+        [System.Net.WebUtility]::HtmlDecode($titleMatch.Groups[1].Value).Trim()
+    } else { '' }
+    $loginDetected = $Html -match '(?is)<input[^>]+type\s*=\s*["'']password["'']|로그인\s*(후|필요)|sign\s*in\s*required'
+    $captchaDetected = $Html -match '(?i)captcha|cf-chl-|challenge-platform|hcaptcha|g-recaptcha'
     return [pscustomobject]@{
-        LoginDetected = $Html -match '(?is)<input[^>]+type\s*=\s*["'']password["'']|로그인\s*(후|필요)|sign\s*in\s*required'
-        CaptchaDetected = $Html -match '(?i)captcha|cf-chl-|challenge-platform|hcaptcha|g-recaptcha'
+        LoginDetected = $loginDetected
+        CaptchaDetected = $captchaDetected
+        AccessGateDetected = $pageTitle -match '(?i)^\s*(로그인|sign\s*in|log\s*in|just a moment|access denied|forbidden)'
     }
 }
 
@@ -298,6 +305,7 @@ function New-Report {
         robotsRule = if ($null -eq $Robots) { $null } else { $Robots.Rule }
         loginDetected = if ($null -eq $Signals) { $null } else { $Signals.LoginDetected }
         captchaDetected = if ($null -eq $Signals) { $null } else { $Signals.CaptchaDetected }
+        accessGateDetected = if ($null -eq $Signals) { $null } else { $Signals.AccessGateDetected }
         jsonLdScriptCount = if ($null -eq $Measurement) { 0 } else { $Measurement.ScriptCount }
         malformedJsonLdCount = if ($null -eq $Measurement) { 0 } else { $Measurement.MalformedCount }
         jobPostingCount = if ($null -eq $Measurement) { 0 } else { $Measurement.JobPostingCount }
@@ -339,10 +347,15 @@ function Test-CompanyPage {
 
         $measurement = Measure-JsonLd -Html $response.Content
         $signals = Get-PageSignals -Html $response.Content
+        if ($signals.AccessGateDetected) {
+            return New-Report -CompanyName $CompanyName -TargetUrl $TargetUrl -HttpStatus $status `
+                -ContentType $contentType -Robots $robots -Measurement $measurement -Signals $signals `
+                -Verdict 'BLOCKED' -Reason '로그인 또는 자동화 방지 게이트 화면이 감지되었습니다.'
+        }
         if ($signals.LoginDetected -or $signals.CaptchaDetected) {
             return New-Report -CompanyName $CompanyName -TargetUrl $TargetUrl -HttpStatus $status `
                 -ContentType $contentType -Robots $robots -Measurement $measurement -Signals $signals `
-                -Verdict 'BLOCKED' -Reason '로그인 또는 자동화 방지 화면이 감지되었습니다.'
+                -Verdict 'REVIEW_REQUIRED' -Reason '로그인 또는 CAPTCHA 관련 정적 요소가 있어 수동 확인이 필요합니다.'
         }
         if (-not $robots.Known) {
             return New-Report -CompanyName $CompanyName -TargetUrl $TargetUrl -HttpStatus $status `

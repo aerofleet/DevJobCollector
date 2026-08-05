@@ -1,0 +1,6 @@
+priority,companyName,url,robotsAllowed,httpStatus,discoveryEvidence,nextAction,termsReview
+P0,Toss,https://toss.im/career,true,200,공식 sitemap에 career 경로 7개,LIST_LINK_DISCOVERY,MANUAL_REQUIRED
+P0,Daangn,https://about.daangn.com/jobs/,true,200,공식 sitemap index 접근 가능,LIST_LINK_DISCOVERY,MANUAL_REQUIRED
+P0,Woowa Brothers,https://career.woowahan.com/,true,200,공식 sitemap XML 접근 가능,LIST_LINK_DISCOVERY,MANUAL_REQUIRED
+P1,MUSINSA,https://www.musinsacareers.com/,true,200,목록 HTML에 다수 공고 텍스트 노출,MANUAL_GATE_REVIEW,MANUAL_REQUIRED
+P1,Dunamu,https://careers.dunamu.com/,true,200,공개 채용 루트 접근 가능,LIST_LINK_DISCOVERY,MANUAL_REQUIRED
