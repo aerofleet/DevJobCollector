@@ -63,6 +63,12 @@ collection:
         source-identifier: "22"
         careers-url: https://www.saramin.co.kr/zf_user/jobs/list/job-category
         collection-tier: B
+      - enabled: ${TOSS_COLLECTION_ENABLED:false}
+        company-name: 토스 커뮤니티
+        provider: TOSS_CAREERS
+        source-identifier: toss
+        careers-url: https://toss.im/career
+        collection-tier: B
 
 server:
   compression:

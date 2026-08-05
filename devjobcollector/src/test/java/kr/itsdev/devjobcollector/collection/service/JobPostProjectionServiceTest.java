@@ -119,6 +119,19 @@ class JobPostProjectionServiceTest {
         assertThat(result.getCompanyName()).isEqualTo("공식회사");
     }
 
+    @Test
+    void projectsTossCareersAsOfficialCompanyPage() {
+        CompanySourceTarget target = target("토스 커뮤니티", SourceType.TOSS_CAREERS, "toss");
+        JobRawDto rawJob = rawJob(SourceType.TOSS_CAREERS, "6532656003", "Product Owner");
+        when(repository.findBySourcePlatformAndOriginalSn(
+                SourcePlatform.COMPANY_PAGE, "toss:6532656003")).thenReturn(Optional.empty());
+
+        JobPost result = service.upsert(target, rawJob);
+
+        assertThat(result.getSourcePlatform()).isEqualTo(SourcePlatform.COMPANY_PAGE);
+        assertThat(result.getOriginalSn()).isEqualTo("toss:6532656003");
+    }
+
     private static CompanySourceTarget target(String companyName, SourceType provider, String identifier) {
         return new CompanySourceTarget(
                 null, companyName, provider, identifier,

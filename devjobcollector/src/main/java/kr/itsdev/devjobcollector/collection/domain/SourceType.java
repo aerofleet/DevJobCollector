@@ -5,6 +5,7 @@ public enum SourceType {
     GREENHOUSE,
     LEVER,
     SARAMIN,
+    TOSS_CAREERS,
     GREETING,
     SITEMAP,
     COMPANY_PAGE
