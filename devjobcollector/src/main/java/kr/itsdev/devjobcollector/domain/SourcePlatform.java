@@ -10,6 +10,7 @@ public enum SourcePlatform {
     GREENHOUSE("Greenhouse"),
     LEVER("Lever"),
     SARAMIN("사람인"),
+    COMPANY_PAGE("기업 채용페이지"),
     JOBKOREA("잡코리아");
 
     private final String platFormName;

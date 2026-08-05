@@ -80,6 +80,7 @@ public class JobPostProjectionService {
             case GREENHOUSE -> SourcePlatform.GREENHOUSE;
             case LEVER -> SourcePlatform.LEVER;
             case SARAMIN -> SourcePlatform.SARAMIN;
+            case COMPANY_PAGE -> SourcePlatform.COMPANY_PAGE;
             default -> throw new IllegalArgumentException("Unsupported ATS provider: " + sourceType);
         };
     }

@@ -31,6 +31,9 @@ data-api:
     service-key: ${API_SERVICE_KEY}
 
 collection:
+  company-page:
+    user-agent: ${COMPANY_PAGE_USER_AGENT:DevJobCollector/1.0 (+https://itsdev.kr)}
+    max-description-length: ${COMPANY_PAGE_MAX_DESCRIPTION_LENGTH:20000}
   saramin:
     enabled: ${SARAMIN_COLLECTION_ENABLED:false}
     access-key: ${SARAMIN_ACCESS_KEY:}

@@ -105,6 +105,20 @@ class JobPostProjectionServiceTest {
         assertThat(result.getEndDate()).isEqualTo(LocalDate.of(2026, 8, 31));
     }
 
+    @Test
+    void createsOfficialCompanyPageJob() {
+        CompanySourceTarget target = target("공식회사", SourceType.COMPANY_PAGE, "official-company");
+        JobRawDto rawJob = rawJob(SourceType.COMPANY_PAGE, "backend-1", "백엔드 개발자");
+        when(repository.findBySourcePlatformAndOriginalSn(
+                SourcePlatform.COMPANY_PAGE, "official-company:backend-1")).thenReturn(Optional.empty());
+
+        JobPost result = service.upsert(target, rawJob);
+
+        assertThat(result.getSourcePlatform()).isEqualTo(SourcePlatform.COMPANY_PAGE);
+        assertThat(result.getOriginalSn()).isEqualTo("official-company:backend-1");
+        assertThat(result.getCompanyName()).isEqualTo("공식회사");
+    }
+
     private static CompanySourceTarget target(String companyName, SourceType provider, String identifier) {
         return new CompanySourceTarget(
                 null, companyName, provider, identifier,
