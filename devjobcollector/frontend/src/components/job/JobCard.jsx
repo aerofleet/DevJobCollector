@@ -80,8 +80,12 @@ const JobCard = ({ job }) => {
           <span>{job.location || '위치미정'}</span>
           <span className='separator'>·</span>
           <span>{job.experience || '경력무관'}</span>
-          <span className='separator'>·</span>
-          <span>{job.hireType || '경력무관'}</span>
+          {job.hireType && (
+            <>
+              <span className='separator'>·</span>
+              <span>{job.hireType}</span>
+            </>
+          )}
         </div>
       </div>
     </div>
