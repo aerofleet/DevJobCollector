@@ -144,6 +144,11 @@ jobs:
           sudo systemctl daemon-reload
           sudo systemctl enable devjobcollector.service
 
+          log_start_line=0
+          if [ -f /home/ubuntu/app.log ]; then
+            log_start_line=$(wc -l < /home/ubuntu/app.log)
+          fi
+
           echo "=== Stopping previous application ==="
           sudo systemctl stop devjobcollector.service || true
           for attempt in $(seq 1 30); do
@@ -181,7 +186,9 @@ jobs:
           echo "New application PID: $expected_pid"
 
           healthy=false
-          for attempt in $(seq 1 60); do
+          health_attempts=120
+          health_interval_seconds=2
+          for attempt in $(seq 1 "$health_attempts"); do
             current_pid=$(sudo systemctl show devjobcollector.service --property MainPID --value)
             if [ "$current_pid" != "$expected_pid" ]; then
               echo "Application PID changed during startup: expected=$expected_pid current=$current_pid"
@@ -189,15 +196,18 @@ jobs:
             fi
             if curl -fsS http://127.0.0.1:8080/actuator/health | grep -q '"status":"UP"'; then
               echo
-              echo "Backend health check passed on attempt ${attempt}/60"
+              echo "Backend health check passed on attempt ${attempt}/${health_attempts}"
               healthy=true
               break
             fi
-            sleep 2
+            sleep "$health_interval_seconds"
           done
 
-          echo "=== Recent collector logs ==="
-          grep -E 'ATS target|ATS collection|공공데이터|수집|API 응답|신규 저장|중복 스킵|실패/오류|Exception|ERROR|WARN' /home/ubuntu/app.log | tail -n 120 || true
+          current_log_start=$((log_start_line + 1))
+          echo "=== Current deployment collector logs ==="
+          sed -n "${current_log_start},\$p" /home/ubuntu/app.log \
+            | grep -E 'ATS target|ATS collection|공공데이터|수집|API 응답|신규 저장|중복 스킵|실패/오류|Exception|ERROR|WARN' \
+            | tail -n 120 || true
 
           if [ "$healthy" = "true" ]; then
             exit 0
@@ -205,8 +215,10 @@ jobs:
 
           sudo systemctl --no-pager -l status devjobcollector.service | sed -n '1,40p' || true
           sudo journalctl -u devjobcollector.service --no-pager -n 80 || true
-          tail -n 120 /home/ubuntu/app.log || true
-          echo "Backend health check failed after 120 seconds"
+          echo "=== Current deployment application logs ==="
+          sed -n "${current_log_start},\$p" /home/ubuntu/app.log | tail -n 160 || true
+          health_timeout_seconds=$((health_attempts * health_interval_seconds))
+          echo "Backend health check failed after ${health_timeout_seconds} seconds"
           exit 1
           ENDSSH
       
