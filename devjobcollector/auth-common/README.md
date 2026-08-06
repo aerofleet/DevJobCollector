@@ -80,7 +80,7 @@ spring:
 
 auth:
   common:
-    frontend-success-uri: https://withbuddy.itsdev.kr/oauth/callback
+    frontend-success-uri: https://<FRONTEND_DOMAIN>/oauth/callback
     token-query-param: token
 ```
 
