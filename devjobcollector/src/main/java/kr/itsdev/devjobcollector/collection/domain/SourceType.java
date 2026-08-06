@@ -6,6 +6,7 @@ public enum SourceType {
     LEVER,
     SARAMIN,
     TOSS_CAREERS,
+    NAVER_CAREERS,
     GREETING,
     SITEMAP,
     COMPANY_PAGE

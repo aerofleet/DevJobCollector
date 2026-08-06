@@ -132,6 +132,19 @@ class JobPostProjectionServiceTest {
         assertThat(result.getOriginalSn()).isEqualTo("toss:6532656003");
     }
 
+    @Test
+    void projectsNaverCareersAsOfficialCompanyPage() {
+        CompanySourceTarget target = target("네이버 계열사", SourceType.NAVER_CAREERS, "naver-careers");
+        JobRawDto rawJob = rawJob(SourceType.NAVER_CAREERS, "30005214", "AI 엔지니어");
+        when(repository.findBySourcePlatformAndOriginalSn(
+                SourcePlatform.COMPANY_PAGE, "naver-careers:30005214")).thenReturn(Optional.empty());
+
+        JobPost result = service.upsert(target, rawJob);
+
+        assertThat(result.getSourcePlatform()).isEqualTo(SourcePlatform.COMPANY_PAGE);
+        assertThat(result.getOriginalSn()).isEqualTo("naver-careers:30005214");
+    }
+
     private static CompanySourceTarget target(String companyName, SourceType provider, String identifier) {
         return new CompanySourceTarget(
                 null, companyName, provider, identifier,

@@ -81,6 +81,7 @@ public class JobPostProjectionService {
             case LEVER -> SourcePlatform.LEVER;
             case SARAMIN -> SourcePlatform.SARAMIN;
             case TOSS_CAREERS -> SourcePlatform.COMPANY_PAGE;
+            case NAVER_CAREERS -> SourcePlatform.COMPANY_PAGE;
             case COMPANY_PAGE -> SourcePlatform.COMPANY_PAGE;
             default -> throw new IllegalArgumentException("Unsupported ATS provider: " + sourceType);
         };

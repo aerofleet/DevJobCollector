@@ -69,6 +69,12 @@ collection:
         source-identifier: toss
         careers-url: https://toss.im/career
         collection-tier: B
+      - enabled: ${NAVER_COLLECTION_ENABLED:true}
+        company-name: 네이버 계열사
+        provider: NAVER_CAREERS
+        source-identifier: naver-careers
+        careers-url: https://recruit.navercorp.com/rcrt/list.do
+        collection-tier: B
 
 server:
   compression:
