@@ -1,0 +1,75 @@
+name: Validate DJC Docker image
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "devjobcollector/Dockerfile"
+      - "devjobcollector/compose.yaml"
+      - "devjobcollector/.dockerignore"
+      - "devjobcollector/.env.docker.example"
+      - "devjobcollector/src/**"
+      - "devjobcollector/auth-common/**"
+      - "devjobcollector/build.gradle"
+      - "devjobcollector/settings.gradle"
+      - "devjobcollector/gradle/**"
+      - "devjobcollector/gradlew"
+      - ".github/workflows/djc-docker-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "devjobcollector/Dockerfile"
+      - "devjobcollector/compose.yaml"
+      - "devjobcollector/.dockerignore"
+      - "devjobcollector/.env.docker.example"
+      - "devjobcollector/src/**"
+      - "devjobcollector/auth-common/**"
+      - "devjobcollector/build.gradle"
+      - "devjobcollector/settings.gradle"
+      - "devjobcollector/gradle/**"
+      - "devjobcollector/gradlew"
+      - ".github/workflows/djc-docker-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Build linux/amd64 and linux/arm64
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Validate Compose configuration
+        working-directory: devjobcollector
+        env:
+          DJC_ENV_FILE: ${{ github.workspace }}/devjobcollector/.env.docker.example
+        run: docker compose -f compose.yaml config --quiet
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build Docker image for amd64 and arm64
+        uses: docker/build-push-action@v7
+        with:
+          context: ./devjobcollector
+          file: ./devjobcollector/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: false
+          pull: true
+          tags: ghcr.io/aerofleet/devjobcollector:ci-${{ github.sha }}
+          cache-from: type=gha,scope=djc-docker
+          cache-to: type=gha,mode=max,scope=djc-docker
