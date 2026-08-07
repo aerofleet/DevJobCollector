@@ -1,0 +1,24 @@
+services:
+  app:
+    image: "${DJC_IMAGE_REPOSITORY:-ghcr.io/aerofleet/devjobcollector}:${DJC_IMAGE_TAG:-local}"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - "${DJC_ENV_FILE:-/etc/devjobcollector/devjobcollector.env}"
+    ports:
+      - "${DJC_BIND_ADDRESS:-127.0.0.1}:${DJC_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--show-error", "http://127.0.0.1:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    mem_limit: 3g
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
