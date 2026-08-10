@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -36,6 +37,9 @@ public class PublicDataCollectorService {
     private final JobPostRepository jobPostRepository;
     private final TechStackRepository techStackRepository;
     private final PublicDataApiClient apiClient;
+
+    @Value("${public-data.collection.enabled:true}")
+    private boolean collectionEnabled;
     
     /**
      * 매일 오전 10시와 오후 4시에 공공데이터 수집 실행
@@ -43,6 +47,11 @@ public class PublicDataCollectorService {
      */
     @Scheduled(cron = "0 0 10,16 * * *", zone = "Asia/Seoul")
     public void scheduleCollect() {
+        if (!collectionEnabled) {
+            log.info("Public data collection is disabled; skipping scheduled collection");
+            return;
+        }
+
         log.info("┌─────────────────────────────────────────────┐");
         log.info("│  [자동 스케줄러] 정기 데이터 수집 시작       │");
         log.info("└─────────────────────────────────────────────┘");
@@ -448,6 +457,11 @@ public class PublicDataCollectorService {
      */
     @EventListener(ApplicationReadyEvent.class)
     public void initCollect() {
+        if (!collectionEnabled) {
+            log.info("Public data collection is disabled; skipping startup collection");
+            return;
+        }
+
         log.info("┌─────────────────────────────────────────────┐");
         log.info("│  🚀 [시스템 시작] 초기 데이터 수집 시작        │");
         log.info("└─────────────────────────────────────────────┘");
