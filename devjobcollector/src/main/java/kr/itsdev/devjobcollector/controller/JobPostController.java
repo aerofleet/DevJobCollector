@@ -56,16 +56,18 @@ public class JobPostController {
         @RequestParam(name = "keyword", required = false) String keyword,
         @RequestParam(name = "location", required = false) String location,
         @RequestParam(name = "experience", required = false) String experience,
+        @RequestParam(name = "jobCategory", required = false) String jobCategory,
+        @RequestParam(name = "techStack", required = false) String techStack,
         @RequestParam(name = "page", defaultValue = "0") int page,
         @RequestParam(name = "size", defaultValue = "20") int size,
-        @RequestParam(name = "sortBy", defaultValue = "endDate") String sortBy,
-        @RequestParam(name = "direction", defaultValue = "ASC") Sort.Direction direction
+        @RequestParam(name = "sortBy", defaultValue = "createdAt") String sortBy,
+        @RequestParam(name = "direction", defaultValue = "DESC") Sort.Direction direction
     ) {
         log.info("검색 요청 - keyword: {}, location: {}, experience: {}, page: {}, size: {}",
                 keyword, location, experience, page, size);
         Sort.Direction sortDirection = (direction != null) ? direction : Sort.Direction.ASC;
 
-        String sortProperty = (sortBy != null && !sortBy.isBlank()) ? sortBy : "endDate";
+        String sortProperty = "endDate".equals(sortBy) ? "endDate" : "createdAt";
 
         // 1순위: D-Day(마감일) 오름차순, 2순위: 최근 등록 내림차순
         Sort sort = Sort.by(new Sort.Order(sortDirection, sortProperty))
@@ -74,7 +76,7 @@ public class JobPostController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         Page<JobPostDto> results = jobPostService.searchJobPosts(
-                keyword, location, experience, pageable);
+                keyword, location, experience, jobCategory, techStack, pageable);
         log.info("검색 결과: {} 건", results.getTotalElements());
 
         return ResponseEntity.ok(results);               

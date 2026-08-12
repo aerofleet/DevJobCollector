@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import MainPage from './pages/MainPage';
 import AllJobsPage from './pages/AllJobsPage';
@@ -11,12 +11,11 @@ import ScrollToTop from './components/common/ScrollToTop';
 import Header from './pages/Header';
 
 const AppRoutes = () => {
-  const [searchParams, setSearchParams] = useState({ keyword: '' });
   const navigate = useNavigate();
 
   const handleSearch = (keyword = '') => {
-    setSearchParams({ keyword });
-    navigate('/jobs');
+    const query = keyword.trim() ? `?keyword=${encodeURIComponent(keyword.trim())}` : '';
+    navigate(`/jobs${query}`);
   };
 
   return (
@@ -24,7 +23,7 @@ const AppRoutes = () => {
       <Header onSearch={handleSearch} />
       <Routes>
         <Route path="/" element={<MainPage onSearch={handleSearch} />} />
-        <Route path="/jobs" element={<AllJobsPage searchParams={searchParams} />} />
+        <Route path="/jobs" element={<AllJobsPage />} />
         <Route path="/job/:id" element={<DetailPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/oauth/callback" element={<LoginPage />} />

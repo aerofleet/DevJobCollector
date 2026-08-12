@@ -15,7 +15,15 @@ public interface JobPostRepositoryCustom {
     /**
      * 전체 필드 통합 검색 (COUNT 쿼리 최적화)
      */
-    Page<JobPost> searchByAllFieldsOptimized(String keyword, LocalDate today, Pageable pageable);
+    Page<JobPost> searchByAllFieldsOptimized(
+            String keyword,
+            String location,
+            String experience,
+            String jobCategory,
+            String techStackName,
+            LocalDate today,
+            Pageable pageable
+    );
 
     /**
      * 기술 스택 다중 검색 (COUNT 최적화)

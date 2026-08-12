@@ -54,23 +54,23 @@ public class JobPostService {
      */
     @Transactional(readOnly = false)
     @SuppressWarnings("null") // Stream.toList nullness noise from JDT
-    public Page<JobPostDto> searchJobPosts(String keyword, String location, String experience, Pageable pageable) {
-        log.info("채용 공고 검색: keyword={}, location={}, experience={}, page={}, size={}",
-                keyword, location, experience, pageable.getPageNumber(), pageable.getPageSize());
+    public Page<JobPostDto> searchJobPosts(
+            String keyword,
+            String location,
+            String experience,
+            String jobCategory,
+            String techStackName,
+            Pageable pageable
+    ) {
+        log.info("채용 공고 검색: keyword={}, location={}, experience={}, jobCategory={}, techStack={}, page={}, size={}",
+                keyword, location, experience, jobCategory, techStackName,
+                pageable.getPageNumber(), pageable.getPageSize());
 
         LocalDate today = LocalDate.now();
         deactivateExpiredPosts();
-        if (keyword != null && !keyword.isBlank()) {
-            return jobPostRepository.searchByAllFieldsOptimized(keyword, today, pageable)
-                    .map(this::convertToDto);
-        }
-
-        Slice<JobPost> slice = jobPostRepository.findActiveAndNotExpiredSlice(today, pageable);
-        long total = jobPostRepository.countActiveAndValid(today);
-        List<JobPostDto> content = slice.getContent().stream()
-                .map(this::convertToDto)
-                .toList();
-        return new PageImpl<>(content, pageable, total);
+        return jobPostRepository.searchByAllFieldsOptimized(
+                        keyword, location, experience, jobCategory, techStackName, today, pageable)
+                .map(this::convertToDto);
     }
 
     /**
