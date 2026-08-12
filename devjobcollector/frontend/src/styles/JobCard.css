@@ -1,7 +1,7 @@
 /* 카드 컨테이너 */
 .job-card {
-  border: 1px solid #e0e0e0;
-  border-radius: 12px;
+  border: 1px solid #ebe9ef;
+  border-radius: 16px;
   cursor: pointer;
   transition: all 0.3s ease;
   background: white;
@@ -11,7 +11,8 @@
 }
 
 .job-card:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  border-color: #d9d2fb;
+  box-shadow: 0 14px 30px rgba(42, 32, 86, 0.11);
   transform: translateY(-4px);
 }
 
@@ -35,7 +36,7 @@
   height: 150px;
   overflow: hidden;
   background: #f5f5f5;
-  border-radius: 12px 12px 0 0;
+  border-radius: 16px 16px 0 0;
 }
 
 .company-logo-surface {
@@ -45,7 +46,7 @@
   align-items: center;
   justify-content: center;
   padding: 30px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: linear-gradient(145deg, #f8f7fb 0%, #eeeaff 100%);
 }
 
 .company-logo-image {
@@ -61,7 +62,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: linear-gradient(145deg, #f8f7fb 0%, #eeeaff 100%);
 }
 
 .company-initials {
@@ -73,7 +74,7 @@
   border: 1px solid rgba(102, 126, 234, 0.2);
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.8);
-  color: #5967a9;
+  color: #6c4dff;
   font-size: 26px;
   font-weight: 800;
   letter-spacing: -1px;

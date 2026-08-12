@@ -5,6 +5,7 @@
   align-items: center;
   justify-content: center;
   padding: 64px 16px 80px;
+  background: radial-gradient(circle at 50% 20%, #f0ecff 0, #fff 42%);
 }
 
 .login_input_wrap {
@@ -18,8 +19,8 @@
   background: #fff;
   border-radius: 20px;
   padding: 40px 32px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(0, 78, 162, 0.08);
+  box-shadow: 0 22px 60px rgba(50, 35, 112, 0.12);
+  border: 1px solid #e9e5f6;
 }
 
 .login_title {

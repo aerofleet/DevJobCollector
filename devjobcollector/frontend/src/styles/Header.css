@@ -35,21 +35,40 @@
 }
 
 .logo-wrap {
-  padding-top: 5px;
+  flex: 0 0 auto;
 }
 
 .logo-wrap a {
   display: flex;
   align-items: center;
-  height: 28px;
+  height: 36px;
+  text-decoration: none;
 }
 
-.logo-wrap svg {
-  display: block;
+.brand-logo {
+  gap: 9px;
+  color: #191724;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.brand-mark {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px 10px 10px 3px;
+  background: #6c4dff;
+  color: #fff;
+  font-size: 17px;
+  line-height: 1;
 }
 
 .search-wrap {
   position: relative;
+  width: min(390px, 38vw);
 }
 
 .search-box {
@@ -69,7 +88,7 @@
 
 .search-box input:focus {
   outline: none;
-  border-color: #5cf636;
+  border-color: #6c4dff;
 }
 
 .search-box input::placeholder {
@@ -135,18 +154,23 @@
 }
 
 .nav a:hover {
-  color: #5cf636;
+  color: #6c4dff;
 }
 
-.nav-right {
-  position: relative;
-  padding-left: 40px;
-}
+.nav-right { position: relative; }
 
 .nav-right li a {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 16px;
+  border-radius: 10px;
+  background: #191724;
+  color: #fff;
   font-size: 14px;
   line-height: 20px;
 }
+
+.nav-right li a:hover { color: #fff; background: #6c4dff; }
 
 .mobile-tabbar,
 .mobile-menu-backdrop,
@@ -385,10 +409,8 @@
 }
 
 @media (max-width: 480px) {
-  .logo-wrap svg {
-    width: 50px;
-    height: 22px;
-  }
+  .brand-logo { font-size: 18px; }
+  .brand-mark { width: 29px; height: 29px; font-size: 15px; }
 
   .mobile-search-toggle,
   .mobile-menu-toggle {

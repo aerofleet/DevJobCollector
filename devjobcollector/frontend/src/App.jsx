@@ -22,7 +22,7 @@ const AppRoutes = () => {
     <div className="app">
       <Header onSearch={handleSearch} />
       <Routes>
-        <Route path="/" element={<MainPage searchParams={searchParams} />} />
+        <Route path="/" element={<MainPage searchParams={searchParams} onSearch={handleSearch} />} />
         <Route path="/job/:id" element={<DetailPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/oauth/callback" element={<LoginPage />} />

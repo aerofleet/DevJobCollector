@@ -78,7 +78,7 @@ const LoginPage = () => {
         <div className="login-form-container">
           <h2 className="login_title">로그인</h2>
           <p className="login_subtitle">
-            DevJobCollector에 가입한 계정으로 빠르게 채용 정보를 확인해보세요.
+            데브잡스 계정으로 로그인하고 커리어 탐색을 이어가세요.
           </p>
 
           <form className="login-form" onSubmit={handleSubmit}>
