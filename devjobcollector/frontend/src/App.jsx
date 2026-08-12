@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import MainPage from './pages/MainPage';
+import AllJobsPage from './pages/AllJobsPage';
 import DetailPage from './pages/DetailPage';
 import LoginPage from './pages/LoginPage';
 import Resume from './pages/Resume';
@@ -15,14 +16,15 @@ const AppRoutes = () => {
 
   const handleSearch = (keyword = '') => {
     setSearchParams({ keyword });
-    navigate('/');
+    navigate('/jobs');
   };
 
   return (
     <div className="app">
       <Header onSearch={handleSearch} />
       <Routes>
-        <Route path="/" element={<MainPage searchParams={searchParams} onSearch={handleSearch} />} />
+        <Route path="/" element={<MainPage onSearch={handleSearch} />} />
+        <Route path="/jobs" element={<AllJobsPage searchParams={searchParams} />} />
         <Route path="/job/:id" element={<DetailPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/oauth/callback" element={<LoginPage />} />

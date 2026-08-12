@@ -69,6 +69,48 @@ export const fetchJobs = async (page = 0, size = 10) => {
   return response.data;
 };
 
+// 랜딩 페이지용 무작위 공고 조회
+// 전체 건수를 확인한 뒤 임의 구간을 가져와 섞으므로 DB 랜덤 정렬 부하를 만들지 않는다.
+const DEVELOPER_SEARCH_KEYWORDS = [
+  '개발', 'Engineer', 'Software', 'Backend', 'Frontend', 'DevOps', '데이터',
+];
+
+const DEVELOPER_TITLE_PATTERN = /개발|엔지니어|소프트웨어|백엔드|프론트엔드|풀스택|서버|데이터|머신러닝|인공지능|\b(?:software|engineer|developer|backend|frontend|full[ -]?stack|devops|sre|qa|data|machine learning|ai)\b/i;
+
+const isDeveloperJob = (job) => {
+  const techStackText = (job.techStacks ?? [])
+    .map((techStack) => techStack.name ?? techStack.stackName ?? '')
+    .join(' ');
+  return DEVELOPER_TITLE_PATTERN.test(`${job.title ?? ''} ${techStackText}`);
+};
+
+export const fetchRandomDeveloperJobs = async (count = 8) => {
+  const searchResults = await Promise.allSettled(
+    DEVELOPER_SEARCH_KEYWORDS.map((keyword) => searchJobs(keyword, 0, 20))
+  );
+  const uniqueJobs = new Map();
+
+  searchResults.forEach((result) => {
+    if (result.status !== 'fulfilled') return;
+
+    (result.value.content ?? [])
+      .filter(isDeveloperJob)
+      .forEach((job) => uniqueJobs.set(job.id, job));
+  });
+
+  const shuffled = [...uniqueJobs.values()];
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+
+  return {
+    content: shuffled.slice(0, count),
+    candidateCount: shuffled.length,
+  };
+};
+
 // 채용공고 검색
 export const searchJobs = async (keyword = '', page = 0, size = 10) => {
   const response = await apiClient.get('/jobs/search', {

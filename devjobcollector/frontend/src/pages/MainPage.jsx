@@ -1,9 +1,9 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ArrowRight, BriefcaseBusiness, Code2, Search, Sparkles } from 'lucide-react';
-import { fetchJobs, searchJobs } from '../api/jobApi';
+import { fetchRandomDeveloperJobs } from '../api/jobApi';
 import JobCard from '../components/job/JobCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import '../styles/MainPage.css';
 
 const QUICK_SEARCHES = ['Java', 'Spring', 'React', 'Python', '신입'];
@@ -32,79 +32,40 @@ const DISCOVERY_THEMES = [
   },
 ];
 
-const MainPage = ({ searchParams = { keyword: '' }, onSearch }) => {
+const MainPage = ({ onSearch }) => {
   const [jobs, setJobs] = useState([]);
-  const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
+  const [candidateCount, setCandidateCount] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
   const [heroKeyword, setHeroKeyword] = useState('');
-  const keyword = searchParams.keyword?.trim() || '';
+  const [loading, setLoading] = useState(true);
 
   const submitSearch = (event) => {
     event.preventDefault();
     onSearch?.(heroKeyword.trim());
-    window.requestAnimationFrame(() => {
-      document.getElementById('positions')?.scrollIntoView({ behavior: 'smooth' });
-    });
   };
 
   const searchByKeyword = (value) => {
     setHeroKeyword(value);
     onSearch?.(value);
-    window.requestAnimationFrame(() => {
-      document.getElementById('positions')?.scrollIntoView({ behavior: 'smooth' });
-    });
   };
 
-  // 공통 데이터 요청 함수
-  const fetchPage = useCallback(async (pageToLoad = 0) => {
-    if (keyword) {
-      return searchJobs(keyword, pageToLoad, 10);
-    }
-    return fetchJobs(pageToLoad, 10);
-  }, [keyword]);
-
-  // 초기/검색 데이터 로드
-  useEffect(() => {  
-    const loadInitialData = async () => {
+  useEffect(() => {
+    const loadRandomJobs = async () => {
       try {
         setErrorMessage('');
-        const data = await fetchPage(0);
+        const data = await fetchRandomDeveloperJobs(8);
         setJobs(data.content);
-        setTotalPages(data.totalPages ?? data.page?.totalPages ?? 0);
-        setTotalElements(data.totalElements ?? data.page?.totalElements ?? 0);
-        setPage(1);
+        setCandidateCount(data.candidateCount);
       } catch (error) {
-        setErrorMessage('데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
-        console.error('데이터 로드 실패:', error);
+        setErrorMessage('추천 공고를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+        console.error('랜덤 공고 로드 실패:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    loadInitialData();
-  }, [fetchPage]);
-
-  // 추가 데이터 로드
-  const loadMoreData = useCallback(async () => {
-    if (page >= totalPages) return false;
-
-    try {
-      const data = await fetchPage(page);
-      setJobs(prev => [...prev, ...data.content]);
-      setTotalPages(data.totalPages ?? data.page?.totalPages ?? totalPages);
-      setTotalElements(prev => data.totalElements ?? data.page?.totalElements ?? prev);
-      const nextPage = page + 1;
-      setPage(nextPage);
-      const maxPages = data.totalPages ?? data.page?.totalPages ?? totalPages;
-      return nextPage < maxPages;
-    } catch (error) {
-      setErrorMessage('추가 데이터를 불러오지 못했습니다. 네트워크 상태를 확인해주세요.');
-      console.error('추가 데이터 로드 실패:', error);
-      return false;
-    }
-  }, [page, totalPages, fetchPage]);
-
-  const { loading } = useInfiniteScroll(loadMoreData);
+    loadRandomJobs();
+  }, []);
 
   return (
     <div className="main-page">
@@ -145,7 +106,7 @@ const MainPage = ({ searchParams = { keyword: '' }, onSearch }) => {
             <div className="code-lines">
               <p><em>const</em> nextCareer = &#123;</p>
               <p>&nbsp;&nbsp;role: <strong>&apos;Developer&apos;</strong>,</p>
-              <p>&nbsp;&nbsp;matches: <b>{totalElements || '100+'}</b>,</p>
+              <p>&nbsp;&nbsp;matches: <b>{candidateCount || '8+'}</b>,</p>
               <p>&nbsp;&nbsp;status: <strong>&apos;ready&apos;</strong></p>
               <p>&#125;;</p>
             </div>
@@ -184,10 +145,13 @@ const MainPage = ({ searchParams = { keyword: '' }, onSearch }) => {
       <section className="positions-section" id="positions" aria-labelledby="positions-title">
         <div className="section-heading positions-heading">
           <div>
-            <span className="section-eyebrow">OPEN POSITIONS</span>
-            <h2 id="positions-title">{keyword ? `“${keyword}” 채용공고` : '새로 올라온 채용공고'}</h2>
+            <span className="section-eyebrow">DISCOVER POSITIONS</span>
+            <h2 id="positions-title">오늘의 개발자 채용공고</h2>
           </div>
-          <p>{keyword ? `${totalElements}개의 검색 결과` : `현재 ${totalElements}개의 개발자 포지션을 확인할 수 있어요.`}</p>
+          <div className="positions-summary">
+            <p>개발 직무 후보 중 무작위로 선택한 8개 공고예요.</p>
+            <Link to="/jobs">전체 공고 보기 <ArrowRight size={16} /></Link>
+          </div>
         </div>
 
         <div className="job-list">
@@ -196,12 +160,7 @@ const MainPage = ({ searchParams = { keyword: '' }, onSearch }) => {
 
         {loading && <LoadingSpinner />}
         {errorMessage && <div className="end-message error-message">{errorMessage}</div>}
-        {!loading && !errorMessage && jobs.length === 0 && (
-          <div className="empty-state">조건에 맞는 공고가 없습니다. 다른 검색어로 찾아보세요.</div>
-        )}
-        {!loading && !errorMessage && jobs.length > 0 && page >= totalPages && (
-          <div className="end-message">모든 공고를 확인했어요.</div>
-        )}
+        {!loading && !errorMessage && jobs.length === 0 && <div className="empty-state">현재 노출할 공고가 없습니다.</div>}
       </section>
 
       <section className="login-cta">

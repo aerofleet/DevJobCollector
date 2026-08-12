@@ -15,7 +15,7 @@ const Header = ({ onSearch }) => {
 
   const isActivePath = (path) => {
     if (path === '/') {
-      return location.pathname === '/' || location.pathname.startsWith('/job/');
+      return location.pathname === '/';
     }
     return location.pathname === path;
   };
@@ -149,7 +149,7 @@ const Header = ({ onSearch }) => {
         {/* 네비게이션 */}
         <nav className={`nav ${isNavVisible ? 'nav-visible' : 'nav-hidden'}`} aria-label="Main navigation">
           <ul className="nav-left">
-            <li><a href="/#positions">채용 공고</a></li>
+            <li><Link to="/jobs">개발자 채용</Link></li>
             <li><Link to="/resume">이력서</Link></li>
             <li><a href="/#discovery-title">테마별 채용</a></li>
           </ul>
@@ -179,7 +179,7 @@ const Header = ({ onSearch }) => {
           </div>
 
           <ul className="mobile-menu-list">
-            <li><Link onClick={() => setIsMenuOpen(false)} className={isActivePath('/') ? 'active' : ''} to="/">채용 공고</Link></li>
+            <li><Link onClick={() => setIsMenuOpen(false)} className={isActivePath('/jobs') ? 'active' : ''} to="/jobs">개발자 채용</Link></li>
             <li><Link onClick={() => setIsMenuOpen(false)} className={isActivePath('/resume') ? 'active' : ''} to="/resume">이력서</Link></li>
             <li><a onClick={() => setIsMenuOpen(false)} href="/#discovery-title">테마별 채용</a></li>
           </ul>
@@ -192,7 +192,7 @@ const Header = ({ onSearch }) => {
       </div>
 
       <nav className="mobile-tabbar" aria-label="모바일 빠른 메뉴">
-        <Link className={`mobile-tab-link ${isActivePath('/') ? 'active' : ''}`} to="/">채용</Link>
+        <Link className={`mobile-tab-link ${isActivePath('/jobs') ? 'active' : ''}`} to="/jobs">채용</Link>
         <Link className={`mobile-tab-link ${isActivePath('/resume') ? 'active' : ''}`} to="/resume">이력서</Link>
         <Link className={`mobile-tab-link ${isActivePath('/login') ? 'active' : ''}`} to="/login">로그인</Link>
         <button
