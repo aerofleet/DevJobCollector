@@ -3,22 +3,42 @@ package kr.itsdev.devjobcollector.security.service;
 import java.util.Locale;
 import kr.itsdev.auth.common.model.AuthenticatedUser;
 import kr.itsdev.devjobcollector.security.AuthLocalLoginProperties;
+import kr.itsdev.devjobcollector.security.account.UserAccount;
+import kr.itsdev.devjobcollector.security.account.UserAccountRepository;
+import kr.itsdev.devjobcollector.security.account.UserAccountStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
 public class LocalCredentialAuthService {
     private final AuthLocalLoginProperties properties;
+    private final UserAccountRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public LocalCredentialAuthService(AuthLocalLoginProperties properties) {
+    public LocalCredentialAuthService(AuthLocalLoginProperties properties, UserAccountRepository userRepository,
+                                      PasswordEncoder passwordEncoder) {
         this.properties = properties;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public AuthenticatedUser authenticate(String identifier, String password) {
-        if (!properties.isEnabled() || identifier == null || password == null) {
+        if (identifier == null || password == null) {
             return null;
         }
 
         String normalizedIdentifier = identifier.trim().toLowerCase(Locale.ROOT);
+        UserAccount account = userRepository.findByEmailIgnoreCase(normalizedIdentifier).orElse(null);
+        if (account != null && account.getPasswordHash() != null) {
+            if (account.getStatus() != UserAccountStatus.ACTIVE
+                    || !passwordEncoder.matches(password, account.getPasswordHash())) {
+                return null;
+            }
+            return new AuthenticatedUser(account.getId(), account.getEmail(), account.getName(), account.getRole());
+        }
+        if (!properties.isEnabled()) {
+            return null;
+        }
         for (AuthLocalLoginProperties.User user : properties.getUsers()) {
             if (!matchesIdentifier(user, normalizedIdentifier)) {
                 continue;

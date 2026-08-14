@@ -157,20 +157,37 @@
   color: #6c4dff;
 }
 
-.nav-right { position: relative; }
+.nav-right {
+  position: relative;
+  align-items: center;
+  gap: 10px !important;
+}
 
-.nav-right li a {
+.nav-right li a.nav-signup-button {
   display: inline-flex;
   align-items: center;
   padding: 9px 16px;
   border-radius: 10px;
-  background: #191724;
+  background: #6c4dff;
   color: #fff;
   font-size: 14px;
+  font-weight: 700;
   line-height: 20px;
 }
 
-.nav-right li a:hover { color: #fff; background: #6c4dff; }
+.nav-right li a.nav-signup-button:hover { color: #fff; background: #5838e5; }
+
+.nav-right li a.nav-login-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 6px;
+  color: #4f4a59;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.nav-right li a.nav-login-link:hover { color: #6c4dff; }
 
 .mobile-tabbar,
 .mobile-menu-backdrop,
@@ -372,6 +389,17 @@
 
   .mobile-menu-auth a.active {
     background: #111;
+    color: #fff;
+  }
+
+  .mobile-menu-auth a.signup {
+    background: #6c4dff;
+    color: #fff;
+  }
+
+  .mobile-menu-auth a.signup:hover,
+  .mobile-menu-auth a.signup.active {
+    background: #5838e5;
     color: #fff;
   }
 

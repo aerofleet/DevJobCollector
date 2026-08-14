@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { loginWithPassword } from '../api/authApi';
 import '../styles/LoginPage.css';
 
@@ -135,10 +135,10 @@ const LoginPage = () => {
             <a href="/find-id">아이디 찾기</a>
             <span className="divider">|</span>
             <a href="/find-pw">비밀번호 찾기</a>
-            <span className="divider">|</span>
-            <a href="/signup" className="emphasize">
-              회원가입
-            </a>
+          </div>
+          <div className="login-signup-section">
+            <p>아직 데브잡스 계정이 없나요?</p>
+            <Link to="/signup" className="login-signup-button">회원가입</Link>
           </div>
           <div className="social_login_list ">
             <a className="social_icon google" title="google" href={googleLoginUrl} onClick={rememberNextPath}></a>

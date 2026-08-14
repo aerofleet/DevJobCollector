@@ -14,6 +14,22 @@ spring:
         "[format_sql]": true
         "[dialect]": org.hibernate.dialect.MySQLDialect
         "[session.events.log.LOG_QUERIES_SLOWER_THAN_MS]": 50
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:true}
+          starttls:
+            enable: ${MAIL_STARTTLS_ENABLED:true}
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    # 기존 운영 스키마는 V1~V4 상당이 수동 반영되어 있어 V5부터 자동 적용한다.
+    baseline-version: 4
 perf:
   log:
     request-threshold-ms: 80
@@ -97,3 +113,12 @@ auth:
         password: ${AUTH_LOCAL_PASSWORD:admin1234}
         name: ${AUTH_LOCAL_NAME:Local Admin}
         role: ${AUTH_LOCAL_ROLE:USER}
+  signup:
+    verification-minutes: ${AUTH_SIGNUP_VERIFICATION_MINUTES:15}
+    max-verification-attempts: ${AUTH_SIGNUP_MAX_VERIFICATION_ATTEMPTS:5}
+    requests-per-hour: ${AUTH_SIGNUP_REQUESTS_PER_HOUR:5}
+    mail-delivery-enabled: ${AUTH_SIGNUP_MAIL_ENABLED:false}
+    expose-code-in-response: ${AUTH_SIGNUP_EXPOSE_CODE:false}
+    mail-from: ${AUTH_SIGNUP_MAIL_FROM:no-reply@devjobs.local}
+    turnstile-enabled: ${AUTH_SIGNUP_TURNSTILE_ENABLED:false}
+    turnstile-secret: ${TURNSTILE_SECRET_KEY:}

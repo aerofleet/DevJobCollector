@@ -127,9 +127,38 @@
   color: #c7c7c7;
 }
 
-.emphasize {
-  font-weight: 600;
-  color: var(--djc-main-color, #004ea2);
+.login-signup-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #ece9f2;
+  text-align: center;
+}
+
+.login-signup-section p {
+  margin: 0 0 10px;
+  color: #777180;
+  font-size: 13px;
+}
+
+.login-signup-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 13px;
+  border: 1px solid #6c4dff;
+  border-radius: 8px;
+  color: #6245e6;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.login-signup-button:hover,
+.login-signup-button:focus-visible {
+  background: #6c4dff;
+  color: #fff;
 }
 
 .social_login_section {

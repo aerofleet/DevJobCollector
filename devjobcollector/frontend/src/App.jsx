@@ -4,6 +4,7 @@ import MainPage from './pages/MainPage';
 import AllJobsPage from './pages/AllJobsPage';
 import DetailPage from './pages/DetailPage';
 import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
 import Resume from './pages/Resume';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import './styles/App.css';
@@ -26,6 +27,7 @@ const AppRoutes = () => {
         <Route path="/jobs" element={<AllJobsPage />} />
         <Route path="/job/:id" element={<DetailPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
         <Route path="/oauth/callback" element={<LoginPage />} />
         <Route
           path="/resume"

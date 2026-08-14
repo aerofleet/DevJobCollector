@@ -155,7 +155,8 @@ const Header = ({ onSearch }) => {
           </ul>
 
           <ul className="nav-right">
-            <li><Link to="/login">로그인</Link></li>
+            <li><Link className="nav-login-link" to="/login">로그인</Link></li>
+            <li><Link className="nav-signup-button" to="/signup">회원가입</Link></li>
           </ul>
         </nav>
 
@@ -186,7 +187,7 @@ const Header = ({ onSearch }) => {
 
           <div className="mobile-menu-auth">
             <Link onClick={() => setIsMenuOpen(false)} className={isActivePath('/login') ? 'active' : ''} to="/login">로그인</Link>
-            <Link onClick={() => setIsMenuOpen(false)} to="/">공고 둘러보기</Link>
+            <Link onClick={() => setIsMenuOpen(false)} className={isActivePath('/signup') ? 'active signup' : 'signup'} to="/signup">회원가입</Link>
           </div>
         </aside>
       </div>

@@ -1,0 +1,72 @@
+.signup-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 96px 16px 72px;
+  background: radial-gradient(circle at 50% 8%, #eee9ff 0, #faf9fd 38%, #fff 74%);
+}
+
+.signup-card {
+  width: min(520px, 100%);
+  padding: 40px;
+  border: 1px solid #e7e2f5;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(47, 30, 102, 0.12);
+}
+
+.signup-heading { text-align: center; }
+.signup-heading > span { color: #6c4dff; font-size: 11px; font-weight: 800; letter-spacing: .14em; }
+.signup-heading h1 { margin: 8px 0; color: #191724; font-size: 30px; }
+.signup-heading p { margin: 0; color: #716d7c; font-size: 14px; line-height: 1.6; }
+
+.member-type-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: 28px 0 22px;
+  padding: 4px;
+  border-radius: 12px;
+  background: #f3f1f8;
+}
+.member-type-tabs button { padding: 11px; border: 0; border-radius: 9px; background: transparent; color: #8a8595; font-weight: 700; }
+.member-type-tabs button.active { background: #fff; color: #5c3fe0; box-shadow: 0 2px 10px rgba(57, 39, 126, .1); }
+.member-type-tabs small { display: block; margin-top: 2px; font-size: 9px; }
+
+.social-signup { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.social-signup a { padding: 12px; border: 1px solid #ddd9e8; border-radius: 10px; color: #292630; text-align: center; text-decoration: none; font-size: 14px; font-weight: 700; }
+.social-signup a:hover { border-color: #8067ee; background: #faf8ff; }
+.signup-divider { display: flex; align-items: center; gap: 12px; margin: 22px 0; color: #aaa5b4; font-size: 12px; }
+.signup-divider::before, .signup-divider::after { content: ''; height: 1px; flex: 1; background: #ece9f2; }
+
+.signup-form { display: grid; gap: 15px; }
+.signup-form > label { display: grid; gap: 7px; color: #393542; font-size: 13px; font-weight: 700; text-align: left; }
+.signup-form input:not([type='checkbox']), .verification-form > input {
+  width: 100%; padding: 13px 14px; border: 1px solid #dcd8e6; border-radius: 9px; background: #fff; font: inherit;
+}
+.signup-form input:focus, .verification-form > input:focus { outline: 0; border-color: #6c4dff; box-shadow: 0 0 0 3px rgba(108, 77, 255, .12); }
+.signup-form label small { color: #9792a1; font-weight: 400; }
+.signup-consents { display: grid; gap: 9px; padding: 14px; border-radius: 10px; background: #f8f7fb; }
+.signup-consents label { display: flex; gap: 8px; align-items: center; color: #5c5767; font-size: 12px; }
+.signup-consents input { width: 16px; height: 16px; accent-color: #6c4dff; }
+.turnstile-container { min-height: 65px; display: flex; justify-content: center; }
+
+.signup-submit { width: 100%; padding: 14px; border: 0; border-radius: 10px; background: #6c4dff; color: #fff; font-size: 15px; font-weight: 800; cursor: pointer; }
+.signup-submit:hover { background: #5838e5; }
+.signup-submit:disabled { cursor: not-allowed; opacity: .6; }
+.signup-notice, .signup-error { margin: 14px 0 0; padding: 10px 12px; border-radius: 8px; font-size: 13px; text-align: center; }
+.signup-notice { background: #f0ecff; color: #5438d2; }
+.signup-error { background: #fff0f0; color: #c43a3a; }
+.login-link { margin: 20px 0 0; color: #777180; text-align: center; font-size: 13px; }
+.login-link a { color: #6245e6; font-weight: 800; text-decoration: none; }
+
+.verification-form { display: grid; gap: 14px; text-align: center; }
+.mail-illustration { width: 58px; height: 58px; display: grid; place-items: center; margin: 2px auto 0; border-radius: 50%; background: #f0ecff; color: #6345e6; font-size: 27px; }
+.verification-form h2 { margin: 2px 0 0; color: #25212d; font-size: 22px; }
+.verification-form p { margin: 0 0 4px; color: #777180; font-size: 13px; }
+.verification-form > input { text-align: center; font-size: 24px; font-weight: 800; letter-spacing: .35em; }
+.resend-button { border: 0; background: transparent; color: #6c4dff; font-size: 13px; font-weight: 700; cursor: pointer; }
+
+@media (max-width: 560px) {
+  .signup-card { padding: 30px 22px; border-radius: 18px; }
+  .social-signup { grid-template-columns: 1fr; }
+}

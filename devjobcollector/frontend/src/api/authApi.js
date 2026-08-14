@@ -14,3 +14,18 @@ export const loginWithPassword = async ({ identifier, password }) => {
   const response = await authClient.post('/auth/login', { identifier, password });
   return response.data;
 };
+
+export const signupPersonal = async (payload) => {
+  const response = await authClient.post('/auth/signup/personal', payload);
+  return response.data;
+};
+
+export const verifyPersonalEmail = async ({ email, code }) => {
+  const response = await authClient.post('/auth/signup/personal/verify-email', { email, code });
+  return response.data;
+};
+
+export const resendPersonalVerification = async ({ email, turnstileToken }) => {
+  const response = await authClient.post('/auth/signup/personal/resend', { email, turnstileToken });
+  return response.data;
+};
