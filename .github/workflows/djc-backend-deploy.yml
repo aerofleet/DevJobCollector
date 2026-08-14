@@ -1,4 +1,4 @@
-name: Deploy DJC Backend to Oracle Cloud
+name: Deploy DJC Backend Container to Oracle Cloud
 
 on:
   push:
@@ -11,216 +11,189 @@ on:
       - "devjobcollector/settings.gradle"
       - "devjobcollector/gradle/**"
       - "devjobcollector/gradlew"
-      - "devjobcollector/ops/systemd/**"
+      - "devjobcollector/Dockerfile"
+      - "devjobcollector/compose.yaml"
+      - "devjobcollector/ops/docker/**"
       - ".github/workflows/djc-backend-deploy.yml"
   workflow_dispatch:
-  
+
+permissions:
+  contents: read
+  packages: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  IMAGE_REPOSITORY: ghcr.io/aerofleet/devjobcollector
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 35
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
-          distribution: 'temurin'
-      
-      - name: Make gradlew executable
+          java-version: "21"
+          distribution: temurin
+          cache: gradle
+
+      - name: Run backend tests
         working-directory: ./devjobcollector
-        run: chmod +x gradlew
-      
-      - name: Build with Gradle
-        working-directory: ./devjobcollector
-        run: ./gradlew clean build --no-daemon
-      
-      - name: List JAR files
-        working-directory: ./devjobcollector
-        run: ls -lh build/libs/
-      
-      - name: Deploy to Oracle Cloud
+        run: |
+          chmod +x gradlew
+          ./gradlew clean test --no-daemon
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push deploy image
+        uses: docker/build-push-action@v7
+        with:
+          context: ./devjobcollector
+          file: ./devjobcollector/Dockerfile
+          platforms: linux/amd64
+          push: true
+          pull: true
+          tags: |
+            ${{ env.IMAGE_REPOSITORY }}:${{ github.sha }}
+            ${{ env.IMAGE_REPOSITORY }}:latest
+          cache-from: type=gha,scope=djc-deploy
+          cache-to: type=gha,mode=max,scope=djc-deploy
+
+      - name: Validate deployment secrets
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SERVER_IP: ${{ secrets.SERVER_IP }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           API_SERVICE_KEY: ${{ secrets.API_SERVICE_KEY }}
-          SARAMIN_ACCESS_KEY: ${{ secrets.SARAMIN_ACCESS_KEY }}
-          SARAMIN_COLLECTION_ENABLED: ${{ secrets.SARAMIN_ACCESS_KEY != '' }}
-          TOSS_COLLECTION_ENABLED: "true"
+          AUTH_TOKEN_SECRET: ${{ secrets.AUTH_TOKEN_SECRET }}
+          AUTH_FRONTEND_SUCCESS_URI: ${{ secrets.AUTH_FRONTEND_SUCCESS_URI }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: |
           set -euo pipefail
+          required=(SSH_PRIVATE_KEY SERVER_IP SERVER_USER DB_PASSWORD API_SERVICE_KEY AUTH_TOKEN_SECRET AUTH_FRONTEND_SUCCESS_URI GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET)
+          for name in "${required[@]}"; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing required GitHub secret: ${name}"
+              exit 1
+            fi
+          done
 
-          echo "has SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY != '' }}"
-          echo "has SERVER_IP: ${{ secrets.SERVER_IP != '' }}"
-          echo "has SERVER_USER: ${{ secrets.SERVER_USER != '' }}"
-          echo "has DB_PASSWORD: ${{ secrets.DB_PASSWORD != '' }}"
-          echo "has API_SERVICE_KEY: ${{ secrets.API_SERVICE_KEY != '' }}"
-          echo "has SARAMIN_ACCESS_KEY: ${{ secrets.SARAMIN_ACCESS_KEY != '' }}"
-          echo "has GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID != '' }}"
-          echo "has GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET != '' }}"
+      - name: Prepare deployment bundle
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          API_SERVICE_KEY: ${{ secrets.API_SERVICE_KEY }}
+          SARAMIN_ACCESS_KEY: ${{ secrets.SARAMIN_ACCESS_KEY }}
+          AUTH_TOKEN_SECRET: ${{ secrets.AUTH_TOKEN_SECRET }}
+          AUTH_FRONTEND_SUCCESS_URI: ${{ secrets.AUTH_FRONTEND_SUCCESS_URI }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GITHUB_CLIENT_ID: ${{ secrets.DJC_GITHUB_CLIENT_ID }}
+          GITHUB_CLIENT_SECRET: ${{ secrets.DJC_GITHUB_CLIENT_SECRET }}
+          MAIL_HOST: ${{ secrets.MAIL_HOST }}
+          MAIL_PORT: ${{ secrets.MAIL_PORT }}
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          AUTH_SIGNUP_MAIL_FROM: ${{ secrets.AUTH_SIGNUP_MAIL_FROM }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USERNAME: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p deploy-bundle
 
-          [ "${{ secrets.SSH_PRIVATE_KEY != '' }}" = "true" ] || (echo "Missing SSH_PRIVATE_KEY"; exit 1)
-          [ "${{ secrets.SERVER_IP != '' }}" = "true" ] || (echo "Missing SERVER_IP"; exit 1)
-          [ "${{ secrets.SERVER_USER != '' }}" = "true" ] || (echo "Missing SERVER_USER"; exit 1)
-          [ "${{ secrets.DB_PASSWORD != '' }}" = "true" ] || (echo "Missing DB_PASSWORD"; exit 1)
-          [ "${{ secrets.API_SERVICE_KEY != '' }}" = "true" ] || (echo "Missing API_SERVICE_KEY"; exit 1)
-          [ "${{ secrets.GOOGLE_CLIENT_ID != '' }}" = "true" ] || (echo "Missing GOOGLE_CLIENT_ID"; exit 1)
-          [ "${{ secrets.GOOGLE_CLIENT_SECRET != '' }}" = "true" ] || (echo "Missing GOOGLE_CLIENT_SECRET"; exit 1)
+          mail_enabled=false
+          if [ -n "$MAIL_HOST" ] && [ -n "$MAIL_USERNAME" ] && [ -n "$MAIL_PASSWORD" ] && [ -n "$AUTH_SIGNUP_MAIL_FROM" ]; then
+            mail_enabled=true
+          fi
 
+          turnstile_enabled=false
+          if [ -n "$TURNSTILE_SECRET_KEY" ]; then
+            turnstile_enabled=true
+          fi
+
+          {
+            printf '%s\n' "SPRING_PROFILES_ACTIVE=prod"
+            printf '%s\n' "DB_PASSWORD=$DB_PASSWORD"
+            printf '%s\n' "SPRING_DATASOURCE_PASSWORD=$DB_PASSWORD"
+            printf '%s\n' "API_SERVICE_KEY=$API_SERVICE_KEY"
+            printf '%s\n' "SARAMIN_ACCESS_KEY=$SARAMIN_ACCESS_KEY"
+            printf '%s\n' "SARAMIN_COLLECTION_ENABLED=$([ -n "$SARAMIN_ACCESS_KEY" ] && echo true || echo false)"
+            printf '%s\n' "TOSS_COLLECTION_ENABLED=true"
+            printf '%s\n' "NAVER_COLLECTION_ENABLED=true"
+            printf '%s\n' "ATS_COLLECTION_ENABLED=true"
+            printf '%s\n' "AUTH_FRONTEND_SUCCESS_URI=$AUTH_FRONTEND_SUCCESS_URI"
+            printf '%s\n' "AUTH_TOKEN_SECRET=$AUTH_TOKEN_SECRET"
+            printf '%s\n' "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID"
+            printf '%s\n' "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET"
+            printf '%s\n' "SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID"
+            printf '%s\n' "SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET"
+            if [ -n "$GITHUB_CLIENT_ID" ] && [ -n "$GITHUB_CLIENT_SECRET" ]; then
+              printf '%s\n' "GITHUB_CLIENT_ID=$GITHUB_CLIENT_ID"
+              printf '%s\n' "GITHUB_CLIENT_SECRET=$GITHUB_CLIENT_SECRET"
+              printf '%s\n' "SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GITHUB_CLIENT_ID=$GITHUB_CLIENT_ID"
+              printf '%s\n' "SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GITHUB_CLIENT_SECRET=$GITHUB_CLIENT_SECRET"
+            fi
+            printf '%s\n' "MAIL_HOST=$MAIL_HOST"
+            printf '%s\n' "MAIL_PORT=${MAIL_PORT:-587}"
+            printf '%s\n' "MAIL_USERNAME=$MAIL_USERNAME"
+            printf '%s\n' "MAIL_PASSWORD=$MAIL_PASSWORD"
+            printf '%s\n' "AUTH_SIGNUP_MAIL_ENABLED=$mail_enabled"
+            if [ -n "$AUTH_SIGNUP_MAIL_FROM" ]; then
+              printf '%s\n' "AUTH_SIGNUP_MAIL_FROM=$AUTH_SIGNUP_MAIL_FROM"
+            fi
+            printf '%s\n' "AUTH_SIGNUP_TURNSTILE_ENABLED=$turnstile_enabled"
+            printf '%s\n' "TURNSTILE_SECRET_KEY=$TURNSTILE_SECRET_KEY"
+            printf '%s\n' "DJC_IMAGE_REPOSITORY=${IMAGE_REPOSITORY}"
+            printf '%s\n' "DJC_IMAGE_TAG=${GITHUB_SHA}"
+            printf '%s\n' "DJC_ENV_FILE=/etc/devjobcollector/devjobcollector.env"
+            printf '%s\n' "DJC_BIND_ADDRESS=127.0.0.1"
+            printf '%s\n' "DJC_PORT=8080"
+          } > deploy-bundle/devjobcollector.env
+
+          printf '%s' "$GHCR_TOKEN" > deploy-bundle/ghcr-token
+          printf '%s' "$GHCR_USERNAME" > deploy-bundle/ghcr-username
+          cp devjobcollector/compose.yaml deploy-bundle/compose.yaml
+          cp devjobcollector/ops/docker/deploy.sh deploy-bundle/deploy.sh
+          chmod 600 deploy-bundle/*
+          chmod 700 deploy-bundle/deploy.sh
+
+      - name: Deploy container to Oracle Cloud
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+        run: |
+          set -euo pipefail
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          printf '%s' "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts 2>/dev/null || true
 
-          SSH_OPTS="-i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o ConnectTimeout=20 -o ConnectionAttempts=5 -o ServerAliveInterval=15 -o ServerAliveCountMax=3"
+          SSH_OPTS="-i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o ConnectTimeout=20 -o ConnectionAttempts=3 -o ServerAliveInterval=15 -o ServerAliveCountMax=3"
+          REMOTE_BUNDLE="/home/$SERVER_USER/djc-deploy"
 
-          retry() {
-            local n=1
-            local max=5
-            local delay=6
-            while true; do
-              "$@" && break || {
-                if [ $n -lt $max ]; then
-                  n=$((n+1))
-                  echo "Retry $n/$max: $*"
-                  sleep $delay
-                else
-                  echo "Command failed after $max attempts: $*"
-                  return 1
-                fi
-              }
-            done
-          }
-          
-          echo "=== Deploying JAR ==="
-          retry scp $SSH_OPTS \
-            devjobcollector/build/libs/devjobcollector-0.0.1-SNAPSHOT.jar \
-            $SERVER_USER@$SERVER_IP:/home/ubuntu/app.jar.next
+          ssh $SSH_OPTS "$SERVER_USER@$SERVER_IP" "mkdir -p '$REMOTE_BUNDLE' && chmod 700 '$REMOTE_BUNDLE'"
+          scp $SSH_OPTS deploy-bundle/* "$SERVER_USER@$SERVER_IP:$REMOTE_BUNDLE/"
+          ssh $SSH_OPTS "$SERVER_USER@$SERVER_IP" "sudo '$REMOTE_BUNDLE/deploy.sh' '$REMOTE_BUNDLE'"
 
-          echo "=== Deploying systemd files ==="
-          retry scp $SSH_OPTS \
-            devjobcollector/ops/systemd/djc-start.sh \
-            $SERVER_USER@$SERVER_IP:/home/ubuntu/djc-start.sh
-          retry scp $SSH_OPTS \
-            devjobcollector/ops/systemd/devjobcollector.service \
-            $SERVER_USER@$SERVER_IP:/home/ubuntu/devjobcollector.service
-          
-          echo "=== Starting Application ==="
-          ssh $SSH_OPTS $SERVER_USER@$SERVER_IP \
-            "DB_PASSWORD='$DB_PASSWORD' API_SERVICE_KEY='$API_SERVICE_KEY' SARAMIN_ACCESS_KEY='$SARAMIN_ACCESS_KEY' SARAMIN_COLLECTION_ENABLED='$SARAMIN_COLLECTION_ENABLED' TOSS_COLLECTION_ENABLED='$TOSS_COLLECTION_ENABLED' GOOGLE_CLIENT_ID='$GOOGLE_CLIENT_ID' GOOGLE_CLIENT_SECRET='$GOOGLE_CLIENT_SECRET' bash -s" << 'ENDSSH'
-          set -euo pipefail
-
-          cat > /home/ubuntu/djc.env <<EOF
-          DB_PASSWORD=${DB_PASSWORD}
-          API_SERVICE_KEY=${API_SERVICE_KEY}
-          SARAMIN_ACCESS_KEY=${SARAMIN_ACCESS_KEY}
-          SARAMIN_COLLECTION_ENABLED=${SARAMIN_COLLECTION_ENABLED}
-          TOSS_COLLECTION_ENABLED=${TOSS_COLLECTION_ENABLED}
-          GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-          GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-          EOF
-          chmod 600 /home/ubuntu/djc.env
-
-          echo "DB_PASSWORD length: ${#DB_PASSWORD}"
-          echo "API_SERVICE_KEY length: ${#API_SERVICE_KEY}"
-          echo "SARAMIN collection enabled: ${SARAMIN_COLLECTION_ENABLED}"
-          echo "TOSS collection enabled: ${TOSS_COLLECTION_ENABLED}"
-          echo "GOOGLE_CLIENT_ID length: ${#GOOGLE_CLIENT_ID}"
-          echo "GOOGLE_CLIENT_SECRET length: ${#GOOGLE_CLIENT_SECRET}"
-
-          sudo install -m 0755 /home/ubuntu/djc-start.sh /usr/local/bin/djc-start.sh
-          sudo install -m 0644 /home/ubuntu/devjobcollector.service /etc/systemd/system/devjobcollector.service
-          sudo systemctl daemon-reload
-          sudo systemctl enable devjobcollector.service
-
-          log_start_line=0
-          if [ -f /home/ubuntu/app.log ]; then
-            log_start_line=$(wc -l < /home/ubuntu/app.log)
-          fi
-
-          echo "=== Stopping previous application ==="
-          sudo systemctl stop devjobcollector.service || true
-          for attempt in $(seq 1 30); do
-            if ! sudo systemctl is-active --quiet devjobcollector.service; then
-              break
-            fi
-            if [ "$attempt" -eq 30 ]; then
-              echo "Previous application did not stop within 30 seconds"
-              exit 1
-            fi
-            sleep 1
-          done
-
-          echo "=== Replacing JAR atomically ==="
-          test -s /home/ubuntu/app.jar.next
-          mv /home/ubuntu/app.jar.next /home/ubuntu/app.jar
-
-          echo "=== Starting new application ==="
-          sudo systemctl start devjobcollector.service
-
-          expected_pid=""
-          for attempt in $(seq 1 20); do
-            expected_pid=$(sudo systemctl show devjobcollector.service --property MainPID --value)
-            if [ -n "$expected_pid" ] && [ "$expected_pid" -gt 0 ]; then
-              break
-            fi
-            sleep 1
-          done
-
-          if [ -z "$expected_pid" ] || [ "$expected_pid" -le 0 ]; then
-            echo "New application process did not start"
-            sudo systemctl --no-pager -l status devjobcollector.service || true
-            exit 1
-          fi
-          echo "New application PID: $expected_pid"
-
-          healthy=false
-          health_attempts=120
-          health_interval_seconds=2
-          for attempt in $(seq 1 "$health_attempts"); do
-            current_pid=$(sudo systemctl show devjobcollector.service --property MainPID --value)
-            if [ "$current_pid" != "$expected_pid" ]; then
-              echo "Application PID changed during startup: expected=$expected_pid current=$current_pid"
-              break
-            fi
-            if curl -fsS http://127.0.0.1:8080/actuator/health | grep -q '"status":"UP"'; then
-              echo
-              echo "Backend health check passed on attempt ${attempt}/${health_attempts}"
-              healthy=true
-              break
-            fi
-            sleep "$health_interval_seconds"
-          done
-
-          current_log_start=$((log_start_line + 1))
-          echo "=== Current deployment collector logs ==="
-          sed -n "${current_log_start},\$p" /home/ubuntu/app.log \
-            | grep -E 'ATS target|ATS collection|공공데이터|수집|API 응답|신규 저장|중복 스킵|실패/오류|Exception|ERROR|WARN' \
-            | tail -n 120 || true
-
-          if [ "$healthy" = "true" ]; then
-            exit 0
-          fi
-
-          sudo systemctl --no-pager -l status devjobcollector.service | sed -n '1,40p' || true
-          sudo journalctl -u devjobcollector.service --no-pager -n 80 || true
-          echo "=== Current deployment application logs ==="
-          sed -n "${current_log_start},\$p" /home/ubuntu/app.log | tail -n 160 || true
-          health_timeout_seconds=$((health_attempts * health_interval_seconds))
-          echo "Backend health check failed after ${health_timeout_seconds} seconds"
-          exit 1
-          ENDSSH
-      
       - name: Deployment completed
-        run: echo "✅ Deployment completed!"
+        run: echo "DJC container deployment completed"
