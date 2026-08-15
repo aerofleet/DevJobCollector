@@ -27,6 +27,8 @@ concurrency:
 
 env:
   IMAGE_REPOSITORY: ghcr.io/aerofleet/devjobcollector
+  CLOUDFLARED_VERSION: 2026.5.1
+  CLOUDFLARED_SHA256: 4274f6106efbe586e8e2127aba02798c55bcfd99a45d14f08779d6afc51e8752
 
 jobs:
   build-and-deploy:
@@ -77,8 +79,9 @@ jobs:
       - name: Validate deployment secrets
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SERVER_IP: ${{ secrets.SERVER_IP }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
           DB_SERVER_IP: ${{ secrets.DB_SERVER_IP }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
@@ -89,7 +92,7 @@ jobs:
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: |
           set -euo pipefail
-          required=(SSH_PRIVATE_KEY SERVER_IP SERVER_USER DB_SERVER_IP DB_USERNAME DB_PASSWORD API_SERVICE_KEY AUTH_TOKEN_SECRET AUTH_FRONTEND_SUCCESS_URI GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET)
+          required=(SSH_PRIVATE_KEY SERVER_USER CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET DB_SERVER_IP DB_USERNAME DB_PASSWORD API_SERVICE_KEY AUTH_TOKEN_SECRET AUTH_FRONTEND_SUCCESS_URI GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET)
           for name in "${required[@]}"; do
             if [ -z "${!name}" ]; then
               echo "::error::Missing required GitHub secret: ${name}"
@@ -181,25 +184,50 @@ jobs:
           chmod 600 deploy-bundle/*
           chmod 700 deploy-bundle/deploy.sh
 
-      - name: Deploy container to Oracle Cloud
+      - name: Install cloudflared client
+        run: |
+          set -euo pipefail
+          package="cloudflared-linux-amd64.deb"
+          curl --fail --location --retry 3 \
+            "https://github.com/cloudflare/cloudflared/releases/download/${CLOUDFLARED_VERSION}/${package}" \
+            --output "$package"
+          printf '%s  %s\n' "$CLOUDFLARED_SHA256" "$package" | sha256sum --check --strict
+          sudo dpkg -i "$package"
+          cloudflared --version
+
+      - name: Deploy container through Cloudflare Tunnel
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SERVER_IP: ${{ secrets.SERVER_IP }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
+          TUNNEL_SERVICE_TOKEN_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          TUNNEL_SERVICE_TOKEN_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
         run: |
           set -euo pipefail
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           printf '%s' "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts 2>/dev/null || true
 
-          SSH_OPTS="-i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o ConnectTimeout=20 -o ConnectionAttempts=3 -o ServerAliveInterval=15 -o ServerAliveCountMax=3"
+          cat > ~/.ssh/config <<EOF
+          Host djc-a1
+            HostName ssh-djc.itsdev.kr
+            User $SERVER_USER
+            IdentityFile ~/.ssh/id_rsa
+            ProxyCommand cloudflared access ssh --hostname %h
+            StrictHostKeyChecking accept-new
+            BatchMode yes
+            ConnectTimeout 20
+            ConnectionAttempts 3
+            ServerAliveInterval 15
+            ServerAliveCountMax 3
+          EOF
+          chmod 600 ~/.ssh/config
+
           REMOTE_BUNDLE="/home/$SERVER_USER/djc-deploy"
 
-          ssh $SSH_OPTS "$SERVER_USER@$SERVER_IP" "mkdir -p '$REMOTE_BUNDLE' && chmod 700 '$REMOTE_BUNDLE'"
-          scp $SSH_OPTS deploy-bundle/* "$SERVER_USER@$SERVER_IP:$REMOTE_BUNDLE/"
-          ssh $SSH_OPTS "$SERVER_USER@$SERVER_IP" "sudo '$REMOTE_BUNDLE/deploy.sh' '$REMOTE_BUNDLE'"
+          ssh djc-a1 "mkdir -p '$REMOTE_BUNDLE' && chmod 700 '$REMOTE_BUNDLE'"
+          scp deploy-bundle/* "djc-a1:$REMOTE_BUNDLE/"
+          ssh djc-a1 "sudo '$REMOTE_BUNDLE/deploy.sh' '$REMOTE_BUNDLE'"
 
       - name: Deployment completed
         run: echo "DJC container deployment completed"
