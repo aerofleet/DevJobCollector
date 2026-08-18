@@ -10,7 +10,7 @@ fi
 exec /usr/bin/java -jar /home/ubuntu/app.jar \
   --spring.profiles.active=prod \
   --spring.datasource.url="jdbc:mysql://10.0.0.104:3306/devjob?serverTimezone=Asia/Seoul&useSSL=false&allowPublicKeyRetrieval=true" \
-  --spring.datasource.username="djcadmin" \
+  --spring.datasource.username="djc_app" \
   --spring.datasource.password="${DB_PASSWORD:-}" \
   --data-api.public-data.service-key="${API_SERVICE_KEY:-}" \
   --spring.security.oauth2.client.registration.google.client-id="${GOOGLE_CLIENT_ID:-}" \
