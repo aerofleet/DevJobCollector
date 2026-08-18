@@ -32,6 +32,11 @@ spring:
     baseline-version: 1
     user: ${FLYWAY_USERNAME:${SPRING_DATASOURCE_USERNAME:root}}
     password: ${FLYWAY_PASSWORD:${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:}}}
+
+management:
+  health:
+    mail:
+      enabled: ${AUTH_SIGNUP_MAIL_ENABLED:false}
 perf:
   log:
     request-threshold-ms: 80
