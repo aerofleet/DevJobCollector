@@ -90,6 +90,8 @@ jobs:
           DB_SERVER_IP: ${{ secrets.DB_SERVER_IP }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          FLYWAY_USERNAME: ${{ secrets.FLYWAY_USERNAME }}
+          FLYWAY_PASSWORD: ${{ secrets.FLYWAY_PASSWORD }}
           API_SERVICE_KEY: ${{ secrets.API_SERVICE_KEY }}
           AUTH_TOKEN_SECRET: ${{ secrets.AUTH_TOKEN_SECRET }}
           AUTH_FRONTEND_SUCCESS_URI: ${{ secrets.AUTH_FRONTEND_SUCCESS_URI }}
@@ -97,7 +99,7 @@ jobs:
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: |
           set -euo pipefail
-          required=(SSH_PRIVATE_KEY SERVER_USER CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET DB_SERVER_IP DB_USERNAME DB_PASSWORD API_SERVICE_KEY AUTH_TOKEN_SECRET AUTH_FRONTEND_SUCCESS_URI GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET)
+          required=(SSH_PRIVATE_KEY SERVER_USER CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET DB_SERVER_IP DB_USERNAME DB_PASSWORD FLYWAY_USERNAME FLYWAY_PASSWORD API_SERVICE_KEY AUTH_TOKEN_SECRET AUTH_FRONTEND_SUCCESS_URI GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET)
           for name in "${required[@]}"; do
             if [ -z "${!name}" ]; then
               echo "::error::Missing required GitHub secret: ${name}"
@@ -110,6 +112,8 @@ jobs:
           DB_SERVER_IP: ${{ secrets.DB_SERVER_IP }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          FLYWAY_USERNAME: ${{ secrets.FLYWAY_USERNAME }}
+          FLYWAY_PASSWORD: ${{ secrets.FLYWAY_PASSWORD }}
           API_SERVICE_KEY: ${{ secrets.API_SERVICE_KEY }}
           SARAMIN_ACCESS_KEY: ${{ secrets.SARAMIN_ACCESS_KEY }}
           AUTH_TOKEN_SECRET: ${{ secrets.AUTH_TOKEN_SECRET }}
@@ -147,6 +151,8 @@ jobs:
             printf '%s\n' "SPRING_DATASOURCE_USERNAME=$DB_USERNAME"
             printf '%s\n' "DB_PASSWORD=$DB_PASSWORD"
             printf '%s\n' "SPRING_DATASOURCE_PASSWORD=$DB_PASSWORD"
+            printf '%s\n' "FLYWAY_USERNAME=$FLYWAY_USERNAME"
+            printf '%s\n' "FLYWAY_PASSWORD=$FLYWAY_PASSWORD"
             printf '%s\n' "API_SERVICE_KEY=$API_SERVICE_KEY"
             printf '%s\n' "SARAMIN_ACCESS_KEY=$SARAMIN_ACCESS_KEY"
             printf '%s\n' "SARAMIN_COLLECTION_ENABLED=$([ -n "$SARAMIN_ACCESS_KEY" ] && echo true || echo false)"

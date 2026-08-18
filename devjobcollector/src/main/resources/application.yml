@@ -28,8 +28,10 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
-    # 기존 운영 스키마는 V1~V4 상당이 수동 반영되어 있어 V5부터 자동 적용한다.
-    baseline-version: 4
+    # 기존 운영 DB의 DJC 핵심 8개 테이블은 V1 기준선과 동일하다.
+    baseline-version: 1
+    user: ${FLYWAY_USERNAME:${SPRING_DATASOURCE_USERNAME:root}}
+    password: ${FLYWAY_PASSWORD:${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:}}}
 perf:
   log:
     request-threshold-ms: 80
