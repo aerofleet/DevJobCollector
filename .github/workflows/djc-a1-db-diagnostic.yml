@@ -94,6 +94,40 @@ jobs:
           echo "legacy_user_is_djcadmin=$legacy_user_is_djcadmin"
           echo "deployment_user_is_djcadmin=$current_user_is_djcadmin"
 
+          db_endpoint="${legacy_url#jdbc:mysql://}"
+          db_host_port="${db_endpoint%%/*}"
+          db_host="${db_host_port%%:*}"
+          db_port="${db_host_port##*:}"
+
+          account_summary="$(
+            docker run --rm --network host \
+              --env MYSQL_PWD="$legacy_password" \
+              mysql:8.4 \
+              mysql \
+                --host "$db_host" \
+                --port "$db_port" \
+                --user "$legacy_user" \
+                --batch \
+                --skip-column-names \
+                --execute "
+                  SET @client_host = (
+                    SELECT SUBSTRING_INDEX(HOST, ':', 1)
+                    FROM information_schema.processlist
+                    WHERE ID = CONNECTION_ID()
+                  );
+                  SELECT CONCAT('djcadmin_account_count=', COUNT(*))
+                  FROM mysql.user
+                  WHERE User = 'djcadmin';
+                  SELECT CONCAT(
+                    'djcadmin_matching_host_count=',
+                    SUM(CASE WHEN Host = '%' OR Host = @client_host THEN 1 ELSE 0 END)
+                  )
+                  FROM mysql.user
+                  WHERE User = 'djcadmin';
+                "
+          )"
+          printf '%s\n' "$account_summary"
+
           curl --fail --silent --show-error http://127.0.0.1:8080/actuator/health \
             | grep -q '"status":"UP"'
           echo 'legacy_health=UP'
