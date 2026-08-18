@@ -13,6 +13,9 @@ NEW_ENV="$DEPLOY_BUNDLE/devjobcollector.env"
 GHCR_TOKEN_FILE="$DEPLOY_BUNDLE/ghcr-token"
 GHCR_USERNAME_FILE="$DEPLOY_BUNDLE/ghcr-username"
 ROLLBACK_ENV="$DEPLOY_BUNDLE/rollback.env"
+LEGACY_COMPOSE_PROJECT="devjobcollector"
+LEGACY_CONTAINER_ID=""
+LEGACY_WAS_ACTIVE=false
 
 compose() {
   docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
@@ -30,15 +33,25 @@ rollback() {
 
   if [ -f "$ROLLBACK_ENV" ]; then
     install -m 0600 "$ROLLBACK_ENV" "$ENV_FILE"
-    compose up -d --no-build --force-recreate app || true
-    echo "Previous Docker image configuration restored"
-    return
   fi
 
   compose down || true
+
+  if [ -n "$LEGACY_CONTAINER_ID" ]; then
+    docker start "$LEGACY_CONTAINER_ID" || true
+    echo "Legacy Docker Compose container restarted"
+    return
+  fi
+
   if [ "$LEGACY_WAS_ACTIVE" = "true" ]; then
     systemctl start devjobcollector.service || true
     echo "Legacy JAR/systemd service restarted"
+    return
+  fi
+
+  if [ -f "$ROLLBACK_ENV" ]; then
+    compose up -d --no-build --force-recreate app || true
+    echo "Previous Docker image configuration restored"
   fi
 }
 
@@ -71,7 +84,6 @@ install -m 0600 "$NEW_ENV" "$ENV_FILE"
 compose config --quiet
 compose pull app
 
-LEGACY_WAS_ACTIVE=false
 if systemctl is-active --quiet devjobcollector.service; then
   LEGACY_WAS_ACTIVE=true
 fi
@@ -79,6 +91,35 @@ fi
 if [ "$LEGACY_WAS_ACTIVE" = "true" ]; then
   echo "=== Stopping legacy JAR/systemd service ==="
   systemctl stop devjobcollector.service
+fi
+
+LEGACY_CONTAINER_ID="$(
+  docker ps \
+    --filter "label=com.docker.compose.project=$LEGACY_COMPOSE_PROJECT" \
+    --filter "label=com.docker.compose.service=app" \
+    --quiet \
+    | head -n 1
+)"
+
+if [ -n "$LEGACY_CONTAINER_ID" ]; then
+  legacy_image="$(docker inspect --format '{{.Config.Image}}' "$LEGACY_CONTAINER_ID")"
+  case "$legacy_image" in
+    ghcr.io/aerofleet/devjobcollector:*) ;;
+    *)
+      echo "Refusing to stop unexpected legacy container image: $legacy_image"
+      exit 1
+      ;;
+  esac
+
+  echo "=== Stopping legacy Docker Compose container ==="
+  docker stop --time 30 "$LEGACY_CONTAINER_ID"
+fi
+
+if ss -H -ltn '( sport = :8080 )' | grep -q .; then
+  echo "TCP 8080 is still occupied after stopping known DJC runtimes"
+  ss -H -ltnp '( sport = :8080 )' || true
+  rollback
+  exit 1
 fi
 
 echo "=== Starting DJC container ==="
@@ -108,5 +149,8 @@ if [ "$healthy" != "true" ]; then
 fi
 
 systemctl disable devjobcollector.service >/dev/null 2>&1 || true
+if [ -n "$LEGACY_CONTAINER_ID" ]; then
+  docker rm "$LEGACY_CONTAINER_ID" >/dev/null
+fi
 compose ps
 echo "DJC is running with Docker Compose"
