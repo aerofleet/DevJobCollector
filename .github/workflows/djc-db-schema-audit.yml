@@ -111,27 +111,12 @@ jobs:
             "
           fi
 
-          unset DJC_MYSQL_ADMIN_PASSWORD
-          REMOTE
-
-      - name: Export DJC schema baseline through Cloudflare Tunnel
-        env:
-          SERVER_USER: ${{ secrets.SERVER_USER }}
-        run: |
-          set -euo pipefail
-          ssh djc-a1 'sudo bash -s' <<'REMOTE'
-          set -euo pipefail
-
-          admin_env='/etc/devjobcollector/djc-mysql-migration.env'
           output='/tmp/djc-schema-baseline.sql'
-          test -s "$admin_env"
-          source "$admin_env"
-
           docker run --rm --network host \
             --env MYSQL_PWD="$DJC_MYSQL_ADMIN_PASSWORD" \
             mysql:8.4 \
             mysqldump \
-              --host '10.0.0.104' \
+              --host "$db_host" \
               --user "$DJC_MYSQL_ADMIN_USERNAME" \
               --no-data \
               --skip-comments \
@@ -146,11 +131,24 @@ jobs:
           install -o "$SUDO_USER" -g "$SUDO_USER" -m 600 \
             "$output" "/home/$SUDO_USER/djc-schema-baseline.sql"
           rm -f "$output"
+
           unset DJC_MYSQL_ADMIN_PASSWORD
           REMOTE
 
-          scp "djc-a1:/home/$SERVER_USER/djc-schema-baseline.sql" ./djc-schema-baseline.sql
-          ssh djc-a1 "rm -f '/home/$SERVER_USER/djc-schema-baseline.sql'"
+      - name: Download DJC schema baseline through Cloudflare Tunnel
+        env:
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if scp "djc-a1:/home/$SERVER_USER/djc-schema-baseline.sql" ./djc-schema-baseline.sql; then
+              break
+            fi
+            if [ "$attempt" = '3' ]; then
+              exit 1
+            fi
+            sleep 5
+          done
 
       - name: Upload DJC schema baseline
         uses: actions/upload-artifact@v4
