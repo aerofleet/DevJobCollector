@@ -97,7 +97,8 @@ jobs:
             mysql:8.4 \
             mysqldump --host "$db_host" --port "$db_port" \
               --user "$db_username" \
-              --no-data --skip-comments --skip-dump-date --no-tablespaces \
+              --no-data --single-transaction --skip-lock-tables \
+              --skip-comments --skip-dump-date --no-tablespaces \
               --set-gtid-purged=OFF --skip-add-locks --skip-disable-keys \
               devjob > "$schema_output"
 
