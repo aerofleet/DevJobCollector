@@ -84,13 +84,15 @@ jobs:
           export MYSQL_PWD="$db_password"
           umask 077
 
-          docker run --rm --network host \
+          docker run --rm --interactive --network host \
             --env MYSQL_PWD \
             --volume "$audit_sql:/audit.sql:ro" \
             mysql:8.4 \
             mysql --host "$db_host" --port "$db_port" \
               --user "$db_username" \
               --database devjob --batch < "$audit_sql" > "$audit_output"
+
+          test -s "$audit_output"
 
           docker run --rm --network host \
             --env MYSQL_PWD \
