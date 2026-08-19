@@ -13,6 +13,8 @@ V3 `user_identities`, `personal_profiles`, `user_consents` 도입 전에 운영 
 - 두 산출물은 GitHub Actions artifact로만 보관하며 기본 보존 기간은 3일이다.
 - 원본 데이터 dump와 운영 자격증명은 저장소, Actions artifact, Notion에 저장하지 않는다.
 
+2026-08-19 최초 실행 결과는 `docs/reports/member-foundation-production-audit-20260819.md`에 기록했다. 일회성 실행 워크플로는 감사 완료 후 제거했다.
+
 ## 익명화 스냅샷 전략
 
 운영 V2 upgrade rehearsal에는 원본 행 dump 대신 다음 2단계를 사용한다.
