@@ -1,0 +1,132 @@
+name: Audit DJC Member Foundation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CLOUDFLARED_VERSION: 2026.5.1
+  CLOUDFLARED_SHA256: 4274f6106efbe586e8e2127aba02798c55bcfd99a45d14f08779d6afc51e8752
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install cloudflared client
+        run: |
+          set -euo pipefail
+          package="cloudflared-linux-amd64.deb"
+          curl --fail --location --retry 3 \
+            "https://github.com/cloudflare/cloudflared/releases/download/${CLOUDFLARED_VERSION}/${package}" \
+            --output "$package"
+          printf '%s  %s\n' "$CLOUDFLARED_SHA256" "$package" | sha256sum --check --strict
+          sudo dpkg -i "$package"
+
+      - name: Prepare Tunnel SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s' "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          cat > ~/.ssh/config <<EOF
+          Host djc-a1
+            HostName ssh-djc.itsdev.kr
+            User $SERVER_USER
+            IdentityFile ~/.ssh/id_rsa
+            ProxyCommand cloudflared access ssh --hostname %h
+            StrictHostKeyChecking accept-new
+            BatchMode yes
+            ConnectTimeout 20
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Run aggregate-only audit
+        env:
+          TUNNEL_SERVICE_TOKEN_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          TUNNEL_SERVICE_TOKEN_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          scp devjobcollector/ops/db/audit-member-foundation.sql djc-a1:/tmp/audit-member-foundation.sql
+
+          ssh djc-a1 'sudo bash -s' <<'REMOTE'
+          set -euo pipefail
+          env_file='/etc/devjobcollector/devjobcollector.env'
+          audit_sql='/tmp/audit-member-foundation.sql'
+          audit_output='/tmp/member-foundation-audit.txt'
+          schema_output='/tmp/member-foundation-schema.sql'
+          trap 'rm -f "$audit_sql" "$audit_output" "$schema_output"' EXIT
+
+          test -s "$env_file"
+          test -s "$audit_sql"
+          jdbc_url="$(sed -n 's/^SPRING_DATASOURCE_URL=//p' "$env_file" | head -n 1)"
+          db_username="$(sed -n 's/^SPRING_DATASOURCE_USERNAME=//p' "$env_file" | head -n 1)"
+          db_password="$(sed -n 's/^SPRING_DATASOURCE_PASSWORD=//p' "$env_file" | head -n 1)"
+          test -n "$jdbc_url"
+          test -n "$db_username"
+          test -n "$db_password"
+
+          jdbc_without_prefix="${jdbc_url#jdbc:mysql://}"
+          db_host_port="${jdbc_without_prefix%%/*}"
+          db_host="${db_host_port%%:*}"
+          db_port="${db_host_port##*:}"
+          if [ "$db_port" = "$db_host_port" ]; then db_port=3306; fi
+
+          export MYSQL_PWD="$db_password"
+          umask 077
+
+          docker run --rm --network host \
+            --env MYSQL_PWD \
+            --volume "$audit_sql:/audit.sql:ro" \
+            mysql:8.4 \
+            mysql --host "$db_host" --port "$db_port" \
+              --user "$db_username" \
+              --database devjob --batch < "$audit_sql" > "$audit_output"
+
+          docker run --rm --network host \
+            --env MYSQL_PWD \
+            mysql:8.4 \
+            mysqldump --host "$db_host" --port "$db_port" \
+              --user "$db_username" \
+              --no-data --skip-comments --skip-dump-date --no-tablespaces \
+              --set-gtid-purged=OFF --skip-add-locks --skip-disable-keys \
+              devjob > "$schema_output"
+
+          unset MYSQL_PWD db_password
+          install -o "$SUDO_USER" -g "$SUDO_USER" -m 600 "$audit_output" "/home/$SUDO_USER/member-foundation-audit.txt"
+          install -o "$SUDO_USER" -g "$SUDO_USER" -m 600 "$schema_output" "/home/$SUDO_USER/member-foundation-schema.sql"
+          REMOTE
+
+      - name: Download audit artifacts
+        env:
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          TUNNEL_SERVICE_TOKEN_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          TUNNEL_SERVICE_TOKEN_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          scp djc-a1:/home/$SERVER_USER/member-foundation-audit.txt ./member-foundation-audit.txt
+          scp djc-a1:/home/$SERVER_USER/member-foundation-schema.sql ./member-foundation-schema.sql
+          ssh djc-a1 "rm -f /home/$SERVER_USER/member-foundation-audit.txt /home/$SERVER_USER/member-foundation-schema.sql"
+          if grep -Eq '[[:alnum:]._%+-]+@[[:alnum:].-]+\.[[:alpha:]]{2,}|\$2[aby]\$[0-9]{2}\$' member-foundation-audit.txt; then
+            echo 'Potential identifier detected in aggregate audit output' >&2
+            exit 1
+          fi
+
+      - name: Upload short-lived audit artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: djc-member-foundation-audit
+          path: |
+            member-foundation-audit.txt
+            member-foundation-schema.sql
+          if-no-files-found: error
+          retention-days: 3
