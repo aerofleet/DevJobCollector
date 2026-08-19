@@ -112,14 +112,8 @@ auth:
     secret: ${AUTH_TOKEN_SECRET:change-this-secret-at-least-32chars}
     expires-minutes: ${AUTH_TOKEN_EXPIRES_MINUTES:120}
   local-login:
-    enabled: ${AUTH_LOCAL_LOGIN_ENABLED:true}
-    users:
-      - id: ${AUTH_LOCAL_USER_ID:1}
-        username: ${AUTH_LOCAL_USERNAME:admin}
-        email: ${AUTH_LOCAL_EMAIL:admin@example.com}
-        password: ${AUTH_LOCAL_PASSWORD:admin1234}
-        name: ${AUTH_LOCAL_NAME:Local Admin}
-        role: ${AUTH_LOCAL_ROLE:USER}
+    enabled: ${AUTH_LOCAL_LOGIN_ENABLED:false}
+    users: []
   signup:
     verification-minutes: ${AUTH_SIGNUP_VERIFICATION_MINUTES:15}
     max-verification-attempts: ${AUTH_SIGNUP_MAX_VERIFICATION_ATTEMPTS:5}

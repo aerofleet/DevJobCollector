@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "auth.local-login")
 public class AuthLocalLoginProperties {
-    private boolean enabled = true;
+    private boolean enabled = false;
     private List<User> users = new ArrayList<>();
 
     public boolean isEnabled() {

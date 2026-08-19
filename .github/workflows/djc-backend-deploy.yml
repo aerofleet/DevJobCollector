@@ -161,6 +161,7 @@ jobs:
             printf '%s\n' "ATS_COLLECTION_ENABLED=true"
             printf '%s\n' "AUTH_FRONTEND_SUCCESS_URI=$AUTH_FRONTEND_SUCCESS_URI"
             printf '%s\n' "AUTH_TOKEN_SECRET=$AUTH_TOKEN_SECRET"
+            printf '%s\n' "AUTH_LOCAL_LOGIN_ENABLED=false"
             printf '%s\n' "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID"
             printf '%s\n' "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET"
             printf '%s\n' "SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID"
