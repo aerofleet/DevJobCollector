@@ -1,6 +1,6 @@
 # DJC 회원·기업·Multi-Provider 인증 통합 실행계획
 
-> 상태: In Progress — P0-01/P0-02 완료, P0 보안 게이트 다음 작업
+> 상태: In Progress — P0 완료, P1-01 다음 작업
 > 기준일: 2026-08-19
 > 구현 시작 예정: 2026-08-20
 > 산정 조건: 주 5일, 구현자 1명, Provider 자격증명과 검토자 응답이 예정대로 제공됨
@@ -62,7 +62,7 @@
 
 - [x] P0-01 운영 DB/Flyway V2 감사 및 익명화 스냅샷 준비 (완료: 2026-08-19, 결과: `docs/reports/member-foundation-production-audit-20260819.md`)
 - [x] P0-02 V3 컬럼 사전·상태·에러 코드·LOCAL password 위치 확정 (완료: 2026-08-20, 계약: `docs/design/member-auth-v3-contract.md`)
-- [ ] P0-SEC-01 설정 기반 기본 LOCAL credential 비활성화 및 운영 회귀 검증 (0.5일, P0)
+- [x] P0-SEC-01 설정 기반 기본 LOCAL credential 비활성화 및 운영 회귀 검증 (완료: 2026-08-20, 결과: `docs/reports/local-login-default-credential-remediation-20260820.md`)
 
 ### P1 — V3 데이터 기반
 
