@@ -16,6 +16,7 @@ ROLLBACK_ENV="$DEPLOY_BUNDLE/rollback.env"
 LEGACY_COMPOSE_PROJECT="devjobcollector"
 LEGACY_CONTAINER_ID=""
 LEGACY_WAS_ACTIVE=false
+CURRENT_CONTAINER_ID=""
 
 compose() {
   docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
@@ -115,11 +116,35 @@ if [ -n "$LEGACY_CONTAINER_ID" ]; then
   docker stop --time 30 "$LEGACY_CONTAINER_ID"
 fi
 
+CURRENT_CONTAINER_ID="$(
+  docker ps \
+    --filter "label=com.docker.compose.project=$PROJECT_NAME" \
+    --filter "label=com.docker.compose.service=app" \
+    --quiet \
+    | head -n 1
+)"
+
+if [ -n "$CURRENT_CONTAINER_ID" ]; then
+  current_image="$(docker inspect --format '{{.Config.Image}}' "$CURRENT_CONTAINER_ID")"
+  case "$current_image" in
+    ghcr.io/aerofleet/devjobcollector:*) ;;
+    *)
+      echo "Refusing to replace unexpected current container image: $current_image"
+      rollback
+      exit 1
+      ;;
+  esac
+fi
+
 if ss -H -ltn '( sport = :8080 )' | grep -q .; then
-  echo "TCP 8080 is still occupied after stopping known DJC runtimes"
-  ss -H -ltnp '( sport = :8080 )' || true
-  rollback
-  exit 1
+  if [ -n "$CURRENT_CONTAINER_ID" ]; then
+    echo "TCP 8080 is owned by the current DJC Compose app and will be replaced"
+  else
+    echo "TCP 8080 is occupied by an unknown runtime"
+    ss -H -ltnp '( sport = :8080 )' || true
+    rollback
+    exit 1
+  fi
 fi
 
 echo "=== Starting DJC container ==="
