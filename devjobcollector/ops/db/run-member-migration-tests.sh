@@ -36,4 +36,7 @@ DJC_MIGRATION_TEST_URL="jdbc:mysql://127.0.0.1:${host_port}/devjob?serverTimezon
 DJC_MIGRATION_TEST_USERNAME=root \
 DJC_MIGRATION_TEST_PASSWORD="$root_password" \
 DJC_MIGRATION_TEST_EXPECTED_VERSION=26.7.0 \
-  ./gradlew test --tests kr.itsdev.devjobcollector.migration.MemberV3MigrationTest --no-daemon
+  ./gradlew test \
+    --tests kr.itsdev.devjobcollector.migration.MemberV3MigrationTest \
+    --tests kr.itsdev.devjobcollector.security.account.MemberFoundationRepositoryTest \
+    --no-daemon
