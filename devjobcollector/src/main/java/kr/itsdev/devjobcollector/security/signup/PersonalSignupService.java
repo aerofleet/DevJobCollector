@@ -8,12 +8,18 @@ import kr.itsdev.auth.common.spi.TokenIssueService;
 import kr.itsdev.devjobcollector.dto.auth.LoginResponse;
 import kr.itsdev.devjobcollector.dto.auth.PersonalSignupRequest;
 import kr.itsdev.devjobcollector.dto.auth.PersonalSignupResponse;
+import kr.itsdev.devjobcollector.security.account.AuthProvider;
 import kr.itsdev.devjobcollector.security.account.EmailVerificationToken;
 import kr.itsdev.devjobcollector.security.account.EmailVerificationTokenRepository;
+import kr.itsdev.devjobcollector.security.account.PersonalProfile;
+import kr.itsdev.devjobcollector.security.account.PersonalProfileRepository;
 import kr.itsdev.devjobcollector.security.account.UserAccount;
 import kr.itsdev.devjobcollector.security.account.UserAccountRepository;
 import kr.itsdev.devjobcollector.security.account.UserAccountStatus;
+import kr.itsdev.devjobcollector.security.account.UserIdentity;
+import kr.itsdev.devjobcollector.security.account.UserIdentityRepository;
 import org.springframework.http.HttpStatus;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,8 +29,11 @@ import org.springframework.web.server.ResponseStatusException;
 public class PersonalSignupService {
     private final UserAccountRepository userRepository;
     private final EmailVerificationTokenRepository tokenRepository;
+    private final PersonalProfileRepository profileRepository;
+    private final UserIdentityRepository identityRepository;
+    private final RequiredConsentService requiredConsentService;
     private final PasswordEncoder passwordEncoder;
-    private final VerificationMailService mailService;
+    private final ApplicationEventPublisher eventPublisher;
     private final TurnstileVerifier turnstileVerifier;
     private final SignupRateLimiter rateLimiter;
     private final DisposableEmailPolicy disposableEmailPolicy;
@@ -35,8 +44,11 @@ public class PersonalSignupService {
     public PersonalSignupService(
             UserAccountRepository userRepository,
             EmailVerificationTokenRepository tokenRepository,
+            PersonalProfileRepository profileRepository,
+            UserIdentityRepository identityRepository,
+            RequiredConsentService requiredConsentService,
             PasswordEncoder passwordEncoder,
-            VerificationMailService mailService,
+            ApplicationEventPublisher eventPublisher,
             TurnstileVerifier turnstileVerifier,
             SignupRateLimiter rateLimiter,
             DisposableEmailPolicy disposableEmailPolicy,
@@ -45,8 +57,11 @@ public class PersonalSignupService {
     ) {
         this.userRepository = userRepository;
         this.tokenRepository = tokenRepository;
+        this.profileRepository = profileRepository;
+        this.identityRepository = identityRepository;
+        this.requiredConsentService = requiredConsentService;
         this.passwordEncoder = passwordEncoder;
-        this.mailService = mailService;
+        this.eventPublisher = eventPublisher;
         this.turnstileVerifier = turnstileVerifier;
         this.rateLimiter = rateLimiter;
         this.disposableEmailPolicy = disposableEmailPolicy;
@@ -56,6 +71,7 @@ public class PersonalSignupService {
 
     @Transactional
     public PersonalSignupResponse signup(PersonalSignupRequest request, String remoteIp) {
+        requiredConsentService.validateAccepted(request.termsAccepted(), request.privacyAccepted());
         String email = normalizeEmail(request.email());
         rateLimiter.check(remoteIp, email);
         turnstileVerifier.verify(request.turnstileToken(), remoteIp);
@@ -69,8 +85,10 @@ public class PersonalSignupService {
                 request.name().trim(),
                 passwordEncoder.encode(request.password())
         ));
+        identityRepository.save(UserIdentity.local(user));
+        requiredConsentService.recordAccepted(user);
         String code = createVerificationToken(user);
-        mailService.sendCode(email, code);
+        eventPublisher.publishEvent(new VerificationCodeIssuedEvent(email, code));
         return response(email, code);
     }
 
@@ -87,7 +105,7 @@ public class PersonalSignupService {
         tokenRepository.findFirstByUserAndUsedAtIsNullOrderByIdDesc(user)
                 .ifPresent(EmailVerificationToken::markUsed);
         String code = createVerificationToken(user);
-        mailService.sendCode(email, code);
+        eventPublisher.publishEvent(new VerificationCodeIssuedEvent(email, code));
         return response(email, code);
     }
 
@@ -114,6 +132,12 @@ public class PersonalSignupService {
 
         token.markUsed();
         user.activateEmail();
+        identityRepository.findByUserAndProvider(user, AuthProvider.LOCAL)
+                .orElseThrow(() -> new IllegalStateException("LOCAL identity is missing"))
+                .updateProviderEmail(user.getEmail(), true);
+        if (!profileRepository.existsByUser(user)) {
+            profileRepository.save(PersonalProfile.active(user));
+        }
         String accessToken = tokenIssueService.issueAccessToken(authenticated(user));
         return new LoginResponse(accessToken, "Bearer");
     }

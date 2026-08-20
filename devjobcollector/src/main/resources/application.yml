@@ -123,3 +123,5 @@ auth:
     mail-from: ${AUTH_SIGNUP_MAIL_FROM:no-reply@devjobs.local}
     turnstile-enabled: ${AUTH_SIGNUP_TURNSTILE_ENABLED:false}
     turnstile-secret: ${TURNSTILE_SECRET_KEY:}
+    terms-policy-version: ${AUTH_SIGNUP_TERMS_POLICY_VERSION:v1}
+    privacy-policy-version: ${AUTH_SIGNUP_PRIVACY_POLICY_VERSION:v1}
