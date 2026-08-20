@@ -188,7 +188,7 @@ P2/G1 안정화 후 별도 ADR에서 `local_credentials(identity_id PK/FK, passw
 
 | 분류 | fixture | 기대 결과 |
 |---|---|---|
-| clean | 빈 DB V1→V3 | 성공, 14개 base table (`flyway_schema_history` 포함) |
+| clean | 운영과 동일한 26.7 계열의 빈 DB V1→V3 | 성공, 14개 base table (`flyway_schema_history` 포함) |
 | production | V2 schema-only + 운영 분포 | 성공 |
 | LOCAL | ACTIVE + password | identity/profile 생성 |
 | LOCAL | PENDING_EMAIL + password | identity 생성, profile 없음 |

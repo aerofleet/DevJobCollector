@@ -1,6 +1,6 @@
 # DJC 회원·기업·Multi-Provider 인증 통합 실행계획
 
-> 상태: In Progress — P0 완료, P1-01 다음 작업
+> 상태: In Progress — P1-01 완료, P1-02 다음 작업
 > 기준일: 2026-08-19
 > 구현 시작 예정: 2026-08-20
 > 산정 조건: 주 5일, 구현자 1명, Provider 자격증명과 검토자 응답이 예정대로 제공됨
@@ -66,7 +66,7 @@
 
 ### P1 — V3 데이터 기반
 
-- [ ] P1-01 V3 DDL과 clean/V2 upgrade migration test 작성 (2일, P0)
+- [x] P1-01 V3 DDL과 clean/V2 upgrade migration test 작성 (완료: 2026-08-20, MySQL 26.7 integration 6/6)
 - [ ] P1-02 UserIdentity/Consent/PersonalProfile Entity·Repository 작성 (2일, P0)
 - [ ] P1-03 기존 LOCAL/Google/GitHub backfill 검증과 duplicate audit 작성 (1일, P0)
 
@@ -114,7 +114,7 @@
 
 ### 데이터 및 마이그레이션
 
-- Clean MySQL 8.4: V1→Latest 성공률 100%.
+- 운영 실측 `26.7.0-cloud`와 동일 계열인 MySQL 26.7.0: V1→Latest 성공률 100%.
 - 운영 V2 익명화 스냅샷: V3→Latest 성공률 100%.
 - user identity orphan 및 duplicate 0건.
 - 기존 사용자 로그인 가능률 100%.

@@ -15,6 +15,7 @@ on:
       - "devjobcollector/settings.gradle"
       - "devjobcollector/gradle/**"
       - "devjobcollector/gradlew"
+      - "devjobcollector/ops/db/**"
       - ".github/workflows/djc-docker-ci.yml"
   pull_request:
     branches:
@@ -30,6 +31,7 @@ on:
       - "devjobcollector/settings.gradle"
       - "devjobcollector/gradle/**"
       - "devjobcollector/gradlew"
+      - "devjobcollector/ops/db/**"
       - ".github/workflows/djc-docker-ci.yml"
   workflow_dispatch:
 
@@ -56,42 +58,16 @@ jobs:
           DJC_ENV_FILE: ${{ github.workspace }}/devjobcollector/.env.docker.example
         run: docker compose -f compose.yaml config --quiet
 
-      - name: Validate DJC migrations on clean MySQL
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: gradle
+
+      - name: Validate MySQL 26.7 clean and V2 upgrade migrations
         working-directory: devjobcollector
-        run: |
-          set -euo pipefail
-          container="djc-flyway-ci-${GITHUB_RUN_ID}"
-          cleanup() {
-            docker rm --force "$container" >/dev/null 2>&1 || true
-          }
-          trap cleanup EXIT
-
-          docker run --detach \
-            --name "$container" \
-            --env MYSQL_ROOT_PASSWORD=djc-ci-root \
-            --env MYSQL_DATABASE=devjob \
-            mysql:8.4 >/dev/null
-
-          for attempt in $(seq 1 30); do
-            if docker exec "$container" mysqladmin ping --host 127.0.0.1 --user root --password=djc-ci-root --silent; then
-              break
-            fi
-            if [ "$attempt" = '30' ]; then
-              echo '::error::MySQL did not become ready'
-              exit 1
-            fi
-            sleep 2
-          done
-
-          for migration in $(find src/main/resources/db/migration -maxdepth 1 -name 'V*.sql' | sort -V); do
-            docker exec --interactive "$container" \
-              mysql --user root --password=djc-ci-root devjob < "$migration"
-          done
-
-          table_count="$(docker exec "$container" \
-            mysql --user root --password=djc-ci-root --batch --skip-column-names devjob \
-              --execute 'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = "devjob";')"
-          test "$table_count" = '10'
+        run: bash ops/db/run-member-migration-tests.sh
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
