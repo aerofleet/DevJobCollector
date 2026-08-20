@@ -15,14 +15,18 @@ public final class OAuth2ProfileExtractor {
                     asString(attributes.get("sub")),
                     asString(attributes.get("email")),
                     asString(attributes.get("name")),
-                    asString(attributes.get("picture"))
+                    asString(attributes.get("picture")),
+                    "https://accounts.google.com",
+                    asBoolean(attributes.get("email_verified"))
             );
             case GITHUB -> new SocialProfile(
                     provider,
                     asString(attributes.get("id")),
                     asString(attributes.get("email")),
                     fallback(asString(attributes.get("name")), asString(attributes.get("login"))),
-                    asString(attributes.get("avatar_url"))
+                    asString(attributes.get("avatar_url")),
+                    null,
+                    null
             );
         };
     }
@@ -40,5 +44,14 @@ public final class OAuth2ProfileExtractor {
 
     private static String fallback(String value, String fallback) {
         return value == null || value.isBlank() ? fallback : value;
+    }
+
+    private static Boolean asBoolean(Object value) {
+        if (value == null) {
+            return null;
+        }
+        return value instanceof Boolean booleanValue
+                ? booleanValue
+                : Boolean.valueOf(String.valueOf(value));
     }
 }

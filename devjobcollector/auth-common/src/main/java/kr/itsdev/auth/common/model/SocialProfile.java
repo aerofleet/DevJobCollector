@@ -5,6 +5,8 @@ public record SocialProfile(
         String providerUserId,
         String email,
         String name,
-        String profileImageUrl
+        String profileImageUrl,
+        String issuer,
+        Boolean emailVerified
 ) {
 }

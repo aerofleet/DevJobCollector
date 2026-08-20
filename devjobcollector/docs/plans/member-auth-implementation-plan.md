@@ -73,7 +73,7 @@
 ### P2 — 현재 인증 경로 전환
 
 - [x] P2-01 개인가입에 immutable consent와 profile 생성 연결 (완료: 2026-08-21, MySQL 26.7 관련 평가셋 22/22)
-- [ ] P2-02 Google/GitHub 조회를 `provider + provider_subject`로 전환 (2일, P0)
+- [x] P2-02 Google/GitHub 조회를 `provider + provider_subject`로 전환 (완료: 2026-08-21, MySQL 26.7 관련 평가셋 28/28)
 - [ ] P2-03 동일 이메일 자동병합 제거 및 `ACCOUNT_LINK_REQUIRED` 계약 추가 (1일, P0)
 - [ ] P2-04 LOCAL/Google/GitHub 회귀·통합 테스트와 운영 smoke 작성 (1일, P0)
 

@@ -79,11 +79,9 @@ public class UserAccount {
         this.emailVerifiedAt = LocalDateTime.now();
     }
 
-    public void updateSocialProfile(String email, String name, AuthProvider provider, String providerUserId) {
+    public void updateProfileAfterSocialAuthentication(String email, String name) {
         this.email = email;
         this.name = name;
-        this.provider = provider;
-        this.providerUserId = providerUserId;
         this.status = UserAccountStatus.ACTIVE;
         if (this.emailVerifiedAt == null) {
             this.emailVerifiedAt = LocalDateTime.now();
