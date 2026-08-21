@@ -106,6 +106,7 @@ server:
 auth:
   common:
     frontend-success-uri: ${AUTH_FRONTEND_SUCCESS_URI:http://localhost:5173/oauth/callback}
+    frontend-failure-uri: ${AUTH_FRONTEND_FAILURE_URI:${AUTH_FRONTEND_SUCCESS_URI:http://localhost:5173/oauth/callback}}
     token-query-param: token
   token:
     issuer: ${AUTH_TOKEN_ISSUER:devjobcollector}

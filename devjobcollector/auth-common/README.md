@@ -44,7 +44,8 @@ public class SecurityConfig {
     SecurityFilterChain filterChain(
             HttpSecurity http,
             OAuth2UserService<OAuth2UserRequest, OAuth2User> commonOAuth2UserService,
-            AuthenticationSuccessHandler socialLoginSuccessHandler
+            AuthenticationSuccessHandler socialLoginSuccessHandler,
+            AuthenticationFailureHandler socialLoginFailureHandler
     ) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
@@ -55,6 +56,7 @@ public class SecurityConfig {
             .oauth2Login(oauth2 -> oauth2
                 .userInfoEndpoint(userInfo -> userInfo.userService(commonOAuth2UserService))
                 .successHandler(socialLoginSuccessHandler)
+                .failureHandler(socialLoginFailureHandler)
             );
         return http.build();
     }
@@ -81,8 +83,13 @@ spring:
 auth:
   common:
     frontend-success-uri: https://<FRONTEND_DOMAIN>/oauth/callback
+    frontend-failure-uri: https://<FRONTEND_DOMAIN>/oauth/callback
     token-query-param: token
 ```
+
+실패 콜백은 `error` query parameter를 사용합니다. 계정 이메일 충돌은
+`ACCOUNT_LINK_REQUIRED`, 그 밖의 OAuth 실패는 상세 정보를 숨긴
+`OAUTH_LOGIN_FAILED`로 전달합니다.
 
 ## 5) 프론트 로그인 진입 URL
 

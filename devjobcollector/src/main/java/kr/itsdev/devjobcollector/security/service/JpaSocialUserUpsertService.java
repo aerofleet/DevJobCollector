@@ -3,6 +3,7 @@ package kr.itsdev.devjobcollector.security.service;
 import java.time.LocalDateTime;
 import java.util.Locale;
 import kr.itsdev.auth.common.model.AuthenticatedUser;
+import kr.itsdev.auth.common.exception.AccountLinkRequiredException;
 import kr.itsdev.auth.common.model.SocialProfile;
 import kr.itsdev.auth.common.spi.SocialUserUpsertService;
 import kr.itsdev.devjobcollector.security.account.AuthProvider;
@@ -45,19 +46,12 @@ public class JpaSocialUserUpsertService implements SocialUserUpsertService {
 
         UserAccount account;
         if (identity == null) {
-            account = findLegacyEmailMatch(profile.email());
-            if (account != null) {
-                requireActive(account);
-            }
+            rejectExistingEmail(profile.email());
             String fallbackEmail = provider.name().toLowerCase(Locale.ROOT)
                     + "-" + providerSubject + "@social.local";
             String email = normalizeEmail(profile.email(), fallbackEmail);
             String name = normalizeName(profile.name(), provider.name() + " user");
-            if (account == null) {
-                account = UserAccount.activeSocial(email, name, provider, null);
-            } else {
-                account.updateProfileAfterSocialAuthentication(email, name);
-            }
+            account = UserAccount.activeSocial(email, name, provider, null);
             account = userRepository.save(account);
             identity = identityRepository.save(UserIdentity.social(
                     account,
@@ -83,12 +77,11 @@ public class JpaSocialUserUpsertService implements SocialUserUpsertService {
         return new AuthenticatedUser(account.getId(), account.getEmail(), account.getName(), account.getRole());
     }
 
-    // Transitional compatibility only. P2-03 replaces this with ACCOUNT_LINK_REQUIRED.
-    private UserAccount findLegacyEmailMatch(String email) {
+    private void rejectExistingEmail(String email) {
         String normalizedEmail = normalizeOptionalEmail(email);
-        return normalizedEmail == null
-                ? null
-                : userRepository.findByEmailIgnoreCase(normalizedEmail).orElse(null);
+        if (normalizedEmail != null && userRepository.findByEmailIgnoreCase(normalizedEmail).isPresent()) {
+            throw new AccountLinkRequiredException();
+        }
     }
 
     private void requireActive(UserAccount account) {

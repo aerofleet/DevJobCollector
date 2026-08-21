@@ -15,6 +15,7 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import kr.itsdev.devjobcollector.security.signup.AuthSignupProperties;
@@ -33,6 +34,7 @@ public class SecurityConfig {
             HttpSecurity http,
             ObjectProvider<OAuth2UserService<OAuth2UserRequest, OAuth2User>> commonOAuth2UserServiceProvider,
             ObjectProvider<AuthenticationSuccessHandler> socialLoginSuccessHandlerProvider,
+            ObjectProvider<AuthenticationFailureHandler> socialLoginFailureHandlerProvider,
             ObjectProvider<ClientRegistrationRepository> clientRegistrationRepositoryProvider,
             JwtAuthenticationFilter jwtAuthenticationFilter
     ) throws Exception {
@@ -55,11 +57,16 @@ public class SecurityConfig {
                     commonOAuth2UserServiceProvider.getIfAvailable();
             AuthenticationSuccessHandler socialLoginSuccessHandler =
                     socialLoginSuccessHandlerProvider.getIfAvailable();
+            AuthenticationFailureHandler socialLoginFailureHandler =
+                    socialLoginFailureHandlerProvider.getIfAvailable();
 
-            if (commonOAuth2UserService != null && socialLoginSuccessHandler != null) {
+            if (commonOAuth2UserService != null
+                    && socialLoginSuccessHandler != null
+                    && socialLoginFailureHandler != null) {
                 http.oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo.userService(commonOAuth2UserService))
                         .successHandler(socialLoginSuccessHandler)
+                        .failureHandler(socialLoginFailureHandler)
                 );
             }
         }

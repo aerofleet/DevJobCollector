@@ -23,9 +23,17 @@ const LoginPage = () => {
   useEffect(() => {
     const query = new URLSearchParams(location.search);
     const token = query.get('token');
+    const oauthError = query.get('error');
     const next = query.get('next') || sessionStorage.getItem('postLoginNextPath');
     const fallbackPath = '/';
     const redirectTo = next || fallbackPath;
+
+    if (oauthError) {
+      setErrorMessage(oauthError === 'ACCOUNT_LINK_REQUIRED'
+        ? '같은 이메일로 가입된 계정이 있습니다. 기존 계정으로 로그인한 뒤 계정 연결을 진행해주세요.'
+        : '소셜 로그인에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
 
     if (!token) {
       return;

@@ -1,6 +1,6 @@
 # DJC 회원·기업·Multi-Provider 인증 통합 실행계획
 
-> 상태: In Progress — P1-02 완료, P1-03 다음 작업
+> 상태: In Progress — P2-03 완료, P2-04 다음 작업
 > 기준일: 2026-08-19
 > 구현 시작 예정: 2026-08-20
 > 산정 조건: 주 5일, 구현자 1명, Provider 자격증명과 검토자 응답이 예정대로 제공됨
@@ -74,7 +74,7 @@
 
 - [x] P2-01 개인가입에 immutable consent와 profile 생성 연결 (완료: 2026-08-21, MySQL 26.7 관련 평가셋 22/22)
 - [x] P2-02 Google/GitHub 조회를 `provider + provider_subject`로 전환 (완료: 2026-08-21, MySQL 26.7 관련 평가셋 28/28)
-- [ ] P2-03 동일 이메일 자동병합 제거 및 `ACCOUNT_LINK_REQUIRED` 계약 추가 (1일, P0)
+- [x] P2-03 동일 이메일 자동병합 제거 및 `ACCOUNT_LINK_REQUIRED` 계약 추가 (완료: 2026-08-22, MySQL 26.7 전체 평가셋 77/77)
 - [ ] P2-04 LOCAL/Google/GitHub 회귀·통합 테스트와 운영 smoke 작성 (1일, P0)
 
 ### P3~P6 — 기업 MVP

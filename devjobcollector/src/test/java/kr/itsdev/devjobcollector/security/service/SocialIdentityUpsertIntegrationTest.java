@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import kr.itsdev.auth.common.model.SocialProfile;
+import kr.itsdev.auth.common.exception.AccountLinkRequiredException;
 import kr.itsdev.auth.common.model.SocialProvider;
 import kr.itsdev.devjobcollector.config.QuerydslConfig;
 import kr.itsdev.devjobcollector.security.account.AuthProvider;
@@ -121,21 +122,33 @@ class SocialIdentityUpsertIntegrationTest {
     }
 
     @Test
-    void isolatesLegacyEmailFallbackUntilP203RemovesIt() {
-        UserAccount localAccount = userRepository.save(UserAccount.pendingLocal(
-                "collision@example.com", "local", "encoded-password"));
-        localAccount.activateEmail();
-        identityRepository.save(UserIdentity.local(localAccount));
+    void rejectsExistingEmailWithoutAutomaticLinkOrStateMutation() {
+        for (int index = 0; index < 20; index++) {
+            String email = "collision-" + index + "@example.com";
+            UserAccount localAccount = userRepository.save(UserAccount.pendingLocal(
+                    email, "local-" + index, "encoded-password"));
+            localAccount.activateEmail();
+            UserIdentity localIdentity = identityRepository.save(UserIdentity.local(localAccount));
+            String subject = "new-google-subject-" + index;
 
-        var authenticated = upsertService.upsert(google(
-                "new-google-subject", "collision@example.com", "google", true));
+            assertThatThrownBy(() -> upsertService.upsert(google(
+                    subject, email.toUpperCase(), "google", true)))
+                    .isInstanceOf(AccountLinkRequiredException.class)
+                    .satisfies(error -> assertThat(((AccountLinkRequiredException) error)
+                            .getError().getErrorCode()).isEqualTo("ACCOUNT_LINK_REQUIRED"));
 
-        assertThat(authenticated.id()).isEqualTo(localAccount.getId());
-        assertThat(localAccount.getProvider()).isEqualTo(AuthProvider.LOCAL);
-        assertThat(localAccount.getProviderUserId()).isNull();
-        assertThat(userRepository.count()).isEqualTo(1);
-        assertThat(identityRepository.findAllByUserOrderByIdAsc(localAccount)).hasSize(2);
-        assertThat(profileRepository.existsByUser(localAccount)).isTrue();
+            assertThat(localAccount.getProvider()).isEqualTo(AuthProvider.LOCAL);
+            assertThat(localAccount.getProviderUserId()).isNull();
+            assertThat(identityRepository.findAllByUserOrderByIdAsc(localAccount))
+                    .containsExactly(localIdentity);
+            assertThat(identityRepository.findByProviderAndProviderSubject(
+                    AuthProvider.GOOGLE, subject)).isEmpty();
+            assertThat(profileRepository.existsByUser(localAccount)).isFalse();
+        }
+
+        assertThat(userRepository.count()).isEqualTo(20);
+        assertThat(identityRepository.count()).isEqualTo(20);
+        assertThat(profileRepository.count()).isZero();
     }
 
     @Test

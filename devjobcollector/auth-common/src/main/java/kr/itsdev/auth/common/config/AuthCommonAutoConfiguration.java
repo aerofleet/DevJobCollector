@@ -2,6 +2,7 @@ package kr.itsdev.auth.common.config;
 
 import kr.itsdev.auth.common.oauth.CommonOAuth2UserService;
 import kr.itsdev.auth.common.oauth.SocialLoginSuccessHandler;
+import kr.itsdev.auth.common.oauth.SocialLoginFailureHandler;
 import kr.itsdev.auth.common.spi.SocialUserUpsertService;
 import kr.itsdev.auth.common.spi.TokenIssueService;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -13,6 +14,7 @@ import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 
 @AutoConfiguration
 @EnableConfigurationProperties(AuthCommonProperties.class)
@@ -35,5 +37,11 @@ public class AuthCommonAutoConfiguration {
             TokenIssueService tokenIssueService
     ) {
         return new SocialLoginSuccessHandler(properties, tokenIssueService);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(name = "socialLoginFailureHandler")
+    public AuthenticationFailureHandler socialLoginFailureHandler(AuthCommonProperties properties) {
+        return new SocialLoginFailureHandler(properties);
     }
 }
