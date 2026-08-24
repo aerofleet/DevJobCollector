@@ -8,6 +8,9 @@ import SignupPage from './pages/SignupPage';
 import TermsPage from './pages/TermsPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import Resume from './pages/Resume';
+import MemberHomePage from './pages/MemberHomePage';
+import MyDevJobsPage from './pages/MyDevJobsPage';
+import ResumesPage from './pages/ResumesPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import './styles/App.css';
 import ScrollToTop from './components/common/ScrollToTop';
@@ -33,6 +36,30 @@ const AppRoutes = () => {
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPolicyPage />} />
         <Route path="/oauth/callback" element={<LoginPage />} />
+        <Route
+          path="/member"
+          element={(
+            <ProtectedRoute>
+              <MemberHomePage />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/my-devjobs"
+          element={(
+            <ProtectedRoute>
+              <MyDevJobsPage />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/resumes"
+          element={(
+            <ProtectedRoute>
+              <ResumesPage />
+            </ProtectedRoute>
+          )}
+        />
         <Route
           path="/resume"
           element={(

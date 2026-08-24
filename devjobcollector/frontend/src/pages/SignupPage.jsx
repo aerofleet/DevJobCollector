@@ -85,7 +85,7 @@ const SignupPage = () => {
     try {
       const result = await verifyPersonalEmail({ email: form.email, code });
       localStorage.setItem('accessToken', result.accessToken);
-      navigate('/', { replace: true });
+      navigate('/member', { replace: true });
     } catch (error) {
       setErrorMessage(messageFor(error, '인증 코드 확인 중 오류가 발생했습니다.'));
     } finally {

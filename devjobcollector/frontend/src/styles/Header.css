@@ -189,6 +189,21 @@
 
 .nav-right li a.nav-login-link:hover { color: #6c4dff; }
 
+.nav-logout-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 14px;
+  border: 1px solid #e3dff0;
+  border-radius: 10px;
+  background: #fff;
+  color: #5c5665;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.nav-logout-button:hover { border-color: #bfb3fb; color: #6c4dff; }
+
 .mobile-tabbar,
 .mobile-menu-backdrop,
 .mobile-menu-drawer {
@@ -401,6 +416,16 @@
   .mobile-menu-auth a.signup.active {
     background: #5838e5;
     color: #fff;
+  }
+
+  .mobile-logout-button {
+    border: 1px solid #ddd8e7;
+    border-radius: 10px;
+    background: #fff;
+    color: #4f4958;
+    font-size: 14px;
+    font-weight: 650;
+    cursor: pointer;
   }
 
   .mobile-tabbar {

@@ -1,15 +1,17 @@
 // src/pages/Header.jsx
 import React, { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useScrollDirection } from '../hooks/useScrollDirection';
 import '../styles/Header.css';
 
 const Header = ({ onSearch }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isNavVisible = useScrollDirection(100); // 100px 이상 스크롤 시 작동
+  const isAuthenticated = Boolean(localStorage.getItem('accessToken'));
 
   const isMobile = () => window.innerWidth <= 768;
 
@@ -28,6 +30,13 @@ const Header = ({ onSearch }) => {
     if (isMobile()) {
       setIsSearchOpen(false);
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('accessToken');
+    sessionStorage.removeItem('postLoginNextPath');
+    setIsMenuOpen(false);
+    navigate('/', { replace: true });
   };
 
   useEffect(() => {
@@ -150,13 +159,22 @@ const Header = ({ onSearch }) => {
         <nav className={`nav ${isNavVisible ? 'nav-visible' : 'nav-hidden'}`} aria-label="Main navigation">
           <ul className="nav-left">
             <li><Link to="/jobs">개발자 채용</Link></li>
-            <li><Link to="/resume">이력서</Link></li>
+            <li><Link to={isAuthenticated ? '/resumes' : '/resume'}>이력서</Link></li>
             <li><a href="/#discovery-title">테마별 채용</a></li>
           </ul>
 
           <ul className="nav-right">
-            <li><Link className="nav-login-link" to="/login">로그인</Link></li>
-            <li><Link className="nav-signup-button" to="/signup">회원가입</Link></li>
+            {isAuthenticated ? (
+              <>
+                <li><Link className="nav-login-link" to="/my-devjobs">마이데브잡</Link></li>
+                <li><button className="nav-logout-button" type="button" onClick={handleLogout}>로그아웃</button></li>
+              </>
+            ) : (
+              <>
+                <li><Link className="nav-login-link" to="/login">로그인</Link></li>
+                <li><Link className="nav-signup-button" to="/signup">회원가입</Link></li>
+              </>
+            )}
           </ul>
         </nav>
 
@@ -181,21 +199,30 @@ const Header = ({ onSearch }) => {
 
           <ul className="mobile-menu-list">
             <li><Link onClick={() => setIsMenuOpen(false)} className={isActivePath('/jobs') ? 'active' : ''} to="/jobs">개발자 채용</Link></li>
-            <li><Link onClick={() => setIsMenuOpen(false)} className={isActivePath('/resume') ? 'active' : ''} to="/resume">이력서</Link></li>
+            <li><Link onClick={() => setIsMenuOpen(false)} className={isActivePath('/resumes') || isActivePath('/resume') ? 'active' : ''} to={isAuthenticated ? '/resumes' : '/resume'}>이력서</Link></li>
             <li><a onClick={() => setIsMenuOpen(false)} href="/#discovery-title">테마별 채용</a></li>
           </ul>
 
           <div className="mobile-menu-auth">
-            <Link onClick={() => setIsMenuOpen(false)} className={isActivePath('/login') ? 'active' : ''} to="/login">로그인</Link>
-            <Link onClick={() => setIsMenuOpen(false)} className={isActivePath('/signup') ? 'active signup' : 'signup'} to="/signup">회원가입</Link>
+            {isAuthenticated ? (
+              <>
+                <Link onClick={() => setIsMenuOpen(false)} className={isActivePath('/my-devjobs') ? 'active' : ''} to="/my-devjobs">마이데브잡</Link>
+                <button type="button" className="mobile-logout-button" onClick={handleLogout}>로그아웃</button>
+              </>
+            ) : (
+              <>
+                <Link onClick={() => setIsMenuOpen(false)} className={isActivePath('/login') ? 'active' : ''} to="/login">로그인</Link>
+                <Link onClick={() => setIsMenuOpen(false)} className={isActivePath('/signup') ? 'active signup' : 'signup'} to="/signup">회원가입</Link>
+              </>
+            )}
           </div>
         </aside>
       </div>
 
       <nav className="mobile-tabbar" aria-label="모바일 빠른 메뉴">
         <Link className={`mobile-tab-link ${isActivePath('/jobs') ? 'active' : ''}`} to="/jobs">채용</Link>
-        <Link className={`mobile-tab-link ${isActivePath('/resume') ? 'active' : ''}`} to="/resume">이력서</Link>
-        <Link className={`mobile-tab-link ${isActivePath('/login') ? 'active' : ''}`} to="/login">로그인</Link>
+        <Link className={`mobile-tab-link ${isActivePath('/resumes') || isActivePath('/resume') ? 'active' : ''}`} to={isAuthenticated ? '/resumes' : '/resume'}>이력서</Link>
+        <Link className={`mobile-tab-link ${isActivePath(isAuthenticated ? '/my-devjobs' : '/login') ? 'active' : ''}`} to={isAuthenticated ? '/my-devjobs' : '/login'}>{isAuthenticated ? 'MY' : '로그인'}</Link>
         <button
           type="button"
           className={`mobile-tab-more ${isMenuOpen ? 'active' : ''}`}

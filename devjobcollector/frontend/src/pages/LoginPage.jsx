@@ -25,7 +25,7 @@ const LoginPage = () => {
     const token = query.get('token');
     const oauthError = query.get('error');
     const next = query.get('next') || sessionStorage.getItem('postLoginNextPath');
-    const fallbackPath = '/';
+    const fallbackPath = '/member';
     const redirectTo = next || fallbackPath;
 
     if (oauthError) {
