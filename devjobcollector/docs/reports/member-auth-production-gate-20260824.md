@@ -138,4 +138,7 @@ PASS member auth non-destructive smoke: 5 HTTP checks
 - After: 두 Provider 모두 `https://<API_DOMAIN>/login/oauth2/code/{provider}`
 - 평가셋: health, 공개 검색, 기본 LOCAL 차단, Google/GitHub OAuth 진입·Provider 대상·HTTPS callback
 - 결과: 자동 HTTP 검사 5/5 성공, Google/GitHub HTTPS callback 2/2 성공
+- 실패 콜백 재현: GitHub `access_denied` 응답이
+  `https://<FRONTEND_DOMAIN>/oauth/callback?error=OAUTH_LOGIN_FAILED`로 302 이동하고,
+  프론트 callback 경로가 HTTP 200을 반환함을 확인했다.
 - 잔여: 실제 Provider 계정 승인과 프론트 callback 성공 화면은 사용자 브라우저에서 수동 확인한다.
