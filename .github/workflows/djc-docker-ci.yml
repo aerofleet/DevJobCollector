@@ -67,7 +67,9 @@ jobs:
 
       - name: Validate MySQL 26.7 clean and V2 upgrade migrations
         working-directory: devjobcollector
-        run: bash ops/db/run-member-migration-tests.sh
+        run: |
+          chmod +x gradlew
+          bash ops/db/run-member-migration-tests.sh
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
