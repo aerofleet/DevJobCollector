@@ -1,0 +1,146 @@
+.legal-page {
+  min-height: 100vh;
+  padding: 112px 24px 72px;
+  background: #f7f7fb;
+  color: #252330;
+}
+
+.legal-document {
+  width: min(920px, 100%);
+  margin: 0 auto;
+  padding: 48px;
+  border: 1px solid #e6e3f0;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 16px 48px rgba(45, 36, 75, 0.07);
+  line-height: 1.75;
+}
+
+.legal-heading {
+  padding-bottom: 28px;
+  border-bottom: 1px solid #ece9f4;
+}
+
+.legal-heading span {
+  color: #6c4dff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.legal-heading h1 {
+  margin: 8px 0 4px;
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: 1.2;
+}
+
+.legal-heading p,
+.legal-document section > p,
+.legal-document li,
+.legal-definition-list dd {
+  color: #585366;
+}
+
+.legal-draft-notice,
+.legal-summary {
+  margin: 28px 0;
+  padding: 20px 22px;
+  border-radius: 14px;
+}
+
+.legal-draft-notice {
+  border: 1px solid #f0c36a;
+  background: #fff9e8;
+  color: #674b15;
+}
+
+.legal-draft-notice p {
+  margin: 4px 0 0;
+}
+
+.legal-summary {
+  background: #f0edff;
+}
+
+.legal-summary ul {
+  margin-bottom: 0;
+}
+
+.legal-document section {
+  margin-top: 36px;
+}
+
+.legal-document h2 {
+  margin-bottom: 12px;
+  font-size: 1.25rem;
+}
+
+.legal-document ol,
+.legal-document ul {
+  padding-left: 1.4rem;
+}
+
+.legal-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e6e3f0;
+  border-radius: 12px;
+}
+
+.legal-document table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.legal-document th,
+.legal-document td {
+  padding: 14px;
+  border-bottom: 1px solid #ece9f4;
+  text-align: left;
+  vertical-align: top;
+}
+
+.legal-document th {
+  background: #f7f6fb;
+}
+
+.legal-document tr:last-child td {
+  border-bottom: 0;
+}
+
+.legal-definition-list {
+  border-top: 1px solid #ece9f4;
+}
+
+.legal-definition-list div {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #ece9f4;
+}
+
+.legal-definition-list dt {
+  font-weight: 700;
+}
+
+.legal-definition-list dd {
+  margin: 0;
+}
+
+@media (max-width: 680px) {
+  .legal-page {
+    padding: 88px 12px 40px;
+  }
+
+  .legal-document {
+    padding: 28px 20px;
+    border-radius: 16px;
+  }
+
+  .legal-definition-list div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}

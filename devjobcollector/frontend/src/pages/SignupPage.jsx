@@ -144,8 +144,8 @@ const SignupPage = () => {
               <label>비밀번호<input type="password" name="password" value={form.password} onChange={update} minLength="8" maxLength="72" autoComplete="new-password" required /><small>8자 이상 입력해주세요.</small></label>
               <label>비밀번호 확인<input type="password" name="passwordConfirm" value={form.passwordConfirm} onChange={update} minLength="8" maxLength="72" autoComplete="new-password" required /></label>
               <div className="signup-consents">
-                <label><input type="checkbox" name="termsAccepted" checked={form.termsAccepted} onChange={update} required /> (필수) 이용약관 동의</label>
-                <label><input type="checkbox" name="privacyAccepted" checked={form.privacyAccepted} onChange={update} required /> (필수) 개인정보 처리방침 동의</label>
+                <label><input type="checkbox" name="termsAccepted" checked={form.termsAccepted} onChange={update} required /> (필수) <Link to="/terms" target="_blank" rel="noreferrer">이용약관</Link> 동의</label>
+                <label><input type="checkbox" name="privacyAccepted" checked={form.privacyAccepted} onChange={update} required /> (필수) <Link to="/privacy" target="_blank" rel="noreferrer">개인정보 처리방침</Link> 동의</label>
               </div>
               <TurnstileWidget key={turnstileVersion} siteKey={siteKey} onToken={onTurnstileToken} />
               <button className="signup-submit" disabled={isSubmitting}>{isSubmitting ? '가입 처리 중...' : '이메일로 가입하기'}</button>

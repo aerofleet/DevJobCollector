@@ -175,6 +175,10 @@ const MainPage = ({ onSearch }) => {
       <footer className="landing-footer">
         <strong>DevJobs</strong>
         <p>개발자를 위한 채용공고를 한곳에.</p>
+        <nav aria-label="법적 고지">
+          <a href="/terms">이용약관</a>
+          <a href="/privacy">개인정보 처리방침</a>
+        </nav>
         <span>© {new Date().getFullYear()} DevJobs</span>
       </footer>
     </div>

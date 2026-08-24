@@ -5,6 +5,8 @@ import AllJobsPage from './pages/AllJobsPage';
 import DetailPage from './pages/DetailPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
+import TermsPage from './pages/TermsPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import Resume from './pages/Resume';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import './styles/App.css';
@@ -28,6 +30,8 @@ const AppRoutes = () => {
         <Route path="/job/:id" element={<DetailPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPolicyPage />} />
         <Route path="/oauth/callback" element={<LoginPage />} />
         <Route
           path="/resume"
