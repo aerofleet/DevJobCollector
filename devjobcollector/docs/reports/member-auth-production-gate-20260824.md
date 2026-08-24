@@ -123,3 +123,19 @@ PASS member auth non-destructive smoke: 5 HTTP checks
 3. 기존 회원과 동일한 이메일의 다른 Provider 로그인에서 `ACCOUNT_LINK_REQUIRED` 안내 및 자동 연결 0건 확인
 
 세 건을 모두 통과한 시각부터 24시간 인증 오류율을 관찰한다. 수동 검증과 관찰이 끝나기 전에는 G1을 완료 처리하거나 신규 Provider 구현을 시작하지 않는다.
+
+## OAuth callback HTTPS 보정
+
+- 발견: GitHub authorization 요청의 `redirect_uri`가
+  `http://<API_DOMAIN>/login/oauth2/code/github`로 생성되어 GitHub가 callback 불일치 경고를 표시했다.
+- 원인: Cloudflare Tunnel 뒤의 애플리케이션이 forwarded HTTPS 스킴을 반영하지 않았다.
+- 조치: 운영 환경에 `SERVER_FORWARD_HEADERS_STRATEGY=framework`를 명시하고,
+  OAuth smoke가 Provider 도메인뿐 아니라 정확한 HTTPS callback까지 검사하도록 강화했다.
+- 커밋: `ba92f83`
+- 백엔드 배포: Actions `32728523788` 성공
+- 독립 Docker CI: Actions `32728523844` 성공
+- Before: Google/GitHub callback의 스킴이 `http://`
+- After: 두 Provider 모두 `https://<API_DOMAIN>/login/oauth2/code/{provider}`
+- 평가셋: health, 공개 검색, 기본 LOCAL 차단, Google/GitHub OAuth 진입·Provider 대상·HTTPS callback
+- 결과: 자동 HTTP 검사 5/5 성공, Google/GitHub HTTPS callback 2/2 성공
+- 잔여: 실제 Provider 계정 승인과 프론트 callback 성공 화면은 사용자 브라우저에서 수동 확인한다.
