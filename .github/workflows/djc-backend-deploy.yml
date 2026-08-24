@@ -156,6 +156,7 @@ jobs:
 
           {
             printf '%s\n' "SPRING_PROFILES_ACTIVE=prod"
+            printf '%s\n' "SERVER_FORWARD_HEADERS_STRATEGY=framework"
             printf '%s\n' "SPRING_DATASOURCE_URL=jdbc:mysql://${DB_SERVER_IP}:3306/devjob?serverTimezone=Asia/Seoul&useSSL=false&allowPublicKeyRetrieval=true"
             printf '%s\n' "SPRING_DATASOURCE_USERNAME=$DB_USERNAME"
             printf '%s\n' "DB_PASSWORD=$DB_PASSWORD"

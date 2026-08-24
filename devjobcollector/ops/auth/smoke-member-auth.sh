@@ -47,6 +47,16 @@ assert_oauth_redirect() {
     exit 1
   fi
   echo "PASS ${provider} OAuth redirect target"
+
+  local expected_callback="${api_base_url}/login/oauth2/code/${provider}"
+  case "$location" in
+    *"redirect_uri=${expected_callback}"*) ;;
+    *)
+      echo "FAIL ${provider} OAuth callback: expected ${expected_callback}" >&2
+      exit 1
+      ;;
+  esac
+  echo "PASS ${provider} OAuth HTTPS callback"
 }
 
 assert_status "actuator health" 200 "$api_base_url/actuator/health"

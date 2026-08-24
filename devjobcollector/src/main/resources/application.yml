@@ -100,6 +100,7 @@ collection:
         collection-tier: B
 
 server:
+  forward-headers-strategy: ${SERVER_FORWARD_HEADERS_STRATEGY:none}
   compression:
     enabled: true
 
