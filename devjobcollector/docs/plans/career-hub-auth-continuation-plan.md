@@ -118,7 +118,7 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
   - `applications`
 - [x] CH-P2-03 Entity/Repository 및 회원 FK·unique·index 구현 (2026-08-25, `c8b48fd`, Actions `32849241829`·`32852535004`·`32852535010`)
 - [x] CH-P2-04 clean/V3 upgrade migration test (2026-08-25, MySQL 26.7 Actions `32841106449`, `32842721118`)
-- [ ] CH-P2-05 ownership/orphan/duplicate audit 작성
+- [x] CH-P2-05 ownership/orphan/duplicate read-only audit 작성 (2026-08-26, `66b9fe2`, Actions `32864748869`·`32866285746`·`32866285666`)
 
 산출물: 회원 소유 Career 데이터 기반과 MySQL 26.7 평가 결과.
 
@@ -235,4 +235,4 @@ Career Hub Product DoD와 CH-G1 완료 후 `member-auth-implementation-plan.md`�
 7. 본 계획의 첫 미완료 체크박스와 선행 게이트 확인
 8. 구현 후 테스트·커밋·배포·잔여 위험을 본 계획과 HANDOVER에 갱신
 
-현재 재개 지점은 브라우저 연결이 가능하면 **CH-R1-02 수동 QA**, 그와 독립적인 구현은 **CH-P2-05 ownership/orphan/duplicate read-only audit**이다. 현재 변경은 사용자 작업으로 간주하며 삭제·reset·restore하지 않는다.
+현재 재개 지점은 브라우저 연결이 가능하면 **CH-R1-02 수동 QA**, 그와 독립적인 구현은 **CH-P3-01 북마크 생성·조회·삭제 API**다. 현재 변경은 사용자 작업으로 간주하며 삭제·reset·restore하지 않는다.
