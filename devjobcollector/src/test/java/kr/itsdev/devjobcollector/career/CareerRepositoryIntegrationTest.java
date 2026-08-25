@@ -104,6 +104,22 @@ class CareerRepositoryIntegrationTest {
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
+    @Test
+    void idempotentInsertKeepsOneBookmarkForSameOwnerAndJob() {
+        UserAccount user = saveUser("idempotent-bookmark@example.com");
+        JobPost jobPost = saveJob("idempotent-bookmark-job");
+        entityManager.flush();
+
+        bookmarkRepository.insertIfAbsent(user.getId(), jobPost.getId());
+        bookmarkRepository.insertIfAbsent(user.getId(), jobPost.getId());
+
+        assertThat(bookmarkRepository.findAllByUser_IdOrderByCreatedAtDescIdDesc(user.getId()))
+                .hasSize(1)
+                .first()
+                .extracting(bookmark -> bookmark.getJobPost().getId())
+                .isEqualTo(jobPost.getId());
+    }
+
     private UserAccount saveUser(String email) {
         return userRepository.save(UserAccount.activeSocial(
                 email, email, AuthProvider.GITHUB, "subject-" + email));

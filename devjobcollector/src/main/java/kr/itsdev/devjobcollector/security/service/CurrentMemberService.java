@@ -27,12 +27,8 @@ public class CurrentMemberService {
 
     @Transactional(readOnly = true)
     public MemberMeResponse getCurrentMember(String subject) {
-        Long userId = parseUserId(subject);
-        UserAccount user = userRepository.findById(userId)
-                .filter(account -> account.getStatus() == UserAccountStatus.ACTIVE)
-                .orElseThrow(CurrentMemberService::unauthorized);
-        PersonalProfile profile = profileRepository.findById(userId)
-                .filter(candidate -> candidate.getProfileStatus() != ProfileStatus.DELETED)
+        UserAccount user = requireCurrentMember(subject);
+        PersonalProfile profile = profileRepository.findById(user.getId())
                 .orElseThrow(CurrentMemberService::unauthorized);
 
         return new MemberMeResponse(
@@ -42,6 +38,18 @@ public class CurrentMemberService {
                 user.getRole(),
                 profile.getProfileStatus().name()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public UserAccount requireCurrentMember(String subject) {
+        Long userId = parseUserId(subject);
+        UserAccount user = userRepository.findById(userId)
+                .filter(account -> account.getStatus() == UserAccountStatus.ACTIVE)
+                .orElseThrow(CurrentMemberService::unauthorized);
+        profileRepository.findById(userId)
+                .filter(candidate -> candidate.getProfileStatus() != ProfileStatus.DELETED)
+                .orElseThrow(CurrentMemberService::unauthorized);
+        return user;
     }
 
     private Long parseUserId(String subject) {
