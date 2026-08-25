@@ -93,8 +93,8 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 - [ ] CH-R1-03 키보드 탐색, focus, tab semantics, touch target QA
 - [ ] CH-R1-04 로그인·회원가입·OAuth callback의 `/member` 이동 검증
 - [x] CH-R1-05 frontend lint/build 재실행 (2026-08-25: lint 0, build 성공)
-- [ ] CH-R1-06 기능 커밋 후 push, Actions 배포 확인
-- [ ] CH-R1-07 운영 신규 라우트 3/3 HTTP 200과 SPA 새로고침 확인
+- [x] CH-R1-06 기능 커밋 후 push, Actions 배포 확인 (`e11111a`, Actions `32757612547`)
+- [x] CH-R1-07 운영 신규 라우트 3/3 HTTP 200과 SPA 새로고침 확인 (2026-08-25)
 
 산출물: 배포된 Career Hub 프론트, QA 결과 문서, 커밋 SHA, Actions run ID.
 

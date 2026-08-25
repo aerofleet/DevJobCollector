@@ -4,7 +4,9 @@
 
 - 기준일: 2026-08-25 KST
 - 대상: `/member`, `/my-devjobs`, `/resumes`, 기존 `/resume`
-- 현재 판정: 정적 게이트 합격, 브라우저 수동 QA 및 운영 배포 대기
+- 배포 커밋: `e11111a`
+- 프론트 배포: Actions `32757612547` 성공
+- 현재 판정: 정적·배포·운영 HTTP 게이트 합격, 브라우저 수동 QA 대기
 
 ## 변경 범위
 
@@ -46,6 +48,10 @@
 | SPA fallback | `wrangler.jsonc` | `single-page-application` 확인 |
 | 보호 route | `/member`, `/my-devjobs`, `/resumes` | 코드 등록 3/3 |
 | 기본 이동 | 로그인, 이메일 가입 인증 완료 | `/member` 적용 2/2 |
+| Frontend deploy | Actions `32757612547` | 성공 |
+| 운영 route | `/member`, `/my-devjobs`, `/resumes` | HTTP 200, 3/3 |
+| GitHub OAuth | authorization entry | HTTP 302 |
+| GitHub callback | `redirect_uri` | 정확한 HTTPS callback 확인 |
 
 ### 브라우저 평가
 
@@ -78,8 +84,8 @@
 - [x] 로그인·회원가입 기본 이동 `/member`
 - [ ] 4 route × 4 viewport 수동 QA 16/16
 - [ ] 키보드 탐색·focus·tab semantics 확인
-- [ ] 기능 커밋·push·Cloudflare 배포 성공
-- [ ] 운영 신규 route HTTP 200 3/3
+- [x] 기능 커밋·push·Cloudflare 배포 성공 (`e11111a`, Actions `32757612547`)
+- [x] 운영 신규 route HTTP 200 3/3
 - [ ] 실제 로그인 후 `/member` 도달 확인
 
 Release DoD는 미완료다. 남은 항목을 검증한 뒤 완료 처리한다.
