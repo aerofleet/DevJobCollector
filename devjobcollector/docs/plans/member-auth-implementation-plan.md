@@ -47,14 +47,14 @@
 | P1 V3 Foundation | 08-24~08-28 | `personal_profiles`, `user_consents`, `user_identities`, backfill, Entity/Repository | Flyway V3, migration tests | clean/V2 upgrade 100%, orphan/duplicate 0 |
 | P2 Identity Cutover | 08-31~09-04 | 개인가입 동의 트랜잭션, Google/GitHub identity 전환, 이메일 자동병합 제거 | LOCAL/Google/GitHub 새 인증 경로 | 회귀 테스트 100%, 기존 로그인 성공, 충돌은 409 |
 | G1 Production Gate | 09-07~09-08 | 배포, smoke, 24시간 관찰 | V3 운영 적용 기록 | health/API 정상, 인증 오류율 기준 충족 |
-| P3 Company Core | 09-09~09-15 | Flyway V4, Company/Member 도메인, 기업 가입 Facade | 기업 생성 + OWNER membership | 원자적 생성, 중복/마지막 OWNER invariant 통과 |
-| P4 Verification & Authorization | 09-16~09-22 | Flyway V5, 수동 검증, 역할 권한 매트릭스 | 승인/반려 및 company authorization | 역할×기업상태 접근 차단률 100% |
+| P3 Company Core | Career Hub CH-G1 이후 재산정 | Flyway V5, Company/Member 도메인, 기업 가입 Facade | 기업 생성 + OWNER membership | 원자적 생성, 중복/마지막 OWNER invariant 통과 |
+| P4 Verification & Authorization | P3 완료 후 재산정 | Flyway V6, 수동 검증, 역할 권한 매트릭스 | 승인/반려 및 company authorization | 역할×기업상태 접근 차단률 100% |
 | P5 Enterprise UI | 09-23~09-29 | 기업회원 탭, 가입·검증 상태·오류 UX | 기업 가입 E2E UI | 개인가입 회귀 0, 기업 E2E 핵심 흐름 통과 |
 | P6 MVP Hardening | 09-30~10-05 | rate limit, audit, metrics, concurrency, migration rehearsal, 배포 | 기업회원 MVP | DoD/KPI 충족, rollback 절차 검증 |
 | P7 Provider Expansion | 10-06~10-21 | Kakao, Naver, Apple adapter 및 통합 테스트 | 5개 소셜 Provider | provider별 식별·보안 평가셋 통과 |
 | P8 Linking & Final Security | 10-22~10-29 | link/unlink, 마지막 identity 보호, state/nonce/PKCE 종합 점검 | 계정 연결 UI/API 및 보안 보고 | takeover/토큰 누출 평가셋 0건 |
 
-기업회원 MVP 목표일은 **2026-10-05**, 전체 Multi-Provider 목표일은 **2026-10-29**다. 외부 Provider 자격증명이나 Apple 설정이 늦으면 P7/P8만 조정하고 P0~P6 기업 MVP 일정은 분리 유지한다.
+기존 기업회원 MVP 목표일 **2026-10-05**와 전체 Multi-Provider 목표일 **2026-10-29**는 Career Hub 우선순위 변경으로 재산정 대상이다. CH-G1 완료 후 P3~P8 일정을 다시 확정하며, 외부 Provider 자격증명이나 Apple 설정이 늦으면 P7/P8만 별도 조정한다.
 
 ## 5. 1~2일 단위 작업 목록
 
@@ -79,10 +79,10 @@
 
 ### P3~P6 — 기업 MVP
 
-- [ ] P3-01 V4 companies/company_members DDL 및 migration test (2일, P0)
+- [ ] P3-01 V5 companies/company_members DDL 및 migration test (2일, P0)
 - [ ] P3-02 기업 도메인과 마지막 OWNER invariant 구현 (2일, P0)
 - [ ] P3-03 CompanySignupFacade와 기업 가입 API 구현 (1일, P1)
-- [ ] P4-01 V5 verification DDL·도메인·관리자 승인/반려 구현 (2일, P1)
+- [ ] P4-01 V6 verification DDL·도메인·관리자 승인/반려 구현 (2일, P1)
 - [ ] P4-02 membership authorization 서비스와 권한 매트릭스 테스트 (2일, P0)
 - [ ] P4-03 기업 멤버 초대·역할 변경·제거 구현 (1일, P1)
 - [ ] P5-01 기업 가입/검증 상태 프론트엔드 구현 (2일, P1)
@@ -102,7 +102,7 @@
 
 ## 6. 의존성과 차단 조건
 
-- V3가 완료되기 전 V4/V5 구현을 시작하지 않는다.
+- Career Hub V4와 CH-G1이 완료되기 전 기업 V5/V6 구현을 시작하지 않는다.
 - V3 배포 전 운영 DB에서 V2와 기존 provider 데이터 분포를 확인한다.
 - 기존 Google/GitHub 사용자 backfill 결과가 100% 설명되지 않으면 읽기 전환을 배포하지 않는다.
 - Google/GitHub 이메일 자동병합을 제거하기 전 신규 Provider를 추가하지 않는다.
@@ -115,7 +115,7 @@
 ### 데이터 및 마이그레이션
 
 - 운영 실측 `26.7.0-cloud`와 동일 계열인 MySQL 26.7.0: V1→Latest 성공률 100%.
-- 운영 V2 익명화 스냅샷: V3→Latest 성공률 100%.
+- 운영 V3 익명화 스냅샷: V4→Latest 성공률 100%.
 - user identity orphan 및 duplicate 0건.
 - 기존 사용자 로그인 가능률 100%.
 
@@ -162,7 +162,7 @@
 
 ## 10. 구현 금지사항
 
-- V1/V2 수정 금지.
+- V1/V2/V3 수정 금지.
 - `users.account_type` 추가 금지.
 - `users.role`에 기업 역할 추가 금지.
 - 이메일 기반 외부 identity 식별/자동 연결 금지.

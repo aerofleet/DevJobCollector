@@ -110,7 +110,7 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 
 ### CH-P2 — V4 Career Data Foundation (2일)
 
-- [ ] CH-P2-01 Flyway 순서 문서 동기화
+- [x] CH-P2-01 Flyway 순서 문서 동기화 (2026-08-25: Career V4, Company Core V5, Verification V6)
 - [ ] CH-P2-02 V4 DDL 작성
   - `resumes`
   - `job_bookmarks`
@@ -235,4 +235,4 @@ Career Hub Product DoD와 CH-G1 완료 후 `member-auth-implementation-plan.md`�
 7. 본 계획의 첫 미완료 체크박스와 선행 게이트 확인
 8. 구현 후 테스트·커밋·배포·잔여 위험을 본 계획과 HANDOVER에 갱신
 
-현재 재개 지점은 브라우저 연결이 가능하면 **CH-R1-02 수동 QA**, 그와 독립적인 구현은 **CH-P2-01 Flyway 순서 문서 동기화**다. 현재 변경은 사용자 작업으로 간주하며 삭제·reset·restore하지 않는다.
+현재 재개 지점은 브라우저 연결이 가능하면 **CH-R1-02 수동 QA**, 그와 독립적인 구현은 **CH-P2-02 Career Hub V4 DDL·migration test**다. 현재 변경은 사용자 작업으로 간주하며 삭제·reset·restore하지 않는다.
