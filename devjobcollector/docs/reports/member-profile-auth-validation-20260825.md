@@ -2,7 +2,7 @@
 
 > 검증일: 2026-08-25 KST  
 > 범위: CH-P1-01~05  
-> 운영 반영: 미배포 — 로컬 구현·회귀 검증 완료
+> 운영 반영: 완료 — 커밋 `f1f78fe`, Backend Actions `32829074348`, Frontend Actions `32829074510`
 
 ## 결과
 
@@ -66,10 +66,14 @@ vite v7.3.1, 1,827 modules transformed, build success
 
 git diff --check
 오류 0건
+
+운영 smoke
+health=200, /api/v1/members/me(무토큰)=401
+/member=200, /my-devjobs=200, /resumes=200
 ```
 
 ## 잔여 작업
 
-- 배포 후 운영 `/api/v1/members/me`의 무토큰 401 및 실제 로그인 토큰 200 검증
+- 운영 `/api/v1/members/me`의 실제 로그인 토큰 200 및 응답 회원명 UI 검증
 - CH-R1-02~04 실제 브라우저 viewport·키보드·Google/GitHub 로그인 QA
 - CH-P2 V4 Career Data Foundation 시작 전 Flyway 번호를 저장소와 Notion에 동기화
