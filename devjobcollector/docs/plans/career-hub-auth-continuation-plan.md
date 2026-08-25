@@ -1,6 +1,6 @@
 # DJC Career Hub 완성 및 회원·기업 인증 통합 재개 계획
 
-> 상태: In Progress — Career Hub Release 브라우저 QA 대기, CH-P1 로컬 구현·검증 완료
+> 상태: In Progress — Career Hub Release 브라우저 QA 대기, CH-P2-03 운영 검증 완료
 > 기준일: 2026-08-24 KST
 > 현재 브랜치: `main`
 > 구현 원칙: Career Hub를 완성한 뒤 회원·기업·Multi-Provider 인증 통합의 첫 미완료 작업으로 복귀한다.
@@ -116,7 +116,7 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
   - `job_bookmarks`
   - `job_view_history`
   - `applications`
-- [ ] CH-P2-03 Entity/Repository 및 회원 FK·unique·index 구현
+- [x] CH-P2-03 Entity/Repository 및 회원 FK·unique·index 구현 (2026-08-25, `c8b48fd`, Actions `32849241829`·`32852535004`·`32852535010`)
 - [x] CH-P2-04 clean/V3 upgrade migration test (2026-08-25, MySQL 26.7 Actions `32841106449`, `32842721118`)
 - [ ] CH-P2-05 ownership/orphan/duplicate audit 작성
 
@@ -235,4 +235,4 @@ Career Hub Product DoD와 CH-G1 완료 후 `member-auth-implementation-plan.md`�
 7. 본 계획의 첫 미완료 체크박스와 선행 게이트 확인
 8. 구현 후 테스트·커밋·배포·잔여 위험을 본 계획과 HANDOVER에 갱신
 
-현재 재개 지점은 브라우저 연결이 가능하면 **CH-R1-02 수동 QA**, 그와 독립적인 구현은 **CH-P2-03 Entity/Repository 구현**이다. 현재 변경은 사용자 작업으로 간주하며 삭제·reset·restore하지 않는다.
+현재 재개 지점은 브라우저 연결이 가능하면 **CH-R1-02 수동 QA**, 그와 독립적인 구현은 **CH-P2-05 ownership/orphan/duplicate read-only audit**이다. 현재 변경은 사용자 작업으로 간주하며 삭제·reset·restore하지 않는다.
