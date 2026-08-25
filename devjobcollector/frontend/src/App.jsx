@@ -15,6 +15,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import './styles/App.css';
 import ScrollToTop from './components/common/ScrollToTop';
 import Header from './pages/Header';
+import MemberSessionProvider from './contexts/MemberSessionProvider';
 
 const AppRoutes = () => {
   const navigate = useNavigate();
@@ -77,7 +78,9 @@ const AppRoutes = () => {
 function App() {
   return (
     <BrowserRouter>
-      <AppRoutes />
+      <MemberSessionProvider>
+        <AppRoutes />
+      </MemberSessionProvider>
     </BrowserRouter>
   );
 }

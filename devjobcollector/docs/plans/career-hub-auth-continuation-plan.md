@@ -1,6 +1,6 @@
 # DJC Career Hub 완성 및 회원·기업 인증 통합 재개 계획
 
-> 상태: In Progress — Career Hub 프론트 로컬 구현 완료, Release/Product DoD 대기
+> 상태: In Progress — Career Hub Release 브라우저 QA 대기, CH-P1 로컬 구현·검증 완료
 > 기준일: 2026-08-24 KST
 > 현재 브랜치: `main`
 > 구현 원칙: Career Hub를 완성한 뒤 회원·기업·Multi-Provider 인증 통합의 첫 미완료 작업으로 복귀한다.
@@ -100,11 +100,11 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 
 ### CH-P1 — 회원 프로필 및 인증 상태 강화 (1~2일)
 
-- [ ] CH-P1-01 현재 JWT claim과 회원 조회 경로 감사
-- [ ] CH-P1-02 `GET /api/v1/members/me` 계약·구현·테스트
-- [ ] CH-P1-03 프론트 회원 이름/프로필 연동
-- [ ] CH-P1-04 API 401 공통 토큰 삭제 및 로그인 복귀 처리
-- [ ] CH-P1-05 만료·변조·비활성 사용자 평가셋 통과
+- [x] CH-P1-01 현재 JWT claim과 회원 조회 경로 감사 (2026-08-25)
+- [x] CH-P1-02 `GET /api/v1/members/me` 계약·구현·테스트 (2026-08-25)
+- [x] CH-P1-03 프론트 회원 이름/프로필 연동 (2026-08-25)
+- [x] CH-P1-04 API 401 공통 토큰 삭제 및 로그인 복귀 처리 (2026-08-25)
+- [x] CH-P1-05 만료·변조·비활성 사용자 평가셋 통과 (2026-08-25, 10/10)
 
 산출물: 실제 회원 프로필, 유효하지 않은 토큰 차단, 401 공통 처리.
 
@@ -235,4 +235,4 @@ Career Hub Product DoD와 CH-G1 완료 후 `member-auth-implementation-plan.md`�
 7. 본 계획의 첫 미완료 체크박스와 선행 게이트 확인
 8. 구현 후 테스트·커밋·배포·잔여 위험을 본 계획과 HANDOVER에 갱신
 
-현재 재개 지점은 **CH-R1-01 현재 변경 파일과 라우트 리뷰**다. 현재 변경은 사용자 작업으로 간주하며 삭제·reset·restore하지 않는다.
+현재 재개 지점은 브라우저 연결이 가능하면 **CH-R1-02 수동 QA**, 그와 독립적인 구현은 **CH-P2-01 Flyway 순서 문서 동기화**다. 현재 변경은 사용자 작업으로 간주하며 삭제·reset·restore하지 않는다.

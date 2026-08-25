@@ -8,6 +8,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -18,6 +20,7 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.http.HttpStatus;
 import kr.itsdev.devjobcollector.security.signup.AuthSignupProperties;
 
 @Configuration
@@ -30,13 +33,19 @@ public class SecurityConfig {
     }
 
     @Bean
+    public AuthenticationEntryPoint authenticationEntryPoint() {
+        return new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             ObjectProvider<OAuth2UserService<OAuth2UserRequest, OAuth2User>> commonOAuth2UserServiceProvider,
             ObjectProvider<AuthenticationSuccessHandler> socialLoginSuccessHandlerProvider,
             ObjectProvider<AuthenticationFailureHandler> socialLoginFailureHandlerProvider,
             ObjectProvider<ClientRegistrationRepository> clientRegistrationRepositoryProvider,
-            JwtAuthenticationFilter jwtAuthenticationFilter
+            JwtAuthenticationFilter jwtAuthenticationFilter,
+            AuthenticationEntryPoint authenticationEntryPoint
     ) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -47,9 +56,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/v1/auth/login", "/api/v1/auth/signup/personal/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                        .requestMatchers("/api/v1/resume/**").authenticated()
+                        .requestMatchers("/api/v1/resume/**", "/api/v1/members/**").authenticated()
                         .anyRequest().permitAll()
                 )
+                .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(authenticationEntryPoint))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         if (clientRegistrationRepositoryProvider.getIfAvailable() != null) {

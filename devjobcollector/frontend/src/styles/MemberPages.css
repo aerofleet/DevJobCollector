@@ -200,3 +200,11 @@
   .resume-document-icon { width: 54px; height: 64px; }
   .resume-edit-link { grid-column: 1 / -1; justify-content: center; padding: 11px; border-radius: 10px; background: #f2efff; }
 }
+.member-session-state {
+  min-height: 52vh;
+  display: grid;
+  place-items: center;
+  padding: 48px 20px;
+  color: #586174;
+  font-weight: 600;
+}
