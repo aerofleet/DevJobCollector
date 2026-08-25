@@ -46,7 +46,7 @@ class MemberV3MigrationTest {
 
     @Test
     void migratesCleanDatabaseFromV1ToV3() throws SQLException {
-        flyway(null).migrate();
+        flyway("3").migrate();
 
         assertThat(scalar("SELECT VERSION()")).startsWith(expectedVersion);
         assertThat(scalar("SELECT version FROM flyway_schema_history WHERE success = 1 ORDER BY installed_rank DESC LIMIT 1"))
@@ -70,7 +70,7 @@ class MemberV3MigrationTest {
                     ('github@example.com', 'github-user', NULL, 'ACTIVE', 'GITHUB', 'GitHub-Subject', CURRENT_TIMESTAMP(6))
                 """);
 
-        flyway(null).migrate();
+        flyway("3").migrate();
 
         assertThat(scalar("SELECT COUNT(*) FROM user_identities")).isEqualTo("4");
         assertThat(scalar("SELECT COUNT(*) FROM personal_profiles")).isEqualTo("3");
@@ -94,7 +94,7 @@ class MemberV3MigrationTest {
         migrateToV2();
         execute("INSERT INTO users (email, name, password_hash, status, provider) VALUES ('no-password@example.com', 'local', NULL, 'PENDING_EMAIL', 'LOCAL')");
 
-        flyway(null).migrate();
+        flyway("3").migrate();
 
         assertThat(scalar("SELECT COUNT(*) FROM user_identities WHERE provider = 'LOCAL'"))
                 .isEqualTo("1");
@@ -135,7 +135,7 @@ class MemberV3MigrationTest {
     }
 
     private void assertMigrationFailsWith(String marker) {
-        assertThatThrownBy(() -> flyway(null).migrate())
+        assertThatThrownBy(() -> flyway("3").migrate())
                 .isInstanceOf(FlywayException.class)
                 .hasStackTraceContaining(marker);
     }

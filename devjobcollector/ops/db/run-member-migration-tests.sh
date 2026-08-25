@@ -38,6 +38,7 @@ DJC_MIGRATION_TEST_PASSWORD="$root_password" \
 DJC_MIGRATION_TEST_EXPECTED_VERSION=26.7.0 \
   ./gradlew test \
     --tests kr.itsdev.devjobcollector.migration.MemberV3MigrationTest \
+    --tests kr.itsdev.devjobcollector.migration.CareerHubV4MigrationTest \
     --tests kr.itsdev.devjobcollector.migration.MemberV3AuditTest \
     --tests kr.itsdev.devjobcollector.security.account.MemberFoundationRepositoryTest \
     --tests kr.itsdev.devjobcollector.security.signup.PersonalSignupTransactionIntegrationTest \
