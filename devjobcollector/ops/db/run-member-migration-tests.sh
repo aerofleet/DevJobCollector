@@ -41,6 +41,7 @@ DJC_MIGRATION_TEST_EXPECTED_VERSION=26.7.0 \
     --tests kr.itsdev.devjobcollector.migration.CareerHubV4MigrationTest \
     --tests kr.itsdev.devjobcollector.migration.CareerHubV4AuditTest \
     --tests kr.itsdev.devjobcollector.career.CareerRepositoryIntegrationTest \
+    --tests kr.itsdev.devjobcollector.career.CareerActivityConcurrencyIntegrationTest \
     --tests kr.itsdev.devjobcollector.migration.MemberV3AuditTest \
     --tests kr.itsdev.devjobcollector.security.account.MemberFoundationRepositoryTest \
     --tests kr.itsdev.devjobcollector.security.signup.PersonalSignupTransactionIntegrationTest \
