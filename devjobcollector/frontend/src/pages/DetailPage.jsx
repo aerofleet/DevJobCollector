@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchJobDetail } from '../api/jobApi';
+import { createApplication, createBookmark, recordRecentJob } from '../api/careerActivityApi';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import TechStackBadge from '../components/job/TechStackBadge';
 import { formatDate } from '../utils/dateParser';
@@ -13,6 +14,8 @@ const DetailPage = () => {
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activityMessage, setActivityMessage] = useState('');
+  const [activityPending, setActivityPending] = useState('');
 
   useEffect(() => {  
   const loadJobDetail = async () => {
@@ -22,6 +25,11 @@ const DetailPage = () => {
       setLoading(true);
       const data = await fetchJobDetail(id);
       setJob(data);
+      if (localStorage.getItem('accessToken')) {
+        recordRecentJob(id).catch((activityError) => {
+          if (activityError.response?.status !== 401) console.error('최근 조회 기록 실패:', activityError);
+        });
+      }
     } catch (err) {
       setError('공고를 불러오는데 실패했습니다.');
       console.error(err);
@@ -38,6 +46,35 @@ const DetailPage = () => {
   if (!job) return <div className="error-message">공고를 찾을 수 없습니다.</div>;
 
   const daysRemaining = getDaysRemaining(job.endDate);
+
+  const requireMember = () => {
+    if (localStorage.getItem('accessToken')) return true;
+    const nextPath = `/job/${id}`;
+    sessionStorage.setItem('postLoginNextPath', nextPath);
+    navigate(`/login?next=${encodeURIComponent(nextPath)}`);
+    return false;
+  };
+
+  const handleBookmark = async () => {
+    if (!requireMember()) return;
+    setActivityPending('bookmark');
+    try {
+      await createBookmark(id);
+      setActivityMessage('저장한 공고에 추가했습니다.');
+    } catch (activityError) {
+      if (activityError.response?.status !== 401) setActivityMessage('공고 저장에 실패했습니다.');
+    } finally {
+      setActivityPending('');
+    }
+  };
+
+  const handleApply = () => {
+    if (!requireMember()) return;
+    createApplication(id).catch((activityError) => {
+      if (activityError.response?.status !== 401) console.error('지원 기록 실패:', activityError);
+    });
+    window.open(job.originalUrl, '_blank', 'noopener,noreferrer');
+  };
 
   return (
     <div className="detail-page">
@@ -105,15 +142,17 @@ const DetailPage = () => {
         )}
 
         <div className="action-buttons">
-          <a 
-            href={job.originalUrl} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="apply-button"
+          <button
+            type="button"
+            className="save-job-button"
+            disabled={activityPending === 'bookmark'}
+            onClick={handleBookmark}
           >
-            지원하기 🚀
-          </a>
+            {activityPending === 'bookmark' ? '저장 중...' : '공고 저장'}
+          </button>
+          <button type="button" className="apply-button" onClick={handleApply}>지원하기 🚀</button>
         </div>
+        {activityMessage && <p className="detail-activity-message" role="status">{activityMessage}</p>}
       </div>
     </div>
   );
