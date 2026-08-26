@@ -1,6 +1,6 @@
 # DJC Career Hub 완성 및 회원·기업 인증 통합 재개 계획
 
-> 상태: In Progress — Career Hub Release 브라우저 QA 대기, CH-P3-02 운영 배포 완료
+> 상태: In Progress — Career Hub Release 브라우저 QA 대기, CH-P3-03 운영 배포 완료
 > 기준일: 2026-08-24 KST
 > 현재 브랜치: `main`
 > 구현 원칙: Career Hub를 완성한 뒤 회원·기업·Multi-Provider 인증 통합의 첫 미완료 작업으로 복귀한다.
@@ -126,7 +126,7 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 
 - [x] CH-P3-01 북마크 생성·조회·삭제 API (2026-08-26, `ff5590f`, Actions `32879495958`·`32880026361`·`32880026369`)
 - [x] CH-P3-02 최근 본 공고 기록·조회·보존 한도 정책 (2026-08-26, 회원당 100개, `f5f1a50`, Actions `32948243993`·`32948243996`)
-- [ ] CH-P3-03 지원 상태 모델과 조회·변경 API
+- [x] CH-P3-03 지원 생성·조회·상태 변경 API (2026-08-26, `6444274`, Actions `32957389993`·`32957390045`)
 - [ ] CH-P3-04 `/my-devjobs` 실제 데이터 연동
 - [ ] CH-P3-05 Loading/Empty/Error/Unauthorized 상태 구현
 - [ ] CH-P3-06 동시 요청·타 회원 데이터 접근 차단 테스트
@@ -235,4 +235,4 @@ Career Hub Product DoD와 CH-G1 완료 후 `member-auth-implementation-plan.md`�
 7. 본 계획의 첫 미완료 체크박스와 선행 게이트 확인
 8. 구현 후 테스트·커밋·배포·잔여 위험을 본 계획과 HANDOVER에 갱신
 
-현재 재개 지점은 브라우저 연결이 가능하면 **CH-R1-02 수동 QA**, 그와 독립적인 구현은 **CH-P3-03 지원 상태 모델과 조회·변경 API**다. 현재 변경은 사용자 작업으로 간주하며 삭제·reset·restore하지 않는다.
+현재 재개 지점은 브라우저 연결이 가능하면 **CH-R1-02 수동 QA**, 그와 독립적인 구현은 **CH-P3-04 `/my-devjobs` 실제 데이터 연동**이다. 현재 변경은 사용자 작업으로 간주하며 삭제·reset·restore하지 않는다.
