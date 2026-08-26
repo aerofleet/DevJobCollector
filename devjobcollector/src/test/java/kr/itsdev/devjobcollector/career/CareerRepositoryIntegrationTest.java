@@ -141,6 +141,25 @@ class CareerRepositoryIntegrationTest {
                 .hasSize(1);
     }
 
+    @Test
+    void insertsOnlyOneApplicationForSameOwnerAndJob() {
+        UserAccount user = saveUser("application-upsert@example.com");
+        JobPost jobPost = saveJob("application-upsert-job");
+        LocalDateTime appliedAt = LocalDateTime.of(2026, 8, 26, 11, 0);
+        entityManager.flush();
+
+        applicationRepository.insertIfAbsent(user.getId(), jobPost.getId(), appliedAt, "서류 제출");
+        applicationRepository.insertIfAbsent(user.getId(), jobPost.getId(), appliedAt.plusMinutes(1), "중복");
+
+        JobApplication application = applicationRepository
+                .findByUser_IdAndJobPost_Id(user.getId(), jobPost.getId())
+                .orElseThrow();
+        assertThat(application.getStatus()).isEqualTo(ApplicationStatus.APPLIED);
+        assertThat(application.getMemo()).isEqualTo("서류 제출");
+        assertThat(applicationRepository.findAllByUser_IdOrderByUpdatedAtDescIdDesc(user.getId()))
+                .hasSize(1);
+    }
+
     private UserAccount saveUser(String email) {
         return userRepository.save(UserAccount.activeSocial(
                 email, email, AuthProvider.GITHUB, "subject-" + email));

@@ -71,7 +71,7 @@ public class JobApplication {
         this.memo = normalizeMemo(memo);
     }
 
-    private static String normalizeMemo(String memo) {
+    static String normalizeMemo(String memo) {
         if (memo == null || memo.isBlank()) {
             return null;
         }
