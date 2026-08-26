@@ -41,7 +41,7 @@ public class JobApplicationService {
 
         applicationRepository.insertIfAbsent(member.getId(), jobPost.getId(), LocalDateTime.now(), memo);
         JobApplication application = applicationRepository
-                .findByUser_IdAndJobPost_Id(member.getId(), jobPost.getId())
+                .findByOwnerAndJobForUpdate(member.getId(), jobPost.getId())
                 .orElseThrow(() -> new IllegalStateException("Application insert did not produce a row"));
         return JobApplicationResponse.from(application);
     }

@@ -44,7 +44,7 @@ class JobApplicationServiceTest {
         when(currentMemberService.requireCurrentMember("42")).thenReturn(member);
         when(jobPostRepository.findById(7L)).thenReturn(Optional.of(jobPost));
         when(applicationRepository.insertIfAbsent(any(), any(), any(), any())).thenReturn(1);
-        when(applicationRepository.findByUser_IdAndJobPost_Id(42L, 7L)).thenReturn(Optional.of(application));
+        when(applicationRepository.findByOwnerAndJobForUpdate(42L, 7L)).thenReturn(Optional.of(application));
 
         var response = service.create("42", 7L, new JobApplicationCreateRequest("  서류 제출  "));
 
@@ -63,7 +63,7 @@ class JobApplicationServiceTest {
         when(currentMemberService.requireCurrentMember("42")).thenReturn(member);
         when(jobPostRepository.findById(7L)).thenReturn(Optional.of(jobPost));
         when(applicationRepository.insertIfAbsent(any(), any(), any(), any())).thenReturn(0);
-        when(applicationRepository.findByUser_IdAndJobPost_Id(42L, 7L)).thenReturn(Optional.of(existing));
+        when(applicationRepository.findByOwnerAndJobForUpdate(42L, 7L)).thenReturn(Optional.of(existing));
 
         var response = service.create("42", 7L, new JobApplicationCreateRequest("새 메모"));
 

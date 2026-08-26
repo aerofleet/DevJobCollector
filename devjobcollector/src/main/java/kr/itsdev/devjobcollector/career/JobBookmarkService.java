@@ -34,7 +34,7 @@ public class JobBookmarkService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Job post not found"));
 
         bookmarkRepository.insertIfAbsent(member.getId(), jobPost.getId());
-        JobBookmark bookmark = bookmarkRepository.findByUser_IdAndJobPost_Id(member.getId(), jobPost.getId())
+        JobBookmark bookmark = bookmarkRepository.findByOwnerAndJobForUpdate(member.getId(), jobPost.getId())
                 .orElseThrow(() -> new IllegalStateException("Bookmark insert did not produce a row"));
         return JobBookmarkResponse.from(bookmark);
     }

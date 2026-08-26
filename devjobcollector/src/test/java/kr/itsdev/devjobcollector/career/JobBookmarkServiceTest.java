@@ -39,7 +39,7 @@ class JobBookmarkServiceTest {
         JobBookmark bookmark = JobBookmark.create(member, jobPost);
         when(currentMemberService.requireCurrentMember("42")).thenReturn(member);
         when(jobPostRepository.findById(7L)).thenReturn(Optional.of(jobPost));
-        when(bookmarkRepository.findByUser_IdAndJobPost_Id(42L, 7L)).thenReturn(Optional.of(bookmark));
+        when(bookmarkRepository.findByOwnerAndJobForUpdate(42L, 7L)).thenReturn(Optional.of(bookmark));
 
         var response = service.create("42", 7L);
 
