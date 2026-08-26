@@ -37,8 +37,8 @@
 |---|---|
 | 격리 `CareerActivityConcurrencyIntegrationTest` | 3/3 통과, 34초 |
 | MySQL 전체 migration/integration gate | 10개 클래스 통과, `BUILD SUCCESSFUL`, 1분 13초 |
-| Docker image validation | Actions `32992023748` 성공 |
-| Backend test/deploy | Actions `32992027251` 성공 |
+| Docker image validation | 수동 `32992023748`, push `32992607277` 모두 성공 |
+| Backend test/deploy | 수동 `32992027251`, push `32992607305` 모두 성공 |
 | 운영 health | HTTP 200 |
 | 운영 공개 검색 | HTTP 200 |
 | 운영 활동 API 3종 무토큰 | bookmarks/applications/recent-jobs 모두 HTTP 401 |
