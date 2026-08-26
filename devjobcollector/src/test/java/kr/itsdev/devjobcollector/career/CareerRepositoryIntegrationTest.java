@@ -120,6 +120,27 @@ class CareerRepositoryIntegrationTest {
                 .isEqualTo(jobPost.getId());
     }
 
+    @Test
+    void atomicallyUpsertsViewHistoryForSameOwnerAndJob() {
+        UserAccount user = saveUser("view-history@example.com");
+        JobPost jobPost = saveJob("view-history-job");
+        LocalDateTime firstView = LocalDateTime.of(2026, 8, 26, 10, 0);
+        LocalDateTime secondView = firstView.plusMinutes(5);
+        entityManager.flush();
+
+        viewHistoryRepository.recordView(user.getId(), jobPost.getId(), firstView);
+        viewHistoryRepository.recordView(user.getId(), jobPost.getId(), secondView);
+
+        JobViewHistory history = viewHistoryRepository
+                .findByUser_IdAndJobPost_Id(user.getId(), jobPost.getId())
+                .orElseThrow();
+        assertThat(history.getFirstViewedAt()).isEqualTo(firstView);
+        assertThat(history.getLastViewedAt()).isEqualTo(secondView);
+        assertThat(history.getViewCount()).isEqualTo(2);
+        assertThat(viewHistoryRepository.findTop100ByUser_IdOrderByLastViewedAtDescIdDesc(user.getId()))
+                .hasSize(1);
+    }
+
     private UserAccount saveUser(String email) {
         return userRepository.save(UserAccount.activeSocial(
                 email, email, AuthProvider.GITHUB, "subject-" + email));
