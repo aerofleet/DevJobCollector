@@ -30,6 +30,8 @@ public class JobBookmarkService {
     @Transactional
     public JobBookmarkResponse create(String subject, Long jobPostId) {
         UserAccount member = currentMemberService.requireCurrentMember(subject);
+        bookmarkRepository.lockUserById(member.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Member not found"));
         JobPost jobPost = jobPostRepository.findById(jobPostId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Job post not found"));
 

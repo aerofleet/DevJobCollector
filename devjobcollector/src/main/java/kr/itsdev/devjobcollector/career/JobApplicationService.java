@@ -35,6 +35,8 @@ public class JobApplicationService {
             String subject, Long jobPostId, JobApplicationCreateRequest request
     ) {
         UserAccount member = currentMemberService.requireCurrentMember(subject);
+        applicationRepository.lockUserById(member.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Member not found"));
         JobPost jobPost = jobPostRepository.findById(jobPostId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Job post not found"));
         String memo = normalizeMemo(request == null ? null : request.memo());

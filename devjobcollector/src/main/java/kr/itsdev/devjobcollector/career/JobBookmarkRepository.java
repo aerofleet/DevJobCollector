@@ -28,6 +28,9 @@ public interface JobBookmarkRepository extends JpaRepository<JobBookmark, Long> 
             @Param("userId") Long userId,
             @Param("jobPostId") Long jobPostId
     );
+
+    @Query(value = "SELECT id FROM users WHERE id = :userId FOR UPDATE", nativeQuery = true)
+    Optional<Long> lockUserById(@Param("userId") Long userId);
     boolean existsByUser_IdAndJobPost_Id(Long userId, Long jobPostId);
     long deleteByUser_IdAndJobPost_Id(Long userId, Long jobPostId);
 

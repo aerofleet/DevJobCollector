@@ -42,6 +42,7 @@ class JobApplicationServiceTest {
         JobPost jobPost = jobPost(7L);
         JobApplication application = JobApplication.applied(member, jobPost, LocalDateTime.now(), "서류 제출");
         when(currentMemberService.requireCurrentMember("42")).thenReturn(member);
+        when(applicationRepository.lockUserById(42L)).thenReturn(Optional.of(42L));
         when(jobPostRepository.findById(7L)).thenReturn(Optional.of(jobPost));
         when(applicationRepository.insertIfAbsent(any(), any(), any(), any())).thenReturn(1);
         when(applicationRepository.findByOwnerAndJobForUpdate(42L, 7L)).thenReturn(Optional.of(application));
@@ -61,6 +62,7 @@ class JobApplicationServiceTest {
         JobPost jobPost = jobPost(7L);
         JobApplication existing = JobApplication.applied(member, jobPost, LocalDateTime.now(), "기존 메모");
         when(currentMemberService.requireCurrentMember("42")).thenReturn(member);
+        when(applicationRepository.lockUserById(42L)).thenReturn(Optional.of(42L));
         when(jobPostRepository.findById(7L)).thenReturn(Optional.of(jobPost));
         when(applicationRepository.insertIfAbsent(any(), any(), any(), any())).thenReturn(0);
         when(applicationRepository.findByOwnerAndJobForUpdate(42L, 7L)).thenReturn(Optional.of(existing));

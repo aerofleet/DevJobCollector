@@ -38,6 +38,7 @@ class JobBookmarkServiceTest {
         JobPost jobPost = jobPost(7L);
         JobBookmark bookmark = JobBookmark.create(member, jobPost);
         when(currentMemberService.requireCurrentMember("42")).thenReturn(member);
+        when(bookmarkRepository.lockUserById(42L)).thenReturn(Optional.of(42L));
         when(jobPostRepository.findById(7L)).thenReturn(Optional.of(jobPost));
         when(bookmarkRepository.findByOwnerAndJobForUpdate(42L, 7L)).thenReturn(Optional.of(bookmark));
 
@@ -76,6 +77,7 @@ class JobBookmarkServiceTest {
     void returnsNotFoundWithoutWritingForUnknownJob() {
         UserAccount member = member(42L);
         when(currentMemberService.requireCurrentMember("42")).thenReturn(member);
+        when(bookmarkRepository.lockUserById(42L)).thenReturn(Optional.of(42L));
         when(jobPostRepository.findById(404L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.create("42", 404L))

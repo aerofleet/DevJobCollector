@@ -32,6 +32,9 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
             @Param("jobPostId") Long jobPostId
     );
 
+    @Query(value = "SELECT id FROM users WHERE id = :userId FOR UPDATE", nativeQuery = true)
+    Optional<Long> lockUserById(@Param("userId") Long userId);
+
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(value = """
             INSERT INTO applications
