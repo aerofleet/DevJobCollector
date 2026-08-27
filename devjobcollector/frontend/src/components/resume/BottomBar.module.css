@@ -36,3 +36,9 @@
 .button:disabled {
   opacity: 0.65;
 }
+
+@media (max-width: 768px) {
+  .bar {
+    bottom: 64px;
+  }
+}

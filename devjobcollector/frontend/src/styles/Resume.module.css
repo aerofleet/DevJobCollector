@@ -38,6 +38,12 @@
     padding: 24px 16px;
   }
 }
+
+@media (max-width: 768px) {
+  .container {
+    padding-bottom: 160px;
+  }
+}
 .state {
   min-height: 70vh;
   display: grid;

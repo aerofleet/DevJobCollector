@@ -1,7 +1,7 @@
 # Career Hub Resume API 검증 결과
 
-검증일: 2026-08-27  
-작업: CH-P4-01~06
+검증일: 2026-08-27~28
+작업: CH-P4-01~06, CH-G1-01~02
 
 ## 결과 요약
 
@@ -22,7 +22,7 @@
 - 목표 KPI: 본인 CRUD 성공률 100%, 비인증 차단률 100%, 타 회원 접근 차단률 100%, 신규 평가셋 5xx 0%
 - OKR 연결: Career Hub Product DoD의 실제 이력서 데이터 기능 완성
 - Before/After: 프로세스 메모리 저장 및 경로 `userId` 신뢰 → MySQL Repository 및 JWT 회원 범위 조회
-- 합격 기준: 신규 평가셋 failure/error/skip 0건, 전체 Gradle 회귀 성공, `git diff --check` 오류 0건
+- 합격 기준: 신규 평가셋 failure/error/skip 0건, 전체 Gradle 회귀 성공, 프런트 E2E 8/8, 4개 viewport 가로 overflow 0px, `git diff --check` 오류 0건
 
 ## 평가셋과 결과
 
@@ -71,8 +71,8 @@ git -C C:\Users\aerof\spring diff --check
 
 ## 미완료 게이트
 
-- 프런트 저장소에 E2E 스크립트가 없고 브라우저 연결 메타데이터 오류가 반복되어 viewport·키보드·실제 사용자 여정 QA는 수행하지 못했다.
 - 운영 배포는 수행하지 않았다.
+- 실제 Google/GitHub 로그인, 키보드 탐색과 24시간 관찰은 수행하지 않았다.
 
 ## 프런트 연동 결과
 
@@ -80,3 +80,6 @@ git -C C:\Users\aerof\spring diff --check
 - `/resume`: 신규 모드와 `?resumeId={id}` 수정 모드, 제목·본문 저장 후 `/resumes` 복귀
 - `npm run lint`: ESLint 오류 0건
 - `npm run build`: 성공, 1,828 modules transformed
+- `npm run e2e`: 8/8 통과, 2개 이력서 여정 × 360/768/1024/1440px
+- viewport 평가 결과: 4개 환경 모두 `documentElement.scrollWidth - innerWidth = 0px`
+- Before/After: 모바일·태블릿에서 저장 바와 64px 탭바가 겹쳐 클릭 4/8 실패 → 저장 바 위치 및 본문 여백 보정 후 8/8 통과
