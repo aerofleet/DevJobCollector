@@ -135,18 +135,18 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 
 ### CH-P4 — 이력서 플랫폼 완성 (4~5일)
 
-- [ ] CH-P4-01 현재 메모리 `ResumeService` 제거 계획과 API 계약 확정
-- [ ] CH-P4-02 회원별 이력서 목록/생성/조회/수정/삭제 구현
-- [ ] CH-P4-03 `/resumes` 목록·상태·수정 시각 연동
-- [ ] CH-P4-04 `/resume` 신규/수정 모드와 저장 후 복귀 흐름 구현
-- [ ] CH-P4-05 다른 회원 이력서 IDOR 차단
-- [ ] CH-P4-06 재시작 후 데이터 유지 및 rollback rehearsal
+- [x] CH-P4-01 현재 메모리 `ResumeService` 제거 계획과 API 계약 확정 (2026-08-27, `docs/design/resume-platform-api-contract.md`)
+- [x] CH-P4-02 회원별 이력서 목록/생성/조회/수정/상태 변경/삭제 구현 (2026-08-27, 신규 평가셋 8/8·전체 Gradle 성공)
+- [x] CH-P4-03 `/resumes` 목록·상태·수정 시각 연동 (2026-08-27, Loading/Empty/Error/Success/Unauthorized)
+- [x] CH-P4-04 `/resume` 신규/수정 모드와 저장 후 복귀 흐름 구현 (2026-08-27, lint 오류 0·build 1,828 modules)
+- [x] CH-P4-05 다른 회원 이력서 IDOR 차단 (2026-08-27, 조회·수정·상태·삭제 4/4 HTTP 404 계약)
+- [x] CH-P4-06 재시작 후 데이터 유지 및 rollback rehearsal (2026-08-27, MySQL 26.7 Resume 2/2·전체 게이트 54/54·이전 HEAD 6/6)
 
 산출물: MySQL 기반 회원 소유 이력서 관리와 편집 흐름.
 
 ### CH-G1 — 통합·운영 게이트 (2일 + 24시간 관찰)
 
-- [ ] CH-G1-01 백엔드 전체 Gradle 및 MySQL 26.7 평가셋
+- [x] CH-G1-01 백엔드 전체 Gradle 및 MySQL 26.7 평가셋 (2026-08-28, clean test 성공·MySQL 54/54 skip 0)
 - [ ] CH-G1-02 프론트 lint/build/E2E
 - [ ] CH-G1-03 운영 배포와 health/search 회귀
 - [ ] CH-G1-04 Career Hub 핵심 사용자 여정 E2E
@@ -235,4 +235,4 @@ Career Hub Product DoD와 CH-G1 완료 후 `member-auth-implementation-plan.md`�
 7. 본 계획의 첫 미완료 체크박스와 선행 게이트 확인
 8. 구현 후 테스트·커밋·배포·잔여 위험을 본 계획과 HANDOVER에 갱신
 
-현재 재개 지점은 브라우저 연결이 가능하면 **CH-R1-02 수동 QA**, 그와 독립적인 구현은 **CH-P4-01 현재 메모리 `ResumeService` 제거 계획과 API 계약 확정**이다. 현재 변경은 사용자 작업으로 간주하며 삭제·reset·restore하지 않는다.
+현재 재개 지점은 브라우저 연결이 가능하면 **CH-R1-02 수동 QA**, 독립 검증은 **CH-G1-02 프런트 E2E**다. 현재 변경은 사용자 작업으로 간주하며 삭제·reset·restore하지 않는다.

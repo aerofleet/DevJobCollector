@@ -167,9 +167,12 @@
 .member-activity-meta select { max-width: 130px; padding: 8px 28px 8px 10px; border: 1px solid #dcd7e5; border-radius: 9px; background: #fff; color: #4d4656; }
 .member-activity-meta button:disabled, .member-activity-meta select:disabled { cursor: wait; opacity: .55; }
 
+.resume-list { display: grid; gap: 14px; }
 .resume-manager-card { display: grid; grid-template-columns: auto 1fr auto; gap: 22px; align-items: center; padding: 30px; border: 1px solid #e8e5ee; border-radius: 20px; background: #fff; box-shadow: 0 12px 30px rgba(39,31,70,.05); }
 .resume-document-icon { width: 68px; height: 78px; display: grid; place-items: center; border-radius: 8px 18px 8px 8px; background: linear-gradient(145deg, #eeeaff, #ddd6ff); color: #6045df; }
 .resume-status { display: inline-flex; padding: 4px 8px; border-radius: 999px; background: #fff2d9; color: #a86600; font-size: 11px; font-weight: 800; }
+.resume-status.status-ready { background: #e7f8f0; color: #167b58; }
+.resume-status.status-archived { background: #efedf3; color: #6d6876; }
 .resume-card-copy h2 { margin: 7px 0 3px; font-size: 21px; }
 .resume-card-copy > p { margin: 0; color: #7d7786; font-size: 13px; }
 .resume-check-list { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 15px; }
@@ -180,6 +183,7 @@
 .resume-tip-card > span { flex: 0 0 auto; }
 .resume-tip-card strong { display: block; margin-bottom: 4px; font-size: 14px; }
 .resume-tip-card p { margin: 0; color: #716891; font-size: 13px; }
+.resume-empty-state { min-height: 290px; border: 1px solid #e8e5ee; border-radius: 20px; background: #fff; }
 
 @media (max-width: 900px) {
   .member-page { padding-top: 92px; }

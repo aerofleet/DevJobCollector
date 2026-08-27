@@ -38,3 +38,45 @@
     padding: 24px 16px;
   }
 }
+.state {
+  min-height: 70vh;
+  display: grid;
+  place-content: center;
+  gap: 14px;
+  padding: 120px 24px 80px;
+  color: #655f70;
+  text-align: center;
+}
+
+.state button {
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 10px;
+  background: #6c4dff;
+  color: #fff;
+  cursor: pointer;
+}
+
+.titleField {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+  color: #514b5c;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.titleField input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #ded9e7;
+  border-radius: 12px;
+  background: #fff;
+  color: #201d29;
+  font: inherit;
+}
+
+.titleField input:focus {
+  border-color: #765af5;
+  outline: 3px solid rgba(108, 77, 255, 0.13);
+}

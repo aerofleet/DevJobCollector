@@ -52,6 +52,8 @@ public class CareerResume {
         this.user = Objects.requireNonNull(user, "user is required");
         this.title = requireText(title, "title is required");
         this.contentJson = requireText(contentJson, "contentJson is required");
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = this.createdAt;
     }
 
     public static CareerResume draft(UserAccount user, String title, String contentJson) {
@@ -61,10 +63,12 @@ public class CareerResume {
     public void update(String title, String contentJson) {
         this.title = requireText(title, "title is required");
         this.contentJson = requireText(contentJson, "contentJson is required");
+        this.updatedAt = LocalDateTime.now();
     }
 
     public void changeStatus(ResumeStatus status) {
         this.status = Objects.requireNonNull(status, "status is required");
+        this.updatedAt = LocalDateTime.now();
     }
 
     private static String requireText(String value, String message) {
