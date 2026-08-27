@@ -148,7 +148,7 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 
 - [x] CH-G1-01 백엔드 전체 Gradle 및 MySQL 26.7 평가셋 (2026-08-28, clean test 성공·MySQL 54/54 skip 0)
 - [x] CH-G1-02 프론트 lint/build/E2E (2026-08-28, lint 0·build 1,828 modules·Playwright 8/8, 4 viewport overflow 0px)
-- [x] CH-G1-03 운영 배포와 health/search 회귀 (2026-08-28, Backend `33105941627`·Docker `33105941628`·Frontend `33105941650`, 운영 smoke 전부 합격)
+- [x] CH-G1-03 운영 배포와 health/search 회귀 (2026-08-28, Backend `33105941627`·Docker `33105941628`·Frontend `33105941650`, 운영 smoke 및 보호 경로 4×4 viewport E2E 16/16 합격)
 - [ ] CH-G1-04 Career Hub 핵심 사용자 여정 E2E
 - [ ] CH-G1-05 Google 로그인 성공
 - [ ] CH-G1-06 GitHub 로그인 성공

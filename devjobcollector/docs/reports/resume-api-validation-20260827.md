@@ -84,6 +84,10 @@ git -C C:\Users\aerof\spring diff --check
 - 공개 검색: HTTP 200
 - 무토큰 Resume 목록: HTTP 401
 - `/member`, `/my-devjobs`, `/resumes`: 3/3 HTTP 200 및 SPA 문서 반환
+- `npm run e2e:production`: 운영 보호 경로 4개 × 4개 viewport, 16/16 통과
+- 운영 브라우저 평가: `/member`, `/my-devjobs`, `/resumes`, `/resume` 모두 `/login?next=...`로 정확한 복귀 경로 보존
+- 운영 viewport 평가: 360×800, 768×1024, 1024×768, 1440×900에서 로그인 UI 표시 및 horizontal overflow 0px
+- 구분: 위 평가는 비인증 보호 경로 게이트이며, 인증 사용자의 Resume 생성·수정·재조회 CH-G1-04는 별도 미완료다.
 
 ## 프런트 연동 결과
 
