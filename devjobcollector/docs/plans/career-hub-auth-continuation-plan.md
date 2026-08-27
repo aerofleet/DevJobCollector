@@ -148,7 +148,7 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 
 - [x] CH-G1-01 백엔드 전체 Gradle 및 MySQL 26.7 평가셋 (2026-08-28, clean test 성공·MySQL 54/54 skip 0)
 - [x] CH-G1-02 프론트 lint/build/E2E (2026-08-28, lint 0·build 1,828 modules·Playwright 8/8, 4 viewport overflow 0px)
-- [ ] CH-G1-03 운영 배포와 health/search 회귀
+- [x] CH-G1-03 운영 배포와 health/search 회귀 (2026-08-28, Backend `33105941627`·Docker `33105941628`·Frontend `33105941650`, 운영 smoke 전부 합격)
 - [ ] CH-G1-04 Career Hub 핵심 사용자 여정 E2E
 - [ ] CH-G1-05 Google 로그인 성공
 - [ ] CH-G1-06 GitHub 로그인 성공
@@ -235,4 +235,4 @@ Career Hub Product DoD와 CH-G1 완료 후 `member-auth-implementation-plan.md`�
 7. 본 계획의 첫 미완료 체크박스와 선행 게이트 확인
 8. 구현 후 테스트·커밋·배포·잔여 위험을 본 계획과 HANDOVER에 갱신
 
-현재 재개 지점은 **CH-G1-03 운영 배포와 health/search 회귀**다. 브라우저 연결이 가능하면 CH-R1-02~04 viewport·키보드·OAuth 수동 QA를 병행한다. 현재 변경은 사용자 작업으로 간주하며 삭제·reset·restore하지 않는다.
+현재 재개 지점은 **CH-G1-04 운영 Career Hub 핵심 사용자 여정**이다. 브라우저 연결이 가능하면 CH-R1-02~04 viewport·키보드·OAuth 수동 QA를 병행한다. 현재 변경은 사용자 작업으로 간주하며 삭제·reset·restore하지 않는다.

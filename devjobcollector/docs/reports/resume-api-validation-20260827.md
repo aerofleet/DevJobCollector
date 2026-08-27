@@ -71,8 +71,19 @@ git -C C:\Users\aerof\spring diff --check
 
 ## 미완료 게이트
 
-- 운영 배포는 수행하지 않았다.
 - 실제 Google/GitHub 로그인, 키보드 탐색과 24시간 관찰은 수행하지 않았다.
+- 운영 인증 사용자의 실제 Resume 생성·수정 여정은 수행하지 않았다.
+
+## 운영 배포 및 회귀
+
+- 배포 커밋: `26b4d6c` (`b66d2b3` 포함)
+- Backend Actions `33105941627`: success
+- Docker validation `33105941628`: success
+- Frontend Actions `33105941650`: success
+- 운영 health: HTTP 200, `status=UP`
+- 공개 검색: HTTP 200
+- 무토큰 Resume 목록: HTTP 401
+- `/member`, `/my-devjobs`, `/resumes`: 3/3 HTTP 200 및 SPA 문서 반환
 
 ## 프런트 연동 결과
 
