@@ -41,5 +41,14 @@
 
 ## 잔여 게이트
 
-- Frontend 배포 성공 후 동일 운영 평가 5 passed / 3 skip 재확인
 - CH-R1-03 수동 키보드·focus·touch QA는 별도 수행하며, 운영 자동화 통과만으로 완료 처리하지 않는다.
+
+## 운영 After
+
+- 커밋: `93c154f`
+- Frontend Actions: `33199530362` 성공
+- 운영 명령: `npx playwright test --config playwright.production.config.js production-e2e/login-accessibility.spec.js`
+- 결과: 5 passed, 3 의도적 skip
+  - 키보드 탐색·focus: 4/4 viewport
+  - mobile-360 touch target: 10/10
+  - Before 결함 5개 → After 결함 0개

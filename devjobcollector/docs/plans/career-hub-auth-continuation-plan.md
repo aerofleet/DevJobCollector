@@ -90,7 +90,7 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 
 - [x] CH-R1-01 현재 변경 파일과 라우트 리뷰 (2026-08-25)
 - [ ] CH-R1-02 360/768/1024/1440px 수동 QA
-- [ ] CH-R1-03 키보드 탐색, focus, tab semantics, touch target QA (2026-08-29, 운영 Before 키보드/focus 4/4 통과·touch target 5개 결함 검출; CSS 보정 후 로컬 키보드/focus 4/4·touch target 10/10 통과, 수동 QA 대기)
+- [ ] CH-R1-03 키보드 탐색, focus, tab semantics, touch target QA (2026-08-29, 운영 Before touch target 5개 결함 검출; CSS 보정·Frontend `33199530362` 배포 후 운영 키보드/focus 4/4·touch target 10/10 통과, 수동 QA 대기)
 - [ ] CH-R1-04 로그인·회원가입·OAuth callback의 `/member` 이동 검증
 - [x] CH-R1-05 frontend lint/build 재실행 (2026-08-25: lint 0, build 성공)
 - [x] CH-R1-06 기능 커밋 후 push, Actions 배포 확인 (`e11111a`, Actions `32757612547`)
