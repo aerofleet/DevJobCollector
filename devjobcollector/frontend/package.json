@@ -8,6 +8,7 @@
     "build": "vite build",
     "e2e": "playwright test",
     "e2e:production": "playwright test --config playwright.production.config.js",
+    "e2e:production:authenticated": "playwright test --config playwright.production.config.js --project=desktop-1440 production-e2e/authenticated-career-hub.spec.js",
     "lint": "eslint .",
     "preview": "npm run build && wrangler dev",
     "deploy": "npm run build && wrangler deploy"
