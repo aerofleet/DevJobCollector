@@ -76,6 +76,7 @@
 .InpBox {
   display: flex;
   align-items: center;
+  min-height: 44px;
   gap: 6px;
   font-size: 12px;
   color: #555;
@@ -115,6 +116,10 @@
 }
 
 .signup-forgotten a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px;
   color: #555;
   text-decoration: none;
 }
@@ -186,8 +191,8 @@
 .social_icon {
     background-repeat: no-repeat;
     background-position: center;
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     -webkit-box-shadow: 0 0 1px 0 rgba(0, 0, 0, 0.12), 0 1px 1px 0 rgba(0, 0, 0, 0.24);
     box-shadow: 0 0 1px 0 rgba(0, 0, 0, 0.12), 0 1px 1px 0 rgba(0, 0, 0, 0.24);
@@ -195,6 +200,13 @@
     display: inline-flex;
     -ms-flex-pack: center;
     justify-content: center;
+}
+
+.InpBox input:focus-visible,
+.signup-forgotten a:focus-visible,
+.social_icon:focus-visible {
+  outline: 3px solid rgba(0, 78, 162, 0.35);
+  outline-offset: 3px;
 }
 
 .google {
