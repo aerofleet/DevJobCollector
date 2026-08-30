@@ -39,7 +39,8 @@ test('인증 사용자는 이력서를 생성·수정·재조회하고 테스트
       has: page.getByRole('heading', { name: createdTitle, exact: true }),
     });
     await expect(createdCard).toBeVisible();
-    await createdCard.getByRole('link', { name: '수정하기' }).click();
+    await createdCard.getByRole('button', { name: `${createdTitle} 메뉴 열기` }).click();
+    await createdCard.getByRole('menuitem', { name: '수정' }).click();
 
     await expect(page).toHaveURL(new RegExp(`/resume\\?resumeId=${createdResume.id}$`));
     await expect(page.getByLabel('이력서 제목')).toHaveValue(createdTitle);
