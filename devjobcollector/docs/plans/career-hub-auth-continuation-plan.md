@@ -149,7 +149,7 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 - [x] CH-G1-01 백엔드 전체 Gradle 및 MySQL 26.7 평가셋 (2026-08-28, clean test 성공·MySQL 54/54 skip 0)
 - [x] CH-G1-02 프론트 lint/build/E2E (2026-08-28, lint 0·build 1,828 modules·Playwright 8/8, 4 viewport overflow 0px)
 - [x] CH-G1-03 운영 배포와 health/search 회귀 (2026-08-28, Backend `33105941627`·Docker `33105941628`·Frontend `33105941650`·E2E 추가 배포 `33108243400`, 운영 smoke 및 보호 경로 4×4 viewport E2E 16/16 합격)
-- [ ] CH-G1-04 Career Hub 핵심 사용자 여정 E2E (2026-08-31, 점 세 개 작업 메뉴 기준 운영 Resume 스펙과 수동 Actions 게이트 `.github/workflows/djc-career-hub-authenticated-e2e.yml` 추가; lint 0·build 1,828 modules·로컬 4 viewport 12/12, GitHub Secret 미등록으로 운영 쓰기 대기)
+- [x] CH-G1-04 Career Hub 핵심 사용자 여정 E2E (2026-08-31, 점 세 개 작업 메뉴 기준 운영 Resume 생성·수정·재조회·삭제 1/1, skip 0, 테스트 데이터 잔존 0건; Actions `33319783743` 성공)
 - [ ] CH-G1-05 Google 로그인 성공
 - [ ] CH-G1-06 GitHub 로그인 성공
 - [ ] CH-G1-07 동일 이메일 `ACCOUNT_LINK_REQUIRED`, 자동 연결 0건
@@ -172,9 +172,18 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 - Before/After: 로컬 셸 토큰에만 의존 → GitHub Secret 기반 `DJC Career Hub Authenticated E2E` 수동 워크플로로 반복 실행 가능
 - 평가셋: `desktop-1440`에서 생성 POST 201, 수정 PUT 200, 재조회 제목 일치, 삭제 200/204, 삭제 후 카드 0건
 - 보안 기준: Secret 원문 로그 출력 0건, Playwright trace 비활성화, 테스트 데이터 실패 시 정리 재시도
-- 현재 결과: 저장소와 현재 셸 모두 `DJC_E2E_ACCESS_TOKEN` 미설정이므로 체크박스는 미완료 유지
+- 현재 결과: GitHub Secret 등록 후 Actions `33319783743` 성공, Playwright 1 passed / 0 skipped, 생성 테스트 데이터 정리 확인
 - 해제 절차: `gh secret set DJC_E2E_ACCESS_TOKEN`으로 값을 안전하게 입력한 후 `gh workflow run djc-career-hub-authenticated-e2e.yml --ref main` 실행
 - 합격 기준: Actions conclusion `success`, Playwright 1 passed / 0 skipped, 생성한 `CH-G1-04` 이력서 잔존 0건
+
+#### CH-G1-04 완료 기록 — 2026-08-31
+
+- 평가 실행: `DJC Career Hub Authenticated E2E` Actions `33319783743`
+- 결과: `desktop-1440` 1 passed / 0 skipped, 실행 시간 7.5초
+- API/UI 검증: POST 201, PUT 200, 재조회 제목 일치, DELETE 200/204, 삭제 후 카드 0건
+- 보안 결과: Actions 로그의 access token 원문 노출 0건(마스킹 확인), Playwright trace 비활성화
+- 합격 판정: 목표 KPI 1/1 성공과 테스트 데이터 잔존 0건을 충족하여 CH-G1-04 완료
+- 다음 재개점: CH-G1-05 Google 실제 로그인 성공 검증
 
 ### AUTH-P3~P8 — 회원·기업 인증 통합 재개
 
