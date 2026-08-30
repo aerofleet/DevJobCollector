@@ -178,7 +178,13 @@
 .resume-check-list { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 15px; }
 .resume-check-list span { display: inline-flex; align-items: center; gap: 4px; color: #726b7a; font-size: 12px; }
 .resume-check-list svg { color: #9b8dea; }
+.resume-card-actions { display: flex; align-items: center; gap: 8px; }
 .resume-edit-link { display: inline-flex; align-items: center; gap: 5px; color: #6044e5; font-size: 13px; font-weight: 800; text-decoration: none; }
+.resume-delete-button { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 5px; padding: 9px 11px; border: 1px solid #f0cfd3; border-radius: 10px; background: #fff7f7; color: #b33d49; font-size: 13px; font-weight: 800; cursor: pointer; }
+.resume-delete-button:hover { border-color: #dc939b; background: #fff0f0; }
+.resume-delete-button:focus-visible { outline: 3px solid rgba(108, 77, 255, .35); outline-offset: 2px; }
+.resume-delete-button:disabled { cursor: wait; opacity: .55; }
+.resume-delete-error { margin: 0; padding: 13px 16px; border: 1px solid #f0cfd3; border-radius: 12px; background: #fff7f7; color: #a63843; font-size: 13px; }
 .resume-tip-card { display: flex; gap: 14px; margin-top: 16px; padding: 22px 24px; border-radius: 16px; background: #f0edff; color: #403569; }
 .resume-tip-card > span { flex: 0 0 auto; }
 .resume-tip-card strong { display: block; margin-bottom: 4px; font-size: 14px; }
@@ -219,7 +225,8 @@
   .member-activity-meta { justify-content: space-between; }
   .resume-manager-card { grid-template-columns: auto 1fr; padding: 22px; }
   .resume-document-icon { width: 54px; height: 64px; }
-  .resume-edit-link { grid-column: 1 / -1; justify-content: center; padding: 11px; border-radius: 10px; background: #f2efff; }
+  .resume-card-actions { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+  .resume-edit-link { justify-content: center; min-height: 44px; padding: 11px; border-radius: 10px; background: #f2efff; }
 }
 .member-session-state {
   min-height: 52vh;

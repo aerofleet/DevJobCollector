@@ -26,6 +26,7 @@ const installApiMock = async (page, initialResumes) => {
     }])),
     lastCreate: null,
     lastUpdate: null,
+    lastDelete: null,
   };
 
   await page.addInitScript(() => {
@@ -82,6 +83,12 @@ const installApiMock = async (page, initialResumes) => {
         state.details.set(resumeId, updated);
         state.resumes = [updated];
         return respond(updated);
+      }
+      if (method === 'DELETE') {
+        state.lastDelete = resumeId;
+        state.details.delete(resumeId);
+        state.resumes = state.resumes.filter((resume) => resume.id !== resumeId);
+        return route.fulfill({ status: 204, body: '' });
       }
     }
 
@@ -144,5 +151,26 @@ test('빈 목록에서 새 이력서를 작성하고 목록으로 복귀한다',
   await expect(page.getByRole('heading', { name: '신규 이력서' })).toBeVisible();
   expect(state.lastCreate.title).toBe('신규 이력서');
   expect(state.lastCreate.content.techStack).toEqual([]);
+  await expectNoHorizontalScroll(page);
+});
+
+test('저장된 이력서를 확인 후 삭제하고 빈 목록을 표시한다', async ({ page }) => {
+  const existing = {
+    id: 11,
+    title: '삭제할 개발자 이력서',
+    status: 'DRAFT',
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  };
+  const state = await installApiMock(page, [existing]);
+
+  await page.goto('/resumes');
+  await expect(page.getByRole('heading', { name: existing.title })).toBeVisible();
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: `${existing.title} 삭제` }).click();
+
+  await expect(page.getByText('작성한 이력서가 없습니다.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: existing.title })).toHaveCount(0);
+  expect(state.lastDelete).toBe(existing.id);
   await expectNoHorizontalScroll(page);
 });

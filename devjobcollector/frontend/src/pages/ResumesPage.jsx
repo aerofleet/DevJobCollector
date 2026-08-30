@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ArrowRight, CheckCircle2, FilePlus2, FileText, Lightbulb } from 'lucide-react';
+import { ArrowRight, CheckCircle2, FilePlus2, FileText, Lightbulb, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MemberSidebar from '../components/member/MemberSidebar';
-import { listResumes } from '../api/resumeApi';
+import { deleteResume, listResumes } from '../api/resumeApi';
 import '../styles/MemberPages.css';
 
 const RESUME_CHECKS = ['기본 정보', '기술 스택', '프로젝트', '경력'];
@@ -23,6 +23,8 @@ const ResumesPage = () => {
   const [resumes, setResumes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [deleteErrorMessage, setDeleteErrorMessage] = useState('');
+  const [deletingResumeId, setDeletingResumeId] = useState(null);
 
   const loadResumes = useCallback(async () => {
     setIsLoading(true);
@@ -41,6 +43,25 @@ const ResumesPage = () => {
   useEffect(() => {
     loadResumes();
   }, [loadResumes]);
+
+  const handleDelete = async (resume) => {
+    if (!window.confirm(`"${resume.title}" 이력서를 삭제하시겠습니까?\n삭제한 이력서는 복구할 수 없습니다.`)) {
+      return;
+    }
+
+    setDeletingResumeId(resume.id);
+    setDeleteErrorMessage('');
+    try {
+      await deleteResume(resume.id);
+      setResumes((current) => current.filter((item) => item.id !== resume.id));
+    } catch (error) {
+      if (error.response?.status !== 401) {
+        setDeleteErrorMessage('이력서를 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+      }
+    } finally {
+      setDeletingResumeId(null);
+    }
+  };
 
   return (
     <main className="member-page">
@@ -73,6 +94,9 @@ const ResumesPage = () => {
           )}
           {!isLoading && !errorMessage && resumes.length > 0 && (
             <div className="resume-list">
+              {deleteErrorMessage && (
+                <p className="resume-delete-error" role="alert">{deleteErrorMessage}</p>
+              )}
               {resumes.map((resume) => (
                 <section className="resume-manager-card" key={resume.id}>
                   <div className="resume-document-icon"><FileText size={30} /></div>
@@ -86,9 +110,21 @@ const ResumesPage = () => {
                       {RESUME_CHECKS.map((item) => <span key={item}><CheckCircle2 size={15} /> {item}</span>)}
                     </div>
                   </div>
-                  <Link className="resume-edit-link" to={`/resume?resumeId=${resume.id}`}>
-                    수정하기 <ArrowRight size={17} />
-                  </Link>
+                  <div className="resume-card-actions">
+                    <Link className="resume-edit-link" to={`/resume?resumeId=${resume.id}`}>
+                      수정하기 <ArrowRight size={17} />
+                    </Link>
+                    <button
+                      className="resume-delete-button"
+                      type="button"
+                      disabled={deletingResumeId !== null}
+                      onClick={() => handleDelete(resume)}
+                      aria-label={`${resume.title} 삭제`}
+                    >
+                      <Trash2 size={16} />
+                      {deletingResumeId === resume.id ? '삭제 중' : '삭제'}
+                    </button>
+                  </div>
                 </section>
               ))}
             </div>

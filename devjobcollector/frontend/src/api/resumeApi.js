@@ -19,3 +19,7 @@ export const updateResume = async (resumeId, resumeData) => {
   const response = await authenticatedApi.put(`/members/me/resumes/${resumeId}`, resumeData);
   return response.data;
 };
+
+export const deleteResume = async (resumeId) => {
+  await authenticatedApi.delete(`/members/me/resumes/${resumeId}`);
+};
