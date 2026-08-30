@@ -16,8 +16,6 @@ import kr.itsdev.devjobcollector.security.account.UserAccountRepository;
 import kr.itsdev.devjobcollector.security.account.UserAccountStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 
 class CurrentMemberServiceTest {
     private UserAccountRepository userRepository;
@@ -81,8 +79,6 @@ class CurrentMemberServiceTest {
 
     private void assertUnauthorized(org.assertj.core.api.ThrowableAssert.ThrowingCallable callable) {
         assertThatThrownBy(callable)
-                .isInstanceOf(ResponseStatusException.class)
-                .satisfies(error -> assertThat(((ResponseStatusException) error).getStatusCode())
-                        .isEqualTo(HttpStatus.UNAUTHORIZED));
+                .isInstanceOf(MemberAuthenticationException.class);
     }
 }

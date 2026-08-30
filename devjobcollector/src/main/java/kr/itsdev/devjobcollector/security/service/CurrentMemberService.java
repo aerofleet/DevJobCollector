@@ -7,10 +7,8 @@ import kr.itsdev.devjobcollector.security.account.ProfileStatus;
 import kr.itsdev.devjobcollector.security.account.UserAccount;
 import kr.itsdev.devjobcollector.security.account.UserAccountRepository;
 import kr.itsdev.devjobcollector.security.account.UserAccountStatus;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class CurrentMemberService {
@@ -29,7 +27,7 @@ public class CurrentMemberService {
     public MemberMeResponse getCurrentMember(String subject) {
         UserAccount user = requireCurrentMember(subject);
         PersonalProfile profile = profileRepository.findById(user.getId())
-                .orElseThrow(CurrentMemberService::unauthorized);
+                .orElseThrow(() -> unauthorized("MEMBER_PROFILE_INACTIVE"));
 
         return new MemberMeResponse(
                 user.getId(),
@@ -45,10 +43,10 @@ public class CurrentMemberService {
         Long userId = parseUserId(subject);
         UserAccount user = userRepository.findById(userId)
                 .filter(account -> account.getStatus() == UserAccountStatus.ACTIVE)
-                .orElseThrow(CurrentMemberService::unauthorized);
+                .orElseThrow(() -> unauthorized("MEMBER_ACCOUNT_INACTIVE"));
         profileRepository.findById(userId)
                 .filter(candidate -> candidate.getProfileStatus() != ProfileStatus.DELETED)
-                .orElseThrow(CurrentMemberService::unauthorized);
+                .orElseThrow(() -> unauthorized("MEMBER_PROFILE_INACTIVE"));
         return user;
     }
 
@@ -56,11 +54,11 @@ public class CurrentMemberService {
         try {
             return Long.valueOf(subject);
         } catch (NumberFormatException | NullPointerException exception) {
-            throw unauthorized();
+            throw unauthorized("MEMBER_SUBJECT_INVALID");
         }
     }
 
-    private static ResponseStatusException unauthorized() {
-        return new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Active member not found");
+    private static MemberAuthenticationException unauthorized(String errorCode) {
+        return new MemberAuthenticationException(errorCode);
     }
 }

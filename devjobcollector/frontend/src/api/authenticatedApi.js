@@ -23,6 +23,8 @@ authenticatedApi.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       const nextPath = `${window.location.pathname}${window.location.search}`;
+      const authFailureReason = error.response?.data?.error || 'ACCESS_TOKEN_INVALID';
+      sessionStorage.setItem('authFailureReason', authFailureReason);
       localStorage.removeItem('accessToken');
       if (!window.location.pathname.startsWith('/login')) {
         sessionStorage.setItem('postLoginNextPath', nextPath);

@@ -28,6 +28,12 @@ const LoginPage = () => {
     const fallbackPath = '/member';
     const redirectTo = next || fallbackPath;
 
+    const authFailureReason = sessionStorage.getItem('authFailureReason');
+    if (authFailureReason) {
+      sessionStorage.removeItem('authFailureReason');
+      setErrorMessage(`로그인 세션 확인에 실패했습니다. (${authFailureReason})`);
+    }
+
     if (oauthError) {
       setErrorMessage(oauthError === 'ACCOUNT_LINK_REQUIRED'
         ? '같은 이메일로 가입된 계정이 있습니다. 기존 계정으로 로그인한 뒤 계정 연결을 진행해주세요.'
