@@ -121,7 +121,13 @@ test('기존 이력서를 목록에서 열어 수정하고 복귀한다', async 
   await expect(page.getByText('작성 중')).toBeVisible();
   await expectNoHorizontalScroll(page);
 
-  await page.getByRole('link', { name: '수정하기' }).click();
+  const menuTrigger = page.getByRole('button', { name: `${existing.title} 메뉴 열기` });
+  await menuTrigger.click();
+  await expect(page.getByRole('menuitem', { name: '수정' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('menuitem', { name: '수정' })).toHaveCount(0);
+  await menuTrigger.click();
+  await page.getByRole('menuitem', { name: '수정' }).click();
   await expect(page).toHaveURL(/\/resume\?resumeId=11$/);
   const title = page.getByLabel('이력서 제목');
   await expect(title).toHaveValue(existing.title);
@@ -166,8 +172,10 @@ test('저장된 이력서를 확인 후 삭제하고 빈 목록을 표시한다'
 
   await page.goto('/resumes');
   await expect(page.getByRole('heading', { name: existing.title })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: '삭제' })).toHaveCount(0);
+  await page.getByRole('button', { name: `${existing.title} 메뉴 열기` }).click();
   page.once('dialog', (dialog) => dialog.accept());
-  await page.getByRole('button', { name: `${existing.title} 삭제` }).click();
+  await page.getByRole('menuitem', { name: '삭제' }).click();
 
   await expect(page.getByText('작성한 이력서가 없습니다.')).toBeVisible();
   await expect(page.getByRole('heading', { name: existing.title })).toHaveCount(0);

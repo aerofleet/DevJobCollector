@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ArrowRight, CheckCircle2, FilePlus2, FileText, Lightbulb, Trash2 } from 'lucide-react';
+import { CheckCircle2, FilePlus2, FileText, Lightbulb, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MemberSidebar from '../components/member/MemberSidebar';
 import { deleteResume, listResumes } from '../api/resumeApi';
@@ -25,6 +25,7 @@ const ResumesPage = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [deleteErrorMessage, setDeleteErrorMessage] = useState('');
   const [deletingResumeId, setDeletingResumeId] = useState(null);
+  const [openMenuId, setOpenMenuId] = useState(null);
 
   const loadResumes = useCallback(async () => {
     setIsLoading(true);
@@ -44,7 +45,28 @@ const ResumesPage = () => {
     loadResumes();
   }, [loadResumes]);
 
+  useEffect(() => {
+    const closeMenu = (event) => {
+      if (!event.target.closest('[data-resume-menu]')) {
+        setOpenMenuId(null);
+      }
+    };
+    const closeMenuWithEscape = (event) => {
+      if (event.key === 'Escape') {
+        setOpenMenuId(null);
+      }
+    };
+
+    document.addEventListener('pointerdown', closeMenu);
+    document.addEventListener('keydown', closeMenuWithEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeMenu);
+      document.removeEventListener('keydown', closeMenuWithEscape);
+    };
+  }, []);
+
   const handleDelete = async (resume) => {
+    setOpenMenuId(null);
     if (!window.confirm(`"${resume.title}" 이력서를 삭제하시겠습니까?\n삭제한 이력서는 복구할 수 없습니다.`)) {
       return;
     }
@@ -110,20 +132,35 @@ const ResumesPage = () => {
                       {RESUME_CHECKS.map((item) => <span key={item}><CheckCircle2 size={15} /> {item}</span>)}
                     </div>
                   </div>
-                  <div className="resume-card-actions">
-                    <Link className="resume-edit-link" to={`/resume?resumeId=${resume.id}`}>
-                      수정하기 <ArrowRight size={17} />
-                    </Link>
+                  <div className="resume-card-menu" data-resume-menu>
                     <button
-                      className="resume-delete-button"
+                      className="resume-menu-trigger"
                       type="button"
-                      disabled={deletingResumeId !== null}
-                      onClick={() => handleDelete(resume)}
-                      aria-label={`${resume.title} 삭제`}
+                      aria-label={`${resume.title} 메뉴 열기`}
+                      aria-haspopup="menu"
+                      aria-expanded={openMenuId === resume.id}
+                      aria-controls={`resume-menu-${resume.id}`}
+                      onClick={() => setOpenMenuId((current) => (current === resume.id ? null : resume.id))}
                     >
-                      <Trash2 size={16} />
-                      {deletingResumeId === resume.id ? '삭제 중' : '삭제'}
+                      <MoreHorizontal size={22} />
                     </button>
+                    {openMenuId === resume.id && (
+                      <div className="resume-overflow-menu" id={`resume-menu-${resume.id}`} role="menu">
+                        <Link role="menuitem" to={`/resume?resumeId=${resume.id}`} onClick={() => setOpenMenuId(null)}>
+                          <Pencil size={16} /> 수정
+                        </Link>
+                        <button
+                          className="danger"
+                          type="button"
+                          role="menuitem"
+                          disabled={deletingResumeId !== null}
+                          onClick={() => handleDelete(resume)}
+                        >
+                          <Trash2 size={16} />
+                          {deletingResumeId === resume.id ? '삭제 중' : '삭제'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </section>
               ))}
