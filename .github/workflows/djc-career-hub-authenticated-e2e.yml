@@ -1,0 +1,48 @@
+name: DJC Career Hub Authenticated E2E
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: djc-career-hub-authenticated-e2e
+  cancel-in-progress: false
+
+jobs:
+  production-resume-journey:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DJC_E2E_ACCESS_TOKEN: ${{ secrets.DJC_E2E_ACCESS_TOKEN }}
+    defaults:
+      run:
+        working-directory: ./devjobcollector/frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: devjobcollector/frontend/package-lock.json
+
+      - name: Verify authenticated E2E secret
+        run: |
+          if [ -z "$DJC_E2E_ACCESS_TOKEN" ]; then
+            echo "Missing repository secret: DJC_E2E_ACCESS_TOKEN"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run authenticated Career Hub journey
+        run: npm run e2e:production:authenticated

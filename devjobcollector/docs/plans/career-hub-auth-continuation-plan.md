@@ -149,7 +149,7 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 - [x] CH-G1-01 백엔드 전체 Gradle 및 MySQL 26.7 평가셋 (2026-08-28, clean test 성공·MySQL 54/54 skip 0)
 - [x] CH-G1-02 프론트 lint/build/E2E (2026-08-28, lint 0·build 1,828 modules·Playwright 8/8, 4 viewport overflow 0px)
 - [x] CH-G1-03 운영 배포와 health/search 회귀 (2026-08-28, Backend `33105941627`·Docker `33105941628`·Frontend `33105941650`·E2E 추가 배포 `33108243400`, 운영 smoke 및 보호 경로 4×4 viewport E2E 16/16 합격)
-- [ ] CH-G1-04 Career Hub 핵심 사용자 여정 E2E (2026-08-30, 점 세 개 작업 메뉴 기준으로 운영 Resume 생성·수정·재조회·삭제 스펙 갱신; lint 0·build 1,828 modules·로컬 4 viewport 12/12, 전용 토큰 미설정으로 운영 쓰기 1건 안전 skip)
+- [ ] CH-G1-04 Career Hub 핵심 사용자 여정 E2E (2026-08-31, 점 세 개 작업 메뉴 기준 운영 Resume 스펙과 수동 Actions 게이트 `.github/workflows/djc-career-hub-authenticated-e2e.yml` 추가; lint 0·build 1,828 modules·로컬 4 viewport 12/12, GitHub Secret 미등록으로 운영 쓰기 대기)
 - [ ] CH-G1-05 Google 로그인 성공
 - [ ] CH-G1-06 GitHub 로그인 성공
 - [ ] CH-G1-07 동일 이메일 `ACCOUNT_LINK_REQUIRED`, 자동 연결 0건
@@ -165,6 +165,16 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 - 현재 결과: ESLint 오류 0건, production build 1,828 modules, 로컬 Resume Journey 4 viewport 12/12, 운영 인증 평가는 토큰 미설정으로 1건 skip
 - 합격 기준: 운영 POST 201·PUT 200·재조회 일치·DELETE 200/204·삭제 후 0건을 모두 충족하고 skip 0건
 - 차단 조건: 현재 셸에 `DJC_E2E_ACCESS_TOKEN`이 없고 인앱 브라우저 세션을 초기화할 수 없어 실제 운영 쓰기 평가는 대기한다. 토큰 원문은 문서·Git·로그에 남기지 않는다.
+
+#### CH-G1-04 재현 가능한 운영 게이트 — 2026-08-31
+
+- 목표 KPI: 운영 인증 Resume Journey 1/1 성공, skip 0건, 테스트 데이터 잔존 0건
+- Before/After: 로컬 셸 토큰에만 의존 → GitHub Secret 기반 `DJC Career Hub Authenticated E2E` 수동 워크플로로 반복 실행 가능
+- 평가셋: `desktop-1440`에서 생성 POST 201, 수정 PUT 200, 재조회 제목 일치, 삭제 200/204, 삭제 후 카드 0건
+- 보안 기준: Secret 원문 로그 출력 0건, Playwright trace 비활성화, 테스트 데이터 실패 시 정리 재시도
+- 현재 결과: 저장소와 현재 셸 모두 `DJC_E2E_ACCESS_TOKEN` 미설정이므로 체크박스는 미완료 유지
+- 해제 절차: `gh secret set DJC_E2E_ACCESS_TOKEN`으로 값을 안전하게 입력한 후 `gh workflow run djc-career-hub-authenticated-e2e.yml --ref main` 실행
+- 합격 기준: Actions conclusion `success`, Playwright 1 passed / 0 skipped, 생성한 `CH-G1-04` 이력서 잔존 0건
 
 ### AUTH-P3~P8 — 회원·기업 인증 통합 재개
 
