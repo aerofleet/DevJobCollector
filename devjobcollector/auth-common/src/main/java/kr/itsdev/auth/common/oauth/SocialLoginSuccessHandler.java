@@ -12,8 +12,13 @@ import kr.itsdev.auth.common.spi.TokenIssueService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SocialLoginSuccessHandler implements AuthenticationSuccessHandler {
+    private static final Logger log = LoggerFactory.getLogger(SocialLoginSuccessHandler.class);
+    private static final String FALLBACK_ERROR_CODE = "OAUTH_LOGIN_FAILED";
+
     private final AuthCommonProperties properties;
     private final TokenIssueService tokenIssueService;
 
@@ -28,12 +33,21 @@ public class SocialLoginSuccessHandler implements AuthenticationSuccessHandler {
             HttpServletResponse response,
             Authentication authentication
     ) throws IOException, ServletException {
-        OAuth2User principal = (OAuth2User) authentication.getPrincipal();
-        AuthenticatedUser user = extractUser(principal);
-        String accessToken = tokenIssueService.issueAccessToken(user);
+        try {
+            OAuth2User principal = (OAuth2User) authentication.getPrincipal();
+            AuthenticatedUser user = extractUser(principal);
+            String accessToken = tokenIssueService.issueAccessToken(user);
 
-        String redirectUri = buildRedirectUri(accessToken);
-        response.sendRedirect(redirectUri);
+            String redirectUri = buildRedirectUri(accessToken);
+            response.sendRedirect(redirectUri);
+        } catch (RuntimeException exception) {
+            log.error(
+                    "OAuth2 success processing failed: exceptionType={}, rootCauseType={}",
+                    exception.getClass().getName(),
+                    rootCauseType(exception)
+            );
+            response.sendRedirect(buildFailureRedirectUri());
+        }
     }
 
     private AuthenticatedUser extractUser(OAuth2User principal) {
@@ -53,6 +67,21 @@ public class SocialLoginSuccessHandler implements AuthenticationSuccessHandler {
         String param = properties.getTokenQueryParam();
         String separator = base.contains("?") ? "&" : "?";
         return base + separator + param + "=" + encoded;
+    }
+
+    private String buildFailureRedirectUri() {
+        String encoded = URLEncoder.encode(FALLBACK_ERROR_CODE, StandardCharsets.UTF_8);
+        String base = properties.getFrontendFailureUri();
+        String separator = base.contains("?") ? "&" : "?";
+        return base + separator + "error=" + encoded;
+    }
+
+    private String rootCauseType(RuntimeException exception) {
+        Throwable rootCause = exception;
+        while (rootCause.getCause() != null && rootCause.getCause() != rootCause) {
+            rootCause = rootCause.getCause();
+        }
+        return rootCause.getClass().getName();
     }
 
     private Long parseLong(Object value) {
