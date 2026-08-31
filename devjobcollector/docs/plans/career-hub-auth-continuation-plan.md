@@ -185,6 +185,21 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 - 합격 판정: 목표 KPI 1/1 성공과 테스트 데이터 잔존 0건을 충족하여 CH-G1-04 완료
 - 다음 재개점: CH-G1-05 Google 실제 로그인 성공 검증
 
+#### CH-G1-06 GitHub callback Whitelabel 방어 — 2026-09-01
+
+- [x] OAuth user-info/upsert와 success handler의 예상 밖 런타임 예외 경계 분리
+- [x] 예상 밖 예외를 Frontend `OAUTH_LOGIN_FAILED` callback으로 전환해 Whitelabel `/error` 노출 방어
+- [x] Provider·예외 타입·root cause 타입만 남기는 민감정보 비포함 진단 로그 적용
+- [x] 회귀 테스트 3/3, 전체 Gradle `BUILD SUCCESSFUL`
+- [x] Backend Actions `33422711315`, Docker Actions `33422711318` 성공
+- [x] 배포 후 비파괴 운영 smoke HTTP 5/5, OAuth HTTPS callback 2/2 통과
+- [ ] 실제 GitHub 계정 승인 후 `/oauth/callback` → `/member` 도달 1/1
+- [ ] GitHub 로그인 토큰으로 `GET /api/v1/members/me` HTTP 200 1/1
+
+목표 KPI는 Whitelabel `/error` 노출 0건, callback 오류의 Frontend 안내 전환율 100%, 민감정보 로그 노출 0건, 실제 GitHub 로그인 성공 1/1이다. 이 작업은 로그인 후 Career Hub 핵심 기능 도달률 100%와 운영 인증 오류율 1% 미만 KR에 연결된다.
+
+평가셋은 단위 회귀 3건, 전체 Gradle 1회, Backend·Docker CI 각 1회, 운영 HTTP smoke 5건과 OAuth callback 2건, 실제 GitHub 계정 Journey 1건이다. Before에는 예상 밖 callback 예외가 `/error` 404로 노출되고 OAuth 처리 단계별 안전 로그가 없었다. After에는 예상 밖 예외가 Frontend 오류 callback으로 복귀하고 안전한 예외 타입 로그를 남기며, 자동 평가셋은 모두 합격했다. 최종 합격은 실제 GitHub 승인 후 `/member` 도달과 `/members/me` 200이 각각 1/1이고 callback 5xx·Whitelabel·민감정보 노출이 모두 0건일 때로 제한한다.
+
 ### AUTH-P3~P8 — 회원·기업 인증 통합 재개
 
 Career Hub Product DoD와 CH-G1 완료 후 `member-auth-implementation-plan.md`의 첫 미완료 작업으로 복귀한다.
@@ -263,4 +278,4 @@ Career Hub Product DoD와 CH-G1 완료 후 `member-auth-implementation-plan.md`�
 7. 본 계획의 첫 미완료 체크박스와 선행 게이트 확인
 8. 구현 후 테스트·커밋·배포·잔여 위험을 본 계획과 HANDOVER에 갱신
 
-현재 재개 지점은 **CH-G1-04 운영 Career Hub 핵심 사용자 여정**이다. 브라우저 연결이 가능하면 CH-R1-02~04 viewport·키보드·OAuth 수동 QA를 병행한다. 현재 변경은 사용자 작업으로 간주하며 삭제·reset·restore하지 않는다.
+현재 재개 지점은 **CH-G1-06 실제 GitHub 계정 재로그인 검증**이다. 자동 callback과 Whitelabel 방어 배포는 완료했지만 실제 계정 승인, `/member` 도달, `/members/me` 200 전에는 CH-G1-06을 완료로 표시하지 않는다. 브라우저 연결이 가능하면 CH-R1-02~04 viewport·키보드·OAuth 수동 QA를 병행한다. 현재 변경은 사용자 작업으로 간주하며 삭제·reset·restore하지 않는다.
