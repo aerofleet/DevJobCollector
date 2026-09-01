@@ -218,12 +218,13 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 - [x] 실제 GitHub 승인·JWT 발급
 - [x] `GET /api/v1/members/me` HTTP 200, JSON, ACTIVE/USER
 - [x] CORS 허용 Origin과 Frontend Origin 일치
-- [ ] 대화에 노출된 JWT 브라우저 저장소 삭제 및 재사용 중단
-- [ ] 노출 JWT 만료 또는 서버 측 무효화 확인
-- [ ] 새 로그인 후 기존 JWT의 보호 API 401 확인
+- [x] 개발 중 `AUTH_TOKEN_SECRET` 교체 유예와 현재 개발 토큰 사용 위험 수용 결정 — 2026-09-02
+- [x] 토큰 원문 Git·Notion·로그·추가 대화 기록 금지
+- [ ] 개발 종료 또는 운영 전 Secret 교체 여부 재평가
+- [ ] 교체 시 기존 JWT 보호 API 401 및 전체 세션 로그아웃 영향 확인
 - [ ] `/member` 화면 도달 확인
 
-목표 KPI는 GitHub 실제 로그인과 인증 API 성공률 각 100%(1/1), ACTIVE 판정 100%, 민감정보 문서 노출 0건이다. 실제 GitHub 승인 1건과 JWT 인증 `GET /members/me` 1건에서 200·ACTIVE/USER를 확인했다. Before는 callback Whitelabel 500과 인증 API 성공 미측정, After는 JWT 발급 및 인증 프로필 200 1/1이다. 로그인 API 게이트는 합격했지만 노출 JWT 폐기와 `/member` 화면은 별도 미완료로 유지한다.
+목표 KPI는 GitHub 실제 로그인과 인증 API 성공률 각 100%(1/1), ACTIVE 판정 100%, Git·Notion·애플리케이션 로그의 JWT 원문 추가 노출 0건, 운영 전 보안 결정 재검토 1/1이다. 실제 GitHub 승인 1건과 JWT 인증 `GET /members/me` 1건에서 200·ACTIVE/USER를 확인했다. Before는 callback Whitelabel 500과 인증 API 성공 미측정, After는 JWT 발급 및 인증 프로필 200 1/1이다. 개발 편의를 위해 Secret 교체는 유예하지만 이 결정은 개발 단계에만 적용하며, 운영 전 Secret 교체 또는 유지 근거 승인을 합격 기준으로 둔다.
 
 목표 KPI는 callback Whitelabel·5xx 각 0건, 오류 응답 정규화율 100%, 민감정보 로그 노출 0건, 실제 GitHub 로그인 1/1이다. 평가셋은 필터 단위 3건, 전체 Gradle 1회, CI 2건, 운영 smoke HTTP 5건·OAuth callback 2건, 실제 GitHub Journey 1건이다. Before에는 handler 바깥 예외가 `/error` HTTP 500으로 노출됐다. After에는 해당 예외도 Frontend 오류 callback으로 전환하고 handler 실패 시 401 JSON으로 종결한다. 실제 GitHub 승인 후 `/member`와 `/members/me` 200이 각각 1/1이고 Whitelabel·callback 5xx·민감정보 노출이 0건일 때만 완료한다.
 
@@ -305,4 +306,4 @@ Career Hub Product DoD와 CH-G1 완료 후 `member-auth-implementation-plan.md`�
 7. 본 계획의 첫 미완료 체크박스와 선행 게이트 확인
 8. 구현 후 테스트·커밋·배포·잔여 위험을 본 계획과 HANDOVER에 갱신
 
-현재 재개 지점은 **노출 JWT 폐기 확인과 CH-R1 `/member` 화면 도달 검증**이다. GitHub 실제 승인·JWT 발급·`/members/me` 200은 완료했으며, 보안 후속 완료 뒤 CH-G1-07 동일 이메일 `ACCOUNT_LINK_REQUIRED` 평가로 이동한다. 현재 변경은 사용자 작업으로 간주하며 삭제·reset·restore하지 않는다.
+현재 재개 지점은 **CH-R1 `/member` 화면 도달 검증**이다. GitHub 실제 승인·JWT 발급·`/members/me` 200은 완료했고 개발 중 Secret 교체는 유예했다. 화면 확인 후 CH-G1-07 동일 이메일 `ACCOUNT_LINK_REQUIRED` 평가로 이동하며, 운영 전 인증 보안 재검토를 별도 게이트로 유지한다. 현재 변경은 사용자 작업으로 간주하며 삭제·reset·restore하지 않는다.
