@@ -14,6 +14,7 @@ import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.OAuth2LoginAuthenticationFilter;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -22,6 +23,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.http.HttpStatus;
 import kr.itsdev.devjobcollector.security.signup.AuthSignupProperties;
+import kr.itsdev.auth.common.oauth.OAuth2CallbackExceptionFilter;
 
 @Configuration
 @EnableConfigurationProperties({AuthTokenProperties.class, AuthLocalLoginProperties.class, AuthSignupProperties.class})
@@ -77,6 +79,10 @@ public class SecurityConfig {
                         .userInfoEndpoint(userInfo -> userInfo.userService(commonOAuth2UserService))
                         .successHandler(socialLoginSuccessHandler)
                         .failureHandler(socialLoginFailureHandler)
+                );
+                http.addFilterBefore(
+                        new OAuth2CallbackExceptionFilter(socialLoginFailureHandler),
+                        OAuth2LoginAuthenticationFilter.class
                 );
             }
         }
