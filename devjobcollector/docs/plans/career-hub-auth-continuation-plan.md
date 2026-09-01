@@ -200,6 +200,19 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 
 평가셋은 단위 회귀 3건, 전체 Gradle 1회, Backend·Docker CI 각 1회, 운영 HTTP smoke 5건과 OAuth callback 2건, 실제 GitHub 계정 Journey 1건이다. Before에는 예상 밖 callback 예외가 `/error` 404로 노출되고 OAuth 처리 단계별 안전 로그가 없었다. After에는 예상 밖 예외가 Frontend 오류 callback으로 복귀하고 안전한 예외 타입 로그를 남기며, 자동 평가셋은 모두 합격했다. 최종 합격은 실제 GitHub 승인 후 `/member` 도달과 `/members/me` 200이 각각 1/1이고 callback 5xx·Whitelabel·민감정보 노출이 모두 0건일 때로 제한한다.
 
+#### CH-G1-06 callback 500 재현 및 2차 방어 — 2026-09-01
+
+- [x] 첫 방어 배포 후 실제 GitHub callback Whitelabel HTTP 500 재현 — `2026-09-01T05:22:44Z`
+- [x] `/login/oauth2/code/*` 최상위 필터로 handler 바깥 RuntimeException·ServletException 정규화
+- [x] failure handler 자체 실패 시 고정 401 JSON fallback 적용
+- [x] 신규 필터 단위 평가 3/3 및 전체 Gradle `BUILD SUCCESSFUL`
+- [x] 커밋 `eaa7438`, Backend Actions `33492263211`, Docker Actions `33492263233` 성공
+- [x] 운영 비파괴 smoke HTTP 5/5, OAuth HTTPS callback 2/2 통과
+- [ ] 새 배포 기준 실제 GitHub 로그인, `/member` 도달, `/members/me` 200
+- [ ] 실패 시 안전 로그의 예외 타입으로 근본 원인 확정
+
+목표 KPI는 callback Whitelabel·5xx 각 0건, 오류 응답 정규화율 100%, 민감정보 로그 노출 0건, 실제 GitHub 로그인 1/1이다. 평가셋은 필터 단위 3건, 전체 Gradle 1회, CI 2건, 운영 smoke HTTP 5건·OAuth callback 2건, 실제 GitHub Journey 1건이다. Before에는 handler 바깥 예외가 `/error` HTTP 500으로 노출됐다. After에는 해당 예외도 Frontend 오류 callback으로 전환하고 handler 실패 시 401 JSON으로 종결한다. 실제 GitHub 승인 후 `/member`와 `/members/me` 200이 각각 1/1이고 Whitelabel·callback 5xx·민감정보 노출이 0건일 때만 완료한다.
+
 ### AUTH-P3~P8 — 회원·기업 인증 통합 재개
 
 Career Hub Product DoD와 CH-G1 완료 후 `member-auth-implementation-plan.md`의 첫 미완료 작업으로 복귀한다.
