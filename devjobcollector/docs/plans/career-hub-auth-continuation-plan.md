@@ -151,7 +151,7 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 - [x] CH-G1-03 운영 배포와 health/search 회귀 (2026-08-28, Backend `33105941627`·Docker `33105941628`·Frontend `33105941650`·E2E 추가 배포 `33108243400`, 운영 smoke 및 보호 경로 4×4 viewport E2E 16/16 합격)
 - [x] CH-G1-04 Career Hub 핵심 사용자 여정 E2E (2026-08-31, 점 세 개 작업 메뉴 기준 운영 Resume 생성·수정·재조회·삭제 1/1, skip 0, 테스트 데이터 잔존 0건; Actions `33319783743` 성공)
 - [ ] CH-G1-05 Google 로그인 성공
-- [ ] CH-G1-06 GitHub 로그인 성공
+- [x] CH-G1-06 GitHub 로그인 성공 (2026-09-02, 실제 승인·JWT 발급·`GET /members/me` 200·ACTIVE/USER)
 - [ ] CH-G1-07 동일 이메일 `ACCOUNT_LINK_REQUIRED`, 자동 연결 0건
 - [ ] CH-G1-08 24시간 인증·Career API 오류율 관찰
 
@@ -193,8 +193,9 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 - [x] 회귀 테스트 3/3, 전체 Gradle `BUILD SUCCESSFUL`
 - [x] Backend Actions `33422711315`, Docker Actions `33422711318` 성공
 - [x] 배포 후 비파괴 운영 smoke HTTP 5/5, OAuth HTTPS callback 2/2 통과
-- [ ] 실제 GitHub 계정 승인 후 `/oauth/callback` → `/member` 도달 1/1
-- [ ] GitHub 로그인 토큰으로 `GET /api/v1/members/me` HTTP 200 1/1
+- [x] 실제 GitHub 계정 승인 및 `/oauth/callback` 성공 1/1
+- [x] GitHub 로그인 토큰으로 `GET /api/v1/members/me` HTTP 200 1/1 — ACTIVE/USER
+- [ ] `/member` 화면 도달 1/1 — CH-R1 OAuth UI 이동 게이트로 유지
 
 목표 KPI는 Whitelabel `/error` 노출 0건, callback 오류의 Frontend 안내 전환율 100%, 민감정보 로그 노출 0건, 실제 GitHub 로그인 성공 1/1이다. 이 작업은 로그인 후 Career Hub 핵심 기능 도달률 100%와 운영 인증 오류율 1% 미만 KR에 연결된다.
 
@@ -208,8 +209,21 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 - [x] 신규 필터 단위 평가 3/3 및 전체 Gradle `BUILD SUCCESSFUL`
 - [x] 커밋 `eaa7438`, Backend Actions `33492263211`, Docker Actions `33492263233` 성공
 - [x] 운영 비파괴 smoke HTTP 5/5, OAuth HTTPS callback 2/2 통과
-- [ ] 새 배포 기준 실제 GitHub 로그인, `/member` 도달, `/members/me` 200
+- [x] 새 배포 기준 실제 GitHub 로그인 및 `/members/me` 200
+- [ ] `/member` 화면 도달 확인
 - [ ] 실패 시 안전 로그의 예외 타입으로 근본 원인 확정
+
+#### CH-G1-06 실제 로그인 성공 및 JWT 노출 후속 — 2026-09-02
+
+- [x] 실제 GitHub 승인·JWT 발급
+- [x] `GET /api/v1/members/me` HTTP 200, JSON, ACTIVE/USER
+- [x] CORS 허용 Origin과 Frontend Origin 일치
+- [ ] 대화에 노출된 JWT 브라우저 저장소 삭제 및 재사용 중단
+- [ ] 노출 JWT 만료 또는 서버 측 무효화 확인
+- [ ] 새 로그인 후 기존 JWT의 보호 API 401 확인
+- [ ] `/member` 화면 도달 확인
+
+목표 KPI는 GitHub 실제 로그인과 인증 API 성공률 각 100%(1/1), ACTIVE 판정 100%, 민감정보 문서 노출 0건이다. 실제 GitHub 승인 1건과 JWT 인증 `GET /members/me` 1건에서 200·ACTIVE/USER를 확인했다. Before는 callback Whitelabel 500과 인증 API 성공 미측정, After는 JWT 발급 및 인증 프로필 200 1/1이다. 로그인 API 게이트는 합격했지만 노출 JWT 폐기와 `/member` 화면은 별도 미완료로 유지한다.
 
 목표 KPI는 callback Whitelabel·5xx 각 0건, 오류 응답 정규화율 100%, 민감정보 로그 노출 0건, 실제 GitHub 로그인 1/1이다. 평가셋은 필터 단위 3건, 전체 Gradle 1회, CI 2건, 운영 smoke HTTP 5건·OAuth callback 2건, 실제 GitHub Journey 1건이다. Before에는 handler 바깥 예외가 `/error` HTTP 500으로 노출됐다. After에는 해당 예외도 Frontend 오류 callback으로 전환하고 handler 실패 시 401 JSON으로 종결한다. 실제 GitHub 승인 후 `/member`와 `/members/me` 200이 각각 1/1이고 Whitelabel·callback 5xx·민감정보 노출이 0건일 때만 완료한다.
 
@@ -291,4 +305,4 @@ Career Hub Product DoD와 CH-G1 완료 후 `member-auth-implementation-plan.md`�
 7. 본 계획의 첫 미완료 체크박스와 선행 게이트 확인
 8. 구현 후 테스트·커밋·배포·잔여 위험을 본 계획과 HANDOVER에 갱신
 
-현재 재개 지점은 **CH-G1-06 실제 GitHub 계정 재로그인 검증**이다. 자동 callback과 Whitelabel 방어 배포는 완료했지만 실제 계정 승인, `/member` 도달, `/members/me` 200 전에는 CH-G1-06을 완료로 표시하지 않는다. 브라우저 연결이 가능하면 CH-R1-02~04 viewport·키보드·OAuth 수동 QA를 병행한다. 현재 변경은 사용자 작업으로 간주하며 삭제·reset·restore하지 않는다.
+현재 재개 지점은 **노출 JWT 폐기 확인과 CH-R1 `/member` 화면 도달 검증**이다. GitHub 실제 승인·JWT 발급·`/members/me` 200은 완료했으며, 보안 후속 완료 뒤 CH-G1-07 동일 이메일 `ACCOUNT_LINK_REQUIRED` 평가로 이동한다. 현재 변경은 사용자 작업으로 간주하며 삭제·reset·restore하지 않는다.
