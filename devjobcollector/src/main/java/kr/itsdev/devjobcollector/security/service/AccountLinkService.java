@@ -27,9 +27,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.server.ResponseStatusException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class AccountLinkService {
+    private static final Logger log = LoggerFactory.getLogger(AccountLinkService.class);
     public static final String LINK_INVALID = "ACCOUNT_LINK_INVALID";
     public static final String LINK_CONFLICT = "ACCOUNT_LINK_CONFLICT";
 
@@ -106,9 +109,17 @@ public class AccountLinkService {
                 .orElseThrow(() -> oauthError(LINK_INVALID));
 
         String providerEmail = normalizeEmail(profile.email());
-        if (!Boolean.TRUE.equals(profile.emailVerified())
-                || providerEmail == null
-                || !providerEmail.equals(normalizeEmail(target.getEmail()))) {
+        if (!Boolean.TRUE.equals(profile.emailVerified()) || providerEmail == null) {
+            log.warn(
+                    "Account link rejected: reason=email_not_verified, provider={}, emailPresent={}, verificationPresent={}",
+                    callbackProvider,
+                    providerEmail != null,
+                    profile.emailVerified() != null
+            );
+            throw oauthError(LINK_CONFLICT);
+        }
+        if (!providerEmail.equals(normalizeEmail(target.getEmail()))) {
+            log.warn("Account link rejected: reason=email_mismatch, provider={}", callbackProvider);
             throw oauthError(LINK_CONFLICT);
         }
 
@@ -117,9 +128,11 @@ public class AccountLinkService {
                 .findByProviderAndProviderSubject(callbackProvider, providerSubject)
                 .orElse(null);
         if (subjectOwner != null) {
+            log.warn("Account link rejected: reason=subject_already_owned, provider={}", callbackProvider);
             throw oauthError(LINK_CONFLICT);
         }
         if (identityRepository.existsByUserAndProvider(target, callbackProvider)) {
+            log.warn("Account link rejected: reason=provider_already_linked, provider={}", callbackProvider);
             throw oauthError(LINK_CONFLICT);
         }
 
