@@ -112,6 +112,14 @@ jobs:
           TUNNEL_SERVICE_TOKEN_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
         run: |
           set -euo pipefail
+          container_state="$(ssh djc-a1 '
+            container_id="$(sudo docker compose --project-name djc --env-file /etc/devjobcollector/devjobcollector.env -f /opt/devjobcollector/compose.yaml ps -q app)"
+            if [ -z "$container_id" ]; then
+              echo "container_state=NOT_RUNNING"
+              exit 1
+            fi
+            sudo docker inspect --format "container_started_at={{.State.StartedAt}} restart_count={{.RestartCount}}" "$container_id"
+          ')"
           set +e
           report="$({
             ssh djc-a1 \
@@ -121,11 +129,13 @@ jobs:
           audit_status=$?
           set -e
 
+          printf '%s\n' "$container_state"
           printf '%s\n' "$report"
           {
             echo "## DJC authentication and Career observation"
             echo
             echo '```text'
+            printf '%s\n' "$container_state"
             printf '%s\n' "$report"
             echo '```'
             echo
