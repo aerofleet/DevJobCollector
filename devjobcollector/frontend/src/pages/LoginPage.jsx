@@ -125,6 +125,11 @@ const LoginPage = () => {
         setErrorMessage('계정 연결 요청이 만료되었거나 올바르지 않습니다. 다시 시도해주세요.');
       } else if (oauthError === 'ACCOUNT_LINK_CONFLICT') {
         sessionStorage.removeItem(LINK_IN_PROGRESS_PROVIDER_KEY);
+        if (localStorage.getItem('accessToken')) {
+          clearAccountLinkFlow();
+          navigate('/', { replace: true });
+          return;
+        }
         setLinkProvider(readPendingLinkProvider() || oauthProvider || '');
         setErrorMessage('해당 소셜 계정은 연결할 수 없습니다. 이메일과 기존 연결 상태를 확인해주세요.');
       } else {

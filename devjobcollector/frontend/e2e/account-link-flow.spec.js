@@ -116,3 +116,28 @@ test('Google 연결 성공 callback은 연결 상태를 폐기하고 회원 화�
     inProgressProvider: null,
   });
 });
+
+test('기존 로그인이 유효한 Google 연결 충돌은 로그인 화면 대신 기본 페이지로 이동한다', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('accessToken', 'valid-github-token');
+    sessionStorage.setItem('pendingAccountLinkProvider', JSON.stringify({
+      provider: 'google',
+      createdAt: Date.now(),
+    }));
+    sessionStorage.setItem('accountLinkInProgressProvider', 'google');
+  });
+
+  await page.goto('/oauth/callback?error=ACCOUNT_LINK_CONFLICT&provider=google');
+
+  await expect(page).toHaveURL('/');
+  const authState = await page.evaluate(() => ({
+    accessToken: localStorage.getItem('accessToken'),
+    pendingProvider: sessionStorage.getItem('pendingAccountLinkProvider'),
+    inProgressProvider: sessionStorage.getItem('accountLinkInProgressProvider'),
+  }));
+  expect(authState).toEqual({
+    accessToken: 'valid-github-token',
+    pendingProvider: null,
+    inProgressProvider: null,
+  });
+});
