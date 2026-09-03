@@ -17,7 +17,7 @@ public final class OAuth2ProfileExtractor {
                     asString(attributes.get("name")),
                     asString(attributes.get("picture")),
                     "https://accounts.google.com",
-                    asBoolean(attributes.get("email_verified"))
+                    firstBoolean(attributes, "email_verified", "verified_email")
             );
             case GITHUB -> new SocialProfile(
                     provider,
@@ -53,5 +53,14 @@ public final class OAuth2ProfileExtractor {
         return value instanceof Boolean booleanValue
                 ? booleanValue
                 : Boolean.valueOf(String.valueOf(value));
+    }
+
+    private static Boolean firstBoolean(Map<String, Object> attributes, String... keys) {
+        for (String key : keys) {
+            if (attributes.containsKey(key)) {
+                return asBoolean(attributes.get(key));
+            }
+        }
+        return null;
     }
 }

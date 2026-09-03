@@ -37,4 +37,16 @@ class OAuth2ProfileExtractorTest {
         assertThat(profile.issuer()).isNull();
         assertThat(profile.emailVerified()).isNull();
     }
+
+    @Test
+    void acceptsGoogleLegacyVerifiedEmailEvidence() {
+        var profile = OAuth2ProfileExtractor.extract(SocialProvider.GOOGLE, Map.of(
+                "sub", "Google-Subject",
+                "email", "user@example.com",
+                "verified_email", true,
+                "name", "Google User"
+        ));
+
+        assertThat(profile.emailVerified()).isTrue();
+    }
 }
