@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { loginWithPassword } from '../api/authApi';
 import { startAccountLink } from '../api/authenticatedApi';
@@ -47,6 +47,7 @@ const LoginPage = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [linkProvider, setLinkProvider] = useState('');
   const [isLinking, setIsLinking] = useState(false);
+  const linkStartAttemptRef = useRef(false);
 
   const authServerBaseUrl = useMemo(() => {
     const explicit = import.meta.env.VITE_AUTH_BASE_URL;
@@ -56,6 +57,33 @@ const LoginPage = () => {
     const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
     return apiBase.replace(/\/api\/v1\/?$/, '');
   }, []);
+
+  const beginAccountLink = useCallback(async (provider) => {
+    if (!provider || linkStartAttemptRef.current) return;
+    linkStartAttemptRef.current = true;
+    setIsLinking(true);
+    setErrorMessage('');
+    try {
+      const data = await startAccountLink(provider);
+      storePendingLinkProvider(provider);
+      sessionStorage.setItem(LINK_IN_PROGRESS_PROVIDER_KEY, provider);
+      window.location.assign(`${authServerBaseUrl}${data.authorizationPath}`);
+    } catch (error) {
+      linkStartAttemptRef.current = false;
+      sessionStorage.removeItem(LINK_IN_PROGRESS_PROVIDER_KEY);
+      setLinkProvider(provider);
+      if (error.response?.status === 401) {
+        localStorage.removeItem('accessToken');
+        setErrorMessage('보안을 위해 기존 가입 방식으로 다시 로그인해주세요.');
+      } else if (error.response?.status === 409) {
+        clearAccountLinkFlow();
+        setErrorMessage('이미 연결된 소셜 계정입니다. 해당 로그인 방식을 다시 이용해주세요.');
+      } else {
+        setErrorMessage('계정 연결을 시작하지 못했습니다. 잠시 후 다시 시도해주세요.');
+      }
+      setIsLinking(false);
+    }
+  }, [authServerBaseUrl]);
 
   useEffect(() => {
     const query = new URLSearchParams(location.search);
@@ -75,14 +103,22 @@ const LoginPage = () => {
     if (oauthError) {
       if (oauthError === 'ACCOUNT_LINK_REQUIRED') {
         const provider = SUPPORTED_LINK_PROVIDERS.includes(oauthProvider) ? oauthProvider : '';
+        const linkWasInProgress = provider
+          && sessionStorage.getItem(LINK_IN_PROGRESS_PROVIDER_KEY) === provider;
         if (provider) {
           storePendingLinkProvider(provider);
-          sessionStorage.removeItem(LINK_IN_PROGRESS_PROVIDER_KEY);
         }
         setLinkProvider(provider);
-        setErrorMessage(localStorage.getItem('accessToken')
-          ? '현재 로그인한 기존 계정에 소셜 계정을 연결할 수 있습니다.'
-          : '같은 이메일의 기존 가입 방식으로 로그인해주세요. 인증 후 이 화면으로 자동 복귀합니다.');
+        if (localStorage.getItem('accessToken') && provider && !linkWasInProgress) {
+          void beginAccountLink(provider);
+          return;
+        }
+        if (linkWasInProgress) {
+          sessionStorage.removeItem(LINK_IN_PROGRESS_PROVIDER_KEY);
+          setErrorMessage('계정 연결 세션을 확인하지 못했습니다. 다시 시도해주세요.');
+        } else {
+          setErrorMessage('같은 이메일의 기존 가입 방식으로 로그인해주세요. 인증 후 계정 연결을 자동으로 계속합니다.');
+        }
       } else if (oauthError === 'ACCOUNT_LINK_INVALID') {
         sessionStorage.removeItem(LINK_IN_PROGRESS_PROVIDER_KEY);
         setLinkProvider(readPendingLinkProvider() || oauthProvider || '');
@@ -111,13 +147,11 @@ const LoginPage = () => {
         navigate('/member', { replace: true });
         return;
       }
-      navigate(`/oauth/callback?error=ACCOUNT_LINK_REQUIRED&provider=${pendingLinkProvider}`, {
-        replace: true,
-      });
+      void beginAccountLink(pendingLinkProvider);
       return;
     }
     navigate(redirectTo, { replace: true });
-  }, [location.search, navigate]);
+  }, [beginAccountLink, location.search, navigate]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -163,24 +197,7 @@ const LoginPage = () => {
       setErrorMessage('연결할 소셜 로그인 정보를 확인할 수 없습니다. 다시 로그인해주세요.');
       return;
     }
-    setIsLinking(true);
-    setErrorMessage('');
-    try {
-      const data = await startAccountLink(linkProvider);
-      storePendingLinkProvider(linkProvider);
-      sessionStorage.setItem(LINK_IN_PROGRESS_PROVIDER_KEY, linkProvider);
-      window.location.assign(`${authServerBaseUrl}${data.authorizationPath}`);
-    } catch (error) {
-      if (error.response?.status === 401) {
-        localStorage.removeItem('accessToken');
-        setErrorMessage('기존 계정 로그인 세션이 만료되었습니다. 다시 로그인해주세요.');
-      } else if (error.response?.status === 409) {
-        setErrorMessage('이미 연결된 소셜 계정입니다. 기존 로그인 방식을 이용해주세요.');
-      } else {
-        setErrorMessage('계정 연결을 시작하지 못했습니다. 잠시 후 다시 시도해주세요.');
-      }
-      setIsLinking(false);
-    }
+    await beginAccountLink(linkProvider);
   };
 
   return (
