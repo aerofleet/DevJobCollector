@@ -91,12 +91,20 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 - [x] CH-R1-01 현재 변경 파일과 라우트 리뷰 (2026-08-25)
 - [ ] CH-R1-02 360/768/1024/1440px 수동 QA
 - [ ] CH-R1-03 키보드 탐색, focus, tab semantics, touch target QA (2026-08-29, 운영 Before touch target 5개 결함 검출; CSS 보정·Frontend `33199530362` 배포 후 운영 키보드/focus 4/4·touch target 10/10 통과, 수동 QA 대기)
-- [ ] CH-R1-04 로그인·회원가입·OAuth callback의 `/member` 이동 검증
+- [x] CH-R1-04 로그인·회원가입·OAuth callback 이동 검증 (2026-09-03, 일반 OAuth 성공은 `next` 또는 `/member`, 로그인 유지 상태의 연결 충돌은 기본 페이지로 이동, 실제 Google 로그인 확인)
 - [x] CH-R1-05 frontend lint/build 재실행 (2026-08-25: lint 0, build 성공)
 - [x] CH-R1-06 기능 커밋 후 push, Actions 배포 확인 (`e11111a`, Actions `32757612547`)
 - [x] CH-R1-07 운영 신규 라우트 3/3 HTTP 200과 SPA 새로고침 확인 (2026-08-25)
 
 산출물: 배포된 Career Hub 프론트, QA 결과 문서, 커밋 SHA, Actions run ID.
+
+#### CH-R1 운영 자동 브라우저 재검증 — 2026-09-04
+
+- 인앱 브라우저는 세션 메타데이터 오류로 초기화되지 않아 저장소의 독립 Playwright 운영 평가를 사용했다.
+- 평가셋: `/member`, `/my-devjobs`, `/resumes`, `/resume` × 4 viewport 보호 경로 16건, 키보드·focus 4건, 모바일 touch target 1건.
+- 결과: 21 passed, 비-touch viewport의 touch 전용 평가 3건 의도적 skip, 실패 0건.
+- 목표 KPI 결과: 보호 경로 복귀 경로 보존 16/16(100%), 키보드·focus 4/4(100%), 모바일 최소 44px touch target 1/1(100%).
+- 합격 범위: 자동 회귀는 합격했다. CH-R1-02·03은 사람의 시각·실기 QA가 아니므로 미완료를 유지한다.
 
 ### CH-P1 — 회원 프로필 및 인증 상태 강화 (1~2일)
 
