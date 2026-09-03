@@ -108,6 +108,8 @@ jobs:
       - name: Audit aggregate auth and Career API errors
         env:
           OBSERVATION_HOURS: ${{ inputs.observation_hours }}
+          TUNNEL_SERVICE_TOKEN_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          TUNNEL_SERVICE_TOKEN_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
         run: |
           set -euo pipefail
           set +e
