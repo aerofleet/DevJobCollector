@@ -19,6 +19,7 @@ import kr.itsdev.devjobcollector.security.account.UserAccountStatus;
 import kr.itsdev.devjobcollector.security.account.UserIdentity;
 import kr.itsdev.devjobcollector.security.account.UserIdentityRepository;
 import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.stereotype.Service;
@@ -40,6 +41,7 @@ public class AccountLinkService {
     private final UserIdentityRepository identityRepository;
     private final Clock clock;
 
+    @Autowired
     public AccountLinkService(
             UserAccountRepository userRepository,
             UserIdentityRepository identityRepository
