@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { loginWithPassword } from '../api/authApi';
+import { startAccountLink } from '../api/authenticatedApi';
 import '../styles/LoginPage.css';
 
 const LoginPage = () => {
@@ -10,6 +11,8 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [linkProvider, setLinkProvider] = useState('');
+  const [isLinking, setIsLinking] = useState(false);
 
   const authServerBaseUrl = useMemo(() => {
     const explicit = import.meta.env.VITE_AUTH_BASE_URL;
@@ -24,6 +27,7 @@ const LoginPage = () => {
     const query = new URLSearchParams(location.search);
     const token = query.get('token');
     const oauthError = query.get('error');
+    const oauthProvider = query.get('provider');
     const next = query.get('next') || sessionStorage.getItem('postLoginNextPath');
     const fallbackPath = '/member';
     const redirectTo = next || fallbackPath;
@@ -35,9 +39,19 @@ const LoginPage = () => {
     }
 
     if (oauthError) {
-      setErrorMessage(oauthError === 'ACCOUNT_LINK_REQUIRED'
-        ? '같은 이메일로 가입된 계정이 있습니다. 기존 계정으로 로그인한 뒤 계정 연결을 진행해주세요.'
-        : '소셜 로그인에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      if (oauthError === 'ACCOUNT_LINK_REQUIRED') {
+        const provider = ['google', 'github'].includes(oauthProvider) ? oauthProvider : '';
+        setLinkProvider(provider);
+        setErrorMessage(localStorage.getItem('accessToken')
+          ? '현재 로그인한 기존 계정에 소셜 계정을 연결할 수 있습니다.'
+          : '같은 이메일의 기존 계정으로 먼저 로그인해주세요. 로그인 후 소셜 계정을 연결할 수 있습니다.');
+      } else if (oauthError === 'ACCOUNT_LINK_INVALID') {
+        setErrorMessage('계정 연결 요청이 만료되었거나 올바르지 않습니다. 다시 시도해주세요.');
+      } else if (oauthError === 'ACCOUNT_LINK_CONFLICT') {
+        setErrorMessage('해당 소셜 계정은 연결할 수 없습니다. 이메일과 기존 연결 상태를 확인해주세요.');
+      } else {
+        setErrorMessage('소셜 로그인에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      }
       return;
     }
 
@@ -83,6 +97,29 @@ const LoginPage = () => {
     const next = query.get('next');
     if (next) {
       sessionStorage.setItem('postLoginNextPath', next);
+    }
+  };
+
+  const handleAccountLink = async () => {
+    if (!linkProvider) {
+      setErrorMessage('연결할 소셜 로그인 정보를 확인할 수 없습니다. 다시 로그인해주세요.');
+      return;
+    }
+    setIsLinking(true);
+    setErrorMessage('');
+    try {
+      const data = await startAccountLink(linkProvider);
+      window.location.assign(`${authServerBaseUrl}${data.authorizationPath}`);
+    } catch (error) {
+      if (error.response?.status === 401) {
+        localStorage.removeItem('accessToken');
+        setErrorMessage('기존 계정 로그인 세션이 만료되었습니다. 다시 로그인해주세요.');
+      } else if (error.response?.status === 409) {
+        setErrorMessage('이미 연결된 소셜 계정입니다. 기존 로그인 방식을 이용해주세요.');
+      } else {
+        setErrorMessage('계정 연결을 시작하지 못했습니다. 잠시 후 다시 시도해주세요.');
+      }
+      setIsLinking(false);
     }
   };
 
@@ -143,6 +180,18 @@ const LoginPage = () => {
               {isSubmitting ? '로그인 중...' : '로그인'}
             </button>
             {errorMessage && <p style={{ color: '#d64545', marginTop: '12px' }}>{errorMessage}</p>}
+            {linkProvider && localStorage.getItem('accessToken') && (
+              <button
+                type="button"
+                className="btn_account_link"
+                onClick={handleAccountLink}
+                disabled={isLinking}
+              >
+                {isLinking
+                  ? '계정 연결 준비 중...'
+                  : `${linkProvider === 'google' ? 'Google' : 'GitHub'} 계정 연결`}
+              </button>
+            )}
           </form>
 
           <div className="signup-forgotten">

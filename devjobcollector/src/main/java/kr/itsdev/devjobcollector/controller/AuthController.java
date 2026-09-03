@@ -6,18 +6,23 @@ import kr.itsdev.auth.common.model.AuthenticatedUser;
 import kr.itsdev.auth.common.spi.TokenIssueService;
 import kr.itsdev.devjobcollector.dto.auth.LoginRequest;
 import kr.itsdev.devjobcollector.dto.auth.LoginResponse;
+import kr.itsdev.devjobcollector.dto.auth.AccountLinkStartResponse;
 import kr.itsdev.devjobcollector.dto.auth.PersonalSignupRequest;
 import kr.itsdev.devjobcollector.dto.auth.PersonalSignupResponse;
 import kr.itsdev.devjobcollector.dto.auth.ResendVerificationRequest;
 import kr.itsdev.devjobcollector.dto.auth.VerifyEmailRequest;
 import kr.itsdev.devjobcollector.security.service.LocalCredentialAuthService;
+import kr.itsdev.devjobcollector.security.service.AccountLinkService;
 import kr.itsdev.devjobcollector.security.signup.PersonalSignupService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
@@ -26,15 +31,18 @@ public class AuthController {
     private final LocalCredentialAuthService localCredentialAuthService;
     private final TokenIssueService tokenIssueService;
     private final PersonalSignupService personalSignupService;
+    private final AccountLinkService accountLinkService;
 
     public AuthController(
             LocalCredentialAuthService localCredentialAuthService,
             TokenIssueService tokenIssueService,
-            PersonalSignupService personalSignupService
+            PersonalSignupService personalSignupService,
+            AccountLinkService accountLinkService
     ) {
         this.localCredentialAuthService = localCredentialAuthService;
         this.tokenIssueService = tokenIssueService;
         this.personalSignupService = personalSignupService;
+        this.accountLinkService = accountLinkService;
     }
 
     @PostMapping("/login")
@@ -69,6 +77,19 @@ public class AuthController {
     ) {
         return ResponseEntity.ok(personalSignupService.resend(
                 request.email(), request.turnstileToken(), clientIp(servletRequest)));
+    }
+
+    @PostMapping("/account-links/{provider}/start")
+    public AccountLinkStartResponse startAccountLink(
+            @AuthenticationPrincipal String subject,
+            @PathVariable String provider,
+            Authentication authentication,
+            HttpServletRequest request
+    ) {
+        java.time.Instant authenticatedAt = authentication.getDetails() instanceof java.time.Instant instant
+                ? instant
+                : null;
+        return accountLinkService.start(subject, provider, authenticatedAt, request);
     }
 
     private String clientIp(HttpServletRequest request) {

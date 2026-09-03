@@ -31,7 +31,7 @@ import org.springframework.web.server.ResponseStatusException;
 })
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @EnabledIfEnvironmentVariable(named = "DJC_MIGRATION_TEST_URL", matches = ".+")
-@Import({QuerydslConfig.class, JpaSocialUserUpsertService.class})
+@Import({QuerydslConfig.class, JpaSocialUserUpsertService.class, AccountLinkService.class})
 class SocialIdentityUpsertIntegrationTest {
 
     @Autowired JpaSocialUserUpsertService upsertService;

@@ -36,3 +36,12 @@ authenticatedApi.interceptors.response.use(
 );
 
 export default authenticatedApi;
+
+export const startAccountLink = async (provider) => {
+  const response = await authenticatedApi.post(
+    `/auth/account-links/${provider}/start`,
+    null,
+    { withCredentials: true },
+  );
+  return response.data;
+};

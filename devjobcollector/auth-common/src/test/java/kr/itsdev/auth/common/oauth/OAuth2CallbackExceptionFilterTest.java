@@ -29,7 +29,7 @@ class OAuth2CallbackExceptionFilterTest {
         filter.doFilter(request, response, chain);
 
         assertThat(response.getRedirectedUrl())
-                .isEqualTo("https://frontend.example/oauth/callback?error=OAUTH_LOGIN_FAILED");
+                .isEqualTo("https://frontend.example/oauth/callback?error=OAUTH_LOGIN_FAILED&provider=github");
         assertThat(response.getRedirectedUrl()).doesNotContain("provider detail");
     }
 

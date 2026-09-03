@@ -24,13 +24,16 @@ class JpaSocialUserUpsertServiceTest {
         UserAccountRepository userRepository = mock(UserAccountRepository.class);
         UserIdentityRepository identityRepository = mock(UserIdentityRepository.class);
         PersonalProfileRepository profileRepository = mock(PersonalProfileRepository.class);
+        AccountLinkService accountLinkService = mock(AccountLinkService.class);
         JpaSocialUserUpsertService service = new JpaSocialUserUpsertService(
-                userRepository, identityRepository, profileRepository);
+                userRepository, identityRepository, profileRepository, accountLinkService);
         UserAccount existing = UserAccount.activeSocial(
                 "existing@example.com", "existing", AuthProvider.LOCAL, null);
 
         when(identityRepository.findByProviderAndProviderSubject(
                 AuthProvider.GOOGLE, "new-subject")).thenReturn(Optional.empty());
+        when(accountLinkService.linkIfRequested(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(Optional.empty());
         when(userRepository.findByEmailIgnoreCase("existing@example.com"))
                 .thenReturn(Optional.of(existing));
 

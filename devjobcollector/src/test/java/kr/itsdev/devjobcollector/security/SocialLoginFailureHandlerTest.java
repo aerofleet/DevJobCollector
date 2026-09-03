@@ -19,11 +19,12 @@ class SocialLoginFailureHandlerTest {
         SocialLoginFailureHandler handler = new SocialLoginFailureHandler(properties);
         MockHttpServletResponse response = new MockHttpServletResponse();
 
-        handler.onAuthenticationFailure(
-                new MockHttpServletRequest(), response, new AccountLinkRequiredException());
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/login/oauth2/code/google");
+        handler.onAuthenticationFailure(request, response, new AccountLinkRequiredException());
 
         assertThat(response.getRedirectedUrl()).isEqualTo(
-                "https://frontend.example/oauth/callback?source=oauth&error=ACCOUNT_LINK_REQUIRED");
+                "https://frontend.example/oauth/callback?source=oauth&error=ACCOUNT_LINK_REQUIRED&provider=google");
     }
 
     @Test

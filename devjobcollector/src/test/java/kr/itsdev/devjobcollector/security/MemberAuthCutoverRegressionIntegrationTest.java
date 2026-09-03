@@ -24,6 +24,7 @@ import kr.itsdev.devjobcollector.security.account.UserAccountRepository;
 import kr.itsdev.devjobcollector.security.account.UserIdentity;
 import kr.itsdev.devjobcollector.security.account.UserIdentityRepository;
 import kr.itsdev.devjobcollector.security.service.JpaSocialUserUpsertService;
+import kr.itsdev.devjobcollector.security.service.AccountLinkService;
 import kr.itsdev.devjobcollector.security.service.LocalCredentialAuthService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,7 +58,8 @@ import org.springframework.web.server.ResponseStatusException;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @EnabledIfEnvironmentVariable(named = "DJC_MIGRATION_TEST_URL", matches = ".+")
 @EnableConfigurationProperties(AuthLocalLoginProperties.class)
-@Import({QuerydslConfig.class, JpaSocialUserUpsertService.class, LocalCredentialAuthService.class})
+@Import({QuerydslConfig.class, JpaSocialUserUpsertService.class, AccountLinkService.class,
+        LocalCredentialAuthService.class})
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class MemberAuthCutoverRegressionIntegrationTest {
 

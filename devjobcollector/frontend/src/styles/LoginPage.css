@@ -106,6 +106,31 @@
   background-color: var(--djc-hover-color, #003670);
 }
 
+.btn_account_link {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 12px;
+  border: 1px solid #6c4dff;
+  border-radius: 8px;
+  background: #fff;
+  color: #6245e6;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn_account_link:hover,
+.btn_account_link:focus-visible {
+  background: #f2efff;
+  outline: 3px solid rgba(108, 77, 255, 0.2);
+  outline-offset: 2px;
+}
+
+.btn_account_link:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 .signup-forgotten {
   margin-top: 18px;
   display: flex;

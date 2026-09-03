@@ -24,20 +24,28 @@ public class JpaSocialUserUpsertService implements SocialUserUpsertService {
     private final UserAccountRepository userRepository;
     private final UserIdentityRepository identityRepository;
     private final PersonalProfileRepository profileRepository;
+    private final AccountLinkService accountLinkService;
 
     public JpaSocialUserUpsertService(
             UserAccountRepository userRepository,
             UserIdentityRepository identityRepository,
-            PersonalProfileRepository profileRepository
+            PersonalProfileRepository profileRepository,
+            AccountLinkService accountLinkService
     ) {
         this.userRepository = userRepository;
         this.identityRepository = identityRepository;
         this.profileRepository = profileRepository;
+        this.accountLinkService = accountLinkService;
     }
 
     @Override
     @Transactional
     public AuthenticatedUser upsert(SocialProfile profile) {
+        var linkedUser = accountLinkService.linkIfRequested(profile);
+        if (linkedUser.isPresent()) {
+            return linkedUser.get();
+        }
+
         AuthProvider provider = AuthProvider.valueOf(profile.provider().name());
         String providerSubject = requireProviderSubject(profile.providerUserId());
         UserIdentity identity = identityRepository
