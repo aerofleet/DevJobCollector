@@ -4,6 +4,40 @@ import { loginWithPassword } from '../api/authApi';
 import { startAccountLink } from '../api/authenticatedApi';
 import '../styles/LoginPage.css';
 
+const PENDING_LINK_PROVIDER_KEY = 'pendingAccountLinkProvider';
+const LINK_IN_PROGRESS_PROVIDER_KEY = 'accountLinkInProgressProvider';
+const ACCOUNT_LINK_FLOW_TTL_MS = 10 * 60 * 1000;
+const SUPPORTED_LINK_PROVIDERS = ['google', 'github'];
+
+const storePendingLinkProvider = (provider) => {
+  sessionStorage.setItem(PENDING_LINK_PROVIDER_KEY, JSON.stringify({
+    provider,
+    createdAt: Date.now(),
+  }));
+};
+
+const readPendingLinkProvider = () => {
+  try {
+    const raw = sessionStorage.getItem(PENDING_LINK_PROVIDER_KEY);
+    if (!raw) return '';
+    const pending = JSON.parse(raw);
+    const isValid = SUPPORTED_LINK_PROVIDERS.includes(pending.provider)
+      && Number.isFinite(pending.createdAt)
+      && Date.now() - pending.createdAt <= ACCOUNT_LINK_FLOW_TTL_MS;
+    if (isValid) return pending.provider;
+  } catch {
+    // Invalid session state is discarded below.
+  }
+  sessionStorage.removeItem(PENDING_LINK_PROVIDER_KEY);
+  sessionStorage.removeItem(LINK_IN_PROGRESS_PROVIDER_KEY);
+  return '';
+};
+
+const clearAccountLinkFlow = () => {
+  sessionStorage.removeItem(PENDING_LINK_PROVIDER_KEY);
+  sessionStorage.removeItem(LINK_IN_PROGRESS_PROVIDER_KEY);
+};
+
 const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -40,14 +74,22 @@ const LoginPage = () => {
 
     if (oauthError) {
       if (oauthError === 'ACCOUNT_LINK_REQUIRED') {
-        const provider = ['google', 'github'].includes(oauthProvider) ? oauthProvider : '';
+        const provider = SUPPORTED_LINK_PROVIDERS.includes(oauthProvider) ? oauthProvider : '';
+        if (provider) {
+          storePendingLinkProvider(provider);
+          sessionStorage.removeItem(LINK_IN_PROGRESS_PROVIDER_KEY);
+        }
         setLinkProvider(provider);
         setErrorMessage(localStorage.getItem('accessToken')
           ? '현재 로그인한 기존 계정에 소셜 계정을 연결할 수 있습니다.'
-          : '같은 이메일의 기존 계정으로 먼저 로그인해주세요. 로그인 후 소셜 계정을 연결할 수 있습니다.');
+          : '같은 이메일의 기존 가입 방식으로 로그인해주세요. 인증 후 이 화면으로 자동 복귀합니다.');
       } else if (oauthError === 'ACCOUNT_LINK_INVALID') {
+        sessionStorage.removeItem(LINK_IN_PROGRESS_PROVIDER_KEY);
+        setLinkProvider(readPendingLinkProvider() || oauthProvider || '');
         setErrorMessage('계정 연결 요청이 만료되었거나 올바르지 않습니다. 다시 시도해주세요.');
       } else if (oauthError === 'ACCOUNT_LINK_CONFLICT') {
+        sessionStorage.removeItem(LINK_IN_PROGRESS_PROVIDER_KEY);
+        setLinkProvider(readPendingLinkProvider() || oauthProvider || '');
         setErrorMessage('해당 소셜 계정은 연결할 수 없습니다. 이메일과 기존 연결 상태를 확인해주세요.');
       } else {
         setErrorMessage('소셜 로그인에 실패했습니다. 잠시 후 다시 시도해주세요.');
@@ -61,6 +103,19 @@ const LoginPage = () => {
 
     localStorage.setItem('accessToken', token);
     sessionStorage.removeItem('postLoginNextPath');
+    const pendingLinkProvider = readPendingLinkProvider();
+    if (pendingLinkProvider) {
+      const linkInProgressProvider = sessionStorage.getItem(LINK_IN_PROGRESS_PROVIDER_KEY);
+      if (linkInProgressProvider === pendingLinkProvider) {
+        clearAccountLinkFlow();
+        navigate('/member', { replace: true });
+        return;
+      }
+      navigate(`/oauth/callback?error=ACCOUNT_LINK_REQUIRED&provider=${pendingLinkProvider}`, {
+        replace: true,
+      });
+      return;
+    }
     navigate(redirectTo, { replace: true });
   }, [location.search, navigate]);
 
@@ -92,11 +147,14 @@ const LoginPage = () => {
 
   const googleLoginUrl = `${authServerBaseUrl}/oauth2/authorization/google`;
   const githubLoginUrl = `${authServerBaseUrl}/oauth2/authorization/github`;
-  const rememberNextPath = () => {
+  const rememberNextPath = (selectedProvider) => {
     const query = new URLSearchParams(location.search);
     const next = query.get('next');
     if (next) {
       sessionStorage.setItem('postLoginNextPath', next);
+    }
+    if (linkProvider && selectedProvider !== linkProvider) {
+      storePendingLinkProvider(linkProvider);
     }
   };
 
@@ -109,6 +167,8 @@ const LoginPage = () => {
     setErrorMessage('');
     try {
       const data = await startAccountLink(linkProvider);
+      storePendingLinkProvider(linkProvider);
+      sessionStorage.setItem(LINK_IN_PROGRESS_PROVIDER_KEY, linkProvider);
       window.location.assign(`${authServerBaseUrl}${data.authorizationPath}`);
     } catch (error) {
       if (error.response?.status === 401) {
@@ -204,10 +264,10 @@ const LoginPage = () => {
             <Link to="/signup" className="login-signup-button">회원가입</Link>
           </div>
           <div className="social_login_list ">
-            <a className="social_icon google" title="google" href={googleLoginUrl} onClick={rememberNextPath}></a>
+            <a className="social_icon google" title="google" href={googleLoginUrl} onClick={() => rememberNextPath('google')}></a>
             {/* <a className="social_icon kakao" title="kakao" href="#"></a>
             <a className="social_icon naver" title="naver" href="#"></a> */}
-            <a className="social_icon github" title="github" href={githubLoginUrl} onClick={rememberNextPath}></a>
+            <a className="social_icon github" title="github" href={githubLoginUrl} onClick={() => rememberNextPath('github')}></a>
           </div>
         </div>
       </div>
