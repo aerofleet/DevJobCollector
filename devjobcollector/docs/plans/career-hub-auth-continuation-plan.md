@@ -190,6 +190,7 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 - 관찰 기준점: 2026-09-03 21:29:45 KST(Backend Actions 완료 시각). 최종 rolling 24시간 확인 가능 시각은 2026-09-04 21:29:45 KST 이후다.
 - workflow 범위 보정: 첫 실행 `33756304411`은 Cloudflare Tunnel 자격증명 단계 범위 누락으로 실패했다. 운영 read-only probe 7/7은 성공했으며 애플리케이션 장애가 아니었다. 커밋 `d676465`로 보정했다.
 - 1시간 baseline Actions `33759187596`: read-only probe 7/7, 인증 2건, Career 8건, 총 10건, 5xx 0건(0.00%), OAuth 처리 실패 0건.
+- 4시간 중간 관찰 Actions `33785442188`: read-only probe 7/7, 인증 2건, Career 8건, 총 10건, 5xx 0건(0.00%), OAuth 처리 실패 0건. 컨테이너 시작은 2026-09-03 21:29:18 KST이며 restart count는 0이다.
 - 판정: baseline 합격. 연속 24시간이 지나지 않았으므로 CH-G1-08 체크박스는 미완료로 유지한다.
 
 #### CH-G1-04 진행 기록 — 2026-08-30
