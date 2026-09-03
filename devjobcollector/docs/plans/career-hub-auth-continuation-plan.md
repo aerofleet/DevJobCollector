@@ -150,12 +150,31 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 - [x] CH-G1-02 프론트 lint/build/E2E (2026-08-28, lint 0·build 1,828 modules·Playwright 8/8, 4 viewport overflow 0px)
 - [x] CH-G1-03 운영 배포와 health/search 회귀 (2026-08-28, Backend `33105941627`·Docker `33105941628`·Frontend `33105941650`·E2E 추가 배포 `33108243400`, 운영 smoke 및 보호 경로 4×4 viewport E2E 16/16 합격)
 - [x] CH-G1-04 Career Hub 핵심 사용자 여정 E2E (2026-08-31, 점 세 개 작업 메뉴 기준 운영 Resume 생성·수정·재조회·삭제 1/1, skip 0, 테스트 데이터 잔존 0건; Actions `33319783743` 성공)
-- [ ] CH-G1-05 Google 로그인 성공
+- [x] CH-G1-05 Google 로그인 성공 (2026-09-03, 검증 이메일 claim 호환 배포 후 실제 로그인·기본 페이지 이동 사용자 확인)
 - [x] CH-G1-06 GitHub 로그인 성공 (2026-09-02, 실제 승인·JWT 발급·`GET /members/me` 200·ACTIVE/USER)
-- [ ] CH-G1-07 동일 이메일 `ACCOUNT_LINK_REQUIRED`, 자동 연결 0건
+- [x] CH-G1-07 동일 이메일 `ACCOUNT_LINK_REQUIRED`, 자동 연결 0건 (2026-09-03, 충돌 재현 후 기존 계정 재인증·명시적 연결 경로 확인)
 - [ ] CH-G1-08 24시간 인증·Career API 오류율 관찰
 
 종료 게이트: G1 합격 전 기업 기능이나 신규 OAuth Provider 운영 활성화를 시작하지 않는다.
+
+#### CH-G1-05·07 실제 OAuth 및 계정 연결 완료 — 2026-09-03
+
+- 실제 Google 단독 로그인과 기본 페이지 이동을 사용자 브라우저에서 확인했다.
+- 동일 이메일의 미등록 Google identity는 최초 시도에서 `ACCOUNT_LINK_REQUIRED`로 종료되어 자동 병합되지 않았다.
+- 기존 GitHub 계정 재인증 후에만 Google 연결을 재개했으며, 연결 충돌 callback은 유효한 로그인 상태에서 기본 페이지로 복귀하도록 정규화했다.
+- Google 검증 이메일 claim은 `email_verified`와 `verified_email`을 모두 지원하되 값이 `true`일 때만 신뢰한다.
+- 계정 연결은 최근 5분 이내 기존 인증, 5분 만료 서버 세션 intent, 동일한 검증 이메일, 미소유 provider subject를 모두 요구한다.
+
+목표 KPI는 Google 실제 로그인 성공률 100%(1/1), 동일 이메일 자동 연결 0건, 명시적 계정 연결 성공률 100%(1/1), callback 오류 화면 잔존 0건이다. 평가셋은 사용자 브라우저 Google Journey 1건, 동일 이메일 충돌·재인증·연결 Journey 1건, 백엔드 전체 Gradle 회귀, 프론트 계정 연결 Playwright 시나리오다. Before에는 Google callback이 `ACCOUNT_LINK_REQUIRED` 또는 `ACCOUNT_LINK_CONFLICT` 화면에 머물렀다. After에는 자동 병합 없이 기존 계정 확인을 거친 연결 또는 독립 로그인이 완료되고 기본 페이지로 이동한다. 합격 기준은 위 사용자 Journey 2/2, 자동 병합 0건, 전체 회귀 실패 0건이다.
+
+#### CH-G1-08 관찰 자동화 준비 — 2026-09-03
+
+- 인증·Career 경로의 완료 상태를 Spring Security 필터 앞에서 집계용 로그로 기록한다.
+- 기록 필드는 `scope`, HTTP method, URI path, status뿐이며 query string, 헤더, Cookie, 토큰, 이메일은 기록하지 않는다.
+- 수동 Actions는 운영 원문 로그를 출력·업로드하지 않고 인증·Career 요청 수, 5xx 수·비율, OAuth 처리 실패 수만 Job Summary에 남긴다.
+- 읽기 전용 synthetic 평가셋은 health·공개 검색 200과 무토큰 회원·Career API 401 총 7건이다.
+- 목표 KPI: 24시간 인증·Career API 5xx 비율 < 1%, OAuth 처리 실패 0건, 원문 로그 외부 노출 0건.
+- 합격 기준: 최신 관찰 필터 배포 이후 연속 24시간 집계에서 위 KPI 충족. 배포 전 또는 24시간 미만 결과는 baseline으로만 사용한다.
 
 #### CH-G1-04 진행 기록 — 2026-08-30
 
@@ -183,7 +202,7 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 - API/UI 검증: POST 201, PUT 200, 재조회 제목 일치, DELETE 200/204, 삭제 후 카드 0건
 - 보안 결과: Actions 로그의 access token 원문 노출 0건(마스킹 확인), Playwright trace 비활성화
 - 합격 판정: 목표 KPI 1/1 성공과 테스트 데이터 잔존 0건을 충족하여 CH-G1-04 완료
-- 다음 재개점: CH-G1-05 Google 실제 로그인 성공 검증
+- 다음 재개점: CH-G1-08 배포 후 24시간 인증·Career API 오류율 관찰
 
 #### CH-G1-06 GitHub callback Whitelabel 방어 — 2026-09-01
 
@@ -306,4 +325,4 @@ Career Hub Product DoD와 CH-G1 완료 후 `member-auth-implementation-plan.md`�
 7. 본 계획의 첫 미완료 체크박스와 선행 게이트 확인
 8. 구현 후 테스트·커밋·배포·잔여 위험을 본 계획과 HANDOVER에 갱신
 
-현재 재개 지점은 **CH-R1 `/member` 화면 도달 검증**이다. GitHub 실제 승인·JWT 발급·`/members/me` 200은 완료했고 개발 중 Secret 교체는 유예했다. 화면 확인 후 CH-G1-07 동일 이메일 `ACCOUNT_LINK_REQUIRED` 평가로 이동하며, 운영 전 인증 보안 재검토를 별도 게이트로 유지한다. 현재 변경은 사용자 작업으로 간주하며 삭제·reset·restore하지 않는다.
+현재 재개 지점은 **CH-G1-08 24시간 인증·Career API 오류율 관찰**이다. Google·GitHub 실제 로그인과 동일 이메일 자동 병합 차단·명시적 연결을 완료했으며, 관찰 필터 배포 시각부터 연속 24시간을 집계한다. 관찰 합격 전 기업 기능으로 이동하지 않고 운영 전 인증 보안 재검토를 별도 게이트로 유지한다. 현재 사용자 변경은 삭제·reset·restore하지 않는다.

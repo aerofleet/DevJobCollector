@@ -1,0 +1,133 @@
+name: DJC Auth Career Observation
+
+on:
+  workflow_dispatch:
+    inputs:
+      observation_hours:
+        description: Rolling production log window in hours
+        required: true
+        default: "1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: djc-auth-career-observation
+  cancel-in-progress: false
+
+env:
+  API_BASE_URL: https://djc-api.itsdev.kr
+  CLOUDFLARED_VERSION: 2026.5.1
+  CLOUDFLARED_SHA256: 4274f6106efbe586e8e2127aba02798c55bcfd99a45d14f08779d6afc51e8752
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate observation input
+        env:
+          OBSERVATION_HOURS: ${{ inputs.observation_hours }}
+        run: |
+          if ! [[ "$OBSERVATION_HOURS" =~ ^[1-9][0-9]*$ ]] || [ "$OBSERVATION_HOURS" -gt 168 ]; then
+            echo "::error::observation_hours must be an integer from 1 through 168"
+            exit 1
+          fi
+
+      - name: Run read-only production probes
+        working-directory: ./devjobcollector
+        run: |
+          set -euo pipefail
+          assert_status() {
+            local expected="$1"
+            local url="$2"
+            local actual
+            actual="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' "$url")"
+            if [ "$actual" != "$expected" ]; then
+              echo "::error::Unexpected HTTP status for production probe: expected $expected, got $actual"
+              exit 1
+            fi
+          }
+
+          assert_status 200 "$API_BASE_URL/actuator/health"
+          assert_status 200 "$API_BASE_URL/api/v1/jobs/search?page=0&size=1"
+          assert_status 401 "$API_BASE_URL/api/v1/members/me"
+          assert_status 401 "$API_BASE_URL/api/v1/members/me/bookmarks"
+          assert_status 401 "$API_BASE_URL/api/v1/members/me/recent-jobs"
+          assert_status 401 "$API_BASE_URL/api/v1/members/me/applications"
+          assert_status 401 "$API_BASE_URL/api/v1/members/me/resumes"
+          echo "PASS read-only production probes: 7/7"
+
+      - name: Install cloudflared client
+        run: |
+          set -euo pipefail
+          package="cloudflared-linux-amd64.deb"
+          curl --fail --location --retry 3 \
+            "https://github.com/cloudflare/cloudflared/releases/download/${CLOUDFLARED_VERSION}/${package}" \
+            --output "$package"
+          printf '%s  %s\n' "$CLOUDFLARED_SHA256" "$package" | sha256sum --check --strict
+          sudo dpkg -i "$package"
+
+      - name: Configure production log access
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          TUNNEL_SERVICE_TOKEN_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          TUNNEL_SERVICE_TOKEN_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          required=(SSH_PRIVATE_KEY SERVER_USER TUNNEL_SERVICE_TOKEN_ID TUNNEL_SERVICE_TOKEN_SECRET)
+          for name in "${required[@]}"; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing required production access secret: $name"
+              exit 1
+            fi
+          done
+
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s' "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          cat > ~/.ssh/config <<EOF
+          Host djc-a1
+            HostName ssh-djc.itsdev.kr
+            User $SERVER_USER
+            IdentityFile ~/.ssh/id_rsa
+            ProxyCommand cloudflared access ssh --hostname %h
+            StrictHostKeyChecking accept-new
+            BatchMode yes
+            ConnectTimeout 20
+            ConnectionAttempts 3
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Audit aggregate auth and Career API errors
+        env:
+          OBSERVATION_HOURS: ${{ inputs.observation_hours }}
+        run: |
+          set -euo pipefail
+          set +e
+          report="$({
+            ssh djc-a1 \
+              "sudo docker compose --project-name djc --env-file /etc/devjobcollector/devjobcollector.env -f /opt/devjobcollector/compose.yaml logs --no-color --since '${OBSERVATION_HOURS}h' app"
+          } | DJC_OBSERVATION_HOURS="$OBSERVATION_HOURS" \
+              bash devjobcollector/ops/auth/audit-auth-career-logs.sh)"
+          audit_status=$?
+          set -e
+
+          printf '%s\n' "$report"
+          {
+            echo "## DJC authentication and Career observation"
+            echo
+            echo '```text'
+            printf '%s\n' "$report"
+            echo '```'
+            echo
+            echo "Raw production logs were not uploaded or printed."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          exit "$audit_status"

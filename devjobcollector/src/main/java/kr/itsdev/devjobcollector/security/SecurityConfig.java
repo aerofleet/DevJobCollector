@@ -24,6 +24,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.http.HttpStatus;
 import kr.itsdev.devjobcollector.security.signup.AuthSignupProperties;
 import kr.itsdev.auth.common.oauth.OAuth2CallbackExceptionFilter;
+import kr.itsdev.devjobcollector.monitoring.AuthCareerObservationFilter;
 
 @Configuration
 @EnableConfigurationProperties({AuthTokenProperties.class, AuthLocalLoginProperties.class, AuthSignupProperties.class})
@@ -63,7 +64,8 @@ public class SecurityConfig {
                         .anyRequest().permitAll()
                 )
                 .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(authenticationEntryPoint))
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new AuthCareerObservationFilter(), JwtAuthenticationFilter.class);
 
         if (clientRegistrationRepositoryProvider.getIfAvailable() != null) {
             OAuth2UserService<OAuth2UserRequest, OAuth2User> commonOAuth2UserService =
