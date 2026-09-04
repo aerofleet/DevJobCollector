@@ -1,6 +1,6 @@
 # DJC Career Hub 완성 및 회원·기업 인증 통합 재개 계획
 
-> 상태: In Progress — Career Hub Release 브라우저 QA 대기, CH-P3-06 운영 배포 완료
+> 상태: In Progress — CH-G1 운영 게이트 완료, CH-R1-02·03 사람 수동 QA 대기
 > 기준일: 2026-08-24 KST
 > 현재 브랜치: `main`
 > 구현 원칙: Career Hub를 완성한 뒤 회원·기업·Multi-Provider 인증 통합의 첫 미완료 작업으로 복귀한다.
@@ -32,17 +32,12 @@
 - `npm run build`: 성공, 1,823 modules transformed
 - Cloudflare SPA fallback 설정 확인
 - G1 운영 배포와 자동 OAuth HTTPS callback 검증 완료
+- Career Hub Product DoD와 CH-G1 운영 게이트 완료
+- Google/GitHub 실제 로그인, 동일 이메일 자동 병합 차단·명시적 연결, 24시간 관찰 완료
 
 ### 미완료
 
 - Career Hub 브라우저 수동 QA 및 모바일 QA
-- 현재 Career Hub 작업 트리 커밋·푸시·배포
-- 운영 신규 라우트 3개 HTTP 200 검증
-- 실제 GitHub/Google 성공 로그인과 동일 이메일 충돌 수동 검증
-- 로그인 사용자 프로필 API
-- 저장 공고·지원 현황·최근 본 공고 API/DB
-- 이력서 MySQL 영속화·소유권 검증·목록 관리
-- G1 수동 OAuth 3건 이후 24시간 관찰
 - 기업 인증 통합 P3~P8
 
 ## 3. 범위 정의
@@ -161,7 +156,7 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 - [x] CH-G1-05 Google 로그인 성공 (2026-09-03, 검증 이메일 claim 호환 배포 후 실제 로그인·기본 페이지 이동 사용자 확인)
 - [x] CH-G1-06 GitHub 로그인 성공 (2026-09-02, 실제 승인·JWT 발급·`GET /members/me` 200·ACTIVE/USER)
 - [x] CH-G1-07 동일 이메일 `ACCOUNT_LINK_REQUIRED`, 자동 연결 0건 (2026-09-03, 충돌 재현 후 기존 계정 재인증·명시적 연결 경로 확인)
-- [ ] CH-G1-08 24시간 인증·Career API 오류율 관찰
+- [x] CH-G1-08 24시간 인증·Career API 오류율 관찰 (2026-09-04, Actions `33874026166`, 5xx 0/25·OAuth 처리 실패 0건)
 
 종료 게이트: G1 합격 전 기업 기능이나 신규 OAuth Provider 운영 활성화를 시작하지 않는다.
 
@@ -192,7 +187,16 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 - 1시간 baseline Actions `33759187596`: read-only probe 7/7, 인증 2건, Career 8건, 총 10건, 5xx 0건(0.00%), OAuth 처리 실패 0건.
 - 4시간 중간 관찰 Actions `33785442188`: read-only probe 7/7, 인증 2건, Career 8건, 총 10건, 5xx 0건(0.00%), OAuth 처리 실패 0건. 컨테이너 시작은 2026-09-03 21:29:18 KST이며 restart count는 0이다.
 - 19시간 중간 관찰 Actions `33854078645`: read-only probe 7/7, 인증 3건, Career 12건, 총 15건, 5xx 0건(0.00%), OAuth 처리 실패 0건. 컨테이너 시작은 2026-09-03 21:29:18 KST이며 restart count는 0이다.
-- 판정: baseline 합격. 연속 24시간이 지나지 않았으므로 CH-G1-08 체크박스는 미완료로 유지한다.
+- 판정: 1·4·19시간 중간 관찰은 모두 합격했으며, CH-G1-08 완료 판정은 아래 24시간 최종 결과로 확정한다.
+
+#### CH-G1-08 24시간 최종 관찰 — 2026-09-04
+
+- 최종 Actions `33874026166`: read-only probe 7/7, 인증 5건, Career 20건, 총 25건, 5xx 0건(0.00%), OAuth 처리 실패 0건.
+- 컨테이너 시작은 2026-09-03 21:29:18 KST이며 최종 관찰까지 restart count는 0이다.
+- 목표 KPI 결과: 인증·Career API 5xx 비율 0.00%로 `< 1%` 충족, OAuth 처리 실패 0건 충족, 원문 운영 로그 출력·업로드 0건 충족.
+- 평가셋: 배포 후 rolling 24시간 애플리케이션 집계와 health·검색·보호 API read-only probe 7건.
+- Before/After: 관찰 필터 배포 직후 1시간 baseline 10건 → rolling 24시간 25건으로 확대했고, 두 구간 모두 5xx와 OAuth 처리 실패가 0건이었다.
+- 합격 판정: 연속 24시간과 모든 합격 기준을 충족하여 CH-G1-08 및 CH-G1 운영 게이트를 완료한다.
 
 #### CH-G1-04 진행 기록 — 2026-08-30
 
@@ -220,7 +224,7 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 - API/UI 검증: POST 201, PUT 200, 재조회 제목 일치, DELETE 200/204, 삭제 후 카드 0건
 - 보안 결과: Actions 로그의 access token 원문 노출 0건(마스킹 확인), Playwright trace 비활성화
 - 합격 판정: 목표 KPI 1/1 성공과 테스트 데이터 잔존 0건을 충족하여 CH-G1-04 완료
-- 다음 재개점: CH-G1-08 배포 후 24시간 인증·Career API 오류율 관찰
+- 당시 다음 재개점: CH-G1-08 배포 후 24시간 인증·Career API 오류율 관찰(2026-09-04 완료)
 
 #### CH-G1-06 GitHub callback Whitelabel 방어 — 2026-09-01
 
@@ -343,4 +347,4 @@ Career Hub Product DoD와 CH-G1 완료 후 `member-auth-implementation-plan.md`�
 7. 본 계획의 첫 미완료 체크박스와 선행 게이트 확인
 8. 구현 후 테스트·커밋·배포·잔여 위험을 본 계획과 HANDOVER에 갱신
 
-현재 재개 지점은 **CH-G1-08 24시간 인증·Career API 오류율 관찰**이다. Google·GitHub 실제 로그인과 동일 이메일 자동 병합 차단·명시적 연결을 완료했으며, 관찰 필터 배포 시각부터 연속 24시간을 집계한다. 관찰 합격 전 기업 기능으로 이동하지 않고 운영 전 인증 보안 재검토를 별도 게이트로 유지한다. 현재 사용자 변경은 삭제·reset·restore하지 않는다.
+현재 재개 지점은 **CH-R1-02·03 사람 수동 QA**다. CH-G1은 rolling 24시간 집계까지 완료했으며, 수동 시각·키보드·touch QA를 완료한 뒤 기업 기능 P3 일정과 운영 전 인증 보안 재검토를 확정한다. 현재 사용자 변경은 삭제·reset·restore하지 않는다.

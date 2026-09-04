@@ -5,9 +5,9 @@
 - 기준일: 2026-08-24 KST
 - 배포 커밋: `4ebafac`
 - CI 보정 커밋: `e2a540e`
-- G1 상태: 진행 중
-- 완료: 운영 배포, 자동 비파괴 smoke
-- 미완료: Google/GitHub 성공 로그인 및 동일 이메일 충돌 수동 검증 3건, 이후 24시간 관찰
+- G1 상태: 완료(2026-09-04)
+- 완료: 운영 배포, 자동 비파괴 smoke, Google/GitHub 성공 로그인, 동일 이메일 자동 병합 차단·명시적 연결, 24시간 관찰
+- 후속: Career Hub 사람 수동 QA와 운영 전 인증 Secret 교체 여부 재검토
 
 ## 변경 범위
 
@@ -96,9 +96,9 @@
 ### 현재 합격 여부
 
 - 자동 게이트: 합격
-- 수동 OAuth 게이트: 미평가
-- 24시간 관찰: 미시작
-- G1 최종 판정: 보류
+- 수동 OAuth 게이트: 합격(Google/GitHub 로그인 및 동일 이메일 충돌·명시적 연결)
+- 24시간 관찰: 합격(Actions `33874026166`, 5xx 0/25·OAuth 처리 실패 0건)
+- G1 최종 판정: 합격
 
 ## 자동 smoke 결과
 
@@ -114,15 +114,30 @@ SKIP active LOCAL login: smoke credentials were not supplied
 PASS member auth non-destructive smoke: 5 HTTP checks
 ```
 
-## 잔여 게이트
+## 수동 게이트 결과
 
-브라우저 세션과 Provider 동의가 필요한 다음 검증은 운영자가 직접 수행한다.
+브라우저 세션과 Provider 동의가 필요한 다음 검증을 운영자 확인으로 완료했다.
 
 1. 기존 Google 계정 로그인 후 `<FRONTEND_DOMAIN>/oauth/callback` 성공 확인
 2. 기존 GitHub 계정 로그인 후 동일 callback 성공 확인
-3. 기존 회원과 동일한 이메일의 다른 Provider 로그인에서 `ACCOUNT_LINK_REQUIRED` 안내 및 자동 연결 0건 확인
+3. 기존 회원과 동일한 이메일의 다른 Provider 로그인에서 `ACCOUNT_LINK_REQUIRED` 안내, 기존 계정 재인증 후 명시적 연결, 자동 연결 0건 확인
 
-세 건을 모두 통과한 시각부터 24시간 인증 오류율을 관찰한다. 수동 검증과 관찰이 끝나기 전에는 G1을 완료 처리하거나 신규 Provider 구현을 시작하지 않는다.
+세 건 통과 후 관찰 필터 배포 시각인 2026-09-03 21:29:45 KST를 기준으로 rolling 24시간 인증 오류율을 관찰했다.
+
+## 24시간 최종 관찰
+
+- Actions: `33874026166`
+- 평가 구간: 관찰 필터 배포 후 rolling 24시간
+- read-only 운영 probe: 7/7
+- 인증 요청: 5건, 5xx 0건
+- Career 요청: 20건, 5xx 0건
+- 전체: 25건, 5xx 0건(0.00%)
+- OAuth 처리 실패: 0건
+- 컨테이너 restart count: 0
+- 원문 운영 로그 출력·업로드: 0건
+- 목표 KPI: API 5xx `< 1%`, OAuth 처리 실패 0건, 원문 로그 외부 노출 0건을 모두 충족했다.
+- Before/After: 1시간 baseline 10건·5xx 0건에서 24시간 25건·5xx 0건으로 평가 구간을 확대했다.
+- 최종 판정: G1 합격. 신규 Provider 또는 기업 기능 착수 전 Career Hub 사람 수동 QA와 운영 전 인증 보안 재검토를 수행한다.
 
 ## OAuth callback HTTPS 보정
 
