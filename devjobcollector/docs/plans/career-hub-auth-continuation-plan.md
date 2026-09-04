@@ -1,6 +1,6 @@
 # DJC Career Hub 완성 및 회원·기업 인증 통합 재개 계획
 
-> 상태: In Progress — CH-G1 운영 게이트 완료, CH-R1-02·03 사람 수동 QA 대기
+> 상태: Career Hub Release/Product DoD 및 CH-G1 완료 — 기업 기능 P3 일정·보안 게이트 재검토
 > 기준일: 2026-08-24 KST
 > 현재 브랜치: `main`
 > 구현 원칙: Career Hub를 완성한 뒤 회원·기업·Multi-Provider 인증 통합의 첫 미완료 작업으로 복귀한다.
@@ -34,10 +34,10 @@
 - G1 운영 배포와 자동 OAuth HTTPS callback 검증 완료
 - Career Hub Product DoD와 CH-G1 운영 게이트 완료
 - Google/GitHub 실제 로그인, 동일 이메일 자동 병합 차단·명시적 연결, 24시간 관찰 완료
+- 4개 viewport 시각 QA와 키보드·focus·tab semantics·touch target 사람 수동 QA 완료
 
 ### 미완료
 
-- Career Hub 브라우저 수동 QA 및 모바일 QA
 - 기업 인증 통합 P3~P8
 
 ## 3. 범위 정의
@@ -84,8 +84,8 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 ### CH-R1 — 프론트 Release 완료 (1일)
 
 - [x] CH-R1-01 현재 변경 파일과 라우트 리뷰 (2026-08-25)
-- [ ] CH-R1-02 360/768/1024/1440px 수동 QA
-- [ ] CH-R1-03 키보드 탐색, focus, tab semantics, touch target QA (2026-08-29, 운영 Before touch target 5개 결함 검출; CSS 보정·Frontend `33199530362` 배포 후 운영 키보드/focus 4/4·touch target 10/10 통과, 수동 QA 대기)
+- [x] CH-R1-02 360/768/1024/1440px 수동 QA (2026-09-04, 사용자 확인: 전체 정상)
+- [x] CH-R1-03 키보드 탐색, focus, tab semantics, touch target QA (2026-09-04, 자동 키보드/focus 4/4·touch target 10/10 및 사용자 수동 QA 전체 정상)
 - [x] CH-R1-04 로그인·회원가입·OAuth callback 이동 검증 (2026-09-03, 일반 OAuth 성공은 `next` 또는 `/member`, 로그인 유지 상태의 연결 충돌은 기본 페이지로 이동, 실제 Google 로그인 확인)
 - [x] CH-R1-05 frontend lint/build 재실행 (2026-08-25: lint 0, build 성공)
 - [x] CH-R1-06 기능 커밋 후 push, Actions 배포 확인 (`e11111a`, Actions `32757612547`)
@@ -99,7 +99,7 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 - 평가셋: `/member`, `/my-devjobs`, `/resumes`, `/resume` × 4 viewport 보호 경로 16건, 키보드·focus 4건, 모바일 touch target 1건.
 - 결과: 21 passed, 비-touch viewport의 touch 전용 평가 3건 의도적 skip, 실패 0건.
 - 목표 KPI 결과: 보호 경로 복귀 경로 보존 16/16(100%), 키보드·focus 4/4(100%), 모바일 최소 44px touch target 1/1(100%).
-- 합격 범위: 자동 회귀는 합격했다. CH-R1-02·03은 사람의 시각·실기 QA가 아니므로 미완료를 유지한다.
+- 합격 범위: 자동 회귀와 사용자 사람 수동 시각·키보드·touch QA가 모두 정상으로 확인되어 CH-R1-02·03 및 Career Hub Release DoD를 완료한다.
 
 ### CH-P1 — 회원 프로필 및 인증 상태 강화 (1~2일)
 
@@ -347,4 +347,4 @@ Career Hub Product DoD와 CH-G1 완료 후 `member-auth-implementation-plan.md`�
 7. 본 계획의 첫 미완료 체크박스와 선행 게이트 확인
 8. 구현 후 테스트·커밋·배포·잔여 위험을 본 계획과 HANDOVER에 갱신
 
-현재 재개 지점은 **CH-R1-02·03 사람 수동 QA**다. CH-G1은 rolling 24시간 집계까지 완료했으며, 수동 시각·키보드·touch QA를 완료한 뒤 기업 기능 P3 일정과 운영 전 인증 보안 재검토를 확정한다. 현재 사용자 변경은 삭제·reset·restore하지 않는다.
+현재 재개 지점은 **기업 기능 P3 일정 재산정과 운영 전 인증 보안 재검토**다. Career Hub Release/Product DoD와 CH-G1을 모두 완료했으므로 V5 기업 Core 착수 범위, 일정, Secret 교체 여부를 먼저 확정한다. 현재 사용자 변경은 삭제·reset·restore하지 않는다.

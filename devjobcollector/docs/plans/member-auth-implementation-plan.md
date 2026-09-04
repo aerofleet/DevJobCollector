@@ -1,6 +1,6 @@
 # DJC 회원·기업·Multi-Provider 인증 통합 실행계획
 
-> 상태: In Progress — G1 운영 게이트 완료, Career Hub 수동 QA 후 P3 일정 재산정 대기
+> 상태: In Progress — Career Hub와 G1 완료, P3 일정 및 운영 전 인증 보안 재검토
 > 기준일: 2026-08-19
 > 구현 시작 예정: 2026-08-20
 > 산정 조건: 주 5일, 구현자 1명, Provider 자격증명과 검토자 응답이 예정대로 제공됨
