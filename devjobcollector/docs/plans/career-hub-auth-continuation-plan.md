@@ -1,6 +1,6 @@
 # DJC Career Hub 완성 및 회원·기업 인증 통합 재개 계획
 
-> 상태: Career Hub Release/Product DoD 및 CH-G1 완료 — 기업 기능 P3 일정·보안 게이트 재검토
+> 상태: Career Hub Release/Product DoD 및 CH-G1 완료 — 기업 기능 P3-01 완료
 > 기준일: 2026-08-24 KST
 > 현재 브랜치: `main`
 > 구현 원칙: Career Hub를 완성한 뒤 회원·기업·Multi-Provider 인증 통합의 첫 미완료 작업으로 복귀한다.
@@ -64,7 +64,7 @@ Release DoD만 통과한 상태를 Product DoD 완료로 표시하지 않는다.
 
 ## 4. 선행 설계 게이트 — Flyway 순서
 
-현재 실제 마이그레이션은 V1~V3만 존재한다. 기존 인증 계획은 기업 테이블을 V4, 검증 테이블을 V5로 예약했지만, 사용자 결정에 따라 Career Hub를 기업 기능보다 먼저 완성해야 한다.
+현재 실제 마이그레이션은 V1~V5가 존재한다. Career Hub를 기업 기능보다 먼저 완성한다는 결정에 따라 V4는 Career Data, V5는 Company Core에 배정됐고 기업 검증은 V6으로 예약한다.
 
 ### 권장안
 
@@ -347,4 +347,4 @@ Career Hub Product DoD와 CH-G1 완료 후 `member-auth-implementation-plan.md`�
 7. 본 계획의 첫 미완료 체크박스와 선행 게이트 확인
 8. 구현 후 테스트·커밋·배포·잔여 위험을 본 계획과 HANDOVER에 갱신
 
-현재 재개 지점은 **기업 기능 P3 일정 재산정과 운영 전 인증 보안 재검토**다. Career Hub Release/Product DoD와 CH-G1을 모두 완료했으므로 V5 기업 Core 착수 범위, 일정, Secret 교체 여부를 먼저 확정한다. 현재 사용자 변경은 삭제·reset·restore하지 않는다.
+기업 기능 일정은 기업 MVP 2026-10-02, 전체 Multi-Provider 2026-10-30으로 재산정했고 V5 기업 Core 마이그레이션과 MySQL 26.7 검증을 완료했다. 현재 재개 지점은 **P3-02 Company/CompanyMember 도메인 및 마지막 OWNER invariant**다. Secret 교체는 개발 세션 무효화 영향을 고려해 운영 전 최종 보안 게이트로 유지한다. 현재 사용자 변경은 삭제·reset·restore하지 않는다.

@@ -219,9 +219,10 @@ DB ENUM 대신 길이가 제한된 VARCHAR와 애플리케이션 enum을 우선 
 이미 운영 적용된 V1/V2는 수정하지 않고 새 버전만 추가한다.
 
 1. **V3**: `personal_profiles`, `user_consents`, `user_identities` 생성, 기존 LOCAL/OAuth 사용자 backfill.
-2. **V4**: `companies`, `company_members` 생성.
-3. **V5**: `company_verification_requests` 생성.
-4. **V6 이후**: 이력서·북마크·직접 등록 공고를 인증 사용자 및 기업 FK에 연결.
+2. **V4**: `resumes`, `job_bookmarks`, `job_view_history`, `applications` 생성.
+3. **V5**: `companies`, `company_members` 생성.
+4. **V6**: `company_verification_requests` 생성.
+5. **V7 이후**: 직접 등록 공고 등 후속 기업 기능을 인증 사용자 및 기업 FK에 연결.
 
 `user_identities`를 V3에 포함하는 결정은 Multi-Provider Authentication Architecture v1.1이 본 초안의 이전 V6 후순위 안을 대체한 결과다. V3에서는 기존 `users.provider`, `users.provider_user_id`, `users.password_hash`를 즉시 삭제하지 않고 호환 경로를 유지한다.
 

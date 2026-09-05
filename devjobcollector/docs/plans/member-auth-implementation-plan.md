@@ -1,6 +1,6 @@
 # DJC 회원·기업·Multi-Provider 인증 통합 실행계획
 
-> 상태: In Progress — Career Hub와 G1 완료, P3 일정 및 운영 전 인증 보안 재검토
+> 상태: In Progress — Career Hub와 G1 완료, P3-01 완료 및 P3-02 진행 대기
 > 기준일: 2026-08-19
 > 구현 시작 예정: 2026-08-20
 > 산정 조건: 주 5일, 구현자 1명, Provider 자격증명과 검토자 응답이 예정대로 제공됨
@@ -47,14 +47,14 @@
 | P1 V3 Foundation | 08-24~08-28 | `personal_profiles`, `user_consents`, `user_identities`, backfill, Entity/Repository | Flyway V3, migration tests | clean/V2 upgrade 100%, orphan/duplicate 0 |
 | P2 Identity Cutover | 08-31~09-04 | 개인가입 동의 트랜잭션, Google/GitHub identity 전환, 이메일 자동병합 제거 | LOCAL/Google/GitHub 새 인증 경로 | 회귀 테스트 100%, 기존 로그인 성공, 충돌은 409 |
 | G1 Production Gate | 09-07~09-08 | 배포, smoke, 24시간 관찰 | V3 운영 적용 기록 | health/API 정상, 인증 오류율 기준 충족 |
-| P3 Company Core | Career Hub CH-G1 이후 재산정 | Flyway V5, Company/Member 도메인, 기업 가입 Facade | 기업 생성 + OWNER membership | 원자적 생성, 중복/마지막 OWNER invariant 통과 |
-| P4 Verification & Authorization | P3 완료 후 재산정 | Flyway V6, 수동 검증, 역할 권한 매트릭스 | 승인/반려 및 company authorization | 역할×기업상태 접근 차단률 100% |
-| P5 Enterprise UI | 09-23~09-29 | 기업회원 탭, 가입·검증 상태·오류 UX | 기업 가입 E2E UI | 개인가입 회귀 0, 기업 E2E 핵심 흐름 통과 |
-| P6 MVP Hardening | 09-30~10-05 | rate limit, audit, metrics, concurrency, migration rehearsal, 배포 | 기업회원 MVP | DoD/KPI 충족, rollback 절차 검증 |
-| P7 Provider Expansion | 10-06~10-21 | Kakao, Naver, Apple adapter 및 통합 테스트 | 5개 소셜 Provider | provider별 식별·보안 평가셋 통과 |
-| P8 Linking & Final Security | 10-22~10-29 | link/unlink, 마지막 identity 보호, state/nonce/PKCE 종합 점검 | 계정 연결 UI/API 및 보안 보고 | takeover/토큰 누출 평가셋 0건 |
+| P3 Company Core | 09-05~09-09 | Flyway V5, Company/Member 도메인, 기업 가입 Facade | 기업 생성 + OWNER membership | 원자적 생성, 중복/마지막 OWNER invariant 통과 |
+| P4 Verification & Authorization | 09-10~09-16 | Flyway V6, 수동 검증, 역할 권한 매트릭스 | 승인/반려 및 company authorization | 역할×기업상태 접근 차단률 100% |
+| P5 Enterprise UI | 09-17~09-22 | 기업회원 탭, 가입·검증 상태·오류 UX | 기업 가입 E2E UI | 개인가입 회귀 0, 기업 E2E 핵심 흐름 통과 |
+| P6 MVP Hardening | 09-23~10-02 | rate limit, audit, metrics, concurrency, migration rehearsal, 배포 | 기업회원 MVP | DoD/KPI 충족, rollback 절차 검증 |
+| P7 Provider Expansion | 10-05~10-16 | Kakao, Naver, Apple adapter 및 통합 테스트 | 5개 소셜 Provider | provider별 식별·보안 평가셋 통과 |
+| P8 Linking & Final Security | 10-19~10-30 | link/unlink, 마지막 identity 보호, state/nonce/PKCE 종합 점검 | 계정 연결 UI/API 및 보안 보고 | takeover/토큰 누출 평가셋 0건 |
 
-기존 기업회원 MVP 목표일 **2026-10-05**와 전체 Multi-Provider 목표일 **2026-10-29**는 Career Hub 우선순위 변경으로 재산정 대상이다. CH-G1 완료 후 P3~P8 일정을 다시 확정하며, 외부 Provider 자격증명이나 Apple 설정이 늦으면 P7/P8만 별도 조정한다.
+Career Hub와 CH-G1 완료 실적을 반영해 기업회원 MVP 목표일을 **2026-10-02**, 전체 Multi-Provider 목표일을 **2026-10-30**으로 재산정했다. 산정은 1명·주 5일과 P3~P8 작업량에 P6/P8 검증 여유를 포함한다. 외부 Provider 자격증명이나 Apple 설정이 늦으면 P7/P8만 별도 조정한다.
 
 ## 5. 1~2일 단위 작업 목록
 
@@ -79,7 +79,7 @@
 
 ### P3~P6 — 기업 MVP
 
-- [ ] P3-01 V5 companies/company_members DDL 및 migration test (2일, P0)
+- [x] P3-01 V5 companies/company_members DDL 및 migration test (완료: 2026-09-05, MySQL 26.7 전용 3/3·전체 migration/integration 57/57·전체 Gradle 성공)
 - [ ] P3-02 기업 도메인과 마지막 OWNER invariant 구현 (2일, P0)
 - [ ] P3-03 CompanySignupFacade와 기업 가입 API 구현 (1일, P1)
 - [ ] P4-01 V6 verification DDL·도메인·관리자 승인/반려 구현 (2일, P1)

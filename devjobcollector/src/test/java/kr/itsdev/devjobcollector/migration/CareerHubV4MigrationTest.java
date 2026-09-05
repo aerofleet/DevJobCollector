@@ -44,7 +44,7 @@ class CareerHubV4MigrationTest {
 
     @Test
     void migratesCleanDatabaseFromV1ToV4() throws SQLException {
-        flyway(null).migrate();
+        flyway("4").migrate();
 
         assertThat(scalar("SELECT VERSION()" )).startsWith(expectedVersion);
         assertThat(scalar("SELECT version FROM flyway_schema_history WHERE success = 1 ORDER BY installed_rank DESC LIMIT 1"))
@@ -60,7 +60,7 @@ class CareerHubV4MigrationTest {
         flyway("3").migrate();
         insertActiveUserAndJob();
 
-        flyway(null).migrate();
+        flyway("4").migrate();
 
         assertThat(scalar("SELECT version FROM flyway_schema_history WHERE success = 1 ORDER BY installed_rank DESC LIMIT 1"))
                 .isEqualTo("4");
@@ -74,7 +74,7 @@ class CareerHubV4MigrationTest {
 
     @Test
     void enforcesOwnershipUniquenessAndPositiveViewCount() throws SQLException {
-        flyway(null).migrate();
+        flyway("4").migrate();
         insertActiveUserAndJob();
         execute("INSERT INTO job_bookmarks (user_id, job_post_id) VALUES (1, 1)");
         execute("INSERT INTO job_view_history (user_id, job_post_id, view_count) VALUES (1, 1, 1)");
