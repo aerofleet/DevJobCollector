@@ -2,6 +2,7 @@ package kr.itsdev.devjobcollector.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
 import kr.itsdev.auth.common.exception.AccountLinkRequiredException;
+import kr.itsdev.devjobcollector.company.CompanyAlreadyExistsException;
 import kr.itsdev.devjobcollector.security.service.MemberAuthenticationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +11,20 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+    @ExceptionHandler(CompanyAlreadyExistsException.class)
+    public ResponseEntity<ApiErrorResponse> handleCompanyAlreadyExists(
+            CompanyAlreadyExistsException exception,
+            HttpServletRequest request
+    ) {
+        HttpStatus status = HttpStatus.CONFLICT;
+        return ResponseEntity.status(status).body(new ApiErrorResponse(
+                status.value(),
+                CompanyAlreadyExistsException.ERROR_CODE,
+                "이미 등록된 사업자번호입니다.",
+                request.getRequestURI()
+        ));
+    }
 
     @ExceptionHandler(MemberAuthenticationException.class)
     public ResponseEntity<ApiErrorResponse> handleMemberAuthentication(
