@@ -1,6 +1,6 @@
 # DJC 회원·기업·Multi-Provider 인증 통합 실행계획
 
-> 상태: In Progress — Career Hub와 G1 완료, P3-01 완료 및 P3-02 진행 대기
+> 상태: In Progress — Career Hub와 G1 완료, P3-02 완료 및 P3-03 진행 대기
 > 기준일: 2026-08-19
 > 구현 시작 예정: 2026-08-20
 > 산정 조건: 주 5일, 구현자 1명, Provider 자격증명과 검토자 응답이 예정대로 제공됨
@@ -80,7 +80,7 @@ Career Hub와 CH-G1 완료 실적을 반영해 기업회원 MVP 목표일을 **2
 ### P3~P6 — 기업 MVP
 
 - [x] P3-01 V5 companies/company_members DDL 및 migration test (완료: 2026-09-05, MySQL 26.7 전용 3/3·전체 migration/integration 57/57·전체 Gradle 성공)
-- [ ] P3-02 기업 도메인과 마지막 OWNER invariant 구현 (2일, P0)
+- [x] P3-02 기업 도메인과 마지막 OWNER invariant 구현 (완료: 2026-09-07, Company 단위 8/8·MySQL Company 4/4·전체 MySQL 61/61)
 - [ ] P3-03 CompanySignupFacade와 기업 가입 API 구현 (1일, P1)
 - [ ] P4-01 V6 verification DDL·도메인·관리자 승인/반려 구현 (2일, P1)
 - [ ] P4-02 membership authorization 서비스와 권한 매트릭스 테스트 (2일, P0)
