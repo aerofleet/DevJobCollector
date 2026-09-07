@@ -44,7 +44,7 @@ class CompanyCoreV5MigrationTest {
 
     @Test
     void migratesCleanDatabaseFromV1ToV5() throws SQLException {
-        flyway(null).migrate();
+        flyway("5").migrate();
 
         assertThat(scalar("SELECT VERSION()")).startsWith(expectedVersion);
         assertThat(scalar("SELECT version FROM flyway_schema_history WHERE success = 1 ORDER BY installed_rank DESC LIMIT 1"))
@@ -62,7 +62,7 @@ class CompanyCoreV5MigrationTest {
         insertJob(1);
         execute("INSERT INTO job_bookmarks (user_id, job_post_id) VALUES (1, 1)");
 
-        flyway(null).migrate();
+        flyway("5").migrate();
 
         assertThat(scalar("SELECT version FROM flyway_schema_history WHERE success = 1 ORDER BY installed_rank DESC LIMIT 1"))
                 .isEqualTo("5");
@@ -74,7 +74,7 @@ class CompanyCoreV5MigrationTest {
 
     @Test
     void enforcesCompanyAndMembershipUniquenessAndForeignKeys() throws SQLException {
-        flyway(null).migrate();
+        flyway("5").migrate();
         insertActiveUser(1, "owner@example.com");
         insertActiveUser(2, "member@example.com");
         insertCompany(1, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");

@@ -153,6 +153,7 @@ erDiagram
         varchar method
         varchar status
         varchar evidence_object_key
+        varchar rejection_reason
         bigint reviewed_by FK
         datetime requested_at
         datetime reviewed_at

@@ -15,9 +15,14 @@ import kr.itsdev.devjobcollector.company.CompanyMemberStatus;
 import kr.itsdev.devjobcollector.company.CompanyAlreadyExistsException;
 import kr.itsdev.devjobcollector.company.CompanySignupFacade;
 import kr.itsdev.devjobcollector.company.CompanyStatus;
+import kr.itsdev.devjobcollector.company.CompanyVerificationService;
+import kr.itsdev.devjobcollector.company.CompanyVerificationStatus;
 import kr.itsdev.devjobcollector.config.PerfLogProperties;
 import kr.itsdev.devjobcollector.dto.company.CompanySignupRequest;
 import kr.itsdev.devjobcollector.dto.company.CompanySignupResponse;
+import kr.itsdev.devjobcollector.dto.company.CompanyVerificationResponse;
+import kr.itsdev.devjobcollector.dto.company.CompanyVerificationSubmitRequest;
+import java.time.LocalDateTime;
 import kr.itsdev.devjobcollector.security.JwtAuthenticationFilter;
 import kr.itsdev.devjobcollector.security.JwtTokenVerifier;
 import kr.itsdev.devjobcollector.security.SecurityConfig;
@@ -36,6 +41,7 @@ class CompanyControllerSecurityTest {
     @Autowired MockMvc mockMvc;
 
     @MockitoBean CompanySignupFacade signupFacade;
+    @MockitoBean CompanyVerificationService verificationService;
     @MockitoBean JwtTokenVerifier jwtTokenVerifier;
     @MockitoBean PerfLogProperties perfLogProperties;
 
@@ -111,6 +117,31 @@ class CompanyControllerSecurityTest {
                 .andExpect(jsonPath("$.message").value("이미 등록된 사업자번호입니다."))
                 .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.not(
                         org.hamcrest.Matchers.containsString("123-45-67890"))));
+    }
+
+    @Test
+    void submitsVerificationForAuthenticatedMemberWithoutReturningEvidenceKey() throws Exception {
+        when(verificationService.submit(
+                org.mockito.ArgumentMatchers.eq("42"), org.mockito.ArgumentMatchers.eq(7L),
+                any(CompanyVerificationSubmitRequest.class)))
+                .thenReturn(new CompanyVerificationResponse(
+                        9L, 7L, CompanyVerificationStatus.PENDING,
+                        CompanyStatus.PENDING_VERIFICATION,
+                        LocalDateTime.of(2026, 9, 8, 10, 0), null));
+
+        mockMvc.perform(post("/api/v1/companies/7/verification-requests")
+                        .header("Authorization", "Bearer valid-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "method": "BUSINESS_REGISTRATION_DOCUMENT",
+                                  "evidenceObjectKey": "company-verification/7/evidence.pdf"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.requestId").value(9))
+                .andExpect(jsonPath("$.requestStatus").value("PENDING"))
+                .andExpect(jsonPath("$.evidenceObjectKey").doesNotExist());
     }
 
     private String validBody() {
