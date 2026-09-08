@@ -4,11 +4,29 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import kr.itsdev.auth.common.exception.AccountLinkRequiredException;
 import kr.itsdev.devjobcollector.company.CompanyAlreadyExistsException;
+import kr.itsdev.devjobcollector.company.CompanyAuthorizationException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 class ApiExceptionHandlerTest {
+
+    @Test
+    void mapsCompanyAuthorizationFailureToStableForbiddenBody() {
+        MockHttpServletRequest request = new MockHttpServletRequest(
+                "PATCH", "/api/v1/companies/7");
+
+        var response = new ApiExceptionHandler().handleCompanyAuthorization(
+                CompanyAuthorizationException.companyNotVerified(), request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody()).isEqualTo(new ApiErrorResponse(
+                403,
+                "COMPANY_NOT_VERIFIED",
+                "기업 리소스에 접근할 수 없습니다.",
+                "/api/v1/companies/7"
+        ));
+    }
 
     @Test
     void mapsCompanyDuplicateToStableConflictBody() {

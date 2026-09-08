@@ -26,11 +26,12 @@ import org.springframework.test.context.DynamicPropertySource;
 })
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @EnabledIfEnvironmentVariable(named = "DJC_MIGRATION_TEST_URL", matches = ".+")
-@Import({QuerydslConfig.class, CompanyMembershipService.class})
+@Import({QuerydslConfig.class, CompanyMembershipService.class, CompanyAuthorizationService.class})
 class CompanyRepositoryIntegrationTest {
     @Autowired CompanyRepository companyRepository;
     @Autowired CompanyMemberRepository memberRepository;
     @Autowired CompanyMembershipService membershipService;
+    @Autowired CompanyAuthorizationService authorizationService;
     @Autowired UserAccountRepository userRepository;
     @Autowired EntityManager entityManager;
 
@@ -102,6 +103,36 @@ class CompanyRepositoryIntegrationTest {
                 .isEqualTo(CompanyMemberRole.ADMIN);
         assertThat(memberRepository.countByCompany_IdAndRoleAndStatus(
                 company.getId(), CompanyMemberRole.OWNER, CompanyMemberStatus.ACTIVE)).isEqualTo(1);
+    }
+
+    @Test
+    void authorizesActiveMembershipForVerifiedCompany() {
+        UserAccount owner = saveUser("authorized-owner@example.com");
+        Company company = saveCompany(owner, "e".repeat(64));
+        company.changeStatus(CompanyStatus.VERIFIED);
+        companyRepository.save(company);
+        CompanyMember membership = memberRepository.saveAndFlush(CompanyMember.activeOwner(
+                company, owner, LocalDateTime.of(2026, 9, 8, 10, 0)));
+        entityManager.clear();
+
+        CompanyMember authorized = authorizationService.authorize(
+                company.getId(), owner.getId(), CompanyPermission.EDIT_COMPANY);
+
+        assertThat(authorized.getId()).isEqualTo(membership.getId());
+    }
+
+    @Test
+    void rejectsActiveMembershipWhenCompanyIsNotVerified() {
+        UserAccount owner = saveUser("pending-company-owner@example.com");
+        Company company = saveCompany(owner, "f".repeat(64));
+        memberRepository.saveAndFlush(CompanyMember.activeOwner(
+                company, owner, LocalDateTime.of(2026, 9, 8, 10, 0)));
+        entityManager.clear();
+
+        assertThatThrownBy(() -> authorizationService.authorize(
+                company.getId(), owner.getId(), CompanyPermission.EDIT_COMPANY))
+                .isInstanceOf(CompanyAuthorizationException.class)
+                .hasMessage("COMPANY_NOT_VERIFIED");
     }
 
     private UserAccount saveUser(String email) {

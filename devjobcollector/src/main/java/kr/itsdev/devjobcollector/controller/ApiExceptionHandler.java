@@ -3,6 +3,7 @@ package kr.itsdev.devjobcollector.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import kr.itsdev.auth.common.exception.AccountLinkRequiredException;
 import kr.itsdev.devjobcollector.company.CompanyAlreadyExistsException;
+import kr.itsdev.devjobcollector.company.CompanyAuthorizationException;
 import kr.itsdev.devjobcollector.company.CompanyVerificationException;
 import kr.itsdev.devjobcollector.security.service.MemberAuthenticationException;
 import org.springframework.http.HttpStatus;
@@ -12,6 +13,20 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+    @ExceptionHandler(CompanyAuthorizationException.class)
+    public ResponseEntity<ApiErrorResponse> handleCompanyAuthorization(
+            CompanyAuthorizationException exception,
+            HttpServletRequest request
+    ) {
+        HttpStatus status = exception.getStatus();
+        return ResponseEntity.status(status).body(new ApiErrorResponse(
+                status.value(),
+                exception.getErrorCode(),
+                "기업 리소스에 접근할 수 없습니다.",
+                request.getRequestURI()
+        ));
+    }
 
     @ExceptionHandler(CompanyVerificationException.class)
     public ResponseEntity<ApiErrorResponse> handleCompanyVerification(
