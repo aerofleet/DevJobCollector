@@ -21,6 +21,13 @@ public class CompanyAuthorizationService {
         CompanyMember membership = memberRepository.findByCompany_IdAndUser_Id(companyId, userId)
                 .orElseThrow(CompanyAuthorizationException::accessDenied);
 
+        authorize(membership, permission);
+        return membership;
+    }
+
+    public void authorize(CompanyMember membership, CompanyPermission permission) {
+        Objects.requireNonNull(membership, "membership is required");
+        Objects.requireNonNull(permission, "permission is required");
         if (membership.getStatus() != CompanyMemberStatus.ACTIVE
                 || !permission.allows(membership.getRole())) {
             throw CompanyAuthorizationException.accessDenied();
@@ -28,6 +35,5 @@ public class CompanyAuthorizationService {
         if (membership.getCompany().getStatus() != CompanyStatus.VERIFIED) {
             throw CompanyAuthorizationException.companyNotVerified();
         }
-        return membership;
     }
 }

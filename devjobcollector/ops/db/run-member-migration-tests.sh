@@ -49,6 +49,7 @@ DJC_MIGRATION_TEST_EXPECTED_VERSION=26.7.0 \
     --tests kr.itsdev.devjobcollector.company.CompanyMembershipConcurrencyIntegrationTest \
     --tests kr.itsdev.devjobcollector.company.CompanySignupTransactionIntegrationTest \
     --tests kr.itsdev.devjobcollector.company.CompanyVerificationIntegrationTest \
+    --tests kr.itsdev.devjobcollector.company.CompanyMemberManagementIntegrationTest \
     --tests kr.itsdev.devjobcollector.migration.MemberV3AuditTest \
     --tests kr.itsdev.devjobcollector.security.account.MemberFoundationRepositoryTest \
     --tests kr.itsdev.devjobcollector.security.signup.PersonalSignupTransactionIntegrationTest \

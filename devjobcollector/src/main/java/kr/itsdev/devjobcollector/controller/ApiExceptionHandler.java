@@ -4,7 +4,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import kr.itsdev.auth.common.exception.AccountLinkRequiredException;
 import kr.itsdev.devjobcollector.company.CompanyAlreadyExistsException;
 import kr.itsdev.devjobcollector.company.CompanyAuthorizationException;
+import kr.itsdev.devjobcollector.company.CompanyMemberManagementException;
 import kr.itsdev.devjobcollector.company.CompanyVerificationException;
+import kr.itsdev.devjobcollector.company.LastActiveOwnerException;
 import kr.itsdev.devjobcollector.security.service.MemberAuthenticationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +15,28 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+    @ExceptionHandler(CompanyMemberManagementException.class)
+    public ResponseEntity<ApiErrorResponse> handleCompanyMemberManagement(
+            CompanyMemberManagementException exception,
+            HttpServletRequest request
+    ) {
+        HttpStatus status = exception.getStatus();
+        return ResponseEntity.status(status).body(new ApiErrorResponse(
+                status.value(), exception.getErrorCode(),
+                "기업 멤버 요청을 처리할 수 없습니다.", request.getRequestURI()));
+    }
+
+    @ExceptionHandler(LastActiveOwnerException.class)
+    public ResponseEntity<ApiErrorResponse> handleLastActiveOwner(
+            LastActiveOwnerException exception,
+            HttpServletRequest request
+    ) {
+        HttpStatus status = HttpStatus.CONFLICT;
+        return ResponseEntity.status(status).body(new ApiErrorResponse(
+                status.value(), exception.getMessage(),
+                "마지막 활성 OWNER는 변경하거나 제거할 수 없습니다.", request.getRequestURI()));
+    }
 
     @ExceptionHandler(CompanyAuthorizationException.class)
     public ResponseEntity<ApiErrorResponse> handleCompanyAuthorization(

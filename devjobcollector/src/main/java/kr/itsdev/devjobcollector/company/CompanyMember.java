@@ -41,7 +41,7 @@ public class CompanyMember {
     private CompanyMemberStatus status;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "invited_by", updatable = false)
+    @JoinColumn(name = "invited_by")
     private UserAccount invitedBy;
 
     @Column(name = "joined_at")
@@ -90,6 +90,16 @@ public class CompanyMember {
         if (status == CompanyMemberStatus.ACTIVE && joinedAt == null) {
             this.joinedAt = Objects.requireNonNull(occurredAt, "occurredAt is required when activating a member");
         }
+    }
+
+    void reinvite(CompanyMemberRole role, UserAccount invitedBy) {
+        if (status != CompanyMemberStatus.LEFT) {
+            throw new IllegalStateException("Only a left member can be reinvited");
+        }
+        this.role = Objects.requireNonNull(role, "role is required");
+        this.status = CompanyMemberStatus.INVITED;
+        this.invitedBy = Objects.requireNonNull(invitedBy, "invitedBy is required");
+        this.joinedAt = null;
     }
 
     public boolean isActiveOwner() {

@@ -4,6 +4,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -11,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import kr.itsdev.devjobcollector.company.CompanyMemberRole;
+import kr.itsdev.devjobcollector.company.CompanyMemberManagementService;
 import kr.itsdev.devjobcollector.company.CompanyMemberStatus;
 import kr.itsdev.devjobcollector.company.CompanyAlreadyExistsException;
 import kr.itsdev.devjobcollector.company.CompanySignupFacade;
@@ -23,6 +27,9 @@ import kr.itsdev.devjobcollector.dto.company.CompanySignupResponse;
 import kr.itsdev.devjobcollector.dto.company.CompanyVerificationResponse;
 import kr.itsdev.devjobcollector.dto.company.CompanyVerificationSubmitRequest;
 import java.time.LocalDateTime;
+import java.util.List;
+import kr.itsdev.devjobcollector.dto.company.CompanyMemberInvitationRequest;
+import kr.itsdev.devjobcollector.dto.company.CompanyMemberResponse;
 import kr.itsdev.devjobcollector.security.JwtAuthenticationFilter;
 import kr.itsdev.devjobcollector.security.JwtTokenVerifier;
 import kr.itsdev.devjobcollector.security.SecurityConfig;
@@ -42,6 +49,7 @@ class CompanyControllerSecurityTest {
 
     @MockitoBean CompanySignupFacade signupFacade;
     @MockitoBean CompanyVerificationService verificationService;
+    @MockitoBean CompanyMemberManagementService memberManagementService;
     @MockitoBean JwtTokenVerifier jwtTokenVerifier;
     @MockitoBean PerfLogProperties perfLogProperties;
 
@@ -142,6 +150,73 @@ class CompanyControllerSecurityTest {
                 .andExpect(jsonPath("$.requestId").value(9))
                 .andExpect(jsonPath("$.requestStatus").value("PENDING"))
                 .andExpect(jsonPath("$.evidenceObjectKey").doesNotExist());
+    }
+
+    @Test
+    void listsCompanyMembersForAuthenticatedMember() throws Exception {
+        when(memberManagementService.listMembers("42", 7L)).thenReturn(List.of(memberResponse()));
+
+        mockMvc.perform(get("/api/v1/companies/7/members")
+                        .header("Authorization", "Bearer valid-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].memberId").value(11))
+                .andExpect(jsonPath("$[0].email").value("member@example.com"))
+                .andExpect(jsonPath("$[0].role").value("RECRUITER"));
+    }
+
+    @Test
+    void createsMemberInvitationForAuthenticatedOwner() throws Exception {
+        when(memberManagementService.invite(
+                org.mockito.ArgumentMatchers.eq("42"), org.mockito.ArgumentMatchers.eq(7L),
+                any(CompanyMemberInvitationRequest.class))).thenReturn(memberResponse());
+
+        mockMvc.perform(post("/api/v1/companies/7/members/invitations")
+                        .header("Authorization", "Bearer valid-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"member@example.com","role":"RECRUITER"}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("INVITED"));
+    }
+
+    @Test
+    void updatesMemberRoleForAuthenticatedOwner() throws Exception {
+        when(memberManagementService.changeRole(
+                "42", 7L, 11L, CompanyMemberRole.RECRUITER)).thenReturn(memberResponse());
+
+        mockMvc.perform(patch("/api/v1/companies/7/members/11/role")
+                        .header("Authorization", "Bearer valid-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"role\":\"RECRUITER\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role").value("RECRUITER"));
+    }
+
+    @Test
+    void removesMemberForAuthenticatedOwner() throws Exception {
+        mockMvc.perform(delete("/api/v1/companies/7/members/11")
+                        .header("Authorization", "Bearer valid-token"))
+                .andExpect(status().isNoContent());
+
+        verify(memberManagementService).remove("42", 7L, 11L);
+    }
+
+    @Test
+    void rejectsInvalidInvitationBeforeService() throws Exception {
+        mockMvc.perform(post("/api/v1/companies/7/members/invitations")
+                        .header("Authorization", "Bearer valid-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"not-an-email\",\"role\":\"VIEWER\"}"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(memberManagementService);
+    }
+
+    private CompanyMemberResponse memberResponse() {
+        return new CompanyMemberResponse(
+                11L, 7L, 20L, "member@example.com", "member",
+                CompanyMemberRole.RECRUITER, CompanyMemberStatus.INVITED, null);
     }
 
     private String validBody() {
