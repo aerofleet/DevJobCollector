@@ -14,6 +14,8 @@ public interface CompanyMemberRepository extends JpaRepository<CompanyMember, Lo
             Long companyId, CompanyMemberStatus excludedStatus);
     List<CompanyMember> findAllByUser_IdAndStatusOrderByCompany_IdAsc(
             Long userId, CompanyMemberStatus status);
+    List<CompanyMember> findAllByUser_IdAndStatusNotOrderByCompany_IdAsc(
+            Long userId, CompanyMemberStatus excludedStatus);
     boolean existsByCompany_IdAndUser_Id(Long companyId, Long userId);
     long countByCompany_Id(Long companyId);
     long countByCompany_IdAndRoleAndStatus(

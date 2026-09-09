@@ -16,6 +16,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import kr.itsdev.devjobcollector.company.CompanyMemberRole;
 import kr.itsdev.devjobcollector.company.CompanyMemberManagementService;
 import kr.itsdev.devjobcollector.company.CompanyMemberStatus;
+import kr.itsdev.devjobcollector.company.CompanyProfileService;
 import kr.itsdev.devjobcollector.company.CompanyAlreadyExistsException;
 import kr.itsdev.devjobcollector.company.CompanySignupFacade;
 import kr.itsdev.devjobcollector.company.CompanyStatus;
@@ -24,6 +25,7 @@ import kr.itsdev.devjobcollector.company.CompanyVerificationStatus;
 import kr.itsdev.devjobcollector.config.PerfLogProperties;
 import kr.itsdev.devjobcollector.dto.company.CompanySignupRequest;
 import kr.itsdev.devjobcollector.dto.company.CompanySignupResponse;
+import kr.itsdev.devjobcollector.dto.company.CompanySummaryResponse;
 import kr.itsdev.devjobcollector.dto.company.CompanyVerificationResponse;
 import kr.itsdev.devjobcollector.dto.company.CompanyVerificationSubmitRequest;
 import java.time.LocalDateTime;
@@ -48,6 +50,7 @@ class CompanyControllerSecurityTest {
     @Autowired MockMvc mockMvc;
 
     @MockitoBean CompanySignupFacade signupFacade;
+    @MockitoBean CompanyProfileService profileService;
     @MockitoBean CompanyVerificationService verificationService;
     @MockitoBean CompanyMemberManagementService memberManagementService;
     @MockitoBean JwtTokenVerifier jwtTokenVerifier;
@@ -91,6 +94,33 @@ class CompanyControllerSecurityTest {
                 .andExpect(jsonPath("$.membershipStatus").value("ACTIVE"));
 
         verify(signupFacade).signup(org.mockito.ArgumentMatchers.eq("42"), any(CompanySignupRequest.class));
+    }
+
+    @Test
+    void listsCurrentMembersCompanies() throws Exception {
+        when(profileService.getMyCompanies("42")).thenReturn(List.of(new CompanySummaryResponse(
+                7L, "테스트 주식회사", "테스트", "123-45-*****", "https://example.com",
+                CompanyStatus.PENDING_VERIFICATION, 11L, CompanyMemberRole.OWNER,
+                CompanyMemberStatus.ACTIVE, 9L, CompanyVerificationStatus.PENDING,
+                LocalDateTime.of(2026, 9, 9, 11, 0), null)));
+
+        mockMvc.perform(get("/api/v1/companies/me")
+                        .header("Authorization", "Bearer valid-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].companyId").value(7))
+                .andExpect(jsonPath("$[0].businessNumberMasked").value("123-45-*****"))
+                .andExpect(jsonPath("$[0].businessNumberHash").doesNotExist())
+                .andExpect(jsonPath("$[0].verificationStatus").value("PENDING"));
+
+        verify(profileService).getMyCompanies("42");
+    }
+
+    @Test
+    void rejectsCurrentMembersCompaniesWithoutBearerToken() throws Exception {
+        mockMvc.perform(get("/api/v1/companies/me"))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(profileService);
     }
 
     @Test

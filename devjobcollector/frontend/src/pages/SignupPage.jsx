@@ -128,7 +128,7 @@ const SignupPage = () => {
 
         <div className="member-type-tabs" aria-label="회원 유형">
           <button type="button" className="active">개인회원</button>
-          <button type="button" disabled title="기업회원 가입은 준비 중입니다.">기업회원 <small>준비 중</small></button>
+          <button type="button" onClick={() => navigate('/company')}>기업회원 <small>기업 등록</small></button>
         </div>
 
         {step === 'form' ? (

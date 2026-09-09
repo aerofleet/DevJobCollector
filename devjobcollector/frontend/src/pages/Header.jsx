@@ -161,6 +161,7 @@ const Header = ({ onSearch }) => {
             <li><Link to="/jobs">개발자 채용</Link></li>
             <li><Link to={isAuthenticated ? '/resumes' : '/resume'}>이력서</Link></li>
             <li><a href="/#discovery-title">테마별 채용</a></li>
+            <li><Link to="/company">기업 서비스</Link></li>
           </ul>
 
           <ul className="nav-right">
@@ -201,6 +202,7 @@ const Header = ({ onSearch }) => {
             <li><Link onClick={() => setIsMenuOpen(false)} className={isActivePath('/jobs') ? 'active' : ''} to="/jobs">개발자 채용</Link></li>
             <li><Link onClick={() => setIsMenuOpen(false)} className={isActivePath('/resumes') || isActivePath('/resume') ? 'active' : ''} to={isAuthenticated ? '/resumes' : '/resume'}>이력서</Link></li>
             <li><a onClick={() => setIsMenuOpen(false)} href="/#discovery-title">테마별 채용</a></li>
+            <li><Link onClick={() => setIsMenuOpen(false)} className={isActivePath('/company') ? 'active' : ''} to="/company">기업 서비스</Link></li>
           </ul>
 
           <div className="mobile-menu-auth">

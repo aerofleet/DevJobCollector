@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Bookmark, BriefcaseBusiness, FileText, Search, Sparkles } from 'lucide-react';
+import { ArrowRight, Bookmark, BriefcaseBusiness, Building2, FileText, Search, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MemberSidebar from '../components/member/MemberSidebar';
 import '../styles/MemberPages.css';
@@ -38,6 +38,15 @@ const MemberHomePage = () => (
               <small>MY RESUME</small>
               <h2>이력서 관리</h2>
               <p>경력과 프로젝트를 정리하고 이력서를 완성하세요.</p>
+            </div>
+            <ArrowRight size={22} aria-hidden="true" />
+          </Link>
+          <Link className="member-quick-card company" to="/company">
+            <span className="quick-icon"><Building2 size={24} /></span>
+            <div>
+              <small>COMPANY CENTER</small>
+              <h2>기업 서비스</h2>
+              <p>기업 등록과 인증 진행 상태를 확인하세요.</p>
             </div>
             <ArrowRight size={22} aria-hidden="true" />
           </Link>

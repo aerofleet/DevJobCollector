@@ -3,6 +3,7 @@ package kr.itsdev.devjobcollector.controller;
 import jakarta.validation.Valid;
 import java.util.List;
 import kr.itsdev.devjobcollector.company.CompanyMemberManagementService;
+import kr.itsdev.devjobcollector.company.CompanyProfileService;
 import kr.itsdev.devjobcollector.company.CompanySignupFacade;
 import kr.itsdev.devjobcollector.company.CompanyVerificationService;
 import kr.itsdev.devjobcollector.dto.company.CompanyMemberInvitationRequest;
@@ -10,6 +11,7 @@ import kr.itsdev.devjobcollector.dto.company.CompanyMemberResponse;
 import kr.itsdev.devjobcollector.dto.company.CompanyMemberRoleUpdateRequest;
 import kr.itsdev.devjobcollector.dto.company.CompanySignupRequest;
 import kr.itsdev.devjobcollector.dto.company.CompanySignupResponse;
+import kr.itsdev.devjobcollector.dto.company.CompanySummaryResponse;
 import kr.itsdev.devjobcollector.dto.company.CompanyVerificationResponse;
 import kr.itsdev.devjobcollector.dto.company.CompanyVerificationSubmitRequest;
 import org.springframework.http.HttpStatus;
@@ -28,15 +30,25 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/companies")
 public class CompanyController {
     private final CompanySignupFacade signupFacade;
+    private final CompanyProfileService profileService;
     private final CompanyVerificationService verificationService;
     private final CompanyMemberManagementService memberManagementService;
 
     public CompanyController(CompanySignupFacade signupFacade,
+                             CompanyProfileService profileService,
                              CompanyVerificationService verificationService,
                              CompanyMemberManagementService memberManagementService) {
         this.signupFacade = signupFacade;
+        this.profileService = profileService;
         this.verificationService = verificationService;
         this.memberManagementService = memberManagementService;
+    }
+
+    @GetMapping("/me")
+    public List<CompanySummaryResponse> getMyCompanies(
+            @AuthenticationPrincipal String subject
+    ) {
+        return profileService.getMyCompanies(subject);
     }
 
     @PostMapping

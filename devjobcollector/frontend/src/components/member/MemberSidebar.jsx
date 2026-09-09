@@ -1,5 +1,5 @@
 import React from 'react';
-import { BriefcaseBusiness, FileText, LayoutDashboard } from 'lucide-react';
+import { BriefcaseBusiness, Building2, FileText, LayoutDashboard } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useMemberSession } from '../../contexts/memberSession';
 
@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { to: '/member', label: '커리어 홈', icon: LayoutDashboard, end: true },
   { to: '/my-devjobs', label: '마이데브잡', icon: BriefcaseBusiness },
   { to: '/resumes', label: '이력서 관리', icon: FileText },
+  { to: '/company', label: '기업 서비스', icon: Building2 },
 ];
 
 const MemberSidebar = () => {

@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 public interface CompanyVerificationRequestRepository
         extends JpaRepository<CompanyVerificationRequest, Long> {
     boolean existsByCompany_IdAndStatus(Long companyId, CompanyVerificationStatus status);
+    Optional<CompanyVerificationRequest> findTopByCompany_IdOrderByRequestedAtDescIdDesc(Long companyId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT request FROM CompanyVerificationRequest request WHERE request.id = :requestId")

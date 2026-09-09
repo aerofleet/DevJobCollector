@@ -11,6 +11,7 @@ import Resume from './pages/Resume';
 import MemberHomePage from './pages/MemberHomePage';
 import MyDevJobsPage from './pages/MyDevJobsPage';
 import ResumesPage from './pages/ResumesPage';
+import CompanyPage from './pages/CompanyPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import './styles/App.css';
 import ScrollToTop from './components/common/ScrollToTop';
@@ -50,6 +51,14 @@ const AppRoutes = () => {
           element={(
             <ProtectedRoute>
               <MyDevJobsPage />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/company"
+          element={(
+            <ProtectedRoute>
+              <CompanyPage />
             </ProtectedRoute>
           )}
         />
