@@ -126,9 +126,9 @@ const SignupPage = () => {
           <p>관심 있는 개발자 채용공고를 저장하고 커리어 탐색을 이어가세요.</p>
         </div>
 
-        <div className="member-type-tabs" aria-label="회원 유형">
-          <button type="button" className="active">개인회원</button>
-          <button type="button" onClick={() => navigate('/company')}>기업회원 <small>기업 등록</small></button>
+        <div className="member-type-tabs" role="group" aria-label="회원 유형">
+          <button type="button" className="active" aria-pressed="true">개인회원</button>
+          <button type="button" aria-pressed="false" onClick={() => navigate('/company')}>기업회원 <small>기업 등록</small></button>
         </div>
 
         {step === 'form' ? (
@@ -139,10 +139,10 @@ const SignupPage = () => {
             </div>
             <div className="signup-divider"><span>또는 이메일로 가입</span></div>
             <form className="signup-form" onSubmit={submitSignup}>
-              <label>이름<input name="name" value={form.name} onChange={update} minLength="2" maxLength="50" autoComplete="name" required /></label>
-              <label>이메일<input type="email" name="email" value={form.email} onChange={update} autoComplete="email" required /></label>
-              <label>비밀번호<input type="password" name="password" value={form.password} onChange={update} minLength="8" maxLength="72" autoComplete="new-password" required /><small>8자 이상 입력해주세요.</small></label>
-              <label>비밀번호 확인<input type="password" name="passwordConfirm" value={form.passwordConfirm} onChange={update} minLength="8" maxLength="72" autoComplete="new-password" required /></label>
+              <div className="signup-field"><label htmlFor="signup-name">이름</label><input id="signup-name" name="name" value={form.name} onChange={update} minLength="2" maxLength="50" autoComplete="name" required /></div>
+              <div className="signup-field"><label htmlFor="signup-email">이메일</label><input id="signup-email" type="email" name="email" value={form.email} onChange={update} autoComplete="email" required /></div>
+              <div className="signup-field"><label htmlFor="signup-password">비밀번호</label><input id="signup-password" type="password" name="password" value={form.password} onChange={update} minLength="8" maxLength="72" autoComplete="new-password" aria-describedby="signup-password-hint" required /><small id="signup-password-hint">8자 이상 입력해주세요.</small></div>
+              <div className="signup-field"><label htmlFor="signup-password-confirm">비밀번호 확인</label><input id="signup-password-confirm" type="password" name="passwordConfirm" value={form.passwordConfirm} onChange={update} minLength="8" maxLength="72" autoComplete="new-password" required /></div>
               <div className="signup-consents">
                 <label><input type="checkbox" name="termsAccepted" checked={form.termsAccepted} onChange={update} required /> (필수) <Link to="/terms" target="_blank" rel="noreferrer">이용약관</Link> 동의</label>
                 <label><input type="checkbox" name="privacyAccepted" checked={form.privacyAccepted} onChange={update} required /> (필수) <Link to="/privacy" target="_blank" rel="noreferrer">개인정보 처리방침</Link> 동의</label>
@@ -163,7 +163,7 @@ const SignupPage = () => {
           </form>
         )}
 
-        {notice && <p className="signup-notice">{notice}</p>}
+        {notice && <p className="signup-notice" role="status">{notice}</p>}
         {errorMessage && <p className="signup-error" role="alert">{errorMessage}</p>}
         <p className="login-link">이미 계정이 있나요? <Link to="/login">로그인</Link></p>
       </section>

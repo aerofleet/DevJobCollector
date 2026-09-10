@@ -28,25 +28,26 @@
   border-radius: 12px;
   background: #f3f1f8;
 }
-.member-type-tabs button { padding: 11px; border: 0; border-radius: 9px; background: transparent; color: #8a8595; font-weight: 700; }
+.member-type-tabs button { min-height: 44px; padding: 11px; border: 0; border-radius: 9px; background: transparent; color: #8a8595; font-weight: 700; }
 .member-type-tabs button.active { background: #fff; color: #5c3fe0; box-shadow: 0 2px 10px rgba(57, 39, 126, .1); }
 .member-type-tabs small { display: block; margin-top: 2px; font-size: 9px; }
 
 .social-signup { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.social-signup a { padding: 12px; border: 1px solid #ddd9e8; border-radius: 10px; color: #292630; text-align: center; text-decoration: none; font-size: 14px; font-weight: 700; }
+.social-signup a { min-height: 44px; padding: 12px; border: 1px solid #ddd9e8; border-radius: 10px; color: #292630; text-align: center; text-decoration: none; font-size: 14px; font-weight: 700; }
 .social-signup a:hover { border-color: #8067ee; background: #faf8ff; }
 .signup-divider { display: flex; align-items: center; gap: 12px; margin: 22px 0; color: #aaa5b4; font-size: 12px; }
 .signup-divider::before, .signup-divider::after { content: ''; height: 1px; flex: 1; background: #ece9f2; }
 
 .signup-form { display: grid; gap: 15px; }
-.signup-form > label { display: grid; gap: 7px; color: #393542; font-size: 13px; font-weight: 700; text-align: left; }
+.signup-field { display: grid; gap: 7px; }
+.signup-field label { color: #393542; font-size: 13px; font-weight: 700; text-align: left; }
 .signup-form input:not([type='checkbox']), .verification-form > input {
   width: 100%; padding: 13px 14px; border: 1px solid #dcd8e6; border-radius: 9px; background: #fff; font: inherit;
 }
 .signup-form input:focus, .verification-form > input:focus { outline: 0; border-color: #6c4dff; box-shadow: 0 0 0 3px rgba(108, 77, 255, .12); }
-.signup-form label small { color: #9792a1; font-weight: 400; }
+.signup-form small { color: #9792a1; font-size: 11px; font-weight: 400; }
 .signup-consents { display: grid; gap: 9px; padding: 14px; border-radius: 10px; background: #f8f7fb; }
-.signup-consents label { display: flex; gap: 8px; align-items: center; color: #5c5767; font-size: 12px; }
+.signup-consents label { display: flex; min-height: 44px; gap: 8px; align-items: center; color: #5c5767; font-size: 12px; }
 .signup-consents input { width: 16px; height: 16px; accent-color: #6c4dff; }
 .turnstile-container { min-height: 65px; display: flex; justify-content: center; }
 
@@ -65,6 +66,14 @@
 .verification-form p { margin: 0 0 4px; color: #777180; font-size: 13px; }
 .verification-form > input { text-align: center; font-size: 24px; font-weight: 800; letter-spacing: .35em; }
 .resend-button { border: 0; background: transparent; color: #6c4dff; font-size: 13px; font-weight: 700; cursor: pointer; }
+
+.member-type-tabs button:focus-visible,
+.social-signup a:focus-visible,
+.signup-submit:focus-visible,
+.resend-button:focus-visible {
+  outline: 3px solid rgba(108, 77, 255, .35);
+  outline-offset: 2px;
+}
 
 @media (max-width: 560px) {
   .signup-card { padding: 30px 22px; border-radius: 18px; }

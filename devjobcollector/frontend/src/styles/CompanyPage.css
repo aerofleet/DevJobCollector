@@ -15,14 +15,21 @@
 .company-panel-heading h2 { margin: 0 0 4px; font-size: 20px; }
 .company-panel-heading p { margin: 0; color: #817b8b; font-size: 13px; }
 .company-form { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-.company-form label { display: grid; gap: 7px; color: #3d3846; font-size: 13px; font-weight: 750; }
-.company-form label:nth-child(3), .company-form button { grid-column: 1 / -1; }
+.company-field { display: grid; gap: 7px; }
+.company-field-wide, .company-form button { grid-column: 1 / -1; }
+.company-form label { color: #3d3846; font-size: 13px; font-weight: 750; }
 .company-form label em { color: #9993a2; font-size: 11px; font-style: normal; font-weight: 500; }
 .company-form input { width: 100%; min-height: 46px; padding: 0 13px; border: 1px solid #dcd7e5; border-radius: 10px; background: #fff; font: inherit; }
 .company-form input:focus { outline: 0; border-color: #6c4dff; box-shadow: 0 0 0 3px rgba(108,77,255,.12); }
 .company-form small { color: #8b8594; font-size: 11px; font-weight: 500; }
 .company-form button { min-height: 48px; border: 0; border-radius: 11px; background: #6c4dff; color: #fff; font-size: 14px; font-weight: 800; cursor: pointer; }
 .company-form button:disabled { cursor: wait; opacity: .58; }
+.company-form button:focus-visible,
+.company-state-card button:focus-visible,
+.company-switcher select:focus-visible {
+  outline: 3px solid rgba(108,77,255,.28);
+  outline-offset: 2px;
+}
 .company-switcher { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin: -8px 0 14px; color: #777180; font-size: 13px; }
 .company-switcher select { padding: 9px 34px 9px 12px; border: 1px solid #ddd8e7; border-radius: 10px; background: #fff; }
 .company-status-card { padding: 30px; }
@@ -55,7 +62,7 @@
 @media (max-width: 680px) {
   .company-panel, .company-status-card { padding: 22px; }
   .company-form, .company-summary-list { grid-template-columns: 1fr; }
-  .company-form label:nth-child(3), .company-form button { grid-column: auto; }
+  .company-field-wide, .company-form button { grid-column: auto; }
   .company-status-topline { align-items: flex-start; flex-wrap: wrap; }
   .company-status-badge { margin-left: 0; }
   .company-switcher { align-items: stretch; flex-direction: column; }

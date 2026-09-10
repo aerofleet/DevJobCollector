@@ -164,10 +164,10 @@ const CompanyPage = () => {
                 <div><h2>기업 정보 등록</h2><p>로그인 계정이 등록 기업의 첫 OWNER로 연결됩니다.</p></div>
               </div>
               <form className="company-form" onSubmit={submitCompany}>
-                <label>법인명<input name="legalName" value={companyForm.legalName} onChange={updateCompanyForm} maxLength="200" autoComplete="organization" required /></label>
-                <label>서비스 표시명<input name="displayName" value={companyForm.displayName} onChange={updateCompanyForm} maxLength="150" required /></label>
-                <label>사업자등록번호<input name="businessNumber" value={companyForm.businessNumber} onChange={updateCompanyForm} inputMode="numeric" pattern="\d{3}-?\d{2}-?\d{5}" placeholder="123-45-67890" required /><small>중복 확인에 사용되며 원문은 저장하지 않습니다.</small></label>
-                <label><span>기업 웹사이트 <em>선택</em></span><input type="url" name="websiteUrl" value={companyForm.websiteUrl} onChange={updateCompanyForm} maxLength="500" placeholder="https://example.com" /></label>
+                <div className="company-field"><label htmlFor="company-legal-name">법인명</label><input id="company-legal-name" name="legalName" value={companyForm.legalName} onChange={updateCompanyForm} maxLength="200" autoComplete="organization" required /></div>
+                <div className="company-field"><label htmlFor="company-display-name">서비스 표시명</label><input id="company-display-name" name="displayName" value={companyForm.displayName} onChange={updateCompanyForm} maxLength="150" required /></div>
+                <div className="company-field company-field-wide"><label htmlFor="company-business-number">사업자등록번호</label><input id="company-business-number" name="businessNumber" value={companyForm.businessNumber} onChange={updateCompanyForm} inputMode="numeric" pattern="\d{3}-?\d{2}-?\d{5}" placeholder="123-45-67890" aria-describedby="company-business-number-hint" required /><small id="company-business-number-hint">중복 확인에 사용되며 원문은 저장하지 않습니다.</small></div>
+                <div className="company-field"><label htmlFor="company-website">기업 웹사이트 <em>선택</em></label><input id="company-website" type="url" name="websiteUrl" value={companyForm.websiteUrl} onChange={updateCompanyForm} maxLength="500" placeholder="https://example.com" /></div>
                 <button type="submit" disabled={submitting === 'company'}>{submitting === 'company' ? '등록 중...' : '기업 등록하기'}</button>
               </form>
             </section>
@@ -221,7 +221,7 @@ const CompanyPage = () => {
                     <div><h2>기업 인증 요청</h2><p>사업자등록증 증빙의 Object Storage 키를 입력해주세요.</p></div>
                   </div>
                   <form className="company-form" onSubmit={submitVerification}>
-                    <label>증빙 문서 키<input value={evidenceObjectKey} onChange={(event) => setEvidenceObjectKey(event.target.value)} maxLength="500" pattern="^(?!/)(?!.*\.\.)(?!.*://).+$" placeholder="company-verification/.../evidence.pdf" required /><small>파일 원문이나 공개 URL이 아닌 발급된 비공개 저장소 키만 입력합니다.</small></label>
+                    <div className="company-field"><label htmlFor="company-evidence-key">증빙 문서 키</label><input id="company-evidence-key" value={evidenceObjectKey} onChange={(event) => setEvidenceObjectKey(event.target.value)} maxLength="500" pattern="^(?!/)(?!.*\.\.)(?!.*://).+$" placeholder="company-verification/.../evidence.pdf" aria-describedby="company-evidence-key-hint" required /><small id="company-evidence-key-hint">파일 원문이나 공개 URL이 아닌 발급된 비공개 저장소 키만 입력합니다.</small></div>
                     <button type="submit" disabled={submitting === 'verification'}>{submitting === 'verification' ? '요청 중...' : '인증 요청 제출'}</button>
                   </form>
                 </section>

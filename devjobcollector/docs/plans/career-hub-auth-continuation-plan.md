@@ -277,7 +277,7 @@ Career Hub Product DoD와 CH-G1 완료 후 `member-auth-implementation-plan.md`�
 2. 완료 — P3-02: Company/CompanyMember와 마지막 OWNER invariant (2026-09-07, MySQL 전체 61/61)
 3. 완료 — P3-03: CompanySignupFacade 및 기업 가입 API (2026-09-07, MySQL 전체 64/64)
 4. 완료 — P4-03 기업 멤버 목록·초대·역할 변경·제거 완료(2026-09-09, API 4/4·MySQL 전체 78/78)
-5. P5: 기업 가입·검증 상태 UI와 개인/기업 E2E
+5. 완료 — P5: 기업 가입·검증 상태 UI와 개인/기업 E2E(2026-09-10, 전체 E2E 50 passed/6 의도적 skip)
 6. P6: rate limit, audit, metrics, concurrency, rollback
 7. P7: Kakao/Naver/Apple Provider 확장
 8. P8: account link/unlink와 최종 보안 검증
@@ -347,4 +347,4 @@ Career Hub Product DoD와 CH-G1 완료 후 `member-auth-implementation-plan.md`�
 7. 본 계획의 첫 미완료 체크박스와 선행 게이트 확인
 8. 구현 후 테스트·커밋·배포·잔여 위험을 본 계획과 HANDOVER에 갱신
 
-기업 기능 일정은 기업 MVP 2026-10-02, 전체 Multi-Provider 2026-10-30으로 재산정했고 P4 기업 검증·authorization·멤버 관리를 완료했다. 현재 재개 지점은 **P5-01 기업 가입·검증 상태 프론트엔드**다. Secret 교체는 개발 세션 무효화 영향을 고려해 운영 전 최종 보안 게이트로 유지한다. 현재 사용자 변경은 삭제·reset·restore하지 않는다.
+기업 기능 일정은 기업 MVP 2026-10-02, 전체 Multi-Provider 2026-10-30으로 재산정했고 P5 기업 UI·가입 E2E·접근성/오류 UX 검증까지 완료했다. 현재 재개 지점은 **P6-01 rate limit·audit·metrics 구현**이다. Secret 교체는 개발 세션 무효화 영향을 고려해 운영 전 최종 보안 게이트로 유지한다. 현재 사용자 변경은 삭제·reset·restore하지 않는다.
