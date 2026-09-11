@@ -86,7 +86,7 @@ Career Hub와 CH-G1 완료 실적을 반영해 기업회원 MVP 목표일을 **2
 - [x] P4-02 membership authorization 서비스와 권한 매트릭스 테스트 (완료: 2026-09-08, 역할×상태×권한 200/200·무권한 176/176 차단·MySQL 전체 72/72)
 - [x] P4-03 기업 멤버 초대·역할 변경·제거 구현 (완료: 2026-09-09, API 4/4·신규 MySQL 6/6·전체 MySQL 78/78)
 - [x] P5-01 기업 가입/검증 상태 프론트엔드 구현 (완료: 2026-09-10, 상태 조회·무토큰 차단 포함 타깃 14/14·전체 Gradle 450건 failures/errors 0·프론트 lint/build 성공)
-- [x] P5-02 개인·기업 가입 E2E 및 접근성/오류 UX 검증 (완료: 2026-09-10, P5-02 4 viewport 13 passed/3 의도적 skip·전체 E2E 50 passed/6 의도적 skip·lint/build 성공)
+- [x] P5-02 개인·기업 가입 E2E 및 접근성/오류 UX 검증 (완료: 2026-09-10, 후속 기업회원 탭 활성화: 2026-09-11, 이메일·소셜 기업 진입 8/8·전체 E2E 54 passed/6 의도적 skip·lint/build 성공)
 - [x] P6-01 rate limit·audit·metrics 구현 (완료: 2026-09-11, 보안 타깃 45/45·전체 Gradle 467/467·failures/errors/skipped 0)
 - [ ] P6-02 동시성·성능·migration rehearsal·rollback 검증 (2일, P0)
 

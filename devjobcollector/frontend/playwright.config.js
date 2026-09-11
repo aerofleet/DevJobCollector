@@ -1,5 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
+const useExternalServer = globalThis.process?.env.DJC_E2E_EXTERNAL_SERVER === 'true';
+
 const viewports = [
   { name: 'mobile-360', viewport: { width: 360, height: 800 } },
   { name: 'tablet-768', viewport: { width: 768, height: 1024 } },
@@ -18,7 +20,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   projects: viewports.map(({ name, viewport }) => ({ name, use: { viewport } })),
-  webServer: {
+  webServer: useExternalServer ? undefined : {
     command: 'node ./node_modules/vite/bin/vite.js --mode e2e --host 127.0.0.1 --port 4174',
     url: 'http://127.0.0.1:4174',
     reuseExistingServer: true,

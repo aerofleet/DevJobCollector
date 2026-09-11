@@ -14,6 +14,7 @@ const messageFor = (error, fallback) => error.response?.data?.detail
 
 const SignupPage = () => {
   const navigate = useNavigate();
+  const [memberType, setMemberType] = useState('personal');
   const [step, setStep] = useState('form');
   const [form, setForm] = useState({
     name: '', email: '', password: '', passwordConfirm: '', termsAccepted: false, privacyAccepted: false,
@@ -34,6 +35,15 @@ const SignupPage = () => {
   }, []);
 
   const onTurnstileToken = useCallback((token) => setTurnstileToken(token), []);
+
+  const selectMemberType = (type) => {
+    setMemberType(type);
+    if (type === 'company') {
+      sessionStorage.setItem('postLoginNextPath', '/company');
+    } else if (sessionStorage.getItem('postLoginNextPath') === '/company') {
+      sessionStorage.removeItem('postLoginNextPath');
+    }
+  };
 
   const update = (event) => {
     const { name, value, checked, type } = event.target;
@@ -85,7 +95,9 @@ const SignupPage = () => {
     try {
       const result = await verifyPersonalEmail({ email: form.email, code });
       localStorage.setItem('accessToken', result.accessToken);
-      navigate('/member', { replace: true });
+      const destination = memberType === 'company' ? '/company' : '/member';
+      sessionStorage.removeItem('postLoginNextPath');
+      navigate(destination, { replace: true });
     } catch (error) {
       setErrorMessage(messageFor(error, '인증 코드 확인 중 오류가 발생했습니다.'));
     } finally {
@@ -127,9 +139,15 @@ const SignupPage = () => {
         </div>
 
         <div className="member-type-tabs" role="group" aria-label="회원 유형">
-          <button type="button" className="active" aria-pressed="true">개인회원</button>
-          <button type="button" aria-pressed="false" onClick={() => navigate('/company')}>기업회원 <small>기업 등록</small></button>
+          <button type="button" className={memberType === 'personal' ? 'active' : ''} aria-pressed={memberType === 'personal'} onClick={() => selectMemberType('personal')}>개인회원</button>
+          <button type="button" className={memberType === 'company' ? 'active' : ''} aria-pressed={memberType === 'company'} onClick={() => selectMemberType('company')}>기업회원 <small>기업 등록</small></button>
         </div>
+
+        {memberType === 'company' && step === 'form' && (
+          <p className="company-signup-guide" role="status">
+            담당자 계정을 만든 뒤 기업 정보 등록과 인증을 이어서 진행합니다.
+          </p>
+        )}
 
         {step === 'form' ? (
           <>
@@ -148,7 +166,7 @@ const SignupPage = () => {
                 <label><input type="checkbox" name="privacyAccepted" checked={form.privacyAccepted} onChange={update} required /> (필수) <Link to="/privacy" target="_blank" rel="noreferrer">개인정보 처리방침</Link> 동의</label>
               </div>
               <TurnstileWidget key={turnstileVersion} siteKey={siteKey} onToken={onTurnstileToken} />
-              <button className="signup-submit" disabled={isSubmitting}>{isSubmitting ? '가입 처리 중...' : '이메일로 가입하기'}</button>
+              <button className="signup-submit" disabled={isSubmitting}>{isSubmitting ? '가입 처리 중...' : memberType === 'company' ? '가입 후 기업 등록하기' : '이메일로 가입하기'}</button>
             </form>
           </>
         ) : (
@@ -165,7 +183,7 @@ const SignupPage = () => {
 
         {notice && <p className="signup-notice" role="status">{notice}</p>}
         {errorMessage && <p className="signup-error" role="alert">{errorMessage}</p>}
-        <p className="login-link">이미 계정이 있나요? <Link to="/login">로그인</Link></p>
+        <p className="login-link">이미 계정이 있나요? <Link to={memberType === 'company' ? '/login?next=/company' : '/login'}>로그인</Link></p>
       </section>
     </main>
   );

@@ -31,6 +31,7 @@
 .member-type-tabs button { min-height: 44px; padding: 11px; border: 0; border-radius: 9px; background: transparent; color: #8a8595; font-weight: 700; }
 .member-type-tabs button.active { background: #fff; color: #5c3fe0; box-shadow: 0 2px 10px rgba(57, 39, 126, .1); }
 .member-type-tabs small { display: block; margin-top: 2px; font-size: 9px; }
+.company-signup-guide { margin: -10px 0 20px; padding: 11px 13px; border-radius: 9px; background: #f0ecff; color: #5438d2; font-size: 12px; line-height: 1.55; text-align: center; }
 
 .social-signup { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .social-signup a { min-height: 44px; padding: 12px; border: 1px solid #ddd9e8; border-radius: 10px; color: #292630; text-align: center; text-decoration: none; font-size: 14px; font-weight: 700; }

@@ -48,6 +48,7 @@ const LoginPage = () => {
   const [linkProvider, setLinkProvider] = useState('');
   const [isLinking, setIsLinking] = useState(false);
   const linkStartAttemptRef = useRef(false);
+  const callbackHandledRef = useRef(false);
 
   const authServerBaseUrl = useMemo(() => {
     const explicit = import.meta.env.VITE_AUTH_BASE_URL;
@@ -141,6 +142,10 @@ const LoginPage = () => {
     if (!token) {
       return;
     }
+    if (callbackHandledRef.current) {
+      return;
+    }
+    callbackHandledRef.current = true;
 
     localStorage.setItem('accessToken', token);
     sessionStorage.removeItem('postLoginNextPath');

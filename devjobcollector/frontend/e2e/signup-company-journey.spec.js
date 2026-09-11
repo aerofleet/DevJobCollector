@@ -106,26 +106,38 @@ const installJourneyApi = async (page) => {
   return state;
 };
 
-test('개인 가입 후 기업 OWNER 등록과 인증 요청까지 완료한다', async ({ page }) => {
+test('기업회원 가입 선택 후 기업 OWNER 등록과 인증 요청까지 완료한다', async ({ page }) => {
   const state = await installJourneyApi(page);
 
   await page.goto('/signup');
   await expect(page.getByRole('group', { name: '회원 유형' })).toBeVisible();
-  await expect(page.getByRole('button', { name: '개인회원' })).toHaveAttribute('aria-pressed', 'true');
+  const personalTab = page.getByRole('button', { name: '개인회원' });
+  const companyTab = page.getByRole('button', { name: /기업회원/ });
+  await expect(personalTab).toHaveAttribute('aria-pressed', 'true');
+  await companyTab.click();
+  await expect(page).toHaveURL(/\/signup$/);
+  await expect(personalTab).toHaveAttribute('aria-pressed', 'false');
+  await expect(companyTab).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('status')).toContainText('기업 정보 등록과 인증');
+  await expect(page.getByRole('button', { name: '가입 후 기업 등록하기' })).toBeVisible();
+  await expect(page.getByRole('main').getByRole('link', { name: '로그인' }))
+    .toHaveAttribute('href', '/login?next=/company');
+  expect(await page.evaluate(() => sessionStorage.getItem('postLoginNextPath'))).toBe('/company');
   await page.getByLabel('이름').fill(member.name);
   await page.getByLabel('이메일').fill(member.email);
   await page.getByLabel('비밀번호', { exact: true }).fill('Password1!');
   await page.getByLabel('비밀번호 확인').fill('Password1!');
   await page.getByLabel(/이용약관/).check();
   await page.getByLabel(/개인정보 처리방침/).check();
-  await page.getByRole('button', { name: '이메일로 가입하기' }).click();
+  await page.getByRole('button', { name: '가입 후 기업 등록하기' }).click();
 
   await expect(page.getByRole('heading', { name: '이메일을 확인해주세요' })).toBeVisible();
   await expect(page.getByRole('status')).toContainText('로컬 개발용 인증 코드');
   await expect(page.getByLabel('이메일 인증 코드')).toHaveValue('123456');
   await page.getByRole('button', { name: '인증하고 시작하기' }).click();
 
-  await expect(page).toHaveURL(/\/member$/);
+  await expect(page).toHaveURL(/\/company$/);
+  expect(await page.evaluate(() => sessionStorage.getItem('postLoginNextPath'))).toBeNull();
   expect(state.signupPayload).toEqual({
     email: member.email,
     name: member.name,
@@ -136,7 +148,6 @@ test('개인 가입 후 기업 OWNER 등록과 인증 요청까지 완료한다'
   });
   expect(state.verificationPayload).toEqual({ email: member.email, code: '123456' });
 
-  await page.goto('/company');
   await expect(page.getByRole('heading', { name: '기업 정보 등록' })).toBeVisible();
   await page.getByLabel('법인명').fill(company.legalName);
   await page.getByLabel('서비스 표시명').fill(company.displayName);
@@ -164,6 +175,21 @@ test('개인 가입 후 기업 OWNER 등록과 인증 요청까지 완료한다'
     evidenceObjectKey: 'company-verification/77/evidence.pdf',
   });
   await expectNoHorizontalScroll(page);
+});
+
+test('기업회원 선택 의도는 소셜 로그인 callback 후 기업 등록으로 이어진다', async ({ page }) => {
+  await installJourneyApi(page);
+
+  await page.goto('/signup');
+  await page.getByRole('button', { name: /기업회원/ }).click();
+  await page.goto('/oauth/callback?token=company-social-token');
+
+  await expect(page).toHaveURL(/\/company$/);
+  await expect(page.getByRole('heading', { name: '기업 정보 등록' })).toBeVisible();
+  expect(await page.evaluate(() => ({
+    accessToken: localStorage.getItem('accessToken'),
+    nextPath: sessionStorage.getItem('postLoginNextPath'),
+  }))).toEqual({ accessToken: 'company-social-token', nextPath: null });
 });
 
 test('가입과 기업 조회 오류를 알리고 사용자가 다시 시도할 수 있다', async ({ page }) => {
