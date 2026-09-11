@@ -13,6 +13,10 @@ public interface CompanyVerificationRequestRepository
     Optional<CompanyVerificationRequest> findTopByCompany_IdOrderByRequestedAtDescIdDesc(Long companyId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<CompanyVerificationRequest> findTopByCompany_IdAndStatusOrderByIdAsc(
+            Long companyId, CompanyVerificationStatus status);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT request FROM CompanyVerificationRequest request WHERE request.id = :requestId")
     Optional<CompanyVerificationRequest> findByIdForUpdate(@Param("requestId") Long requestId);
 }

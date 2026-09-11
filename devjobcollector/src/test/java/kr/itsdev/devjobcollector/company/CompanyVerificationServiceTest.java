@@ -89,12 +89,13 @@ class CompanyVerificationServiceTest {
     @Test
     void rejectsDuplicatePendingRequestUnderCompanyLock() {
         CompanyMember membership = mock(CompanyMember.class);
+        CompanyVerificationRequest pendingRequest = mock(CompanyVerificationRequest.class);
         when(currentMemberService.requireCurrentMember("10")).thenReturn(owner);
         when(companyRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(company));
         when(memberRepository.findByCompany_IdAndUser_Id(1L, 10L)).thenReturn(Optional.of(membership));
         when(membership.isActiveOwner()).thenReturn(true);
-        when(requestRepository.existsByCompany_IdAndStatus(1L, CompanyVerificationStatus.PENDING))
-                .thenReturn(true);
+        when(requestRepository.findTopByCompany_IdAndStatusOrderByIdAsc(
+                1L, CompanyVerificationStatus.PENDING)).thenReturn(Optional.of(pendingRequest));
 
         assertThatThrownBy(() -> service.submit("10", 1L, submitRequest()))
                 .isInstanceOf(CompanyVerificationException.class)

@@ -65,8 +65,8 @@ public class CompanyVerificationService {
                 && company.getStatus() != CompanyStatus.REJECTED) {
             throw CompanyVerificationException.invalidCompanyStatus();
         }
-        if (requestRepository.existsByCompany_IdAndStatus(
-                companyId, CompanyVerificationStatus.PENDING)) {
+        if (requestRepository.findTopByCompany_IdAndStatusOrderByIdAsc(
+                companyId, CompanyVerificationStatus.PENDING).isPresent()) {
             throw CompanyVerificationException.pendingRequestExists();
         }
 

@@ -1,6 +1,6 @@
 # DJC 회원·기업·Multi-Provider 인증 통합 실행계획
 
-> 상태: In Progress — Career Hub, G1, P5, P6-01 완료 및 P6-02 진행 대기
+> 상태: In Progress — Career Hub, G1, 기업 MVP P3~P6 완료 및 P7-01 진행 대기
 > 기준일: 2026-08-19
 > 구현 시작 예정: 2026-08-20
 > 산정 조건: 주 5일, 구현자 1명, Provider 자격증명과 검토자 응답이 예정대로 제공됨
@@ -88,7 +88,7 @@ Career Hub와 CH-G1 완료 실적을 반영해 기업회원 MVP 목표일을 **2
 - [x] P5-01 기업 가입/검증 상태 프론트엔드 구현 (완료: 2026-09-10, 상태 조회·무토큰 차단 포함 타깃 14/14·전체 Gradle 450건 failures/errors 0·프론트 lint/build 성공)
 - [x] P5-02 개인·기업 가입 E2E 및 접근성/오류 UX 검증 (완료: 2026-09-10, 후속 기업회원 탭 활성화: 2026-09-11, 이메일·소셜 기업 진입 8/8·전체 E2E 54 passed/6 의도적 skip·lint/build 성공)
 - [x] P6-01 rate limit·audit·metrics 구현 (완료: 2026-09-11, 보안 타깃 45/45·전체 Gradle 467/467·failures/errors/skipped 0)
-- [ ] P6-02 동시성·성능·migration rehearsal·rollback 검증 (2일, P0)
+- [x] P6-02 동시성·성능·migration rehearsal·rollback 검증 (완료: 2026-09-12, concurrency 10에서 3종 각 20회·최종 row/감사 각 1, 가입 p95 21ms, 전체 Gradle 471/471, V6-era 앱→V7 DB 5/5)
 
 ### P7~P8 — Provider 확장
 
