@@ -38,7 +38,15 @@ npm.cmd run build
 # 1,831 modules transformed, build 성공
 ```
 
+## 운영 반영
+
+- `main` push: `77d242e..5c0f473`
+- Frontend Actions `34592049096`: 성공, Cloudflare Worker version `2f7143a2-7d1a-4a38-a42b-0dfcf96501c9`
+- Backend Actions `34592049084`: 성공
+- Docker validation `34592049116`: 성공
+- 운영 번들 `index-C2xtIVPV.js`: `기업회원 가입은 준비 중입니다.` 0건, `가입 후 기업 등록하기` 1건 이상, 기업가입 안내 문구 1건 이상 확인
+
 ## 남은 범위
 
-- E2E는 결정적 API/OAuth callback 모킹 평가다. 운영 배포 후 실제 Provider callback과 기업 쓰기 smoke를 별도로 수행해야 한다.
+- E2E는 결정적 API/OAuth callback 모킹 평가다. 실제 Provider 계정 승인과 운영 기업 데이터 쓰기 smoke는 별도로 수행해야 한다.
 - 기업 계정은 별도 `users.account_type`이 아니라 공통 사용자 계정과 `company_members` OWNER 관계로 판정한다.
