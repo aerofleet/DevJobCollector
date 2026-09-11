@@ -53,6 +53,13 @@ git diff --check
 
 rollback 상세 절차는 `ops/db/company-v7-rollback-rehearsal.md`를 따른다. 운영 배포 시에는 현재 JAR + systemd 파이프라인에서 직전 정상 JAR을 사용하고 V7 테이블은 보존한다.
 
+## 운영 반영
+
+- 구현·검증 커밋: `fcb9868`
+- Backend Actions `34635245273`: backend test, MySQL 26.7 migration, 배포 및 완료 확인 단계 모두 성공.
+- Docker Actions `34635245268`: MySQL 26.7 migration 및 linux/amd64·linux/arm64 이미지 검증 성공.
+- 프론트엔드 변경이 없어 Frontend Actions는 실행되지 않았다. 기존 기업회원 가입 탭 활성화 상태는 유지된다.
+
 ## 남은 범위
 
 - rate limiter는 현재 단일 JAR 프로세스 로컬 메모리 기준이다. 다중 인스턴스 전환 시 분산 카운터 동시성 평가를 별도로 수행한다.
