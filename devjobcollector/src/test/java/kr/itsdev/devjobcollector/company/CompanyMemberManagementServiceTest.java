@@ -18,6 +18,9 @@ import kr.itsdev.devjobcollector.dto.company.CompanyMemberInvitationRequest;
 import kr.itsdev.devjobcollector.security.account.UserAccount;
 import kr.itsdev.devjobcollector.security.account.UserAccountRepository;
 import kr.itsdev.devjobcollector.security.account.UserAccountStatus;
+import kr.itsdev.devjobcollector.security.hardening.SecurityAction;
+import kr.itsdev.devjobcollector.security.hardening.SecurityAuditEventType;
+import kr.itsdev.devjobcollector.security.hardening.SecurityHardeningService;
 import kr.itsdev.devjobcollector.security.service.CurrentMemberService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,6 +34,7 @@ class CompanyMemberManagementServiceTest {
     private UserAccountRepository userRepository;
     private CurrentMemberService currentMemberService;
     private CompanyAuthorizationService authorizationService;
+    private SecurityHardeningService hardeningService;
     private CompanyMemberManagementService service;
     private UserAccount actor;
     private Company company;
@@ -43,9 +47,10 @@ class CompanyMemberManagementServiceTest {
         userRepository = mock(UserAccountRepository.class);
         currentMemberService = mock(CurrentMemberService.class);
         authorizationService = mock(CompanyAuthorizationService.class);
+        hardeningService = mock(SecurityHardeningService.class);
         service = new CompanyMemberManagementService(
                 companyRepository, memberRepository, userRepository, currentMemberService,
-                authorizationService,
+                authorizationService, hardeningService,
                 Clock.fixed(Instant.parse("2026-09-08T12:00:00Z"), ZoneOffset.UTC));
         actor = user(10L, "owner@example.com", UserAccountStatus.ACTIVE);
         company = mock(Company.class);
@@ -98,6 +103,10 @@ class CompanyMemberManagementServiceTest {
         assertThat(request.toString()).contains("email=<redacted>")
                 .doesNotContain("invitee@example.com");
         verify(authorizationService).authorize(actorMembership, CompanyPermission.ASSIGN_ADMIN);
+        verify(hardeningService).checkRateLimit(
+                SecurityAction.COMPANY_MEMBER_INVITATION, "actor:10", "company:1");
+        verify(hardeningService).audit(SecurityAuditEventType.COMPANY_MEMBER_INVITED,
+                10L, 20L, 1L, null, "INVITED:ADMIN");
     }
 
     @Test
@@ -157,6 +166,9 @@ class CompanyMemberManagementServiceTest {
 
         assertThat(response.role()).isEqualTo(CompanyMemberRole.RECRUITER);
         verify(authorizationService).authorize(actorMembership, CompanyPermission.ASSIGN_ADMIN);
+        verify(hardeningService).audit(SecurityAuditEventType.COMPANY_MEMBER_ROLE_CHANGED,
+                10L, 20L, 1L, CompanyMemberRole.ADMIN.name(),
+                CompanyMemberRole.RECRUITER.name());
     }
 
     @Test
@@ -182,6 +194,9 @@ class CompanyMemberManagementServiceTest {
 
         assertThat(target.getStatus()).isEqualTo(CompanyMemberStatus.LEFT);
         verify(memberRepository, never()).delete(any());
+        verify(hardeningService).audit(SecurityAuditEventType.COMPANY_MEMBER_REMOVED,
+                10L, 20L, 1L, CompanyMemberStatus.ACTIVE.name(),
+                CompanyMemberStatus.LEFT.name());
     }
 
     @Test

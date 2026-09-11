@@ -8,6 +8,7 @@ import kr.itsdev.devjobcollector.company.CompanyMemberManagementException;
 import kr.itsdev.devjobcollector.company.CompanyVerificationException;
 import kr.itsdev.devjobcollector.company.LastActiveOwnerException;
 import kr.itsdev.devjobcollector.security.service.MemberAuthenticationException;
+import kr.itsdev.devjobcollector.security.hardening.SecurityRateLimitException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -15,6 +16,18 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+    @ExceptionHandler(SecurityRateLimitException.class)
+    public ResponseEntity<ApiErrorResponse> handleSecurityRateLimit(
+            SecurityRateLimitException exception,
+            HttpServletRequest request
+    ) {
+        HttpStatus status = HttpStatus.TOO_MANY_REQUESTS;
+        return ResponseEntity.status(status).body(new ApiErrorResponse(
+                status.value(), SecurityRateLimitException.ERROR_CODE,
+                "요청 횟수를 초과했습니다. 잠시 후 다시 시도해주세요.",
+                request.getRequestURI()));
+    }
 
     @ExceptionHandler(CompanyMemberManagementException.class)
     public ResponseEntity<ApiErrorResponse> handleCompanyMemberManagement(

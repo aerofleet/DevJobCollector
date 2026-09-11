@@ -1,7 +1,6 @@
 package kr.itsdev.devjobcollector.migration;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -16,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 @EnabledIfEnvironmentVariable(named = "DJC_MIGRATION_TEST_URL", matches = ".+")
-class CompanyVerificationV6MigrationTest {
+class SecurityAuditV7MigrationTest {
     private static String url;
     private static String username;
     private static String password;
@@ -27,7 +26,8 @@ class CompanyVerificationV6MigrationTest {
         url = System.getenv("DJC_MIGRATION_TEST_URL");
         username = System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root");
         password = System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", "");
-        expectedVersion = System.getenv().getOrDefault("DJC_MIGRATION_TEST_EXPECTED_VERSION", "26.7.0");
+        expectedVersion = System.getenv().getOrDefault(
+                "DJC_MIGRATION_TEST_EXPECTED_VERSION", "26.7.0");
     }
 
     @BeforeEach
@@ -39,78 +39,71 @@ class CompanyVerificationV6MigrationTest {
     }
 
     @Test
-    void migratesCleanDatabaseFromV1ToV6() throws SQLException {
-        flyway("6").migrate();
+    void migratesCleanDatabaseThroughV7() throws SQLException {
+        flyway(null).migrate();
 
         assertThat(scalar("SELECT VERSION()" )).startsWith(expectedVersion);
-        assertThat(scalar("SELECT version FROM flyway_schema_history WHERE success = 1 ORDER BY installed_rank DESC LIMIT 1"))
-                .isEqualTo("6");
-        assertThat(scalar("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE()"))
-                .isEqualTo("21");
-        assertThat(scalar("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'company_verification_requests'"))
+        assertThat(scalar("SELECT version FROM flyway_schema_history WHERE success = 1 "
+                + "ORDER BY installed_rank DESC LIMIT 1")).isEqualTo("7");
+        assertThat(scalar("SELECT COUNT(*) FROM information_schema.tables "
+                + "WHERE table_schema = DATABASE()")).isEqualTo("22");
+        assertThat(scalar("SELECT COUNT(*) FROM information_schema.tables "
+                + "WHERE table_schema = DATABASE() AND table_name = 'security_audit_events'"))
                 .isEqualTo("1");
     }
 
     @Test
-    void upgradesV5WithoutChangingCompanyRows() throws SQLException {
-        flyway("5").migrate();
-        insertUser(1, "owner@example.com", "USER");
-        insertCompany();
-
+    void upgradesV6WithoutChangingExistingCompanyData() throws SQLException {
         flyway("6").migrate();
+        insertUserAndCompany();
+
+        flyway(null).migrate();
 
         assertThat(scalar("SELECT COUNT(*) FROM companies")).isEqualTo("1");
-        assertThat(scalar("SELECT COUNT(*) FROM company_verification_requests")).isEqualTo("0");
+        assertThat(scalar("SELECT COUNT(*) FROM security_audit_events")).isEqualTo("0");
     }
 
     @Test
-    void enforcesVerificationForeignKeysAndAuditRetention() throws SQLException {
-        flyway("6").migrate();
-        insertUser(1, "owner@example.com", "USER");
-        insertUser(2, "admin@example.com", "PLATFORM_ADMIN");
-        insertCompany();
+    void retainsIdOnlyAuditTrailAfterSourceRowsAreRemoved() throws SQLException {
+        flyway(null).migrate();
+        insertUserAndCompany();
         execute("""
-                INSERT INTO company_verification_requests
-                    (company_id, requested_by, method, status, evidence_object_key, requested_at)
+                INSERT INTO security_audit_events
+                    (event_type, actor_user_id, subject_user_id, company_id,
+                     previous_value, new_value, occurred_at)
                 VALUES
-                    (1, 1, 'BUSINESS_REGISTRATION_DOCUMENT', 'PENDING',
-                     'company-verification/1/evidence.pdf', CURRENT_TIMESTAMP(6))
+                    ('COMPANY_MEMBER_ROLE_CHANGED', 1, 1, 1,
+                     'VIEWER', 'RECRUITER', CURRENT_TIMESTAMP(6))
                 """);
 
-        assertThatThrownBy(() -> execute("DELETE FROM users WHERE id = 1"))
-                .isInstanceOf(SQLException.class);
-        assertThatThrownBy(() -> execute("""
-                INSERT INTO company_verification_requests
-                    (company_id, requested_by, method, evidence_object_key, requested_at)
-                VALUES (999, 1, 'BUSINESS_REGISTRATION_DOCUMENT', 'invalid', CURRENT_TIMESTAMP(6))
-                """))
-                .isInstanceOf(SQLException.class);
-
-        execute("""
-                UPDATE company_verification_requests
-                SET status = 'APPROVED', reviewed_by = 2, reviewed_at = CURRENT_TIMESTAMP(6)
-                WHERE id = 1
-                """);
-        assertThatThrownBy(() -> execute("DELETE FROM users WHERE id = 2"))
-                .isInstanceOf(SQLException.class);
         execute("DELETE FROM companies WHERE id = 1");
-        assertThat(scalar("SELECT COUNT(*) FROM company_verification_requests")).isEqualTo("0");
+        execute("DELETE FROM users WHERE id = 1");
+
+        assertThat(scalar("SELECT COUNT(*) FROM security_audit_events")).isEqualTo("1");
+        assertThat(scalar("SELECT actor_user_id FROM security_audit_events WHERE id = 1"))
+                .isEqualTo("1");
+        assertThat(scalar("""
+                SELECT COUNT(*)
+                FROM information_schema.columns
+                WHERE table_schema = DATABASE()
+                  AND table_name = 'security_audit_events'
+                  AND column_name IN ('email', 'business_number', 'business_number_hash',
+                                      'evidence_object_key', 'token', 'secret')
+                """)).isEqualTo("0");
     }
 
-    private void insertUser(long id, String email, String role) throws SQLException {
+    private void insertUserAndCompany() throws SQLException {
         execute("""
                 INSERT INTO users (id, email, name, role, status, provider, email_verified_at)
-                VALUES (%d, '%s', 'verification-user', '%s', 'ACTIVE', 'LOCAL', CURRENT_TIMESTAMP(6))
-                """.formatted(id, email, role));
-    }
-
-    private void insertCompany() throws SQLException {
+                VALUES (1, 'audit@example.com', 'audit-user', 'USER', 'ACTIVE', 'LOCAL',
+                        CURRENT_TIMESTAMP(6))
+                """);
         execute("""
                 INSERT INTO companies
                     (id, legal_name, display_name, business_number_hash,
                      business_number_masked, created_by)
                 VALUES
-                    (1, '테스트 주식회사', '테스트', '%s', '***-**-12345', 1)
+                    (1, '감사 주식회사', '감사', '%s', '***-**-12345', 1)
                 """.formatted("a".repeat(64)));
     }
 

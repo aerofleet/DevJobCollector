@@ -127,3 +127,12 @@ auth:
     turnstile-secret: ${TURNSTILE_SECRET_KEY:}
     terms-policy-version: ${AUTH_SIGNUP_TERMS_POLICY_VERSION:v1}
     privacy-policy-version: ${AUTH_SIGNUP_PRIVACY_POLICY_VERSION:v1}
+
+security:
+  hardening:
+    window-minutes: ${SECURITY_RATE_LIMIT_WINDOW_MINUTES:60}
+    max-tracked-keys: ${SECURITY_RATE_LIMIT_MAX_TRACKED_KEYS:10000}
+    company-signups-per-window: ${SECURITY_COMPANY_SIGNUPS_PER_WINDOW:5}
+    member-invitations-per-window: ${SECURITY_MEMBER_INVITATIONS_PER_WINDOW:30}
+    verification-requests-per-window: ${SECURITY_VERIFICATION_REQUESTS_PER_WINDOW:5}
+    verification-reviews-per-window: ${SECURITY_VERIFICATION_REVIEWS_PER_WINDOW:60}

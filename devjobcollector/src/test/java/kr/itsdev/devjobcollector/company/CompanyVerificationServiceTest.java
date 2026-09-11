@@ -15,6 +15,9 @@ import java.util.Optional;
 import kr.itsdev.devjobcollector.dto.company.CompanyVerificationSubmitRequest;
 import kr.itsdev.devjobcollector.security.account.AuthProvider;
 import kr.itsdev.devjobcollector.security.account.UserAccount;
+import kr.itsdev.devjobcollector.security.hardening.SecurityAction;
+import kr.itsdev.devjobcollector.security.hardening.SecurityAuditEventType;
+import kr.itsdev.devjobcollector.security.hardening.SecurityHardeningService;
 import kr.itsdev.devjobcollector.security.service.CurrentMemberService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +27,7 @@ class CompanyVerificationServiceTest {
     private CompanyMemberRepository memberRepository;
     private CompanyVerificationRequestRepository requestRepository;
     private CurrentMemberService currentMemberService;
+    private SecurityHardeningService hardeningService;
     private CompanyVerificationService service;
     private UserAccount owner;
     private Company company;
@@ -34,8 +38,10 @@ class CompanyVerificationServiceTest {
         memberRepository = mock(CompanyMemberRepository.class);
         requestRepository = mock(CompanyVerificationRequestRepository.class);
         currentMemberService = mock(CurrentMemberService.class);
+        hardeningService = mock(SecurityHardeningService.class);
         service = new CompanyVerificationService(
                 companyRepository, memberRepository, requestRepository, currentMemberService,
+                hardeningService,
                 Clock.fixed(Instant.parse("2026-09-08T01:00:00Z"), ZoneOffset.UTC));
         owner = mock(UserAccount.class);
         when(owner.getId()).thenReturn(10L);
@@ -61,6 +67,10 @@ class CompanyVerificationServiceTest {
         assertThat(submitRequest().toString())
                 .contains("evidenceObjectKey=<redacted>")
                 .doesNotContain("verification/1/evidence.pdf");
+        verify(hardeningService).checkRateLimit(
+                SecurityAction.COMPANY_VERIFICATION_REQUEST, "actor:10", "company:1");
+        verify(hardeningService).audit(SecurityAuditEventType.COMPANY_VERIFICATION_REQUESTED,
+                10L, 10L, 1L, null, CompanyVerificationStatus.PENDING.name());
     }
 
     @Test
@@ -94,6 +104,7 @@ class CompanyVerificationServiceTest {
     @Test
     void platformAdminApprovesPendingRequestAndVerifiesCompany() {
         UserAccount admin = mock(UserAccount.class);
+        when(admin.getId()).thenReturn(99L);
         when(admin.getRole()).thenReturn("PLATFORM_ADMIN");
         CompanyVerificationRequest request = CompanyVerificationRequest.pending(
                 company, owner, CompanyVerificationMethod.BUSINESS_REGISTRATION_DOCUMENT,
@@ -109,6 +120,11 @@ class CompanyVerificationServiceTest {
         assertThat(response.companyStatus()).isEqualTo(CompanyStatus.VERIFIED);
         assertThat(response.reviewedAt()).isEqualTo(LocalDateTime.of(2026, 9, 8, 1, 0));
         verify(requestRepository).flush();
+        verify(hardeningService).checkRateLimit(
+                SecurityAction.COMPANY_VERIFICATION_REVIEW, "actor:99", "company:null");
+        verify(hardeningService).audit(SecurityAuditEventType.COMPANY_VERIFICATION_APPROVED,
+                99L, 10L, null, CompanyVerificationStatus.PENDING.name(),
+                CompanyVerificationStatus.APPROVED.name());
     }
 
     @Test

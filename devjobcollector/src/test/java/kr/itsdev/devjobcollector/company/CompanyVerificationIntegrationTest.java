@@ -12,6 +12,7 @@ import kr.itsdev.devjobcollector.security.account.PersonalProfileRepository;
 import kr.itsdev.devjobcollector.security.account.UserAccount;
 import kr.itsdev.devjobcollector.security.account.UserAccountRepository;
 import kr.itsdev.devjobcollector.security.service.CurrentMemberService;
+import kr.itsdev.devjobcollector.security.hardening.SecurityHardeningService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +40,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Import({QuerydslConfig.class, CompanyVerificationService.class, CurrentMemberService.class})
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class CompanyVerificationIntegrationTest {
+    @MockitoBean SecurityHardeningService hardeningService;
     private static final String EMAIL_PREFIX = "p401-verification-";
 
     @Autowired CompanyVerificationService service;

@@ -5,6 +5,9 @@ import java.time.LocalDateTime;
 import kr.itsdev.devjobcollector.dto.company.CompanyVerificationResponse;
 import kr.itsdev.devjobcollector.dto.company.CompanyVerificationSubmitRequest;
 import kr.itsdev.devjobcollector.security.account.UserAccount;
+import kr.itsdev.devjobcollector.security.hardening.SecurityAction;
+import kr.itsdev.devjobcollector.security.hardening.SecurityAuditEventType;
+import kr.itsdev.devjobcollector.security.hardening.SecurityHardeningService;
 import kr.itsdev.devjobcollector.security.service.CurrentMemberService;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,26 +21,30 @@ public class CompanyVerificationService {
     private final CompanyMemberRepository memberRepository;
     private final CompanyVerificationRequestRepository requestRepository;
     private final CurrentMemberService currentMemberService;
+    private final SecurityHardeningService hardeningService;
     private final Clock clock;
 
     @Autowired
     public CompanyVerificationService(CompanyRepository companyRepository,
                                       CompanyMemberRepository memberRepository,
                                       CompanyVerificationRequestRepository requestRepository,
-                                      CurrentMemberService currentMemberService) {
+                                      CurrentMemberService currentMemberService,
+                                      SecurityHardeningService hardeningService) {
         this(companyRepository, memberRepository, requestRepository,
-                currentMemberService, Clock.systemDefaultZone());
+                currentMemberService, hardeningService, Clock.systemDefaultZone());
     }
 
     CompanyVerificationService(CompanyRepository companyRepository,
                                CompanyMemberRepository memberRepository,
                                CompanyVerificationRequestRepository requestRepository,
                                CurrentMemberService currentMemberService,
+                               SecurityHardeningService hardeningService,
                                Clock clock) {
         this.companyRepository = companyRepository;
         this.memberRepository = memberRepository;
         this.requestRepository = requestRepository;
         this.currentMemberService = currentMemberService;
+        this.hardeningService = hardeningService;
         this.clock = clock;
     }
 
@@ -51,6 +58,8 @@ public class CompanyVerificationService {
                 .findByCompany_IdAndUser_Id(companyId, requester.getId())
                 .filter(CompanyMember::isActiveOwner)
                 .orElseThrow(CompanyVerificationException::ownerRequired);
+        hardeningService.checkRateLimit(SecurityAction.COMPANY_VERIFICATION_REQUEST,
+                "actor:" + requester.getId(), "company:" + companyId);
 
         if (company.getStatus() != CompanyStatus.PENDING_VERIFICATION
                 && company.getStatus() != CompanyStatus.REJECTED) {
@@ -67,7 +76,11 @@ public class CompanyVerificationService {
         CompanyVerificationRequest verificationRequest = CompanyVerificationRequest.pending(
                 company, membership.getUser(), request.method(), request.evidenceObjectKey(),
                 LocalDateTime.now(clock));
-        return CompanyVerificationResponse.from(requestRepository.saveAndFlush(verificationRequest));
+        verificationRequest = requestRepository.saveAndFlush(verificationRequest);
+        hardeningService.audit(SecurityAuditEventType.COMPANY_VERIFICATION_REQUESTED,
+                requester.getId(), requester.getId(), companyId, null,
+                CompanyVerificationStatus.PENDING.name());
+        return CompanyVerificationResponse.from(verificationRequest);
     }
 
     @Transactional
@@ -87,6 +100,8 @@ public class CompanyVerificationService {
                 .orElseThrow(CompanyVerificationException::requestNotFound);
         Company company = companyRepository.findByIdForUpdate(snapshot.getCompany().getId())
                 .orElseThrow(CompanyVerificationException::companyNotFound);
+        hardeningService.checkRateLimit(SecurityAction.COMPANY_VERIFICATION_REVIEW,
+                "actor:" + reviewer.getId(), "company:" + company.getId());
         CompanyVerificationRequest request = requestRepository.findByIdForUpdate(requestId)
                 .orElseThrow(CompanyVerificationException::requestNotFound);
 
@@ -105,6 +120,11 @@ public class CompanyVerificationService {
             company.changeStatus(CompanyStatus.REJECTED);
         }
         requestRepository.flush();
+        hardeningService.audit(approve
+                        ? SecurityAuditEventType.COMPANY_VERIFICATION_APPROVED
+                        : SecurityAuditEventType.COMPANY_VERIFICATION_REJECTED,
+                reviewer.getId(), request.getRequestedBy().getId(), company.getId(),
+                CompanyVerificationStatus.PENDING.name(), request.getStatus().name());
         return CompanyVerificationResponse.from(request);
     }
 

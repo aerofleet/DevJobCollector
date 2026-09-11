@@ -9,6 +9,9 @@ import kr.itsdev.devjobcollector.dto.company.CompanyMemberResponse;
 import kr.itsdev.devjobcollector.security.account.UserAccount;
 import kr.itsdev.devjobcollector.security.account.UserAccountRepository;
 import kr.itsdev.devjobcollector.security.account.UserAccountStatus;
+import kr.itsdev.devjobcollector.security.hardening.SecurityAction;
+import kr.itsdev.devjobcollector.security.hardening.SecurityAuditEventType;
+import kr.itsdev.devjobcollector.security.hardening.SecurityHardeningService;
 import kr.itsdev.devjobcollector.security.service.CurrentMemberService;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +25,7 @@ public class CompanyMemberManagementService {
     private final UserAccountRepository userRepository;
     private final CurrentMemberService currentMemberService;
     private final CompanyAuthorizationService authorizationService;
+    private final SecurityHardeningService hardeningService;
     private final Clock clock;
 
     @Autowired
@@ -29,9 +33,10 @@ public class CompanyMemberManagementService {
                                           CompanyMemberRepository memberRepository,
                                           UserAccountRepository userRepository,
                                           CurrentMemberService currentMemberService,
-                                          CompanyAuthorizationService authorizationService) {
+                                          CompanyAuthorizationService authorizationService,
+                                          SecurityHardeningService hardeningService) {
         this(companyRepository, memberRepository, userRepository, currentMemberService,
-                authorizationService, Clock.systemDefaultZone());
+                authorizationService, hardeningService, Clock.systemDefaultZone());
     }
 
     CompanyMemberManagementService(CompanyRepository companyRepository,
@@ -39,12 +44,14 @@ public class CompanyMemberManagementService {
                                    UserAccountRepository userRepository,
                                    CurrentMemberService currentMemberService,
                                    CompanyAuthorizationService authorizationService,
+                                   SecurityHardeningService hardeningService,
                                    Clock clock) {
         this.companyRepository = companyRepository;
         this.memberRepository = memberRepository;
         this.userRepository = userRepository;
         this.currentMemberService = currentMemberService;
         this.authorizationService = authorizationService;
+        this.hardeningService = hardeningService;
         this.clock = clock;
     }
 
@@ -66,6 +73,8 @@ public class CompanyMemberManagementService {
         UserAccount actor = currentMemberService.requireCurrentMember(subject);
         CompanyMember actorMembership = lockActor(companyId, actor.getId());
         authorizationService.authorize(actorMembership, permissionForRole(request.role()));
+        hardeningService.checkRateLimit(SecurityAction.COMPANY_MEMBER_INVITATION,
+                "actor:" + actor.getId(), "company:" + companyId);
 
         UserAccount invitee = userRepository.findByEmailIgnoreCase(request.email().trim())
                 .filter(user -> user.getStatus() == UserAccountStatus.ACTIVE)
@@ -77,12 +86,16 @@ public class CompanyMemberManagementService {
                 throw CompanyMemberManagementException.memberAlreadyExists();
             }
             membership.reinvite(request.role(), actor);
+            audit(SecurityAuditEventType.COMPANY_MEMBER_INVITED, actor, membership,
+                    CompanyMemberStatus.LEFT.name(), invitedValue(request.role()));
             return CompanyMemberResponse.from(membership);
         }
 
         try {
             CompanyMember membership = memberRepository.saveAndFlush(CompanyMember.invited(
                     actorMembership.getCompany(), invitee, request.role(), actor));
+            audit(SecurityAuditEventType.COMPANY_MEMBER_INVITED, actor, membership,
+                    null, invitedValue(request.role()));
             return CompanyMemberResponse.from(membership);
         } catch (DataIntegrityViolationException conflict) {
             throw CompanyMemberManagementException.memberAlreadyExists();
@@ -104,7 +117,10 @@ public class CompanyMemberManagementService {
         if (target.isActiveOwner() && newRole != CompanyMemberRole.OWNER) {
             requireAnotherActiveOwner(companyId);
         }
+        CompanyMemberRole previousRole = target.getRole();
         target.changeRole(newRole);
+        audit(SecurityAuditEventType.COMPANY_MEMBER_ROLE_CHANGED, actor, target,
+                previousRole.name(), newRole.name());
         return CompanyMemberResponse.from(target);
     }
 
@@ -123,7 +139,10 @@ public class CompanyMemberManagementService {
         if (target.isActiveOwner()) {
             requireAnotherActiveOwner(companyId);
         }
+        CompanyMemberStatus previousStatus = target.getStatus();
         target.changeStatus(CompanyMemberStatus.LEFT, LocalDateTime.now(clock));
+        audit(SecurityAuditEventType.COMPANY_MEMBER_REMOVED, actor, target,
+                previousStatus.name(), CompanyMemberStatus.LEFT.name());
     }
 
     private CompanyMember lockActor(Long companyId, Long actorId) {
@@ -171,5 +190,15 @@ public class CompanyMemberManagementService {
             case RECRUITER -> CompanyPermission.ASSIGN_RECRUITER;
             case VIEWER -> CompanyPermission.INVITE_MEMBERS;
         };
+    }
+
+    private void audit(SecurityAuditEventType eventType, UserAccount actor,
+                       CompanyMember target, String previousValue, String newValue) {
+        hardeningService.audit(eventType, actor.getId(), target.getUser().getId(),
+                target.getCompany().getId(), previousValue, newValue);
+    }
+
+    private String invitedValue(CompanyMemberRole role) {
+        return CompanyMemberStatus.INVITED.name() + ":" + role.name();
     }
 }

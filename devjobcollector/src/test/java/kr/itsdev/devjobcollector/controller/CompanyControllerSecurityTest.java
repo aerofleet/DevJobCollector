@@ -35,6 +35,7 @@ import kr.itsdev.devjobcollector.dto.company.CompanyMemberResponse;
 import kr.itsdev.devjobcollector.security.JwtAuthenticationFilter;
 import kr.itsdev.devjobcollector.security.JwtTokenVerifier;
 import kr.itsdev.devjobcollector.security.SecurityConfig;
+import kr.itsdev.devjobcollector.security.hardening.SecurityRateLimitException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,6 +78,19 @@ class CompanyControllerSecurityTest {
     }
 
     @Test
+    void rejectsMetricsWithoutBearerToken() throws Exception {
+        mockMvc.perform(get("/actuator/metrics/djc.security.audit.events"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void rejectsMetricsForRegularMember() throws Exception {
+        mockMvc.perform(get("/actuator/metrics/djc.security.audit.events")
+                        .header("Authorization", "Bearer valid-token"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void createsCompanyForAuthenticatedMember() throws Exception {
         when(signupFacade.signup(org.mockito.ArgumentMatchers.eq("42"), any(CompanySignupRequest.class)))
                 .thenReturn(new CompanySignupResponse(
@@ -94,6 +108,21 @@ class CompanyControllerSecurityTest {
                 .andExpect(jsonPath("$.membershipStatus").value("ACTIVE"));
 
         verify(signupFacade).signup(org.mockito.ArgumentMatchers.eq("42"), any(CompanySignupRequest.class));
+    }
+
+    @Test
+    void returnsStable429ContractWhenCompanySignupIsRateLimited() throws Exception {
+        when(signupFacade.signup(org.mockito.ArgumentMatchers.eq("42"),
+                any(CompanySignupRequest.class))).thenThrow(new SecurityRateLimitException());
+
+        mockMvc.perform(post("/api/v1/companies")
+                        .header("Authorization", "Bearer valid-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validBody()))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.code").value(SecurityRateLimitException.ERROR_CODE))
+                .andExpect(jsonPath("$.message").value(
+                        "요청 횟수를 초과했습니다. 잠시 후 다시 시도해주세요."));
     }
 
     @Test

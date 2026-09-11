@@ -3,6 +3,7 @@ package kr.itsdev.devjobcollector.company;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -13,6 +14,9 @@ import java.util.Optional;
 import kr.itsdev.devjobcollector.dto.company.CompanySignupRequest;
 import kr.itsdev.devjobcollector.security.account.AuthProvider;
 import kr.itsdev.devjobcollector.security.account.UserAccount;
+import kr.itsdev.devjobcollector.security.hardening.SecurityAction;
+import kr.itsdev.devjobcollector.security.hardening.SecurityAuditEventType;
+import kr.itsdev.devjobcollector.security.hardening.SecurityHardeningService;
 import kr.itsdev.devjobcollector.security.service.CurrentMemberService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +27,7 @@ class CompanySignupFacadeTest {
     private CompanyRepository companyRepository;
     private CompanyMemberRepository memberRepository;
     private CurrentMemberService currentMemberService;
+    private SecurityHardeningService hardeningService;
     private CompanySignupFacade facade;
     private UserAccount owner;
 
@@ -31,7 +36,9 @@ class CompanySignupFacadeTest {
         companyRepository = mock(CompanyRepository.class);
         memberRepository = mock(CompanyMemberRepository.class);
         currentMemberService = mock(CurrentMemberService.class);
-        facade = new CompanySignupFacade(companyRepository, memberRepository, currentMemberService);
+        hardeningService = mock(SecurityHardeningService.class);
+        facade = new CompanySignupFacade(
+                companyRepository, memberRepository, currentMemberService, hardeningService);
         owner = UserAccount.activeSocial(
                 "owner@example.com", "owner", AuthProvider.GITHUB, "company-owner-subject");
         when(currentMemberService.requireCurrentMember("42")).thenReturn(owner);
@@ -62,6 +69,10 @@ class CompanySignupFacadeTest {
         assertThat(response.companyStatus()).isEqualTo(CompanyStatus.PENDING_VERIFICATION);
         assertThat(response.role()).isEqualTo(CompanyMemberRole.OWNER);
         assertThat(response.membershipStatus()).isEqualTo(CompanyMemberStatus.ACTIVE);
+        verify(hardeningService).checkRateLimit(eq(SecurityAction.COMPANY_SIGNUP),
+                eq("actor:null"), eq("business:" + company.getBusinessNumberHash()));
+        verify(hardeningService).audit(SecurityAuditEventType.COMPANY_CREATED,
+                null, null, null, null, CompanyStatus.PENDING_VERIFICATION.name());
     }
 
     @Test
