@@ -109,6 +109,8 @@ auth:
     frontend-success-uri: ${AUTH_FRONTEND_SUCCESS_URI:http://localhost:5173/oauth/callback}
     frontend-failure-uri: ${AUTH_FRONTEND_FAILURE_URI:${AUTH_FRONTEND_SUCCESS_URI:http://localhost:5173/oauth/callback}}
     token-query-param: token
+    oauth-state-ttl: ${AUTH_OAUTH_STATE_TTL:5m}
+    oauth-state-max-pending: ${AUTH_OAUTH_STATE_MAX_PENDING:8}
   token:
     issuer: ${AUTH_TOKEN_ISSUER:devjobcollector}
     secret: ${AUTH_TOKEN_SECRET:change-this-secret-at-least-32chars}

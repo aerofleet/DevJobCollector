@@ -26,17 +26,34 @@ public class CommonOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 
     private final OAuth2UserService<OAuth2UserRequest, OAuth2User> delegate;
     private final SocialUserUpsertService socialUserUpsertService;
+    private final OAuthProviderRegistry providerRegistry;
 
     public CommonOAuth2UserService(SocialUserUpsertService socialUserUpsertService) {
-        this(socialUserUpsertService, new DefaultOAuth2UserService());
+        this(socialUserUpsertService, new DefaultOAuth2UserService(), OAuthProviderRegistry.defaults());
+    }
+
+    public CommonOAuth2UserService(
+            SocialUserUpsertService socialUserUpsertService,
+            OAuthProviderRegistry providerRegistry
+    ) {
+        this(socialUserUpsertService, new DefaultOAuth2UserService(), providerRegistry);
     }
 
     CommonOAuth2UserService(
             SocialUserUpsertService socialUserUpsertService,
             OAuth2UserService<OAuth2UserRequest, OAuth2User> delegate
     ) {
+        this(socialUserUpsertService, delegate, OAuthProviderRegistry.defaults());
+    }
+
+    CommonOAuth2UserService(
+            SocialUserUpsertService socialUserUpsertService,
+            OAuth2UserService<OAuth2UserRequest, OAuth2User> delegate,
+            OAuthProviderRegistry providerRegistry
+    ) {
         this.socialUserUpsertService = socialUserUpsertService;
         this.delegate = delegate;
+        this.providerRegistry = providerRegistry;
     }
 
     @Override
@@ -63,10 +80,11 @@ public class CommonOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         OAuth2User oauth2User = delegate.loadUser(userRequest);
         Map<String, Object> attributes = new HashMap<>(oauth2User.getAttributes());
 
-        SocialProvider provider = SocialProvider.fromRegistrationId(
+        OAuth2ProfileAdapter adapter = providerRegistry.require(
                 userRequest.getClientRegistration().getRegistrationId()
         );
-        SocialProfile profile = OAuth2ProfileExtractor.extract(provider, attributes);
+        SocialProvider provider = adapter.provider();
+        SocialProfile profile = adapter.extract(attributes);
         AuthenticatedUser appUser = socialUserUpsertService.upsert(profile);
 
         attributes.put(AuthCommonAttributeKeys.APP_USER_ID, appUser.id());
@@ -83,11 +101,11 @@ public class CommonOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
                 .getUserInfoEndpoint()
                 .getUserNameAttributeName();
         String nameKey = (configuredNameKey == null || configuredNameKey.isBlank())
-                ? OAuth2ProfileExtractor.defaultNameAttributeKey(provider)
+                ? adapter.defaultNameAttributeKey()
                 : configuredNameKey;
 
         if (!attributes.containsKey(nameKey)) {
-            nameKey = OAuth2ProfileExtractor.defaultNameAttributeKey(provider);
+            nameKey = adapter.defaultNameAttributeKey();
         }
 
         return new DefaultOAuth2User(authorities, attributes, nameKey);

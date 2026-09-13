@@ -1,6 +1,6 @@
 # DJC 회원·기업·Multi-Provider 인증 통합 실행계획
 
-> 상태: In Progress — Career Hub, G1, 기업 MVP P3~P6 완료 및 P7-01 진행 대기
+> 상태: In Progress — Career Hub, G1, 기업 MVP P3~P6 및 P7-01 완료, P7-02 진행 대기
 > 기준일: 2026-08-19
 > 구현 시작 예정: 2026-08-20
 > 산정 조건: 주 5일, 구현자 1명, Provider 자격증명과 검토자 응답이 예정대로 제공됨
@@ -92,7 +92,7 @@ Career Hub와 CH-G1 완료 실적을 반영해 기업회원 MVP 목표일을 **2
 
 ### P7~P8 — Provider 확장
 
-- [ ] P7-01 Provider framework/state registry 정리 (2일, P0)
+- [x] P7-01 Provider framework/state registry 정리 (완료: 2026-09-13, 활성 adapter 2/2·예약 Provider ID 5/5·state 보안 평가셋 4/4·전체 Gradle 성공)
 - [ ] P7-02 Kakao OIDC adapter와 통합 테스트 (2일, P1)
 - [ ] P7-03 Naver OAuth adapter와 통합 테스트 (2일, P1)
 - [ ] P7-04 Apple adapter·최초 로그인 데이터 처리와 통합 테스트 (3~4일, P1; 분할 구현)

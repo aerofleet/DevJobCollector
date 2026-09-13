@@ -1,6 +1,19 @@
 # auth-common
 
-Google/GitHub OAuth2 로그인 공통 모듈입니다.
+Google/GitHub OAuth2 로그인을 제공하고 Kakao/Naver/Apple 확장을 위한 Provider adapter
+registry를 제공하는 공통 모듈입니다.
+
+## Provider framework
+
+- 활성 adapter: Google, GitHub
+- 예약 Provider ID: Google, GitHub, Kakao, Naver, Apple
+- 신규 Provider는 `OAuth2ProfileAdapter` Bean을 추가하면 registry가 자동 등록합니다.
+- 중복 Provider adapter는 애플리케이션 시작 시 거부합니다.
+- 아직 adapter가 없는 예약 Provider는 로그인 경로에서 활성화되지 않습니다.
+
+OAuth `state`는 서버 세션 registry에 저장합니다. 기본 TTL은 5분, 세션당 최대
+대기 요청은 8개이며, 서로 다른 탭의 로그인 요청을 state별로 보존하고 callback에서
+일회성으로 제거합니다.
 
 ## 1) 모듈 추가
 
@@ -85,6 +98,8 @@ auth:
     frontend-success-uri: https://<FRONTEND_DOMAIN>/oauth/callback
     frontend-failure-uri: https://<FRONTEND_DOMAIN>/oauth/callback
     token-query-param: token
+    oauth-state-ttl: 5m
+    oauth-state-max-pending: 8
 ```
 
 실패 콜백은 `error` query parameter를 사용합니다. 계정 이메일 충돌은

@@ -14,7 +14,9 @@ import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.AuthorizationRequestRepository;
 import org.springframework.security.oauth2.client.web.OAuth2LoginAuthenticationFilter;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -47,6 +49,8 @@ public class SecurityConfig {
             ObjectProvider<AuthenticationSuccessHandler> socialLoginSuccessHandlerProvider,
             ObjectProvider<AuthenticationFailureHandler> socialLoginFailureHandlerProvider,
             ObjectProvider<ClientRegistrationRepository> clientRegistrationRepositoryProvider,
+            ObjectProvider<AuthorizationRequestRepository<OAuth2AuthorizationRequest>>
+                    oauth2StateRegistryProvider,
             JwtAuthenticationFilter jwtAuthenticationFilter,
             AuthenticationEntryPoint authenticationEntryPoint
     ) throws Exception {
@@ -77,11 +81,16 @@ public class SecurityConfig {
                     socialLoginSuccessHandlerProvider.getIfAvailable();
             AuthenticationFailureHandler socialLoginFailureHandler =
                     socialLoginFailureHandlerProvider.getIfAvailable();
+            AuthorizationRequestRepository<OAuth2AuthorizationRequest> oauth2StateRegistry =
+                    oauth2StateRegistryProvider.getIfAvailable();
 
             if (commonOAuth2UserService != null
                     && socialLoginSuccessHandler != null
-                    && socialLoginFailureHandler != null) {
+                    && socialLoginFailureHandler != null
+                    && oauth2StateRegistry != null) {
                 http.oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(endpoint ->
+                                endpoint.authorizationRequestRepository(oauth2StateRegistry))
                         .userInfoEndpoint(userInfo -> userInfo.userService(commonOAuth2UserService))
                         .successHandler(socialLoginSuccessHandler)
                         .failureHandler(socialLoginFailureHandler)

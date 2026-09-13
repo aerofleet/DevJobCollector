@@ -347,4 +347,4 @@ Career Hub Product DoD와 CH-G1 완료 후 `member-auth-implementation-plan.md`�
 7. 본 계획의 첫 미완료 체크박스와 선행 게이트 확인
 8. 구현 후 테스트·커밋·배포·잔여 위험을 본 계획과 HANDOVER에 갱신
 
-기업 기능 일정은 기업 MVP 2026-10-02, 전체 Multi-Provider 2026-10-30으로 재산정했고 P6-02 동시성·성능·migration rehearsal·rollback 검증까지 완료했다. concurrency 10에서 기업 쓰기 3종을 각 20회 검증해 최종 row·감사 각 1건을 확인했고 가입 DB 구간 p95 21ms, 전체 Gradle 471/471, V6-era 앱→V7 DB 회귀 5/5를 통과했다. 현재 재개 지점은 **P7-01 Provider framework/state registry 정리**다. Secret 교체는 개발 세션 무효화 영향을 고려해 운영 전 최종 보안 게이트로 유지한다. 현재 사용자 변경은 삭제·reset·restore하지 않는다.
+기업 기능 일정은 기업 MVP 2026-10-02, 전체 Multi-Provider 2026-10-30으로 재산정했고 P6-02 동시성·성능·migration rehearsal·rollback 검증까지 완료했다. P7-01에서는 Google/GitHub adapter registry와 Kakao/Naver/Apple 예약 Provider ID, TTL·bounded·일회성 세션 OAuth state registry를 구현했다. 신규 auth-common 평가셋 7/7, auth-common 전체 12/12와 전체 Gradle build를 통과했다. 현재 재개 지점은 **P7-02 Kakao OIDC adapter와 통합 테스트**다. Secret 교체는 개발 세션 무효화 영향을 고려해 운영 전 최종 보안 게이트로 유지한다. 현재 사용자 변경은 삭제·reset·restore하지 않는다.
