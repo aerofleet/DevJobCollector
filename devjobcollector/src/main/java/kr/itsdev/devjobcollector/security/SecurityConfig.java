@@ -18,6 +18,7 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.web.AuthorizationRequestRepository;
 import org.springframework.security.oauth2.client.web.OAuth2LoginAuthenticationFilter;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
@@ -28,6 +29,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.http.HttpStatus;
 import kr.itsdev.devjobcollector.security.signup.AuthSignupProperties;
 import kr.itsdev.auth.common.oauth.OAuth2CallbackExceptionFilter;
+import kr.itsdev.auth.common.oauth.OAuth2ProviderAvailabilityFilter;
 import kr.itsdev.devjobcollector.monitoring.AuthCareerObservationFilter;
 
 @Configuration
@@ -77,7 +79,9 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new AuthCareerObservationFilter(), JwtAuthenticationFilter.class);
 
-        if (clientRegistrationRepositoryProvider.getIfAvailable() != null) {
+        ClientRegistrationRepository clientRegistrationRepository =
+                clientRegistrationRepositoryProvider.getIfAvailable();
+        if (clientRegistrationRepository != null) {
             OAuth2UserService<OAuth2UserRequest, OAuth2User> commonOAuth2UserService =
                     commonOAuth2UserServiceProvider.getIfAvailable();
             OAuth2UserService<OidcUserRequest, OidcUser> commonOidcUserService =
@@ -104,6 +108,10 @@ public class SecurityConfig {
                         })
                         .successHandler(socialLoginSuccessHandler)
                         .failureHandler(socialLoginFailureHandler)
+                );
+                http.addFilterBefore(
+                        new OAuth2ProviderAvailabilityFilter(clientRegistrationRepository),
+                        OAuth2AuthorizationRequestRedirectFilter.class
                 );
                 http.addFilterBefore(
                         new OAuth2CallbackExceptionFilter(socialLoginFailureHandler),
