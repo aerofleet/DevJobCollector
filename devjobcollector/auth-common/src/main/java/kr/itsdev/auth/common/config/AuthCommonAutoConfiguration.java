@@ -1,6 +1,7 @@
 package kr.itsdev.auth.common.config;
 
 import kr.itsdev.auth.common.oauth.CommonOAuth2UserService;
+import kr.itsdev.auth.common.oauth.CommonOidcUserService;
 import kr.itsdev.auth.common.oauth.OAuth2ProfileAdapter;
 import kr.itsdev.auth.common.oauth.OAuthProviderRegistry;
 import kr.itsdev.auth.common.oauth.SessionOAuth2StateRegistry;
@@ -16,7 +17,9 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.oauth2.client.web.AuthorizationRequestRepository;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -53,6 +56,16 @@ public class AuthCommonAutoConfiguration {
             OAuthProviderRegistry oauthProviderRegistry
     ) {
         return new CommonOAuth2UserService(socialUserUpsertService, oauthProviderRegistry);
+    }
+
+    @Bean
+    @ConditionalOnBean(SocialUserUpsertService.class)
+    @ConditionalOnMissingBean(name = "commonOidcUserService")
+    public OAuth2UserService<OidcUserRequest, OidcUser> commonOidcUserService(
+            SocialUserUpsertService socialUserUpsertService,
+            OAuthProviderRegistry oauthProviderRegistry
+    ) {
+        return new CommonOidcUserService(socialUserUpsertService, oauthProviderRegistry);
     }
 
     @Bean

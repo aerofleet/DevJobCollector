@@ -15,12 +15,17 @@ class OAuthProviderRegistryTest {
         OAuthProviderRegistry registry = OAuthProviderRegistry.defaults();
 
         assertThat(registry.activeProviders())
-                .containsExactlyInAnyOrder(SocialProvider.GOOGLE, SocialProvider.GITHUB);
+                .containsExactlyInAnyOrder(
+                        SocialProvider.GOOGLE,
+                        SocialProvider.GITHUB,
+                        SocialProvider.KAKAO
+                );
         assertThat(registry.require("google")).isInstanceOf(GoogleOAuth2ProfileAdapter.class);
         assertThat(registry.require("GITHUB")).isInstanceOf(GithubOAuth2ProfileAdapter.class);
-        assertThatThrownBy(() -> registry.require("kakao"))
+        assertThat(registry.require("kakao")).isInstanceOf(KakaoOidcProfileAdapter.class);
+        assertThatThrownBy(() -> registry.require("naver"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Unsupported provider: kakao");
+                .hasMessage("Unsupported provider: naver");
     }
 
     @Test

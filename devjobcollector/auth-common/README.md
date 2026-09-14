@@ -5,11 +5,16 @@ registry를 제공하는 공통 모듈입니다.
 
 ## Provider framework
 
-- 활성 adapter: Google, GitHub
+- 활성 adapter: Google, GitHub, Kakao
 - 예약 Provider ID: Google, GitHub, Kakao, Naver, Apple
 - 신규 Provider는 `OAuth2ProfileAdapter` Bean을 추가하면 registry가 자동 등록합니다.
 - 중복 Provider adapter는 애플리케이션 시작 시 거부합니다.
-- 아직 adapter가 없는 예약 Provider는 로그인 경로에서 활성화되지 않습니다.
+- 아직 adapter가 없는 Naver/Apple은 로그인 경로에서 활성화되지 않습니다.
+
+Kakao는 OIDC adapter만 기본 등록되며 실제 ClientRegistration은 별도
+`kakao` Spring profile로 격리되어 있습니다. 운영 자격증명과 redirect URI 등록 후
+`prod,kakao`처럼 profile을 활성화합니다. 저장소에는 client ID/secret 기본값을
+두지 않습니다.
 
 OAuth `state`는 서버 세션 registry에 저장합니다. 기본 TTL은 5분, 세션당 최대
 대기 요청은 8개이며, 서로 다른 탭의 로그인 요청을 state별로 보존하고 callback에서

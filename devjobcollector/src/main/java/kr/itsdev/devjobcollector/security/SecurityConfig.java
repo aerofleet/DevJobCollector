@@ -12,7 +12,9 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.web.AuthorizationRequestRepository;
 import org.springframework.security.oauth2.client.web.OAuth2LoginAuthenticationFilter;
@@ -46,6 +48,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             ObjectProvider<OAuth2UserService<OAuth2UserRequest, OAuth2User>> commonOAuth2UserServiceProvider,
+            ObjectProvider<OAuth2UserService<OidcUserRequest, OidcUser>> commonOidcUserServiceProvider,
             ObjectProvider<AuthenticationSuccessHandler> socialLoginSuccessHandlerProvider,
             ObjectProvider<AuthenticationFailureHandler> socialLoginFailureHandlerProvider,
             ObjectProvider<ClientRegistrationRepository> clientRegistrationRepositoryProvider,
@@ -77,6 +80,8 @@ public class SecurityConfig {
         if (clientRegistrationRepositoryProvider.getIfAvailable() != null) {
             OAuth2UserService<OAuth2UserRequest, OAuth2User> commonOAuth2UserService =
                     commonOAuth2UserServiceProvider.getIfAvailable();
+            OAuth2UserService<OidcUserRequest, OidcUser> commonOidcUserService =
+                    commonOidcUserServiceProvider.getIfAvailable();
             AuthenticationSuccessHandler socialLoginSuccessHandler =
                     socialLoginSuccessHandlerProvider.getIfAvailable();
             AuthenticationFailureHandler socialLoginFailureHandler =
@@ -91,7 +96,12 @@ public class SecurityConfig {
                 http.oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(endpoint ->
                                 endpoint.authorizationRequestRepository(oauth2StateRegistry))
-                        .userInfoEndpoint(userInfo -> userInfo.userService(commonOAuth2UserService))
+                        .userInfoEndpoint(userInfo -> {
+                            userInfo.userService(commonOAuth2UserService);
+                            if (commonOidcUserService != null) {
+                                userInfo.oidcUserService(commonOidcUserService);
+                            }
+                        })
                         .successHandler(socialLoginSuccessHandler)
                         .failureHandler(socialLoginFailureHandler)
                 );

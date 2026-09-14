@@ -5,6 +5,7 @@ import java.util.Locale;
 import kr.itsdev.auth.common.model.AuthenticatedUser;
 import kr.itsdev.auth.common.exception.AccountLinkRequiredException;
 import kr.itsdev.auth.common.model.SocialProfile;
+import kr.itsdev.auth.common.model.SocialProvider;
 import kr.itsdev.auth.common.spi.SocialUserUpsertService;
 import kr.itsdev.devjobcollector.security.account.AuthProvider;
 import kr.itsdev.devjobcollector.security.account.PersonalProfile;
@@ -16,6 +17,8 @@ import kr.itsdev.devjobcollector.security.account.UserIdentity;
 import kr.itsdev.devjobcollector.security.account.UserIdentityRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -54,6 +57,7 @@ public class JpaSocialUserUpsertService implements SocialUserUpsertService {
 
         UserAccount account;
         if (identity == null) {
+            requireVerifiedEmailForNewKakaoIdentity(profile);
             rejectExistingEmail(profile.email());
             String fallbackEmail = provider.name().toLowerCase(Locale.ROOT)
                     + "-" + providerSubject + "@social.local";
@@ -89,6 +93,17 @@ public class JpaSocialUserUpsertService implements SocialUserUpsertService {
         String normalizedEmail = normalizeOptionalEmail(email);
         if (normalizedEmail != null && userRepository.findByEmailIgnoreCase(normalizedEmail).isPresent()) {
             throw new AccountLinkRequiredException();
+        }
+    }
+
+    private void requireVerifiedEmailForNewKakaoIdentity(SocialProfile profile) {
+        if (profile.provider() == SocialProvider.KAKAO
+                && (normalizeOptionalEmail(profile.email()) == null
+                || !Boolean.TRUE.equals(profile.emailVerified()))) {
+            throw new OAuth2AuthenticationException(
+                    new OAuth2Error("OAUTH_EMAIL_REQUIRED"),
+                    "OAUTH_EMAIL_REQUIRED"
+            );
         }
     }
 
