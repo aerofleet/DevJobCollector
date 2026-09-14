@@ -93,7 +93,7 @@ Career Hub와 CH-G1 완료 실적을 반영해 기업회원 MVP 목표일을 **2
 ### P7~P8 — Provider 확장
 
 - [x] P7-01 Provider framework/state registry 정리 (완료: 2026-09-13, 활성 adapter 2/2·예약 Provider ID 5/5·state 보안 평가셋 4/4·전체 Gradle 성공)
-- [x] P7-02 Kakao OIDC adapter와 통합 테스트 (완료: 2026-09-14, 신규 13/13·auth-common 17/17·전체 Gradle 성공, 운영 profile 비활성)
+- [x] P7-02 Kakao OIDC adapter와 통합 테스트 (완료: 2026-09-15, 신규 16/16·auth-common 20/20·전체 494건 실패 0, 운영 profile 비활성·진입 404)
 - [ ] P7-03 Naver OAuth adapter와 통합 테스트 (2일, P1)
 - [ ] P7-04 Apple adapter·최초 로그인 데이터 처리와 통합 테스트 (3~4일, P1; 분할 구현)
 - [ ] P8-01 account link/unlink와 재인증 구현 (2일, P0)

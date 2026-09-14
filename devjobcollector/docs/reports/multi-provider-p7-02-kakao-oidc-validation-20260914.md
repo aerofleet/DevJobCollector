@@ -3,7 +3,7 @@
 ## 1. 범위
 
 - 작업: P7-02 Kakao OIDC adapter와 통합 테스트
-- 구현일: 2026-09-14
+- 구현일: 2026-09-14, 운영 검증 완료: 2026-09-15
 - 포함:
   - Kakao `sub`, `iss`, profile, `email_verified` claim 변환
   - Spring Security OIDC 검증 완료 후 DJC identity upsert
@@ -36,12 +36,13 @@ RS256 지원이 코드 설정과 일치했다.
 
 | 항목 | 목표 KPI | 결과 | 판정 |
 |---|---:|---:|---|
-| Kakao 신규 평가셋 | 13/13 | 13/13 | 통과 |
-| auth-common OAuth 회귀 | 오류율 0% | 17/17, 오류 0 | 통과 |
+| Kakao 신규 평가셋 | 16/16 | 16/16 | 통과 |
+| auth-common OAuth 회귀 | 오류율 0% | 20/20, 오류 0 | 통과 |
 | ID Token 위조 차단 | 100% | 잘못된 signature/issuer/audience/expiration 4/4 차단 | 통과 |
 | nonce/state 생성 | 요청별 고유값 100% | 2/2 고유 state, nonce 존재 | 통과 |
 | 미검증 신규 계정 차단 | 3/3 | 3/3, DB write 0 | 통과 |
-| 전체 Gradle | 성공 | 491건 중 404 passed·87 환경 조건 skip | 통과 |
+| 비활성 Provider 시작 경로 | 5xx 0건, HTTP 404 | 500→404, 최종 1/1 | 통과 |
+| 전체 Gradle | 성공 | 494건 중 407 passed·87 환경 조건 skip | 통과 |
 | secret/token 원문 저장·로그 | 0건 | 0건 | 통과 |
 
 - OKR 연결: 2026-10-30 Multi-Provider 목표 중 세 번째 활성 adapter를 완성하고
@@ -58,6 +59,7 @@ RS256 지원이 코드 설정과 일치했다.
 7. 검증된 OIDC principal만 DJC upsert와 JWT 성공 handler용 principal로 변환한다.
 8. 신규 verified email은 정규화하고 identity key는 이메일이 아닌 Kakao `sub`를 사용한다.
 9. client ID/secret은 환경변수 필수이며 저장소 기본값은 없다.
+10. 등록되지 않은 Provider 시작 경로는 OAuth 필터 진입 전에 HTTP 404로 종료한다.
 
 조건: Java 21, Spring Boot 3.5.11, Spring Security 6.5.8, mock OIDC principal,
 로컬 RSA 2048-bit key. 외부 Kakao 계정 및 운영 DB 쓰기는 수행하지 않는다.
@@ -71,28 +73,45 @@ RS256 지원이 코드 설정과 일치했다.
 | 토큰 검증 계약 | 미평가 | RS256/issuer/audience/expiration/nonce 평가 |
 | 이메일 없음/미검증 | synthetic email로 ACTIVE 생성 가능 | 신규 Kakao 계정 DB write 전 차단 |
 | 설정 | Kakao registration 없음 | 자격증명 없는 profile-gated 설정 |
-| 운영 노출 | 없음 | profile 비활성 유지 |
+| 운영 비활성 진입 | 미측정 | 첫 배포 500 검출 후 가용성 필터로 404 |
 
 ## 6. 검증 명령과 결과
 
 ```powershell
 .\gradlew.bat :auth-common:test --tests "kr.itsdev.auth.common.oauth.*" --rerun-tasks
+.\gradlew.bat :auth-common:test --tests "kr.itsdev.auth.common.oauth.OAuth2ProviderAvailabilityFilterTest"
 .\gradlew.bat test --tests "kr.itsdev.devjobcollector.security.KakaoOidcConfigurationTest" `
   --tests "kr.itsdev.devjobcollector.security.service.JpaSocialUserUpsertServiceTest"
 .\gradlew.bat test
 git diff --check
 ```
 
-- 신규 Kakao 평가셋: 13/13
-- auth-common OAuth: 17/17, failures/errors/skipped 0
-- 전체 Gradle: BUILD SUCCESSFUL, 491건 중 404 passed, 87 skipped
+- 신규 Kakao 평가셋: 16/16
+- auth-common OAuth: 20/20, failures/errors/skipped 0
+- 전체 Gradle: BUILD SUCCESSFUL, 494건 중 407 passed, 87 skipped
 - skip 87건은 MySQL/Testcontainers 실행 조건이 없는 기존 통합 평가셋이다.
 - whitespace 오류: 0건
 
-## 7. 합격 기준 및 제한
+## 7. 커밋·배포·운영 결과
 
-신규 13/13, 위조 토큰 4/4 차단, nonce/state 생성 2/2, 미검증 신규 계정
-3/3 차단, secret/token 노출 0건을 모두 충족했다.
+- 구현 커밋: `3afec95`
+  - Backend Actions `34840437639` 성공
+  - Docker Actions `34840437597` 성공
+- 운영 1차 점검: 기존 6개 회귀는 통과했으나 비활성 Kakao 시작 경로 HTTP 500 검출
+- 보완 커밋: `bea9735`
+  - 등록 ID를 OAuth redirect filter 전에 확인하고 미등록 ID를 HTTP 404로 종료
+  - Backend Actions `34855626062` 성공
+  - Docker Actions `34855625923` 성공
+- 최종 운영 비파괴 smoke:
+  - health·공개 검색 HTTP 200
+  - 기본 LOCAL credential·무토큰 회원 API HTTP 401
+  - Google/GitHub OAuth 시작과 HTTPS callback 계약 2/2
+  - 비활성 Kakao 시작 경로 HTTP 404, 5xx 0건
+
+## 8. 합격 기준 및 제한
+
+신규 16/16, 위조 토큰 4/4 차단, nonce/state 생성 2/2, 미검증 신규 계정
+3/3 차단, 비활성 진입 404 1/1, secret/token 노출 0건을 모두 충족했다.
 
 실제 Kakao 로그인은 Kakao 앱에서 OIDC 사용 설정, 동의항목, redirect URI,
 REST API key와 client secret을 준비한 후에만 활성화한다. 실제 callback smoke가
