@@ -74,7 +74,19 @@ git diff --check
 - skip 87건은 MySQL/Testcontainers 실행 조건이 없는 경우 비활성화되는 기존 통합 평가셋이다.
 - whitespace 오류: 0건
 
-## 6. 합격 기준 및 제한
+## 6. 운영 반영
+
+- 구현 커밋: `db9b837`
+- Backend Actions: `34761982757` 성공
+- Docker Actions: `34761982793` 성공
+- 운영 비파괴 smoke:
+  - health 200
+  - 공개 공고 검색 200
+  - 무토큰 회원 API 401
+  - Google OAuth 시작 302
+  - GitHub OAuth 시작 302
+
+## 7. 합격 기준 및 제한
 
 합격 기준은 활성 adapter 2/2, 예약 ID 5/5, state 평가셋 4/4, auth-common 오류율
 0%, secret/token 로그 노출 0건이다. 모든 기준을 충족했다.
