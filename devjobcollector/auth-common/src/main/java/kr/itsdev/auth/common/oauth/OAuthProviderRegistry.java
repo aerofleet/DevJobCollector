@@ -35,7 +35,8 @@ public final class OAuthProviderRegistry {
         List<OAuth2ProfileAdapter> adapters = new ArrayList<>(List.of(
                 new GoogleOAuth2ProfileAdapter(),
                 new GithubOAuth2ProfileAdapter(),
-                new KakaoOidcProfileAdapter()
+                new KakaoOidcProfileAdapter(),
+                new NaverOAuth2ProfileAdapter()
         ));
         adapters.addAll(additionalAdapters);
         return new OAuthProviderRegistry(adapters);

@@ -347,4 +347,4 @@ Career Hub Product DoD와 CH-G1 완료 후 `member-auth-implementation-plan.md`�
 7. 본 계획의 첫 미완료 체크박스와 선행 게이트 확인
 8. 구현 후 테스트·커밋·배포·잔여 위험을 본 계획과 HANDOVER에 갱신
 
-기업 기능 일정은 기업 MVP 2026-10-02, 전체 Multi-Provider 2026-10-30으로 재산정했고 P6-02와 P7-01~02를 완료했다. P7-02에서는 Kakao OIDC claim adapter, Spring OIDC user service, profile-gated ClientRegistration과 signature/issuer/audience/expiration/nonce 평가셋을 구현했다. 신규 16/16, auth-common 20/20, 전체 494건 실패 0을 확인했고 비활성 Kakao 진입의 500을 404로 보완했다. 실제 Kakao 자격증명과 redirect URI가 없어 운영 profile은 활성화하지 않는다. 현재 재개 지점은 **P7-03 Naver OAuth adapter와 통합 테스트**다. Secret 교체는 운영 전 최종 보안 게이트로 유지하며 사용자 변경은 삭제·reset·restore하지 않는다.
+기업 기능 일정은 기업 MVP 2026-10-02, 전체 Multi-Provider 2026-10-30으로 재산정했고 P6-02와 P7-01~03을 완료했다. P7-03에서는 Naver 중첩 user-info adapter와 profile-gated ClientRegistration을 구현했고 관련 10/10, 전체 501건 실패 0을 확인했다. 실제 Naver 자격증명이 없어 운영 profile은 활성화하지 않는다. 현재 재개 지점은 **P7-04 Apple adapter·최초 로그인 데이터 처리와 통합 테스트**다. Secret 교체는 운영 전 최종 보안 게이트로 유지하며 사용자 변경은 삭제·reset·restore하지 않는다.
