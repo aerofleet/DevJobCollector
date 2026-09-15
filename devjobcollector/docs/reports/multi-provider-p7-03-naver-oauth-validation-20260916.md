@@ -76,3 +76,17 @@ Naver Developer Center에 서비스·callback URL과 필요한 profile 권한을
 `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`을 운영 Secret에 주입한 뒤 `prod,naver`를
 활성화한다. 실제 로그인, 동일 이메일 `ACCOUNT_LINK_REQUIRED`, 오류 callback,
 로그 내 token·Secret 비노출을 확인하기 전 프론트 버튼은 활성화하지 않는다.
+
+## 8. 배포 및 운영 smoke
+
+- 구현 커밋: `717ab35`
+- Backend Actions: `35006050883` 성공
+- Docker Actions: `35006050830` 성공
+- 운영 smoke:
+  - health: HTTP 200
+  - 공고 검색: HTTP 200
+  - 무토큰 회원 API: HTTP 401
+  - Google/GitHub OAuth 시작: 2/2 HTTP 302
+  - 비활성 Naver OAuth 시작: HTTP 404, 5xx 0건
+- Actions의 Node.js 20 강제 전환 및 `setup-java@v4` deprecation 경고는 별도
+  workflow 유지보수 항목이며 이번 배포 결과에는 영향을 주지 않았다.
