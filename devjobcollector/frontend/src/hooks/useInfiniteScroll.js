@@ -6,12 +6,12 @@ import { useState, useEffect, useCallback } from "react";
  * @param {number} threshold - 스크롤 트리거 임계값 (픽셀)
  */
 
-const useInfiniteScroll = (fetchData, threshold = 100) => {
+const useInfiniteScroll = (fetchData, threshold = 100, enabled = true) => {
     const [loading, setLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
 
     const handleScroll = useCallback(() => {
-        if (loading || !hasMore) return;
+        if (!enabled || loading || !hasMore) return;
 
         const scrollTop = window.scrollY;
         const scrollHeight = document.documentElement.scrollHeight;
@@ -27,12 +27,18 @@ const useInfiniteScroll = (fetchData, threshold = 100) => {
                     setLoading(false);
                 });
         }
-    }, [loading, hasMore, fetchData, threshold]);
+    }, [enabled, loading, hasMore, fetchData, threshold]);
 
     useEffect(() => {
+        if (!enabled) return undefined;
+
         window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, [handleScroll]);
+        const frameId = window.requestAnimationFrame(handleScroll);
+        return () => {
+            window.cancelAnimationFrame(frameId);
+            window.removeEventListener('scroll', handleScroll);
+        };
+    }, [enabled, handleScroll]);
 
     return { loading, hasMore };
 };

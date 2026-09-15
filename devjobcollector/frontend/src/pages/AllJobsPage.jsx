@@ -101,7 +101,7 @@ const JobsResults = ({ filters }) => {
     }
   }, [fetchPage, initialLoading, page, totalPages]);
 
-  const { loading } = useInfiniteScroll(loadMoreData, 280);
+  const { loading } = useInfiniteScroll(loadMoreData, 280, !initialLoading && !errorMessage);
 
   return (
     <>
