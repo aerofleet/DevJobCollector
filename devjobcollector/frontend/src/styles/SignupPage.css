@@ -33,9 +33,7 @@
 .member-type-tabs small { display: block; margin-top: 2px; font-size: 9px; }
 .company-signup-guide { margin: -10px 0 20px; padding: 11px 13px; border-radius: 9px; background: #f0ecff; color: #5438d2; font-size: 12px; line-height: 1.55; text-align: center; }
 
-.social-signup { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.social-signup a { min-height: 44px; padding: 12px; border: 1px solid #ddd9e8; border-radius: 10px; color: #292630; text-align: center; text-decoration: none; font-size: 14px; font-weight: 700; }
-.social-signup a:hover { border-color: #8067ee; background: #faf8ff; }
+.signup-card .social_login_list { margin-top: 0; }
 .signup-divider { display: flex; align-items: center; gap: 12px; margin: 22px 0; color: #aaa5b4; font-size: 12px; }
 .signup-divider::before, .signup-divider::after { content: ''; height: 1px; flex: 1; background: #ece9f2; }
 
@@ -69,7 +67,6 @@
 .resend-button { border: 0; background: transparent; color: #6c4dff; font-size: 13px; font-weight: 700; cursor: pointer; }
 
 .member-type-tabs button:focus-visible,
-.social-signup a:focus-visible,
 .signup-submit:focus-visible,
 .resend-button:focus-visible {
   outline: 3px solid rgba(108, 77, 255, .35);
@@ -78,5 +75,4 @@
 
 @media (max-width: 560px) {
   .signup-card { padding: 30px 22px; border-radius: 18px; }
-  .social-signup { grid-template-columns: 1fr; }
 }

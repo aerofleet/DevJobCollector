@@ -5,6 +5,7 @@ import {
   signupPersonal,
   verifyPersonalEmail,
 } from '../api/authApi';
+import SocialLoginList from '../components/auth/SocialLoginList';
 import TurnstileWidget from '../components/auth/TurnstileWidget';
 import '../styles/SignupPage.css';
 
@@ -151,10 +152,7 @@ const SignupPage = () => {
 
         {step === 'form' ? (
           <>
-            <div className="social-signup">
-              <a href={`${authServerBaseUrl}/oauth2/authorization/google`}>Google로 계속</a>
-              <a href={`${authServerBaseUrl}/oauth2/authorization/github`}>GitHub로 계속</a>
-            </div>
+            <SocialLoginList authServerBaseUrl={authServerBaseUrl} />
             <div className="signup-divider"><span>또는 이메일로 가입</span></div>
             <form className="signup-form" onSubmit={submitSignup}>
               <div className="signup-field"><label htmlFor="signup-name">이름</label><input id="signup-name" name="name" value={form.name} onChange={update} minLength="2" maxLength="50" autoComplete="name" required /></div>

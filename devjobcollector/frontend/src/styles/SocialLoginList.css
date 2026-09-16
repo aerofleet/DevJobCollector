@@ -1,0 +1,49 @@
+.social_login_list {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin-top: 8px;
+}
+
+.social_icon {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  justify-content: center;
+  border-radius: 50%;
+  background-position: center;
+  background-repeat: no-repeat;
+  box-shadow: 0 0 1px 0 rgba(0, 0, 0, 0.12), 0 1px 1px 0 rgba(0, 0, 0, 0.24);
+}
+
+.social_icon:focus-visible {
+  outline: 3px solid rgba(0, 78, 162, 0.35);
+  outline-offset: 3px;
+}
+
+.social_icon.google {
+  background-color: #fff;
+  background-image: url('../assets/social/google-logo.svg');
+}
+
+.social_icon.kakao {
+  background-color: #ffcd00;
+  background-image: url('../assets/social/kakao-logo.svg');
+}
+
+.social_icon.naver {
+  background-color: #1dc800;
+  background-image: url('../assets/social/naver-logo.svg');
+}
+
+.social_icon.github {
+  background-color: #221e1b;
+  background-image: url('../assets/social/github-logo.svg');
+}
+
+@media (max-width: 560px) {
+  .social_login_list {
+    gap: 12px;
+  }
+}

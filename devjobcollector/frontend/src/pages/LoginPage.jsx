@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { loginWithPassword } from '../api/authApi';
 import { startAccountLink } from '../api/authenticatedApi';
+import SocialLoginList from '../components/auth/SocialLoginList';
 import '../styles/LoginPage.css';
 
 const PENDING_LINK_PROVIDER_KEY = 'pendingAccountLinkProvider';
@@ -189,8 +190,6 @@ const LoginPage = () => {
     }
   };
 
-  const googleLoginUrl = `${authServerBaseUrl}/oauth2/authorization/google`;
-  const githubLoginUrl = `${authServerBaseUrl}/oauth2/authorization/github`;
   const rememberNextPath = (selectedProvider) => {
     const query = new URLSearchParams(location.search);
     const next = query.get('next');
@@ -290,12 +289,7 @@ const LoginPage = () => {
             <p>아직 데브잡스 계정이 없나요?</p>
             <Link to="/signup" className="login-signup-button">회원가입</Link>
           </div>
-          <div className="social_login_list ">
-            <a className="social_icon google" title="google" href={googleLoginUrl} onClick={() => rememberNextPath('google')}></a>
-            {/* <a className="social_icon kakao" title="kakao" href="#"></a>
-            <a className="social_icon naver" title="naver" href="#"></a> */}
-            <a className="social_icon github" title="github" href={githubLoginUrl} onClick={() => rememberNextPath('github')}></a>
-          </div>
+          <SocialLoginList authServerBaseUrl={authServerBaseUrl} onProviderClick={rememberNextPath} />
         </div>
       </div>
     </div>

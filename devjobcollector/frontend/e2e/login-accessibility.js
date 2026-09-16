@@ -25,6 +25,8 @@ export const registerLoginAccessibilityTests = () => {
       page.getByRole('link', { name: '비밀번호 찾기' }),
       page.locator('.login-signup-button'),
       page.getByTitle('google'),
+      page.getByTitle('kakao'),
+      page.getByTitle('naver'),
       page.getByTitle('github'),
     ];
 
@@ -59,7 +61,7 @@ export const registerLoginAccessibilityTests = () => {
       };
     }));
 
-    expect(boxes.length).toBe(10);
+    expect(boxes.length).toBe(12);
     for (const box of boxes) {
       expect.soft(box.width, `${box.target} width`).toBeGreaterThanOrEqual(44);
       expect.soft(box.height, `${box.target} height`).toBeGreaterThanOrEqual(44);

@@ -239,6 +239,8 @@ test('가입과 기업 등록 핵심 컨트롤은 키보드로 접근 가능하�
     page.getByRole('button', { name: '개인회원' }),
     page.getByRole('button', { name: /기업회원/ }),
     page.getByRole('link', { name: 'Google로 계속' }),
+    page.getByRole('link', { name: '카카오로 계속' }),
+    page.getByRole('link', { name: '네이버로 계속' }),
     page.getByRole('link', { name: 'GitHub로 계속' }),
     page.getByLabel('이름'),
     page.getByLabel('이메일'),
@@ -278,7 +280,7 @@ test('모바일 가입과 기업 등록 컨트롤은 44px touch target을 제공
   test.skip(testInfo.project.name !== 'mobile-360', 'touch target 평가는 mobile-360에서 측정합니다.');
   await page.goto('/signup');
 
-  const signupTargets = page.locator('.member-type-tabs button, .social-signup a, .signup-form input:not([type="checkbox"]), .signup-consents label, .signup-submit');
+  const signupTargets = page.locator('.member-type-tabs button, .social_icon, .signup-form input:not([type="checkbox"]), .signup-consents label, .signup-submit');
   const signupBoxes = await signupTargets.evaluateAll((elements) => elements.map((element) => {
     const rect = element.getBoundingClientRect();
     return { name: element.textContent.trim() || element.getAttribute('name'), width: rect.width, height: rect.height };
