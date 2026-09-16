@@ -1,6 +1,6 @@
 export const LEGAL_POLICY = Object.freeze({
-  version: '2026-08-24',
-  effectiveDate: '2026-08-24',
+  version: '2026-09-17',
+  effectiveDate: '2026-09-17',
   draft: false,
   operatorName: 'aerofleet',
   representativeName: 'aerofleet',

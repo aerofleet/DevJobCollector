@@ -41,7 +41,7 @@ const PrivacyPolicyPage = () => (
                 <td>회원 탈퇴 또는 계정 삭제 완료 시까지. 인증코드는 만료 후 인증 목적으로 사용하지 않음</td>
               </tr>
               <tr>
-                <td>Google/GitHub 로그인</td>
+                <td>Google/GitHub/Kakao 로그인</td>
                 <td>외부 계정을 이용한 본인 식별, 로그인 및 계정 보안</td>
                 <td>제공자, 제공자 이용자 식별자, 이름, 이메일, 이메일 확인 여부, 발급자, 최근 로그인 시각</td>
                 <td>회원 탈퇴 또는 소셜 계정 연결 해제 및 관련 정보 삭제 완료 시까지</td>
@@ -101,7 +101,7 @@ const PrivacyPolicyPage = () => (
             </tbody>
           </table>
         </div>
-        <p>이용자는 Google 또는 GitHub 로그인을 선택하지 않고 이메일 가입을 이용할 수 있습니다. 다만 Cloudflare 네트워크 처리를 거부하면 서비스 접속 또는 봇 방지 기능 이용이 제한될 수 있습니다.</p>
+        <p>이용자는 Google, GitHub 또는 Kakao 로그인을 선택하지 않고 이메일 가입을 이용할 수 있습니다. 다만 Cloudflare 네트워크 처리를 거부하면 서비스 접속 또는 봇 방지 기능 이용이 제한될 수 있습니다.</p>
       </section>
 
       <section>
