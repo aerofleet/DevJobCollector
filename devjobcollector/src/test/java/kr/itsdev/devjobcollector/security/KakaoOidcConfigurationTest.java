@@ -61,7 +61,7 @@ class KakaoOidcConfigurationTest {
                         "spring.security.oauth2.client.registration.kakao.scope[" + index + "]"))
                 .map(String::valueOf)
                 .toList();
-        assertThat(scopes).containsExactly("openid", "profile", "account_email");
+        assertThat(scopes).containsExactly("openid", "profile_nickname", "account_email");
     }
 
     @Test
@@ -160,7 +160,7 @@ class KakaoOidcConfigurationTest {
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                 .redirectUri("{baseUrl}/login/oauth2/code/{registrationId}")
-                .scope("openid", "profile", "account_email")
+                .scope("openid", "profile_nickname", "account_email")
                 .authorizationUri("https://kauth.kakao.com/oauth/authorize")
                 .tokenUri("https://kauth.kakao.com/oauth/token")
                 .jwkSetUri("https://kauth.kakao.com/.well-known/jwks.json")
