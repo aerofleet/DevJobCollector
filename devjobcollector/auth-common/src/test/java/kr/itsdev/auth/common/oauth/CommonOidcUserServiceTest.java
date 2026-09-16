@@ -10,13 +10,16 @@ import static org.mockito.Mockito.when;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import kr.itsdev.auth.common.model.AuthenticatedUser;
 import kr.itsdev.auth.common.model.SocialProfile;
 import kr.itsdev.auth.common.spi.SocialUserUpsertService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
@@ -25,8 +28,33 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 
 class CommonOidcUserServiceTest {
+
+    @Test
+    void retrievesKakaoUserInfoForProviderSpecificScopes() {
+        OidcUserService delegate = CommonOidcUserService.defaultOidcUserService();
+        @SuppressWarnings("unchecked")
+        OAuth2UserService<OAuth2UserRequest, OAuth2User> userInfoService = mock(OAuth2UserService.class);
+        when(userInfoService.loadUser(any())).thenReturn(new DefaultOAuth2User(
+                List.of(),
+                Map.of(
+                        "sub", "kakao-subject",
+                        "email", "member@example.com",
+                        "email_verified", true
+                ),
+                "sub"
+        ));
+        delegate.setOauth2UserService(userInfoService);
+
+        OidcUser result = delegate.loadUser(request(KakaoOidcProfileAdapter.ISSUER));
+
+        verify(userInfoService).loadUser(any());
+        assertThat(result.<String>getClaim("email")).isEqualTo("member@example.com");
+        assertThat(result.<Boolean>getClaim("email_verified")).isTrue();
+    }
 
     @Test
     void upsertsKakaoIdentityFromValidatedOidcPrincipal() {
@@ -95,7 +123,7 @@ class CommonOidcUserServiceTest {
                 "access-token-value",
                 issuedAt,
                 issuedAt.plusSeconds(300),
-                java.util.Set.of("openid", "profile")
+                Set.of("openid", "profile_nickname", "account_email")
         );
         return new OidcUserRequest(clientRegistration(), accessToken, idToken);
     }
@@ -107,7 +135,7 @@ class CommonOidcUserServiceTest {
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                 .redirectUri("https://api.example/login/oauth2/code/kakao")
-                .scope("openid", "profile", "account_email")
+                .scope("openid", "profile_nickname", "account_email")
                 .authorizationUri("https://kauth.kakao.com/oauth/authorize")
                 .tokenUri("https://kauth.kakao.com/oauth/token")
                 .jwkSetUri("https://kauth.kakao.com/.well-known/jwks.json")

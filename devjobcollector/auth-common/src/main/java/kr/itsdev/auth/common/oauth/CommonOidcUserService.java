@@ -27,6 +27,15 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 public final class CommonOidcUserService implements OAuth2UserService<OidcUserRequest, OidcUser> {
     private static final Logger log = LoggerFactory.getLogger(CommonOidcUserService.class);
     private static final String FALLBACK_ERROR_CODE = "OAUTH_LOGIN_FAILED";
+    private static final Set<String> USER_INFO_SCOPES = Set.of(
+            "profile",
+            "email",
+            "address",
+            "phone",
+            "profile_nickname",
+            "profile_image",
+            "account_email"
+    );
 
     private final OAuth2UserService<OidcUserRequest, OidcUser> delegate;
     private final SocialUserUpsertService socialUserUpsertService;
@@ -36,7 +45,14 @@ public final class CommonOidcUserService implements OAuth2UserService<OidcUserRe
             SocialUserUpsertService socialUserUpsertService,
             OAuthProviderRegistry providerRegistry
     ) {
-        this(socialUserUpsertService, providerRegistry, new OidcUserService());
+        this(socialUserUpsertService, providerRegistry, defaultOidcUserService());
+    }
+
+    static OidcUserService defaultOidcUserService() {
+        OidcUserService delegate = new OidcUserService();
+        delegate.setRetrieveUserInfo(request -> request.getAccessToken().getScopes().stream()
+                .anyMatch(USER_INFO_SCOPES::contains));
+        return delegate;
     }
 
     CommonOidcUserService(
