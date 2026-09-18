@@ -72,6 +72,19 @@ git diff --check
 
 ## 7. 운영 활성화 게이트
 
+### 2026-09-18 보류 결정
+
+- 상태: Naver 인증 운영 활성화 보류
+- UI: 로그인·회원가입의 Naver 진입점을 숨김 처리
+- 유지 범위: 검증 완료된 adapter, provider registry, `naver` profile 설정과 자동 평가셋
+- 목표 KPI: Naver UI 진입점 0건, 비활성 운영 OAuth 시작 5xx 0건
+- OKR 연결: 검증되지 않은 인증 경로 노출을 차단해 회원 가입·로그인 성공률 저하를 방지
+- 평가셋: 로그인·회원가입 UI에서 `네이버로 계속` 링크 0건, 프론트 lint/build 및 관련 E2E 회귀
+- Before / After: 공통 소셜 로그인 UI Naver 링크 1건 → 0건
+- 합격 기준: 두 화면 모두 Naver 링크 0건이고 기존 노출 Provider의 키보드·touch target 회귀 0건
+- 결과: 로그인·회원가입 Naver 링크 0건, lint 오류 0건, production build 1,833 modules 성공,
+  관련 E2E 22 passed / 6 non-mobile touch 평가 의도적 skip
+
 Naver Developer Center에 서비스·callback URL과 필요한 profile 권한을 등록하고
 `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`을 운영 Secret에 주입한 뒤 `prod,naver`를
 활성화한다. 실제 로그인, 동일 이메일 `ACCOUNT_LINK_REQUIRED`, 오류 callback,

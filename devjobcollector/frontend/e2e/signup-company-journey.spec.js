@@ -240,7 +240,6 @@ test('가입과 기업 등록 핵심 컨트롤은 키보드로 접근 가능하�
     page.getByRole('button', { name: /기업회원/ }),
     page.getByRole('link', { name: 'Google로 계속' }),
     page.getByRole('link', { name: '카카오로 계속' }),
-    page.getByRole('link', { name: '네이버로 계속' }),
     page.getByRole('link', { name: 'GitHub로 계속' }),
     page.getByLabel('이름'),
     page.getByLabel('이메일'),
@@ -252,6 +251,7 @@ test('가입과 기업 등록 핵심 컨트롤은 키보드로 접근 가능하�
     await control.focus();
     await expect(control).toBeFocused();
   }
+  await expect(page.getByRole('link', { name: '네이버로 계속' })).toHaveCount(0);
 
   await page.addInitScript(() => localStorage.setItem('accessToken', 'company-owner-token'));
   await page.route('**/api/v1/**', async (route) => {

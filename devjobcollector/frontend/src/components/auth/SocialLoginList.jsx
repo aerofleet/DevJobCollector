@@ -3,7 +3,6 @@ import '../../styles/SocialLoginList.css';
 const PROVIDERS = [
   { id: 'google', label: 'Google' },
   { id: 'kakao', label: '카카오' },
-  { id: 'naver', label: '네이버' },
   { id: 'github', label: 'GitHub' },
 ];
 

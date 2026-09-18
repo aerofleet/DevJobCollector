@@ -26,7 +26,6 @@ export const registerLoginAccessibilityTests = () => {
       page.locator('.login-signup-button'),
       page.getByTitle('google'),
       page.getByTitle('kakao'),
-      page.getByTitle('naver'),
       page.getByTitle('github'),
     ];
 
@@ -36,6 +35,7 @@ export const registerLoginAccessibilityTests = () => {
       await page.keyboard.press('Tab');
       await expectVisibleFocus(locator);
     }
+    await expect(page.getByTitle('naver')).toHaveCount(0);
   });
 
   test('모바일 로그인 핵심 조작 영역은 최소 44px touch target을 제공한다', async ({ page }, testInfo) => {
@@ -61,7 +61,7 @@ export const registerLoginAccessibilityTests = () => {
       };
     }));
 
-    expect(boxes.length).toBe(12);
+    expect(boxes.length).toBe(11);
     for (const box of boxes) {
       expect.soft(box.width, `${box.target} width`).toBeGreaterThanOrEqual(44);
       expect.soft(box.height, `${box.target} height`).toBeGreaterThanOrEqual(44);

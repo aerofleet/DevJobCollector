@@ -94,7 +94,7 @@ Career Hub와 CH-G1 완료 실적을 반영해 기업회원 MVP 목표일을 **2
 
 - [x] P7-01 Provider framework/state registry 정리 (완료: 2026-09-13, 활성 adapter 2/2·예약 Provider ID 5/5·state 보안 평가셋 4/4·전체 Gradle 성공)
 - [x] P7-02 Kakao OIDC adapter와 통합 테스트 (완료: 2026-09-15, 신규 16/16·auth-common 20/20·전체 494건 실패 0, 운영 profile 비활성·진입 404)
-- [x] P7-03 Naver OAuth adapter와 통합 테스트 (완료: 2026-09-16, 관련 10/10·전체 501건 실패 0, 운영 profile 비활성)
+- [x] P7-03 Naver OAuth adapter와 통합 테스트 (완료: 2026-09-16, 관련 10/10·전체 501건 실패 0, 운영 profile 비활성·2026-09-18 UI 노출 보류)
 - [ ] P7-04 Apple adapter·최초 로그인 데이터 처리와 통합 테스트 (3~4일, P1; 분할 구현)
 - [ ] P8-01 account link/unlink와 재인증 구현 (2일, P0)
 - [ ] P8-02 마지막 identity 보호·충돌·탈취 방지 테스트 (2일, P0)
@@ -108,6 +108,7 @@ Career Hub와 CH-G1 완료 실적을 반영해 기업회원 MVP 목표일을 **2
 - Google/GitHub 이메일 자동병합을 제거하기 전 신규 Provider를 추가하지 않는다.
 - 기업 권한 매트릭스 테스트가 통과하기 전 기업회원 UI를 운영 활성화하지 않는다.
 - Kakao/Naver/Apple 자격증명과 redirect URI 등록은 P7 시작 전 준비한다.
+- Naver 인증은 운영 자격증명·callback 등록과 실제 계정 평가셋이 준비될 때까지 보류하며 로그인·회원가입 UI에 노출하지 않는다. adapter와 profile-gated 설정은 재개를 위해 유지한다.
 - Apple 외부 설정이 지연되면 Apple만 별도 milestone로 이동한다.
 
 ## 7. 검증 게이트
