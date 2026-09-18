@@ -6,6 +6,7 @@ import kr.itsdev.devjobcollector.dto.TechStackDto;
 import kr.itsdev.devjobcollector.dto.JobPostDetailDto;
 import kr.itsdev.devjobcollector.dto.JobFileDto;
 import kr.itsdev.devjobcollector.repository.JobPostRepository;
+import kr.itsdev.devjobcollector.monitoring.JobSearchMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -27,6 +28,7 @@ import java.util.stream.Collectors;
 public class JobPostService {
 
     private final JobPostRepository jobPostRepository;
+    private final JobSearchMetrics jobSearchMetrics;
 
     /**
      * 채용 공고 목록 조회 (페이징)
@@ -42,7 +44,7 @@ public class JobPostService {
         Slice<JobPost> slice = jobPostRepository.findActiveAndNotExpiredSlice(today, pageable);
         long total = jobPostRepository.countActiveAndValid(today);
         List<JobPostDto> content = slice.getContent().stream()
-                .map(this::convertToDto)
+                .map(jobPost -> convertToDto(jobPost, null))
                 .toList();
         return new PageImpl<>(content, pageable, total);
     }
@@ -68,9 +70,10 @@ public class JobPostService {
 
         LocalDate today = LocalDate.now();
         deactivateExpiredPosts();
-        return jobPostRepository.searchByAllFieldsOptimized(
-                        keyword, location, experience, jobCategory, techStackName, today, pageable)
-                .map(this::convertToDto);
+        return jobSearchMetrics.record(keyword, () ->
+                jobPostRepository.searchByAllFieldsOptimized(
+                                keyword, location, experience, jobCategory, techStackName, today, pageable)
+                        .map(jobPost -> convertToDto(jobPost, keyword)));
     }
 
     /**
@@ -83,7 +86,7 @@ public class JobPostService {
         Slice<JobPost> slice = jobPostRepository.findActiveAndNotExpiredSlice(today, pageable);
         long total = jobPostRepository.countActiveAndValid(today);
         List<JobPostDto> content = slice.getContent().stream()
-                .map(this::convertToDto)
+                .map(jobPost -> convertToDto(jobPost, null))
                 .toList();
         return new PageImpl<>(content, pageable, total);
     }
@@ -95,7 +98,7 @@ public class JobPostService {
         log.info("기술 스택 기준 조회: stackName={}, page={}, size={}", stackName, pageable.getPageNumber(), pageable.getPageSize());
         LocalDate today = LocalDate.now();
         return jobPostRepository.findByTechStackNamesOptimized(List.of(stackName), today, pageable)
-                .map(this::convertToDto);
+                .map(jobPost -> convertToDto(jobPost, null));
     }
 
     /**
@@ -113,7 +116,7 @@ public class JobPostService {
     /**
      * Entity → DTO 변환 (목록용)
      */
-    private JobPostDto convertToDto(JobPost jobPost) {
+    private JobPostDto convertToDto(JobPost jobPost, String keyword) {
         return JobPostDto.builder()
             .id(jobPost.getId())
             .sourcePlatform(jobPost.getSourcePlatform().name())
@@ -128,6 +131,7 @@ public class JobPostService {
             .originalUrl(jobPost.getOriginalUrl())
             .isActive(jobPost.isActive())
             .techStacks(convertTechStacks(jobPost))
+            .matchedSnippet(JobSearchSnippet.from(jobPost, keyword))
             .build();
     }
 

@@ -75,6 +75,10 @@ const JobCard = ({ job }) => {
           ))}
         </div>
 
+        {job.matchedSnippet && (
+          <p className="job-match-snippet">{job.matchedSnippet}</p>
+        )}
+
         {/* 지역 + 경력 */}
         <div className='job-location-experience'>
           <span>{job.location || '위치미정'}</span>

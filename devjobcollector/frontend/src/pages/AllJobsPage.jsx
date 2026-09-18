@@ -176,7 +176,7 @@ const AllJobsPage = () => {
       <section className="job-explorer" aria-label="채용공고 검색 및 필터">
         <form className="jobs-search-form" onSubmit={submitKeyword} key={filters.keyword}>
           <Search size={20} />
-          <input name="keyword" defaultValue={filters.keyword} placeholder="포지션, 회사명, 기술 스택 검색" aria-label="채용공고 검색" />
+          <input name="keyword" defaultValue={filters.keyword} placeholder="직무, 기술 스택, 공고 내용 검색" aria-label="채용공고 검색" />
           {filters.keyword && <button type="button" className="search-clear" onClick={() => updateParams({ keyword: '' })} aria-label="검색어 지우기"><X size={16} /></button>}
           <button type="submit" className="search-submit">검색</button>
         </form>

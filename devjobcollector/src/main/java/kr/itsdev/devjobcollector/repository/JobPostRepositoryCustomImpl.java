@@ -1,9 +1,15 @@
 package kr.itsdev.devjobcollector.repository;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.CaseBuilder;
+import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.core.types.dsl.NumberExpression;
+import com.querydsl.core.types.dsl.StringPath;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import kr.itsdev.devjobcollector.domain.JobPost;
+import kr.itsdev.devjobcollector.domain.QPostTag;
+import kr.itsdev.devjobcollector.domain.QTechStack;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,6 +18,8 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
+
+import com.querydsl.jpa.JPAExpressions;
 
 import static kr.itsdev.devjobcollector.domain.QJobPost.jobPost;
 import static kr.itsdev.devjobcollector.domain.QPostTag.postTag;
@@ -34,6 +42,7 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
             LocalDate today,
             Pageable pageable
     ) {
+        List<List<String>> keywordTerms = JobSearchKeyword.termGroups(keyword);
         JPAQuery<JobPost> contentQuery = queryFactory
                 .selectFrom(jobPost)
                 .distinct()
@@ -42,7 +51,7 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
                 .where(
                         jobPost.isActive.eq(true),
                         jobPost.endDate.goe(today),
-                        keywordCondition(keyword),
+                        keywordCondition(keywordTerms),
                         containsIgnoreCase(jobPost.location, location),
                         experienceCondition(experience),
                         jobRoleCondition(jobCategory),
@@ -60,6 +69,10 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
                 .map(order -> order.getDirection().isAscending())
                 .orElse(false);
 
+        if (!keywordTerms.isEmpty()) {
+            contentQuery.orderBy(relevanceScore(keywordTerms).desc());
+        }
+
         if (deadlineSort) {
             contentQuery.orderBy(
                     ascending ? jobPost.endDate.asc() : jobPost.endDate.desc(),
@@ -74,12 +87,10 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
         JPAQuery<Long> countQuery = queryFactory
                 .select(jobPost.countDistinct())
                 .from(jobPost)
-                .leftJoin(jobPost.postTags, postTag)
-                .leftJoin(postTag.techStack, techStack)
                 .where(
                         jobPost.isActive.eq(true),
                         jobPost.endDate.goe(today),
-                        keywordConditionForCount(keyword),
+                        keywordCondition(keywordTerms),
                         containsIgnoreCase(jobPost.location, location),
                         experienceCondition(experience),
                         jobRoleCondition(jobCategory),
@@ -132,30 +143,45 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
         return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchOne);
     }
 
-    private BooleanExpression keywordCondition(String keyword) {
-        if (keyword == null || keyword.isEmpty()) {
+    private BooleanExpression keywordCondition(List<List<String>> termGroups) {
+        if (termGroups.isEmpty()) {
             return null;
         }
-        String likeKeyword = "%" + keyword.toLowerCase() + "%";
-        return jobPost.title.lower().like(likeKeyword)
-                .or(jobPost.companyName.lower().like(likeKeyword))
-                .or(jobPost.location.lower().like(likeKeyword))
-                .or(jobPost.experience.lower().like(likeKeyword))
-                .or(jobPost.jobCategory.lower().like(likeKeyword))
-                .or(techStack.stackName.lower().like(likeKeyword));
+
+        BooleanExpression condition = null;
+        for (List<String> alternatives : termGroups) {
+            BooleanExpression tokenCondition = anySearchFieldContains(alternatives);
+            condition = condition == null ? tokenCondition : condition.and(tokenCondition);
+        }
+        return condition;
     }
 
-    private BooleanExpression keywordConditionForCount(String keyword) {
-        if (keyword == null || keyword.isEmpty()) {
-            return null;
+    private BooleanExpression anySearchFieldContains(List<String> alternatives) {
+        return containsAny(jobPost.title, alternatives)
+                .or(containsAny(jobPost.companyName, alternatives))
+                .or(containsAny(jobPost.location, alternatives))
+                .or(containsAny(jobPost.experience, alternatives))
+                .or(containsAny(jobPost.jobCategory, alternatives))
+                .or(containsAny(jobPost.hireType, alternatives))
+                .or(containsAny(jobPost.applyQual, alternatives))
+                .or(containsAny(jobPost.processInfo, alternatives))
+                .or(techStackContainsAny(alternatives));
+    }
+
+    private NumberExpression<Integer> relevanceScore(List<List<String>> termGroups) {
+        NumberExpression<Integer> score = Expressions.asNumber(0);
+        for (List<String> alternatives : termGroups) {
+            NumberExpression<Integer> tokenScore = new CaseBuilder()
+                    .when(containsAny(jobPost.title, alternatives)).then(100)
+                    .when(techStackContainsAny(alternatives)).then(80)
+                    .when(containsAny(jobPost.jobCategory, alternatives)).then(60)
+                    .when(containsAny(jobPost.companyName, alternatives)).then(40)
+                    .when(containsAny(jobPost.applyQual, alternatives)
+                            .or(containsAny(jobPost.processInfo, alternatives))).then(20)
+                    .otherwise(10);
+            score = score.add(tokenScore);
         }
-        String likeKeyword = "%" + keyword.toLowerCase() + "%";
-        return jobPost.title.lower().like(likeKeyword)
-                .or(jobPost.companyName.lower().like(likeKeyword))
-                .or(jobPost.location.lower().like(likeKeyword))
-                .or(jobPost.experience.lower().like(likeKeyword))
-                .or(jobPost.jobCategory.lower().like(likeKeyword))
-                .or(techStack.stackName.lower().like(likeKeyword));
+        return score;
     }
 
     private BooleanExpression containsIgnoreCase(
@@ -168,7 +194,40 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
     private BooleanExpression techStackCondition(String techStackName) {
         return techStackName == null || techStackName.isBlank()
                 ? null
-                : techStack.stackName.equalsIgnoreCase(techStackName.trim());
+                : techStackEquals(techStackName.trim());
+    }
+
+    private BooleanExpression techStackContainsAny(List<String> values) {
+        QPostTag searchPostTag = new QPostTag("searchPostTagContains");
+        QTechStack searchTechStack = new QTechStack("searchTechStackContains");
+        return JPAExpressions.selectOne()
+                .from(searchPostTag)
+                .join(searchPostTag.techStack, searchTechStack)
+                .where(
+                        searchPostTag.jobPost.eq(jobPost),
+                        containsAny(searchTechStack.stackName, values))
+                .exists();
+    }
+
+    private BooleanExpression containsAny(StringPath path, List<String> values) {
+        BooleanExpression condition = null;
+        for (String value : values) {
+            BooleanExpression next = path.containsIgnoreCase(value);
+            condition = condition == null ? next : condition.or(next);
+        }
+        return condition;
+    }
+
+    private BooleanExpression techStackEquals(String value) {
+        QPostTag searchPostTag = new QPostTag("searchPostTagEquals");
+        QTechStack searchTechStack = new QTechStack("searchTechStackEquals");
+        return JPAExpressions.selectOne()
+                .from(searchPostTag)
+                .join(searchPostTag.techStack, searchTechStack)
+                .where(
+                        searchPostTag.jobPost.eq(jobPost),
+                        searchTechStack.stackName.equalsIgnoreCase(value))
+                .exists();
     }
 
     private BooleanExpression experienceCondition(String experience) {

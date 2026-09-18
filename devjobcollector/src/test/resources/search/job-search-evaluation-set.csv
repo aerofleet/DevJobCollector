@@ -1,0 +1,101 @@
+category,query,relevance
+MIXED,Java backend,backend-java:3
+MIXED,JAVA 백엔드,backend-java:3
+MIXED,backend Spring,backend-java:3
+MIXED,React frontend,frontend-react:3
+MIXED,REACT 프론트엔드,frontend-react:3
+MIXED,frontend TypeScript,frontend-react:3
+MIXED,fullstack Node,fullstack-node:3
+MIXED,풀스택 AWS,fullstack-node:3
+MIXED,DevOps 쿠버네티스,devops-k8s:3
+MIXED,SRE Kubernetes,devops-k8s:3
+MIXED,데브옵스 Docker,devops-k8s:3
+MIXED,machine learning Python,ml-ai:3
+MIXED,머신러닝 TensorFlow,ml-ai:3
+MIXED,AI Python,ml-ai:3
+MIXED,인공지능 NLP,ml-ai:3
+MIXED,Data Kafka,data-kafka:3
+MIXED,데이터 Spark,data-kafka:3
+MIXED,Android Kotlin,mobile-android:3
+MIXED,안드로이드 Kotlin,mobile-android:3
+MIXED,iOS Swift,mobile-ios:3
+MIXED,아이폰 Swift,mobile-ios:3
+MIXED,Security OAuth,security-oauth:3
+MIXED,보안 zero,security-oauth:3
+MIXED,QA Selenium,qa-automation:3
+MIXED,테스트 Playwright,qa-automation:3
+MIXED,Platform GraphQL,body-platform:3
+MIXED,플랫폼 Redis,body-platform:3
+MIXED,공공 데이터,public-it:3
+MIXED,계약직 필기시험,public-it:3
+MIXED,Kafka,ranking-title:3;data-kafka:3;backend-java:1;ranking-body:1
+COMPOUND,Java Spring Kafka,backend-java:3
+COMPOUND,Backend REST microservices,backend-java:3
+COMPOUND,서울 Java 정규직,backend-java:3
+COMPOUND,React TypeScript CSS,frontend-react:3
+COMPOUND,Frontend Web accessibility,frontend-react:3
+COMPOUND,부산 React portfolio,frontend-react:3
+COMPOUND,Fullstack Node PostgreSQL,fullstack-node:3
+COMPOUND,풀스택 React AWS,fullstack-node:3
+COMPOUND,Node cloud 정규직,fullstack-node:3
+COMPOUND,DevOps Kubernetes Terraform,devops-k8s:3
+COMPOUND,SRE Docker observability,devops-k8s:3
+COMPOUND,쿠버네티스 CI/CD 인프라,devops-k8s:3
+COMPOUND,Machine Learning TensorFlow recommendation,ml-ai:3
+COMPOUND,AI Python NLP,ml-ai:3
+COMPOUND,머신러닝 데이터 모델,ml-ai:3
+COMPOUND,Data Kafka Spark,data-kafka:3
+COMPOUND,데이터 ETL Airflow,data-kafka:3
+COMPOUND,MySQL Kafka 서울,data-kafka:3
+COMPOUND,Android Kotlin Jetpack,mobile-android:3
+COMPOUND,모바일 안드로이드 Compose,mobile-android:3
+COMPOUND,iOS Swift SwiftUI,mobile-ios:3
+COMPOUND,모바일 아이폰 Swift,mobile-ios:3
+COMPOUND,Security OAuth penetration,security-oauth:3
+COMPOUND,보안 네트워크 zero,security-oauth:3
+COMPOUND,QA Selenium automation,qa-automation:3
+COMPOUND,테스트 Playwright 품질,qa-automation:3
+COMPOUND,Platform GraphQL MongoDB,body-platform:3
+COMPOUND,플랫폼 Redis gRPC,body-platform:3
+COMPOUND,공공기관 정보처리기사 필기시험,public-it:3
+COMPOUND,Platform Kafka,ranking-title:3;ranking-body:1
+SYNONYM,server Java,backend-java:3
+SYNONYM,back-end Spring,backend-java:3
+SYNONYM,백엔드 REST,backend-java:3
+SYNONYM,프론트엔드 React,frontend-react:3
+SYNONYM,front-end TypeScript,frontend-react:3
+SYNONYM,frontend CSS,frontend-react:3
+SYNONYM,풀스택 Node,fullstack-node:3
+SYNONYM,full-stack AWS,fullstack-node:3
+SYNONYM,fullstack PostgreSQL,fullstack-node:3
+SYNONYM,스프링 Java,backend-java:3
+SYNONYM,springboot REST,backend-java:3
+SYNONYM,k8s Terraform,devops-k8s:3
+SYNONYM,쿠버네티스 Docker,devops-k8s:3
+SYNONYM,kubernetes observability,devops-k8s:3
+SYNONYM,ml TensorFlow,ml-ai:3
+SYNONYM,머신러닝 recommendation,ml-ai:3
+SYNONYM,artificial intelligence NLP,ml-ai:3
+SYNONYM,인공지능 Python,ml-ai:3
+SYNONYM,데브옵스 Terraform,devops-k8s:3
+SYNONYM,sre CI/CD,devops-k8s:3
+BODY_ONLY,microservices,backend-java:3
+BODY_ONLY,REST,backend-java:3
+BODY_ONLY,technical interview,backend-java:3
+BODY_ONLY,accessibility,frontend-react:3
+BODY_ONLY,portfolio,frontend-react:3
+BODY_ONLY,PostgreSQL,fullstack-node:3
+BODY_ONLY,observability,devops-k8s:3
+BODY_ONLY,recommendation,ml-ai:3
+BODY_ONLY,Airflow,data-kafka:3
+BODY_ONLY,Jetpack,mobile-android:3
+BODY_ONLY,SwiftUI,mobile-ios:3
+BODY_ONLY,penetration,security-oauth:3
+BODY_ONLY,Selenium,qa-automation:3
+BODY_ONLY,event sourcing,body-platform:3
+BODY_ONLY,gRPC,body-platform:3
+BODY_ONLY,페어 프로그래밍,body-platform:3
+BODY_ONLY,정보처리기사,public-it:3
+BODY_ONLY,필기시험,public-it:3
+BODY_ONLY,계약직,public-it:3
+BODY_ONLY,공공데이터,public-it:3

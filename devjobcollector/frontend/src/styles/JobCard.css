@@ -231,3 +231,16 @@
     font-size: 13px;
   }
 }
+
+.job-match-snippet {
+  min-height: 2.8em;
+  margin: 0 0 12px;
+  overflow: hidden;
+  color: #655f70;
+  font-size: 12px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}

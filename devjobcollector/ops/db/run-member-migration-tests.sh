@@ -58,4 +58,6 @@ DJC_MIGRATION_TEST_EXPECTED_VERSION=26.7.0 \
     --tests kr.itsdev.devjobcollector.security.signup.PersonalSignupTransactionIntegrationTest \
     --tests kr.itsdev.devjobcollector.security.service.SocialIdentityUpsertIntegrationTest \
     --tests kr.itsdev.devjobcollector.security.MemberAuthCutoverRegressionIntegrationTest \
+    --tests kr.itsdev.devjobcollector.repository.JobSearchRepositoryIntegrationTest \
+    --tests kr.itsdev.devjobcollector.repository.JobSearchQualityEvaluationIntegrationTest \
     --no-daemon

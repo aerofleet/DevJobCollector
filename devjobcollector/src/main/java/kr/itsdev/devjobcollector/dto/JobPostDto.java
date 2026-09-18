@@ -26,5 +26,6 @@ public class JobPostDto {
     private String originalUrl;
     private boolean isActive;
     private List<TechStackDto> techStacks;
+    private String matchedSnippet;
     
 }

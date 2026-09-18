@@ -60,3 +60,26 @@ test('랜딩 하단 링크로 이동해 초기 로딩 중 scroll이 발생해도
   await expect.poll(() => requestedPages.includes(1)).toBe(true);
   await expect.poll(() => page.locator('.all-jobs-grid .job-card').count()).toBeGreaterThanOrEqual(24);
 });
+
+test('공고 내용 검색 범위를 안내하고 복합 검색어를 API에 전달한다', async ({ page }) => {
+  const requestedKeywords = [];
+  await page.route('**/api/v1/jobs/search**', async (route) => {
+    const url = new URL(route.request().url());
+    const keyword = url.searchParams.get('keyword') ?? '';
+    requestedKeywords.push(keyword);
+    const jobs = keyword
+      ? [{ ...makeJobs(100, 1)[0], matchedSnippet: 'Java와 Kafka 기반 공고 내용 일치 구간' }]
+      : [];
+    return respond(route, jobs, 0, 1);
+  });
+
+  await page.goto('/jobs');
+  const searchInput = page.getByRole('textbox', { name: '채용공고 검색' });
+  await expect(searchInput).toHaveAttribute('placeholder', '직무, 기술 스택, 공고 내용 검색');
+  await searchInput.fill('  Java/Kafka 신입  ');
+  await page.locator('.jobs-search-form').getByRole('button', { name: '검색', exact: true }).click();
+
+  await expect(page).toHaveURL(/keyword=Java%2FKafka(?:\+|%20)%EC%8B%A0%EC%9E%85/);
+  await expect.poll(() => requestedKeywords.includes('Java/Kafka 신입')).toBe(true);
+  await expect(page.locator('.job-match-snippet')).toHaveText('Java와 Kafka 기반 공고 내용 일치 구간');
+});
