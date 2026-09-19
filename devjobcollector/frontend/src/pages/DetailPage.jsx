@@ -4,6 +4,7 @@ import { fetchJobDetail } from '../api/jobApi';
 import { createApplication, createBookmark, recordRecentJob } from '../api/careerActivityApi';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import TechStackBadge from '../components/job/TechStackBadge';
+import StructuredJobContent from '../components/job/StructuredJobContent';
 import { formatDate } from '../utils/dateParser';
 import { getDaysRemaining } from '../utils/dateParser';
 import '../styles/DetailPage.css';
@@ -125,19 +126,24 @@ const DetailPage = () => {
 
         {job.processInfo && (
           <section className="detail-section">
-            <h3>전형 절차</h3>
-            <div className="description">
-              {job.processInfo}
+            <div className="detail-section-heading">
+              <span className="detail-section-number">01</span>
+              <h2>전형 절차</h2>
             </div>
+            <StructuredJobContent content={job.processInfo} />
           </section>
         )}
 
         {job.applyQual && (
           <section className="detail-section">
-            <h3>상세 설명</h3>
-            <div className="description">
-              {job.applyQual}
+            <div className="detail-section-heading">
+              <span className="detail-section-number">{job.processInfo ? '02' : '01'}</span>
+              <div>
+                <p>JOB DESCRIPTION</p>
+                <h2>상세 내용</h2>
+              </div>
             </div>
+            <StructuredJobContent content={job.applyQual} />
           </section>
         )}
 
