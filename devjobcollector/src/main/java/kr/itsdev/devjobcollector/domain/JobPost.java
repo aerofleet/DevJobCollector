@@ -72,6 +72,14 @@ public class JobPost {
     @Column(name = "is_active", nullable = false, columnDefinition = "BOOLEAN DEFAULT true")
     private boolean isActive = true;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "moderation_status", nullable = false, length = 30)
+    private JobModerationStatus moderationStatus = JobModerationStatus.ACTIVE;
+
+    @Version
+    @Column(nullable = false)
+    private long version;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -190,6 +198,10 @@ public class JobPost {
 
     public void activate() {
         this.isActive = true;
+    }
+
+    public void changeModerationStatus(JobModerationStatus moderationStatus) {
+        this.moderationStatus = java.util.Objects.requireNonNull(moderationStatus, "moderationStatus is required");
     }
 
     public void refreshFromSource(

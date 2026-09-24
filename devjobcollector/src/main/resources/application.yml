@@ -138,3 +138,11 @@ security:
     member-invitations-per-window: ${SECURITY_MEMBER_INVITATIONS_PER_WINDOW:30}
     verification-requests-per-window: ${SECURITY_VERIFICATION_REQUESTS_PER_WINDOW:5}
     verification-reviews-per-window: ${SECURITY_VERIFICATION_REVIEWS_PER_WINDOW:60}
+
+admin:
+  bootstrap:
+    enabled: ${ADMIN_BOOTSTRAP_ENABLED:false}
+    email: ${ADMIN_BOOTSTRAP_EMAIL:}
+    name: ${ADMIN_BOOTSTRAP_NAME:}
+    password: ${ADMIN_BOOTSTRAP_PASSWORD:}
+    password-file: ${ADMIN_BOOTSTRAP_PASSWORD_FILE:}

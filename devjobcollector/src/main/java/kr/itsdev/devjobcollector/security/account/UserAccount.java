@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.time.LocalDateTime;
 
 @Entity
@@ -48,6 +49,10 @@ public class UserAccount {
 
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
     private LocalDateTime updatedAt;
+
+    @Version
+    @Column(nullable = false)
+    private long version;
 
     protected UserAccount() {
     }
@@ -96,4 +101,5 @@ public class UserAccount {
     public UserAccountStatus getStatus() { return status; }
     public AuthProvider getProvider() { return provider; }
     public String getProviderUserId() { return providerUserId; }
+    public long getVersion() { return version; }
 }
