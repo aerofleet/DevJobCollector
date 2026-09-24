@@ -59,6 +59,25 @@ class AdminSecurityDomainTest {
                 .hasMessage("requestId is required");
     }
 
+    @Test
+    void locksAfterConfiguredFailuresAndUnlocksOnSuccessfulLoginAfterExpiry() {
+        AdminAccount account = account("admin@example.com");
+        LocalDateTime now = LocalDateTime.of(2026, 9, 25, 10, 0);
+
+        for (int attempt = 0; attempt < 5; attempt++) {
+            account.recordFailedLogin(now.plusSeconds(attempt), 5, java.time.Duration.ofMinutes(30));
+        }
+
+        assertThat(account.getStatus()).isEqualTo(AdminAccountStatus.LOCKED);
+        assertThat(account.isLockedAt(now.plusMinutes(29))).isTrue();
+        assertThat(account.isLockedAt(now.plusMinutes(30).plusSeconds(4))).isFalse();
+
+        account.recordSuccessfulLogin(now.plusMinutes(31));
+        assertThat(account.getStatus()).isEqualTo(AdminAccountStatus.ACTIVE);
+        assertThat(account.getFailedAttempts()).isZero();
+        assertThat(account.getLockedUntil()).isNull();
+    }
+
     private AdminAccount account(String email) {
         return AdminAccount.active(email, "$2a$12$" + "a".repeat(53),
                 "보안 관리자", AdminRole.ADMIN);

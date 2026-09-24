@@ -32,17 +32,17 @@
 - [x] 회원 활동·이력서·기업 기능 구현 여부 확인
 - [x] 실제 GitHub Actions 및 Docker/GHCR 운영 경로 확인
 - [x] 관리자 프론트/API 경계와 배포 방식 확정
-- [ ] 관리자 인원, 초기 SUPER_ADMIN, MFA 방식(TOTP/WebAuthn) 운영 결정
+- [x] 초기 SUPER_ADMIN 1명 및 MFA 방식 TOTP 확정(WebAuthn은 후속 검토)
 - [ ] 관리자 API 공개 도메인과 Cloudflare Access/Tunnel 정책 확인
 
 ### P1 — 관리자 인증·감사 기반
 
 - [x] V8 관리자 계정·세션·감사·상태 이력 스키마 및 롤백 절차
 - [x] 초기 SUPER_ADMIN 일회성 프로비저닝
-- [ ] 로그인 실패 제한·잠금·MFA·회전 refresh 세션
-- [ ] 관리자 전용 SecurityFilterChain, CSRF/Origin, request ID, no-store
-- [ ] `/auth/login`, `/auth/logout`, `/me`
-- [ ] 일반 회원 JWT와 관리자 세션 격리 평가셋
+- [x] 로그인 실패 5회·30분 잠금, TOTP, 폐기 가능한 8시간 서버 세션
+- [x] 관리자 인증 경로 전용 SecurityFilterChain, CSRF/Origin, request ID, no-store
+- [x] `/auth/login`, `/auth/logout`, `/me`
+- [x] 일반 회원 JWT와 관리자 세션 격리 평가셋
 
 ### P2 — 운영 MVP API
 
@@ -83,7 +83,7 @@
 ## 진행 현황
 
 - P0: 코드 실사 완료, 운영 정책 2건 확인 대기
-- P1: 보안 영속성·초기 SUPER_ADMIN 2/6 완료; 전체 migration/rollback 리허설은 P4 합격 게이트로 유지
+- P1: 관리자 인증·감사 기반 6/6 완료; 전체 migration/rollback 리허설은 P4 합격 게이트로 유지
 - P2: 미착수
 - P3: 기반 작업 진행 중
 - P4: 미착수

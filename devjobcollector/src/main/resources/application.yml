@@ -140,9 +140,21 @@ security:
     verification-reviews-per-window: ${SECURITY_VERIFICATION_REVIEWS_PER_WINDOW:60}
 
 admin:
+  security:
+    session-cookie-name: ${ADMIN_SESSION_COOKIE_NAME:DJC_ADMIN_SESSION}
+    csrf-cookie-name: ${ADMIN_CSRF_COOKIE_NAME:DJC_ADMIN_CSRF}
+    csrf-header-name: ${ADMIN_CSRF_HEADER_NAME:X-CSRF-TOKEN}
+    cookie-domain: ${ADMIN_COOKIE_DOMAIN:.itsdev.kr}
+    secure-cookies: ${ADMIN_SECURE_COOKIES:true}
+    session-duration: ${ADMIN_SESSION_DURATION:8h}
+    maximum-failed-attempts: ${ADMIN_MAX_FAILED_ATTEMPTS:5}
+    lock-duration: ${ADMIN_LOCK_DURATION:30m}
+    mfa-encryption-key: ${ADMIN_MFA_ENCRYPTION_KEY:}
+    allowed-origins: ${ADMIN_ALLOWED_ORIGINS:https://djc-admin.itsdev.kr,http://localhost:5174}
   bootstrap:
     enabled: ${ADMIN_BOOTSTRAP_ENABLED:false}
     email: ${ADMIN_BOOTSTRAP_EMAIL:}
     name: ${ADMIN_BOOTSTRAP_NAME:}
     password: ${ADMIN_BOOTSTRAP_PASSWORD:}
     password-file: ${ADMIN_BOOTSTRAP_PASSWORD_FILE:}
+    mfa-secret: ${ADMIN_BOOTSTRAP_MFA_SECRET:}

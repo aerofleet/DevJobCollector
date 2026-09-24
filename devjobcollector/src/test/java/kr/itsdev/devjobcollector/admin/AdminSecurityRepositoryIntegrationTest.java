@@ -7,6 +7,8 @@ import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
 import kr.itsdev.devjobcollector.admin.bootstrap.AdminBootstrapResult;
 import kr.itsdev.devjobcollector.admin.bootstrap.AdminBootstrapService;
+import kr.itsdev.devjobcollector.admin.auth.AdminMfaSecretCipher;
+import kr.itsdev.devjobcollector.admin.auth.AdminSecurityProperties;
 import kr.itsdev.devjobcollector.config.QuerydslConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -25,7 +27,8 @@ import org.springframework.test.context.DynamicPropertySource;
 @DataJpaTest(properties = {
         "spring.jpa.hibernate.ddl-auto=validate",
         "spring.flyway.enabled=true",
-        "spring.flyway.baseline-on-migrate=false"
+        "spring.flyway.baseline-on-migrate=false",
+        "admin.security.mfa-encryption-key=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
 })
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @EnabledIfEnvironmentVariable(named = "DJC_MIGRATION_TEST_URL", matches = ".+")
@@ -107,9 +110,11 @@ class AdminSecurityRepositoryIntegrationTest {
         char[] rawPassword = "integration-bootstrap-passphrase".toCharArray();
 
         AdminBootstrapResult created = bootstrapService.provision(
-                "Bootstrap.Admin@example.com", "초기 관리자", rawPassword);
+                "Bootstrap.Admin@example.com", "초기 관리자", rawPassword,
+                "JBSWY3DPEHPK3PXP");
         AdminBootstrapResult repeated = bootstrapService.provision(
-                "bootstrap.admin@example.com", "초기 관리자", rawPassword);
+                "bootstrap.admin@example.com", "초기 관리자", rawPassword,
+                "JBSWY3DPEHPK3PXP");
         entityManager.flush();
         entityManager.clear();
 
@@ -119,6 +124,9 @@ class AdminSecurityRepositoryIntegrationTest {
         assertThat(repeated).isEqualTo(AdminBootstrapResult.ALREADY_EXISTS);
         assertThat(account.getRole()).isEqualTo(AdminRole.SUPER_ADMIN);
         assertThat(account.getPasswordHash()).doesNotContain("integration-bootstrap-passphrase");
+        assertThat(account.getMfaSecretCiphertext()).isNotEmpty();
+        assertThat(new String(account.getMfaSecretCiphertext(),
+                java.nio.charset.StandardCharsets.US_ASCII)).doesNotContain("JBSWY3DPEHPK3PXP");
         assertThat(passwordEncoder.matches(
                 "integration-bootstrap-passphrase", account.getPasswordHash())).isTrue();
         assertThat(accountRepository.count()).isEqualTo(1);
@@ -137,6 +145,19 @@ class AdminSecurityRepositoryIntegrationTest {
         @Bean
         PasswordEncoder passwordEncoder() {
             return new BCryptPasswordEncoder(4);
+        }
+
+        @Bean
+        AdminSecurityProperties adminSecurityProperties() {
+            AdminSecurityProperties properties = new AdminSecurityProperties();
+            properties.setMfaEncryptionKey(java.util.Base64.getEncoder()
+                    .encodeToString(new byte[32]));
+            return properties;
+        }
+
+        @Bean
+        AdminMfaSecretCipher adminMfaSecretCipher(AdminSecurityProperties properties) {
+            return new AdminMfaSecretCipher(properties);
         }
     }
 }

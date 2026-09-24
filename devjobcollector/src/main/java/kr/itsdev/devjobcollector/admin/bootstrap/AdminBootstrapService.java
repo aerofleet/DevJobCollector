@@ -9,6 +9,9 @@ import kr.itsdev.devjobcollector.admin.AdminAuditLog;
 import kr.itsdev.devjobcollector.admin.AdminAuditLogRepository;
 import kr.itsdev.devjobcollector.admin.AdminAuditResult;
 import kr.itsdev.devjobcollector.admin.AdminRole;
+import kr.itsdev.devjobcollector.admin.auth.AdminMfaSecretCipher;
+import kr.itsdev.devjobcollector.admin.auth.AdminTotpVerifier;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,17 +24,33 @@ public class AdminBootstrapService {
     private final AdminAccountRepository accountRepository;
     private final AdminAuditLogRepository auditLogRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AdminMfaSecretCipher mfaSecretCipher;
 
+    @Autowired
     public AdminBootstrapService(AdminAccountRepository accountRepository,
                                  AdminAuditLogRepository auditLogRepository,
-                                 PasswordEncoder passwordEncoder) {
+                                 PasswordEncoder passwordEncoder,
+                                 AdminMfaSecretCipher mfaSecretCipher) {
         this.accountRepository = accountRepository;
         this.auditLogRepository = auditLogRepository;
         this.passwordEncoder = passwordEncoder;
+        this.mfaSecretCipher = mfaSecretCipher;
+    }
+
+    AdminBootstrapService(AdminAccountRepository accountRepository,
+                          AdminAuditLogRepository auditLogRepository,
+                          PasswordEncoder passwordEncoder) {
+        this(accountRepository, auditLogRepository, passwordEncoder, null);
     }
 
     @Transactional
     public AdminBootstrapResult provision(String email, String name, char[] rawPassword) {
+        return provision(email, name, rawPassword, null);
+    }
+
+    @Transactional
+    public AdminBootstrapResult provision(String email, String name, char[] rawPassword,
+                                          String mfaSecret) {
         String normalizedEmail = normalizeEmail(email);
         var existing = accountRepository.findByEmail(normalizedEmail);
         if (existing.isPresent()) {
@@ -46,8 +65,17 @@ public class AdminBootstrapService {
 
         validatePassword(rawPassword);
         String passwordHash = passwordEncoder.encode(CharBuffer.wrap(rawPassword));
-        AdminAccount account = accountRepository.saveAndFlush(AdminAccount.active(
-                normalizedEmail, passwordHash, name, AdminRole.SUPER_ADMIN));
+        AdminAccount account = AdminAccount.active(
+                normalizedEmail, passwordHash, name, AdminRole.SUPER_ADMIN);
+        if (mfaSecret != null && !mfaSecret.isBlank()) {
+            if (mfaSecretCipher == null) {
+                throw new IllegalStateException("admin MFA cipher is unavailable");
+            }
+            String normalizedMfaSecret = mfaSecret.replace(" ", "").toUpperCase(Locale.ROOT);
+            AdminTotpVerifier.decodeBase32(normalizedMfaSecret);
+            account.configureMfa(mfaSecretCipher.encrypt(normalizedMfaSecret), "admin-mfa-v1");
+        }
+        account = accountRepository.saveAndFlush(account);
         auditLogRepository.save(AdminAuditLog.record(
                 account.getId(), "ADMIN_BOOTSTRAP", "ADMIN_ACCOUNT",
                 account.getId().toString(), "initial super admin provisioning", null,

@@ -107,6 +107,29 @@ public class AdminAccount {
         this.lastLoginAt = java.util.Objects.requireNonNull(occurredAt, "occurredAt is required");
         this.failedAttempts = 0;
         this.lockedUntil = null;
+        if (this.status == AdminAccountStatus.LOCKED) {
+            this.status = AdminAccountStatus.ACTIVE;
+        }
+    }
+
+    public void recordFailedLogin(LocalDateTime occurredAt, int maximumAttempts,
+                                  java.time.Duration lockDuration) {
+        java.util.Objects.requireNonNull(occurredAt, "occurredAt is required");
+        java.util.Objects.requireNonNull(lockDuration, "lockDuration is required");
+        if (maximumAttempts < 1 || lockDuration.isNegative() || lockDuration.isZero()) {
+            throw new IllegalArgumentException("lock policy must be positive");
+        }
+        this.failedAttempts++;
+        if (this.failedAttempts >= maximumAttempts) {
+            this.status = AdminAccountStatus.LOCKED;
+            this.lockedUntil = occurredAt.plus(lockDuration);
+        }
+    }
+
+    public boolean isLockedAt(LocalDateTime occurredAt) {
+        return status == AdminAccountStatus.LOCKED
+                && lockedUntil != null
+                && occurredAt.isBefore(lockedUntil);
     }
 
     public void disable() {

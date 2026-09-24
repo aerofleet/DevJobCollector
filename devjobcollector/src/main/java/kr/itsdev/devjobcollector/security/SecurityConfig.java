@@ -33,7 +33,8 @@ import kr.itsdev.auth.common.oauth.OAuth2ProviderAvailabilityFilter;
 import kr.itsdev.devjobcollector.monitoring.AuthCareerObservationFilter;
 
 @Configuration
-@EnableConfigurationProperties({AuthTokenProperties.class, AuthLocalLoginProperties.class, AuthSignupProperties.class})
+@EnableConfigurationProperties({AuthTokenProperties.class, AuthLocalLoginProperties.class,
+        AuthSignupProperties.class})
 public class SecurityConfig {
 
     @Bean

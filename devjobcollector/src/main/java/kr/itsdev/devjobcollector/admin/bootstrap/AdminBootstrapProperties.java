@@ -9,6 +9,7 @@ public class AdminBootstrapProperties {
     private String name;
     private String password;
     private String passwordFile;
+    private String mfaSecret;
 
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
@@ -20,4 +21,6 @@ public class AdminBootstrapProperties {
     public void setPassword(String password) { this.password = password; }
     public String getPasswordFile() { return passwordFile; }
     public void setPasswordFile(String passwordFile) { this.passwordFile = passwordFile; }
+    public String getMfaSecret() { return mfaSecret; }
+    public void setMfaSecret(String mfaSecret) { this.mfaSecret = mfaSecret; }
 }

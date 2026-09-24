@@ -27,10 +27,15 @@ public class AdminBootstrapRunner implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments arguments) {
+        if (properties.getMfaSecret() == null || properties.getMfaSecret().isBlank()) {
+            throw new IllegalStateException(
+                    "ADMIN_BOOTSTRAP_MFA_SECRET is required when admin bootstrap is enabled");
+        }
         char[] password = secretReader.read(properties);
         try {
             AdminBootstrapResult result = bootstrapService.provision(
-                    properties.getEmail(), properties.getName(), password);
+                    properties.getEmail(), properties.getName(), password,
+                    properties.getMfaSecret());
             if (result == AdminBootstrapResult.CREATED) {
                 log.info("Initial SUPER_ADMIN provisioning completed");
             } else {

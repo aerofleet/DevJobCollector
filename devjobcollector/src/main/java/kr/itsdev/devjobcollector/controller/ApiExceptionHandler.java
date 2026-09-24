@@ -9,6 +9,7 @@ import kr.itsdev.devjobcollector.company.CompanyVerificationException;
 import kr.itsdev.devjobcollector.company.LastActiveOwnerException;
 import kr.itsdev.devjobcollector.security.service.MemberAuthenticationException;
 import kr.itsdev.devjobcollector.security.hardening.SecurityRateLimitException;
+import kr.itsdev.devjobcollector.admin.auth.AdminAuthenticationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -16,6 +17,18 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+    @ExceptionHandler(AdminAuthenticationException.class)
+    public ResponseEntity<java.util.Map<String, Object>> handleAdminAuthentication(
+            AdminAuthenticationException exception,
+            HttpServletRequest request
+    ) {
+        String requestId = (String) request.getAttribute("adminRequestId");
+        return ResponseEntity.status(exception.getStatus()).body(java.util.Map.of(
+                "code", exception.getErrorCode(),
+                "message", "관리자 인증 정보를 확인할 수 없습니다.",
+                "requestId", requestId == null ? "" : requestId));
+    }
 
     @ExceptionHandler(SecurityRateLimitException.class)
     public ResponseEntity<ApiErrorResponse> handleSecurityRateLimit(
