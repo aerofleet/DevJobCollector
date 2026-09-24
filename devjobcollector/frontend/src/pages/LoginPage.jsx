@@ -3,6 +3,11 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { loginWithPassword } from '../api/authApi';
 import { startAccountLink } from '../api/authenticatedApi';
 import SocialLoginList from '../components/auth/SocialLoginList';
+import {
+  clearPendingSocialLoginProvider,
+  commitSuccessfulSocialLogin,
+  readRecentSocialLoginProvider,
+} from '../utils/recentSocialLogin';
 import '../styles/LoginPage.css';
 
 const PENDING_LINK_PROVIDER_KEY = 'pendingAccountLinkProvider';
@@ -48,6 +53,7 @@ const LoginPage = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [linkProvider, setLinkProvider] = useState('');
   const [isLinking, setIsLinking] = useState(false);
+  const [recentSocialProvider, setRecentSocialProvider] = useState(readRecentSocialLoginProvider);
   const linkStartAttemptRef = useRef(false);
   const callbackHandledRef = useRef(false);
 
@@ -103,6 +109,7 @@ const LoginPage = () => {
     }
 
     if (oauthError) {
+      clearPendingSocialLoginProvider();
       if (oauthError === 'ACCOUNT_LINK_REQUIRED') {
         const provider = SUPPORTED_LINK_PROVIDERS.includes(oauthProvider) ? oauthProvider : '';
         const linkWasInProgress = provider
@@ -149,6 +156,7 @@ const LoginPage = () => {
     callbackHandledRef.current = true;
 
     localStorage.setItem('accessToken', token);
+    setRecentSocialProvider(commitSuccessfulSocialLogin(oauthProvider));
     sessionStorage.removeItem('postLoginNextPath');
     const pendingLinkProvider = readPendingLinkProvider();
     if (pendingLinkProvider) {
@@ -289,7 +297,11 @@ const LoginPage = () => {
             <p>아직 데브잡스 계정이 없나요?</p>
             <Link to="/signup" className="login-signup-button">회원가입</Link>
           </div>
-          <SocialLoginList authServerBaseUrl={authServerBaseUrl} onProviderClick={rememberNextPath} />
+          <SocialLoginList
+            authServerBaseUrl={authServerBaseUrl}
+            onProviderClick={rememberNextPath}
+            recentProvider={recentSocialProvider}
+          />
         </div>
       </div>
     </div>

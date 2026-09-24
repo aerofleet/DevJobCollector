@@ -12,6 +12,35 @@ const expectVisibleFocus = async (locator) => {
 };
 
 export const registerLoginAccessibilityTests = () => {
+  test('성공한 SNS 로그인을 최근 사용 배지로 표시하고 실패한 시도는 반영하지 않는다', async ({ page }) => {
+    await page.route('http://localhost:8080/**', async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      if (path === '/oauth2/authorization/github') {
+        await route.fulfill({
+          status: 302,
+          headers: {
+            Location: 'http://127.0.0.1:4174/oauth/callback?token=github-token',
+          },
+        });
+        return;
+      }
+      await route.fulfill({ status: 200, contentType: 'text/html', body: '<p>OAuth authorization</p>' });
+    });
+
+    await page.goto('/login?next=/login');
+    await expect(page.getByText('최근 사용')).toHaveCount(0);
+    await page.getByTitle('github').click();
+
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(page.getByText('최근 사용')).toBeVisible();
+    await expect(page.getByTitle('github')).toHaveAttribute('aria-label', 'GitHub로 계속, 최근 사용');
+
+    await page.goto('/oauth/callback?error=OAUTH_LOGIN_FAILED&provider=google');
+    await page.goto('/login');
+    await expect(page.getByTitle('github')).toHaveAttribute('aria-label', 'GitHub로 계속, 최근 사용');
+    await expect(page.getByTitle('google')).toHaveAttribute('aria-label', 'Google로 계속');
+  });
+
   test('로그인 핵심 컨트롤은 DOM 순서대로 키보드 탐색되고 focus가 표시된다', async ({ page }) => {
     await page.goto('/login?next=/member');
 

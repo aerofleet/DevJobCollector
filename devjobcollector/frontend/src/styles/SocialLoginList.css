@@ -5,6 +5,32 @@
   margin-top: 8px;
 }
 
+.social_login_list.has_recent_provider {
+  margin-top: 20px;
+}
+
+.social_login_item {
+  position: relative;
+  display: inline-flex;
+}
+
+.recent_social_badge {
+  position: absolute;
+  z-index: 1;
+  top: -15px;
+  left: 50%;
+  min-width: max-content;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #6245e6;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  transform: translateX(-50%);
+  box-shadow: 0 2px 6px rgba(50, 35, 112, 0.22);
+}
+
 .social_icon {
   display: inline-flex;
   width: 44px;
