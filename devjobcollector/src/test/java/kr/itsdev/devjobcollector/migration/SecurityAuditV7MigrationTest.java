@@ -40,7 +40,7 @@ class SecurityAuditV7MigrationTest {
 
     @Test
     void migratesCleanDatabaseThroughV7() throws SQLException {
-        flyway(null).migrate();
+        flyway("7").migrate();
 
         assertThat(scalar("SELECT VERSION()" )).startsWith(expectedVersion);
         assertThat(scalar("SELECT version FROM flyway_schema_history WHERE success = 1 "
@@ -57,7 +57,7 @@ class SecurityAuditV7MigrationTest {
         flyway("6").migrate();
         insertUserAndCompany();
 
-        flyway(null).migrate();
+        flyway("7").migrate();
 
         assertThat(scalar("SELECT COUNT(*) FROM companies")).isEqualTo("1");
         assertThat(scalar("SELECT COUNT(*) FROM security_audit_events")).isEqualTo("0");
@@ -65,7 +65,7 @@ class SecurityAuditV7MigrationTest {
 
     @Test
     void retainsIdOnlyAuditTrailAfterSourceRowsAreRemoved() throws SQLException {
-        flyway(null).migrate();
+        flyway("7").migrate();
         insertUserAndCompany();
         execute("""
                 INSERT INTO security_audit_events
