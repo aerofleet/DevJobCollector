@@ -42,6 +42,16 @@ class WebConfigCorsTest {
     }
 
     @Test
+    void allowsDjcAdminFrontendOrigin() throws Exception {
+        mockMvc.perform(options("/api/cors-probe")
+                        .header(HttpHeaders.ORIGIN, "https://djc-admin.itsdev.kr")
+                        .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "GET"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN,
+                        "https://djc-admin.itsdev.kr"));
+    }
+
+    @Test
     void rejectsWithBuddyFrontendOrigin() throws Exception {
         mockMvc.perform(options("/api/cors-probe")
                         .header(HttpHeaders.ORIGIN, "https://withbuddy.itsdev.kr")
