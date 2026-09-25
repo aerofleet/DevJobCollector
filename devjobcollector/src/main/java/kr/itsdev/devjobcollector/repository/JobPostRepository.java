@@ -1,6 +1,7 @@
 package kr.itsdev.devjobcollector.repository;
 
 import kr.itsdev.devjobcollector.domain.JobPost;
+import kr.itsdev.devjobcollector.domain.JobModerationStatus;
 import kr.itsdev.devjobcollector.domain.SourcePlatform;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -105,6 +106,9 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long>, JobPost
      * 활성 공고 개수
      */
     long countByIsActiveTrue();
+
+    long countByIsActiveTrueAndModerationStatusAndEndDateGreaterThanEqual(
+            JobModerationStatus moderationStatus, LocalDate today);
 
     /**
      * 특정 플랫폼의 공고 개수

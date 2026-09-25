@@ -32,12 +32,24 @@ test('인증 관리자는 대시보드 지표와 역할별 메뉴를 확인한�
         pendingCompanies: { value: 7, dataAvailable: true },
         activeJobs: { value: 314, dataAvailable: true },
       },
+      signupTrend: [
+        { date: '2026-09-18', value: 3 },
+        { date: '2026-09-19', value: 8 },
+        { date: '2026-09-20', value: 5 },
+        { date: '2026-09-21', value: 12 },
+        { date: '2026-09-22', value: 4 },
+        { date: '2026-09-23', value: 6 },
+        { date: '2026-09-24', value: 9 },
+      ],
+      reviewQueue: { pendingCompanyVerifications: 7 },
     },
   }));
   await page.goto('/');
 
   await expect(page.getByRole('heading', { name: '오늘의 운영 현황' })).toBeVisible();
   await expect(page.getByText('1,280')).toBeVisible();
+  await expect(page.getByLabel('최근 7일 신규 가입 추이')).toBeVisible();
+  await expect(page.getByText('7건')).toBeVisible();
   await expect(page.getByRole('link', { name: '감사 기록' })).toBeVisible();
   await expect(page.getByRole('link', { name: '관리자 계정' })).toBeVisible();
 });

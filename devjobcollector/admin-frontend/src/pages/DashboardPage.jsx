@@ -52,6 +52,11 @@ const DashboardPage = () => {
   }
 
   const metrics = state.data?.metrics || {};
+  const signupTrend = state.data?.signupTrend || [];
+  const trendMaximum = Math.max(...signupTrend.map((point) => Number(point.value) || 0), 1);
+  const pendingVerifications = Number(
+    state.data?.reviewQueue?.pendingCompanyVerifications ?? metrics.pendingCompanies?.value ?? 0,
+  );
   return (
     <div className="dashboard-grid">
       <section className="page-heading">
@@ -62,17 +67,27 @@ const DashboardPage = () => {
         {cards.map((card) => <MetricCard key={card.key} definition={card} metric={metrics[card.key]} />)}
       </section>
       <section className="dashboard-panel wide-panel">
-        <div className="panel-header"><div><span>REVIEW QUEUE</span><h3>우선 확인할 운영 항목</h3></div><ArrowUpRight size={20} /></div>
-        <div className="empty-state"><Building2 size={28} /><strong>연결된 심사 대기 항목이 없습니다.</strong><p>기업·회원·공고 운영 API가 연결되면 우선순위에 따라 표시됩니다.</p></div>
+        <div className="panel-header"><div><span>SIGNUP TREND</span><h3>최근 7일 신규 가입</h3></div><UserPlus size={20} /></div>
+        {signupTrend.length === 0 ? (
+          <div className="empty-state"><UserPlus size={28} /><strong>가입 추이 데이터가 없습니다.</strong><p>집계가 시작되면 일별 가입자 수를 표시합니다.</p></div>
+        ) : (
+          <div className="trend-chart" aria-label="최근 7일 신규 가입 추이">
+            {signupTrend.map((point) => (
+              <div className="trend-column" key={point.date}>
+                <span>{Number(point.value).toLocaleString('ko-KR')}</span>
+                <div className="trend-track"><i style={{ height: `${Math.max((Number(point.value) / trendMaximum) * 100, 4)}%` }} /></div>
+                <small>{new Intl.DateTimeFormat('ko-KR', { month: 'numeric', day: 'numeric' }).format(new Date(`${point.date}T00:00:00+09:00`))}</small>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
       <section className="dashboard-panel">
-        <div className="panel-header"><div><span>ACTIVITY</span><h3>최근 관리자 조치</h3></div></div>
-        <div className="empty-state compact"><FileClockFallback /><strong>감사 로그 연결 예정</strong></div>
+        <div className="panel-header"><div><span>REVIEW QUEUE</span><h3>우선 확인할 운영 항목</h3></div><ArrowUpRight size={20} /></div>
+        <div className="queue-summary"><Building2 size={28} /><span>기업 인증 검토 대기</span><strong>{pendingVerifications.toLocaleString('ko-KR')}건</strong><p>요청 시간이 오래된 항목부터 확인하세요.</p></div>
       </section>
     </div>
   );
 };
-
-const FileClockFallback = () => <span className="clock-glyph" aria-hidden="true">◷</span>;
 
 export default DashboardPage;

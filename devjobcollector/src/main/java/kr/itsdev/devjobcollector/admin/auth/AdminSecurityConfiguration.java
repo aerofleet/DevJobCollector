@@ -40,7 +40,8 @@ public class AdminSecurityConfiguration {
             AuthenticationEntryPoint authenticationEntryPoint
     ) throws Exception {
         return http
-                .securityMatcher("/api/v1/admin/auth/**", "/api/v1/admin/me")
+                .securityMatcher("/api/v1/admin/auth/**", "/api/v1/admin/me",
+                        "/api/v1/admin/dashboard/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session
