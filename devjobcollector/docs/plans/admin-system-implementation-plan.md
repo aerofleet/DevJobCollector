@@ -46,7 +46,7 @@
 
 ### P2 — 운영 MVP API
 
-- [ ] 대시보드 요약·추이
+- [x] 대시보드 요약·추이
 - [ ] 회원 목록·상세·정지/해제 및 세션 폐기
 - [ ] 기업 목록·상세·승인/반려
 - [ ] 공고 목록·상세·숨김/복구·강제 마감
@@ -76,7 +76,7 @@
 
 - 관리자 API origin이 `api.itsdev.kr`인지 기존 DJC API origin인지 운영 확인이 필요하다. 프론트는 `VITE_ADMIN_API_BASE_URL`로 분리한다.
 - MFA 방식과 초기 관리자 전달 절차는 보안 정책 결정이 필요하다. 구현 기본안은 TOTP다.
-- 현재 `job_posts`는 `is_active`만 있어 HIDDEN과 CLOSED를 구분할 수 없다. P2 전에 상태 컬럼과 수집 갱신 정책을 확정한다.
+- `job_posts.moderation_status`는 V8에서 `ACTIVE/HIDDEN/CLOSED`로 확정했다. 수집 갱신은 moderation 상태를 덮어쓰지 않으며 공고 운영 API에서만 전이한다.
 - 현재 `companies.status`는 `PENDING_VERIFICATION/VERIFIED/REJECTED/...`이며 명세의 `PENDING/APPROVED`를 그대로 사용하지 않는다.
 - 감사 로그 보존 기간과 증빙 원본 보관 기간은 개인정보 정책 확인이 필요하다.
 
@@ -84,6 +84,6 @@
 
 - P0: 코드 실사 완료, 운영 정책 2건 확인 대기
 - P1: 관리자 인증·감사 기반 6/6 완료; 전체 migration/rollback 리허설은 P4 합격 게이트로 유지
-- P2: 미착수
+- P2: 대시보드 요약·최근 7일 가입 추이 완료(1/7), 회원 운영 API 착수 대기
 - P3: 기반 작업 진행 중
 - P4: 미착수
