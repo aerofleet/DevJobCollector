@@ -22,6 +22,8 @@
 - `bash ops/db/run-member-migration-tests.sh`: 성공. 대시보드 p95 21ms, 회원 목록 p95 5ms, 공고 목록 p95 5ms. 기업·감사 목록 p95는 이 평가셋에서 미측정.
 - `npm.cmd run lint`, `npm.cmd run build`: 성공.
 - `ADMIN_E2E_EXTERNAL_SERVER=true npm.cmd run e2e` (Vite 4175): 25 통과, 3 의도된 viewport 건너뜀, 실패 0.
+- 커밋 `5168c3c`: 관리자 Workers, 백엔드, Docker CI 모두 성공.
+- 운영 smoke: 관리자 `/login`, `/companies`, `/audit` 직접 경로 200; API health 200; 무인증 `/api/v1/admin/companies`, `/api/v1/admin/audit` 각각 401; 관리자 Origin에서 기업 API OPTIONS 200 및 허용 Origin 확인.
 
 ## 후속 작업
 
