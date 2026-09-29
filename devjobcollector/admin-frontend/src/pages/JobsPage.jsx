@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { adminApi } from '../api/adminApi';
 import { useAdminAuth } from '../auth/AdminAuthContext';
+import DetailModal from '../components/DetailModal';
 
 const statusText = { ACTIVE: '노출', HIDDEN: '숨김', CLOSED: '강제 마감' };
 const actionText = { ACTIVE: '복구', HIDDEN: '숨김', CLOSED: '강제 마감' };
@@ -78,8 +79,8 @@ export default function JobsPage() {
         <button type="button" disabled={page === 0} onClick={() => setPage(page - 1)}>이전</button>
         <button type="button" disabled={page + 1 >= result.totalPages} onClick={() => setPage(page + 1)}>다음</button></div>}
     </div>
-    {selected && <section className="dashboard-panel user-detail" aria-label="공고 상세">
-      <div className="panel-header"><h3>공고 상세</h3><button type="button" onClick={() => setSelected(null)} aria-label="공고 상세 닫기">닫기</button></div>
+    {selected && <DetailModal title="공고 상세" onClose={() => setSelected(null)} closeDisabled={busy}>
+      {error && <p className="form-error" role="alert">{error}</p>}
       <dl><div><dt>공고명</dt><dd>{selected.title}</dd></div><div><dt>기업</dt><dd>{selected.companyName}</dd></div>
         <div><dt>관리 상태</dt><dd>{statusText[selected.moderationStatus]}</dd></div>
         <div><dt>수집 활성</dt><dd>{selected.active ? '활성' : '비활성'}</dd></div>
@@ -99,6 +100,6 @@ export default function JobsPage() {
               {busy ? '처리 중…' : '변경 확정'}</button>
             <button className="secondary-button" type="button" disabled={busy} onClick={() => setPendingStatus(null)}>취소</button>
           </div>}</div>}
-    </section>}
+    </DetailModal>}
   </section>;
 }

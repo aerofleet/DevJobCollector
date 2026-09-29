@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { adminApi } from '../api/adminApi';
+import DetailModal from '../components/DetailModal';
 
 const statusText = {
   PENDING_VERIFICATION: '인증 대기', VERIFIED: '인증 완료',
@@ -59,8 +60,8 @@ export default function CompaniesPage() {
         <button type="button" disabled={page === 0} onClick={() => setPage(page - 1)}>이전</button>
         <button type="button" disabled={page + 1 >= result.totalPages} onClick={() => setPage(page + 1)}>다음</button></div>}
     </div>
-    {selected && <section className="dashboard-panel user-detail" aria-label="기업 상세">
-      <div className="panel-header"><h3>기업 상세</h3><button type="button" onClick={() => setSelected(null)} aria-label="기업 상세 닫기">닫기</button></div>
+    {selected && <DetailModal title="기업 상세" onClose={() => setSelected(null)}>
+      {error && <p className="form-error" role="alert">{error}</p>}
       <dl><div><dt>기업명</dt><dd>{selected.company.displayName}</dd></div>
         <div><dt>법인명</dt><dd>{selected.company.legalName}</dd></div>
         <div><dt>사업자번호</dt><dd>{selected.company.businessNumberMasked}</dd></div>
@@ -71,6 +72,6 @@ export default function CompaniesPage() {
         <div><dt>요청일</dt><dd>{selected.latestRequest?.requestedAt || '—'}</dd></div>
         <div><dt>반려 사유</dt><dd>{selected.latestRequest?.rejectionReason || '—'}</dd></div></dl>
       <p>증빙 파일 열람 경로가 연결되기 전까지 관리자 승인·반려는 제공하지 않습니다.</p>
-    </section>}
+    </DetailModal>}
   </section>;
 }

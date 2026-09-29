@@ -96,6 +96,7 @@ test('회원 목록에서 사유를 입력해 정지하고 최신 상태를 다�
   await page.goto('/users');
   await expect(page.getByText('member@example.com')).toBeVisible();
   await page.getByRole('button', { name: '상세' }).click();
+  await expect(page.getByRole('dialog', { name: '회원 상세' })).toBeVisible();
   await page.getByLabel('변경 사유').fill('운영 정책 위반');
   await page.getByRole('button', { name: '회원 정지' }).click();
   await expect(page.getByRole('group', { name: '상태 변경 확인' })).toBeVisible();
@@ -127,6 +128,7 @@ test('공고 목록에서 사유를 확인하고 숨김 처리한다', async ({ 
   await page.goto('/jobs');
   await expect(page.getByText('백엔드 개발자')).toBeVisible();
   await page.getByRole('button', { name: '상세' }).click();
+  await expect(page.getByRole('dialog', { name: '공고 상세' })).toBeVisible();
   await page.getByLabel('변경 사유').fill('중복 공고');
   await page.getByRole('button', { name: '숨김' }).click();
   await expect(page.getByRole('group', { name: '공고 상태 변경 확인' })).toBeVisible();
@@ -151,8 +153,14 @@ test('기업 상세에서 인증 요청을 조회하되 증빙 키와 승인 버
   }));
   await page.goto('/companies');
   await page.getByRole('button', { name: '상세' }).click();
-  await expect(page.getByRole('region', { name: '기업 상세' })).toContainText('PENDING');
+  await expect(page.getByRole('dialog', { name: '기업 상세' })).toContainText('PENDING');
   await expect(page.getByRole('button', { name: '승인' })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: '기업 상세' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '상세' })).toBeFocused();
+  await page.getByRole('button', { name: '상세' }).click();
+  await page.locator('.detail-modal-overlay').click({ position: { x: 5, y: 5 } });
+  await expect(page.getByRole('dialog', { name: '기업 상세' })).toHaveCount(0);
 });
 
 test('최고 관리자는 감사 기록을 검색하고 다른 역할은 접근할 수 없다', async ({ page }) => {
@@ -207,10 +215,12 @@ test('최고 관리자는 MFA 계정을 만들고 역할 변경 시 확인 절�
   await expect(page.getByText('비밀번호와 MFA 비밀키를 안전한 채널로 전달한 뒤')).toBeVisible();
   await page.getByRole('region', { name: '관리자 추가' }).getByRole('button', { name: '닫기' }).click();
   await expect(page.getByRole('cell', { name: 'new-admin@example.com' })).toBeVisible();
+  await page.getByRole('button', { name: '상세' }).click();
+  await expect(page.getByRole('dialog', { name: '관리자 상세' })).toBeVisible();
   await page.getByLabel('변경 사유').fill('업무 변경');
   await page.getByLabel('새 역할').selectOption('REVIEWER');
   await page.getByRole('button', { name: '역할 변경' }).click();
   await expect(page.getByRole('group', { name: '관리자 계정 변경 확인' })).toBeVisible();
   await page.getByRole('button', { name: '변경 확정' }).click();
-  await expect(page.getByRole('region', { name: '관리자 상세' })).toContainText('심사 담당');
+  await expect(page.getByRole('dialog', { name: '관리자 상세' })).toContainText('심사 담당');
 });

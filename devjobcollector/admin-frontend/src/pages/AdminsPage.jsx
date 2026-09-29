@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { adminApi } from '../api/adminApi';
 import { useAdminAuth } from '../auth/AdminAuthContext';
+import DetailModal from '../components/DetailModal';
 
 const roleText = { SUPER_ADMIN: '최고 관리자', ADMIN: '운영 관리자', REVIEWER: '심사 담당' };
 const statusText = { ACTIVE: '활성', LOCKED: '로그인 잠금', DISABLED: '비활성' };
@@ -71,9 +72,9 @@ export default function AdminsPage() {
     if (busy || created) return;
     setBusy(true); setError('');
     try {
-      const response = await adminApi.createAdmin(form);
+      await adminApi.createAdmin(form);
       setCreated(true);
-      setSelected(response.data);
+      setSelected(null);
       await load();
     } catch (cause) { setError(cause.message); }
     finally { setBusy(false); }
@@ -159,8 +160,8 @@ export default function AdminsPage() {
         <button type="button" disabled={page === 0} onClick={() => setPage(page - 1)}>이전</button>
         <button type="button" disabled={page + 1 >= result.totalPages} onClick={() => setPage(page + 1)}>다음</button></div>}
     </div>
-    {selected && <section className="dashboard-panel user-detail" aria-label="관리자 상세">
-      <div className="panel-header"><h3>관리자 상세</h3><button type="button" onClick={() => setSelected(null)}>닫기</button></div>
+    {selected && <DetailModal title="관리자 상세" onClose={() => setSelected(null)} closeDisabled={busy}>
+      {error && <p className="form-error" role="alert">{error}</p>}
       <dl><div><dt>이름</dt><dd>{selected.name}</dd></div><div><dt>이메일</dt><dd>{selected.email}</dd></div>
         <div><dt>역할</dt><dd>{roleText[selected.role]}</dd></div><div><dt>상태</dt><dd>{statusText[selected.status]}</dd></div>
         <div><dt>MFA</dt><dd>{selected.mfaConfigured ? '설정' : '미설정'}</dd></div>
@@ -188,6 +189,6 @@ export default function AdminsPage() {
           <button className="secondary-button" type="button" disabled={busy} onClick={() => setPending(null)}>취소</button>
         </div>}
       </div>}
-    </section>}
+    </DetailModal>}
   </section>;
 }

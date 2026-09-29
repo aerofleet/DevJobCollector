@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { adminApi } from '../api/adminApi';
 import { useAdminAuth } from '../auth/AdminAuthContext';
+import DetailModal from '../components/DetailModal';
 
 const statusText = {
   ACTIVE: '활성', SUSPENDED: '정지', PENDING_EMAIL: '이메일 대기', WITHDRAWN: '탈퇴',
@@ -86,8 +87,8 @@ export default function UsersPage() {
           <button type="button" disabled={page === 0} onClick={() => setPage(page - 1)}>이전</button>
           <button type="button" disabled={page + 1 >= result.totalPages} onClick={() => setPage(page + 1)}>다음</button></div>}
       </div>
-      {selected && <section className="dashboard-panel user-detail" aria-label="회원 상세">
-        <div className="panel-header"><h3>회원 상세</h3><button type="button" onClick={() => setSelected(null)} aria-label="회원 상세 닫기">닫기</button></div>
+      {selected && <DetailModal title="회원 상세" onClose={() => setSelected(null)} closeDisabled={busy}>
+        {error && <p className="form-error" role="alert">{error}</p>}
         <dl><div><dt>이름</dt><dd>{selected.name}</dd></div><div><dt>이메일</dt><dd>{selected.email}</dd></div>
           <div><dt>상태</dt><dd>{statusText[selected.status]}</dd></div><div><dt>가입 경로</dt><dd>{selected.provider}</dd></div></dl>
         {admin.role !== 'REVIEWER' && ['ACTIVE', 'SUSPENDED'].includes(selected.status) && <div className="moderation-form">
@@ -105,7 +106,7 @@ export default function UsersPage() {
             </button>
             <button className="secondary-button" type="button" disabled={busy} onClick={() => setConfirming(false)}>취소</button>
           </div>}</div>}
-      </section>}
+      </DetailModal>}
     </section>
   );
 }
