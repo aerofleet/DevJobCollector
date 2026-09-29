@@ -73,4 +73,13 @@ export const adminApi = {
   companies: (params) => adminRequest(`/companies?${new URLSearchParams(params)}`),
   company: (id) => adminRequest(`/companies/${id}`),
   audit: (params) => adminRequest(`/audit?${new URLSearchParams(params)}`),
+  admins: (params) => adminRequest(`/admins?${new URLSearchParams(params)}`),
+  admin: (id) => adminRequest(`/admins/${id}`),
+  createAdmin: (body) => adminRequest('/admins', { method: 'POST', body: JSON.stringify(body) }),
+  changeAdminStatus: (id, body) => adminRequest(`/admins/${id}/status`, {
+    method: 'PATCH', body: JSON.stringify(body),
+  }),
+  changeAdminRole: (id, body) => adminRequest(`/admins/${id}/role`, {
+    method: 'PATCH', body: JSON.stringify(body),
+  }),
 };

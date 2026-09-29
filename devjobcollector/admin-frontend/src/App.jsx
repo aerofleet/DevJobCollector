@@ -14,11 +14,11 @@ import { createElement, useState } from 'react';
 import { AdminAuthProvider, useAdminAuth } from './auth/AdminAuthContext';
 import DashboardPage from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
-import ResourcePage from './pages/ResourcePage';
 import UsersPage from './pages/UsersPage';
 import JobsPage from './pages/JobsPage';
 import CompaniesPage from './pages/CompaniesPage';
 import AuditPage from './pages/AuditPage';
+import AdminsPage from './pages/AdminsPage';
 
 const navigation = [
   { to: '/', label: '대시보드', icon: LayoutDashboard, end: true },
@@ -131,7 +131,7 @@ const AppRoutes = () => (
       <Route path="companies" element={<CompaniesPage />} />
       <Route path="jobs" element={<JobsPage />} />
       <Route path="audit" element={<AuditPage />} />
-      <Route path="admins" element={<ResourcePage title="관리자 계정" description="SUPER_ADMIN 전용 계정 및 MFA 관리 화면입니다." />} />
+      <Route path="admins" element={<AdminsPage />} />
     </Route>
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>

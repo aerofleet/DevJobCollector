@@ -137,6 +137,18 @@ public class AdminAccount {
         this.credentialVersion++;
     }
 
+    public void enable() {
+        this.status = AdminAccountStatus.ACTIVE;
+        this.failedAttempts = 0;
+        this.lockedUntil = null;
+        this.credentialVersion++;
+    }
+
+    public void changeRole(AdminRole newRole) {
+        this.role = java.util.Objects.requireNonNull(newRole, "role is required");
+        this.credentialVersion++;
+    }
+
     private static String normalizeEmail(String value) {
         String normalized = requireText(value, "email", 255).toLowerCase(Locale.ROOT);
         if (!normalized.contains("@")) {

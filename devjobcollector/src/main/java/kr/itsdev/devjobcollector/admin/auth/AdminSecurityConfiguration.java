@@ -43,7 +43,7 @@ public class AdminSecurityConfiguration {
                 .securityMatcher("/api/v1/admin/auth/**", "/api/v1/admin/me",
                         "/api/v1/admin/dashboard/**", "/api/v1/admin/users/**",
                         "/api/v1/admin/jobs/**", "/api/v1/admin/companies/**",
-                        "/api/v1/admin/audit/**")
+                        "/api/v1/admin/audit/**", "/api/v1/admin/admins/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session

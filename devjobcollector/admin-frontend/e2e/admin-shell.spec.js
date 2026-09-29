@@ -171,3 +171,46 @@ test('최고 관리자는 감사 기록을 검색하고 다른 역할은 접근�
   await page.getByRole('button', { name: '검색' }).click();
   await expect(page.getByText('운영 정책 위반')).toBeVisible();
 });
+
+test('최고 관리자는 MFA 계정을 만들고 역할 변경 시 확인 절차를 거친다', async ({ page }) => {
+  await page.route('**/api/v1/admin/me', (route) => fulfillJson(route, 200, {
+    data: { id: 1, name: '최고 관리자', role: 'SUPER_ADMIN' },
+  }));
+  let account = null;
+  await page.route('**/api/v1/admin/admins?*', (route) => fulfillJson(route, 200, {
+    data: { content: account ? [account] : [], totalElements: account ? 1 : 0, totalPages: 1 },
+  }));
+  await page.route('**/api/v1/admin/admins', async (route) => {
+    const body = route.request().postDataJSON();
+    expect(body.password.length).toBeGreaterThanOrEqual(16);
+    expect(body.mfaSecret).toMatch(/^[A-Z2-7]{32}$/);
+    account = { id: 2, email: body.email, name: body.name, role: body.role,
+      status: 'ACTIVE', mfaConfigured: true, version: 0 };
+    await fulfillJson(route, 200, { data: account });
+  });
+  await page.route('**/api/v1/admin/admins/2', (route) => fulfillJson(route, 200, { data: account }));
+  await page.route('**/api/v1/admin/admins/2/role', async (route) => {
+    expect(route.request().postDataJSON()).toEqual({
+      role: 'REVIEWER', expectedVersion: 0, reason: '업무 변경',
+    });
+    account = { ...account, role: 'REVIEWER', version: 1 };
+    await fulfillJson(route, 200, { data: account });
+  });
+
+  await page.goto('/admins');
+  await page.getByRole('button', { name: '관리자 추가' }).click();
+  const createPanel = page.getByRole('region', { name: '관리자 추가' });
+  await createPanel.getByLabel('이메일', { exact: true }).fill('new-admin@example.com');
+  await createPanel.getByLabel('이름', { exact: true }).fill('신규 관리자');
+  await page.getByRole('button', { name: '보안값 생성' }).click();
+  await page.getByRole('button', { name: '계정 생성' }).click();
+  await expect(page.getByText('비밀번호와 MFA 비밀키를 안전한 채널로 전달한 뒤')).toBeVisible();
+  await page.getByRole('region', { name: '관리자 추가' }).getByRole('button', { name: '닫기' }).click();
+  await expect(page.getByRole('cell', { name: 'new-admin@example.com' })).toBeVisible();
+  await page.getByLabel('변경 사유').fill('업무 변경');
+  await page.getByLabel('새 역할').selectOption('REVIEWER');
+  await page.getByRole('button', { name: '역할 변경' }).click();
+  await expect(page.getByRole('group', { name: '관리자 계정 변경 확인' })).toBeVisible();
+  await page.getByRole('button', { name: '변경 확정' }).click();
+  await expect(page.getByRole('region', { name: '관리자 상세' })).toContainText('심사 담당');
+});
