@@ -24,7 +24,8 @@
 - `npm.cmd run lint`, `npm.cmd run build`: 통과.
 - `bash ops/db/run-member-migration-tests.sh`: MySQL 26.7 회귀 111/111 통과. 관리자 계정 목록 p95 6ms(단일 신규 계정 fixture, 30회), 기준 500ms 이내.
 - `ADMIN_E2E_EXTERNAL_SERVER=true npm.cmd run e2e`: 29 통과, 대상 viewport 외 3건 의도된 건너뜀, 실패 0. 신규 계정 생성·역할 변경 시나리오 4개 viewport 통과.
-- 운영 배포 결과: 확인 후 기록.
+- 커밋 `d666977`: 관리자 Workers `36588830163`, 백엔드 `36588830115`, Docker CI `36588830217` 모두 성공(2026-09-30).
+- 운영 smoke: 관리자 `/admins` 직접 경로 200; API health 200; 무인증 계정 목록·상세 각각 401; 관리자 Origin의 POST OPTIONS 200 및 허용 Origin 확인.
 
 ## 남은 작업
 
