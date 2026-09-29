@@ -21,9 +21,11 @@
 - `./gradlew.bat test --offline`: 562 tests, failures/errors 0, DB 조건부 skip 107.
 - 관리자 SPA lint/build 통과, E2E 17 passed / 비대상 viewport 3 skipped.
 - 상태 이력과 감사 각 3건, 공개 검색·목록에서 숨김·마감 공고 0건을 확인했다.
-- 운영 반영 및 smoke는 후속 확인 대상이다.
+- 커밋 `006bc7e`; Admin Workers `36565097528`, Backend `36565097484`, Docker `36565097504` 모두 성공.
+- 운영 `/jobs` 직접 경로 200, API health 200, 무인증 관리자 공고 API 401, 공개 검색 200, 관리자 Origin PATCH preflight 200.
+- 배포 번들에서 공고 API와 `HIDDEN`/`CLOSED` 상태 처리 코드를 확인했다.
 
 ## 남은 게이트
 
 - 상태 변경 동시성 20회 평가와 실제 관리자 계정을 사용한 운영 조치 확인.
-- 운영 API 무인증 401, 관리자 PATCH CORS, 공개 공고 검색 smoke.
+- 실제 관리자 로그인 세션을 사용한 운영 조치와 숨김 공고의 운영 데이터 검증. 데이터 변경을 수반하므로 이번 smoke에서는 실행하지 않았다.
