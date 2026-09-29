@@ -170,7 +170,7 @@ class AdminSecurityV8MigrationTest {
                 .dataSource(url, username, password)
                 .locations("classpath:db/migration")
                 .cleanDisabled(false);
-        if (target != null) { configuration.target(target); }
+        configuration.target(target == null ? "8" : target);
         return configuration.load();
     }
 

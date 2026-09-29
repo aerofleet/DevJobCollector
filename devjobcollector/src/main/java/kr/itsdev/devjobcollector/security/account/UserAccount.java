@@ -50,6 +50,9 @@ public class UserAccount {
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "session_revoked_at")
+    private LocalDateTime sessionRevokedAt;
+
     @Version
     @Column(nullable = false)
     private long version;
@@ -93,6 +96,14 @@ public class UserAccount {
         }
     }
 
+    public void moderate(UserAccountStatus newStatus, LocalDateTime occurredAt) {
+        if (newStatus != UserAccountStatus.ACTIVE && newStatus != UserAccountStatus.SUSPENDED) {
+            throw new IllegalArgumentException("Unsupported moderation status");
+        }
+        this.status = newStatus;
+        this.sessionRevokedAt = occurredAt;
+    }
+
     public Long getId() { return id; }
     public String getEmail() { return email; }
     public String getName() { return name; }
@@ -102,4 +113,6 @@ public class UserAccount {
     public AuthProvider getProvider() { return provider; }
     public String getProviderUserId() { return providerUserId; }
     public long getVersion() { return version; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getSessionRevokedAt() { return sessionRevokedAt; }
 }

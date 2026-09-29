@@ -70,3 +70,35 @@ test('모바일에서는 관리자 메뉴를 드로어로 제공한다', async (
   await expect(page.getByRole('navigation', { name: '관리자 메뉴' })).toBeVisible();
   await expect(page.getByRole('link', { name: '감사 기록' })).toHaveCount(0);
 });
+
+test('회원 목록에서 사유를 입력해 정지하고 최신 상태를 다시 표시한다', async ({ page }) => {
+  await page.route('**/api/v1/admin/me', (route) => fulfillJson(route, 200, {
+    data: { id: 1, name: '관리자', role: 'ADMIN' },
+  }));
+  let status = 'ACTIVE';
+  let version = 0;
+  await page.route('**/api/v1/admin/users?*', (route) => fulfillJson(route, 200, {
+    data: { content: [{ id: 7, name: '회원', email: 'member@example.com', status,
+      createdAt: '2026-09-01T00:00:00', version }], totalElements: 1, totalPages: 1 },
+  }));
+  await page.route('**/api/v1/admin/users/7', (route) => fulfillJson(route, 200, {
+    data: { id: 7, name: '회원', email: 'member@example.com', status, version, provider: 'LOCAL' },
+  }));
+  await page.route('**/api/v1/admin/users/7/status', async (route) => {
+    const body = route.request().postDataJSON();
+    expect(body).toEqual({ status: 'SUSPENDED', expectedVersion: 0, reason: '운영 정책 위반' });
+    status = 'SUSPENDED';
+    version = 1;
+    await fulfillJson(route, 200, { data: {
+      id: 7, name: '회원', email: 'member@example.com', status, version, provider: 'LOCAL',
+    } });
+  });
+  await page.goto('/users');
+  await expect(page.getByText('member@example.com')).toBeVisible();
+  await page.getByRole('button', { name: '상세' }).click();
+  await page.getByLabel('변경 사유').fill('운영 정책 위반');
+  await page.getByRole('button', { name: '회원 정지' }).click();
+  await expect(page.getByRole('group', { name: '상태 변경 확인' })).toBeVisible();
+  await page.getByRole('button', { name: '변경 확정' }).click();
+  await expect(page.getByRole('button', { name: '정지 해제' })).toBeVisible();
+});

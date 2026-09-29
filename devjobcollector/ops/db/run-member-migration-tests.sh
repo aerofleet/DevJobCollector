@@ -45,6 +45,7 @@ SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=0 \
     --tests kr.itsdev.devjobcollector.migration.CompanyVerificationV6MigrationTest \
     --tests kr.itsdev.devjobcollector.migration.SecurityAuditV7MigrationTest \
     --tests kr.itsdev.devjobcollector.migration.AdminSecurityV8MigrationTest \
+    --tests kr.itsdev.devjobcollector.migration.AdminUserV9MigrationTest \
     --tests kr.itsdev.devjobcollector.migration.CareerHubV4AuditTest \
     --tests kr.itsdev.devjobcollector.career.CareerRepositoryIntegrationTest \
     --tests kr.itsdev.devjobcollector.career.CareerActivityConcurrencyIntegrationTest \
@@ -58,6 +59,7 @@ SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=0 \
     --tests kr.itsdev.devjobcollector.security.hardening.SecurityHardeningIntegrationTest \
     --tests kr.itsdev.devjobcollector.admin.AdminSecurityRepositoryIntegrationTest \
     --tests kr.itsdev.devjobcollector.admin.dashboard.AdminDashboardIntegrationTest \
+    --tests kr.itsdev.devjobcollector.admin.users.AdminUserIntegrationTest \
     --tests kr.itsdev.devjobcollector.migration.MemberV3AuditTest \
     --tests kr.itsdev.devjobcollector.security.account.MemberFoundationRepositoryTest \
     --tests kr.itsdev.devjobcollector.security.signup.PersonalSignupTransactionIntegrationTest \
@@ -69,3 +71,5 @@ SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=0 \
 
 grep -o 'ADMIN_DASHBOARD_SUMMARY_P95_MS=[0-9]*' \
   build/test-results/test/TEST-kr.itsdev.devjobcollector.admin.dashboard.AdminDashboardIntegrationTest.xml
+grep -o 'ADMIN_USER_LIST_P95_MS=[0-9]*' \
+  build/test-results/test/TEST-kr.itsdev.devjobcollector.admin.users.AdminUserIntegrationTest.xml

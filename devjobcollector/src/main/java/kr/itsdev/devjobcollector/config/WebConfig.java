@@ -27,7 +27,7 @@ public class WebConfig implements WebMvcConfigurer {
                         "https://djc.itsdev.kr",
                         "https://djc-admin.itsdev.kr",
                         "https://*.workers.dev")
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .exposedHeaders("Authorization", "X-Total-Count")
                 .allowCredentials(true)

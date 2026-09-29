@@ -60,4 +60,9 @@ export const adminApi = {
   logout: () => adminRequest('/auth/logout', { method: 'POST' }),
   me: () => adminRequest('/me'),
   dashboardSummary: () => adminRequest('/dashboard/summary'),
+  users: (params) => adminRequest(`/users?${new URLSearchParams(params)}`),
+  user: (id) => adminRequest(`/users/${id}`),
+  moderateUser: (id, body) => adminRequest(`/users/${id}/status`, {
+    method: 'PATCH', body: JSON.stringify(body),
+  }),
 };
