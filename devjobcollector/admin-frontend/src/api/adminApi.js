@@ -70,4 +70,7 @@ export const adminApi = {
   moderateJob: (id, body) => adminRequest(`/jobs/${id}/status`, {
     method: 'PATCH', body: JSON.stringify(body),
   }),
+  companies: (params) => adminRequest(`/companies?${new URLSearchParams(params)}`),
+  company: (id) => adminRequest(`/companies/${id}`),
+  audit: (params) => adminRequest(`/audit?${new URLSearchParams(params)}`),
 };

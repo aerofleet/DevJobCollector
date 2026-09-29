@@ -133,3 +133,41 @@ test('공고 목록에서 사유를 확인하고 숨김 처리한다', async ({ 
   await page.getByRole('button', { name: '변경 확정' }).click();
   await expect(page.getByRole('button', { name: '복구' })).toBeVisible();
 });
+
+test('기업 상세에서 인증 요청을 조회하되 증빙 키와 승인 버튼은 표시하지 않는다', async ({ page }) => {
+  await page.route('**/api/v1/admin/me', (route) => fulfillJson(route, 200, {
+    data: { id: 1, name: '관리자', role: 'ADMIN' },
+  }));
+  await page.route('**/api/v1/admin/companies?*', (route) => fulfillJson(route, 200, {
+    data: { content: [{ id: 4, displayName: '데브잡스', legalName: '데브잡스 주식회사',
+      businessNumberMasked: '123-**-*****', status: 'PENDING_VERIFICATION' }],
+    totalElements: 1, totalPages: 1 },
+  }));
+  await page.route('**/api/v1/admin/companies/4', (route) => fulfillJson(route, 200, {
+    data: { company: { id: 4, displayName: '데브잡스', legalName: '데브잡스 주식회사',
+      businessNumberMasked: '123-**-*****', status: 'PENDING_VERIFICATION' },
+    latestRequest: { id: 8, method: 'BUSINESS_REGISTRATION_DOCUMENT', status: 'PENDING',
+      requestedAt: '2026-09-29T10:00:00' } },
+  }));
+  await page.goto('/companies');
+  await page.getByRole('button', { name: '상세' }).click();
+  await expect(page.getByRole('region', { name: '기업 상세' })).toContainText('PENDING');
+  await expect(page.getByRole('button', { name: '승인' })).toHaveCount(0);
+});
+
+test('최고 관리자는 감사 기록을 검색하고 다른 역할은 접근할 수 없다', async ({ page }) => {
+  await page.route('**/api/v1/admin/me', (route) => fulfillJson(route, 200, {
+    data: { id: 1, name: '최고 관리자', role: 'SUPER_ADMIN' },
+  }));
+  await page.route('**/api/v1/admin/audit?*', (route) => fulfillJson(route, 200, {
+    data: { content: [{ id: 1, occurredAt: '2026-09-29T10:00:00', actorAdminId: 1,
+      action: 'USER_STATUS_CHANGED', targetType: 'USER', targetId: '7',
+      result: 'SUCCESS', reason: '운영 정책 위반', requestId: 'request-1' }],
+    totalElements: 1, totalPages: 1 },
+  }));
+  await page.goto('/audit');
+  await expect(page.getByText('USER_STATUS_CHANGED')).toBeVisible();
+  await page.getByLabel('대상 ID').fill('7');
+  await page.getByRole('button', { name: '검색' }).click();
+  await expect(page.getByText('운영 정책 위반')).toBeVisible();
+});
