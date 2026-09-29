@@ -117,6 +117,7 @@ button { cursor: pointer; }
 .moderation-confirm { padding: 14px; border: 1px solid #d5def5; border-radius: 10px; background: #f4f7ff; }
 .moderation-confirm p { margin: 0 0 12px; color: #374158; font-size: 12px; }
 .moderation-confirm button { margin-right: 8px; }
+.job-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .mobile-menu-button, .sidebar-close, .sidebar-backdrop { display: none; }
 
 @media (max-width: 1023px) {

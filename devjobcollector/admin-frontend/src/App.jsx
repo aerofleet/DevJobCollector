@@ -16,6 +16,7 @@ import DashboardPage from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
 import ResourcePage from './pages/ResourcePage';
 import UsersPage from './pages/UsersPage';
+import JobsPage from './pages/JobsPage';
 
 const navigation = [
   { to: '/', label: '대시보드', icon: LayoutDashboard, end: true },
@@ -126,7 +127,7 @@ const AppRoutes = () => (
       <Route index element={<DashboardPage />} />
       <Route path="users" element={<UsersPage />} />
       <Route path="companies" element={<ResourcePage title="기업 심사" description="인증 대기 기업과 심사 이력은 관리자 API P2에서 연결됩니다." />} />
-      <Route path="jobs" element={<ResourcePage title="공고 관리" description="숨김과 마감을 분리한 상태 모델 확정 후 연결됩니다." />} />
+      <Route path="jobs" element={<JobsPage />} />
       <Route path="audit" element={<ResourcePage title="감사 기록" description="성공한 업무 변경과 접근 기록을 검색합니다." />} />
       <Route path="admins" element={<ResourcePage title="관리자 계정" description="SUPER_ADMIN 전용 계정 및 MFA 관리 화면입니다." />} />
     </Route>

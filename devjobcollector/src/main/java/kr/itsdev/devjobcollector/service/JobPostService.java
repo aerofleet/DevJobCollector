@@ -1,6 +1,7 @@
 package kr.itsdev.devjobcollector.service;
 
 import kr.itsdev.devjobcollector.domain.JobPost;
+import kr.itsdev.devjobcollector.domain.JobModerationStatus;
 import kr.itsdev.devjobcollector.dto.JobPostDto;
 import kr.itsdev.devjobcollector.dto.TechStackDto;
 import kr.itsdev.devjobcollector.dto.JobPostDetailDto;
@@ -15,6 +16,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import java.time.LocalDate;
@@ -109,6 +112,9 @@ public class JobPostService {
         log.info("채용 공고 상세 조회: id={}", id);
         JobPost jobPost = jobPostRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("채용 공고를 찾을 수 없습니다. ID: " + id));
+        if (jobPost.getModerationStatus() != JobModerationStatus.ACTIVE) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "JOB_NOT_AVAILABLE");
+        }
         
         return convertToDetailDto(jobPost);
     }

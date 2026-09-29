@@ -65,4 +65,9 @@ export const adminApi = {
   moderateUser: (id, body) => adminRequest(`/users/${id}/status`, {
     method: 'PATCH', body: JSON.stringify(body),
   }),
+  jobs: (params) => adminRequest(`/jobs?${new URLSearchParams(params)}`),
+  job: (id) => adminRequest(`/jobs/${id}`),
+  moderateJob: (id, body) => adminRequest(`/jobs/${id}/status`, {
+    method: 'PATCH', body: JSON.stringify(body),
+  }),
 };

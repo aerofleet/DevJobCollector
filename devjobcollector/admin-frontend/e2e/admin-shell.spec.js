@@ -102,3 +102,34 @@ test('회원 목록에서 사유를 입력해 정지하고 최신 상태를 다�
   await page.getByRole('button', { name: '변경 확정' }).click();
   await expect(page.getByRole('button', { name: '정지 해제' })).toBeVisible();
 });
+
+test('공고 목록에서 사유를 확인하고 숨김 처리한다', async ({ page }) => {
+  await page.route('**/api/v1/admin/me', (route) => fulfillJson(route, 200, {
+    data: { id: 1, name: '관리자', role: 'ADMIN' },
+  }));
+  let moderationStatus = 'ACTIVE';
+  let version = 0;
+  const job = () => ({ id: 9, title: '백엔드 개발자', companyName: '데브잡스',
+    moderationStatus, version, active: true, sourcePlatform: 'SARAMIN', endDate: '2026-12-31' });
+  await page.route('**/api/v1/admin/jobs?*', (route) => fulfillJson(route, 200, {
+    data: { content: [job()], totalElements: 1, totalPages: 1 },
+  }));
+  await page.route('**/api/v1/admin/jobs/9', (route) => fulfillJson(route, 200, { data: job() }));
+  await page.route('**/api/v1/admin/jobs/9/status', async (route) => {
+    expect(route.request().postDataJSON()).toEqual({
+      status: 'HIDDEN', expectedVersion: 0, reason: '중복 공고',
+    });
+    moderationStatus = 'HIDDEN';
+    version = 1;
+    await fulfillJson(route, 200, { data: job() });
+  });
+
+  await page.goto('/jobs');
+  await expect(page.getByText('백엔드 개발자')).toBeVisible();
+  await page.getByRole('button', { name: '상세' }).click();
+  await page.getByLabel('변경 사유').fill('중복 공고');
+  await page.getByRole('button', { name: '숨김' }).click();
+  await expect(page.getByRole('group', { name: '공고 상태 변경 확인' })).toBeVisible();
+  await page.getByRole('button', { name: '변경 확정' }).click();
+  await expect(page.getByRole('button', { name: '복구' })).toBeVisible();
+});

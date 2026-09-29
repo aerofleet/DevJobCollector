@@ -10,6 +10,8 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -23,6 +25,19 @@ import java.util.Optional;
  */
 @Repository
 public interface JobPostRepository extends JpaRepository<JobPost, Long>, JobPostRepositoryCustom {
+
+    @Query("""
+            select j from JobPost j
+            where (:keyword is null or lower(j.title) like lower(concat('%', :keyword, '%'))
+                or lower(j.companyName) like lower(concat('%', :keyword, '%')))
+              and (:status is null or j.moderationStatus = :status)
+            """)
+    Page<JobPost> searchForAdmin(@Param("keyword") String keyword,
+            @Param("status") JobModerationStatus status, Pageable pageable);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select j from JobPost j where j.id = :id")
+    Optional<JobPost> findByIdForModeration(@Param("id") Long id);
     
     // ===== 기본 조회 (무한 스크롤 대응 Slice) =====
     
@@ -35,7 +50,7 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long>, JobPost
      */
     @Query("SELECT j FROM JobPost j " +
            "WHERE j.isActive = true " +
-           "AND j.endDate >= :today " +
+           "AND j.endDate >= :today AND j.moderationStatus = 'ACTIVE' " +
            "ORDER BY j.createdAt DESC")
     Slice<JobPost> findActiveAndNotExpiredSlice(
         @Param("today") LocalDate today,
@@ -46,7 +61,7 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long>, JobPost
     
     @Query("SELECT j FROM JobPost j WHERE " +
            "j.isActive = true " +
-           "AND j.endDate >= :today " +
+           "AND j.endDate >= :today AND j.moderationStatus = 'ACTIVE' " +
            "AND (LOWER(j.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
            "     LOWER(j.companyName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
            "     LOWER(j.location) LIKE LOWER(CONCAT('%', :keyword, '%')))")
@@ -93,7 +108,7 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long>, JobPost
            "JOIN pt.techStack ts " +
            "WHERE ts.stackName IN :stackNames " +
            "AND j.isActive = true " +
-           "AND j.endDate >= :today")
+           "AND j.endDate >= :today AND j.moderationStatus = 'ACTIVE'")
     Slice<JobPost> findByTechStackNamesSlice(
         @Param("stackNames") List<String> stackNames,
         @Param("today") LocalDate today,
@@ -130,7 +145,8 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long>, JobPost
      * 활성 + 마감일 유효 공고 개수
      */
     @Query("SELECT COUNT(j) FROM JobPost j " +
-           "WHERE j.isActive = true AND j.endDate >= :today")
+           "WHERE j.isActive = true AND j.endDate >= :today "
+           + "AND j.moderationStatus = 'ACTIVE'")
     long countActiveAndValid(@Param("today") LocalDate today);
 
     /**

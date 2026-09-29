@@ -41,7 +41,8 @@ public class AdminSecurityConfiguration {
     ) throws Exception {
         return http
                 .securityMatcher("/api/v1/admin/auth/**", "/api/v1/admin/me",
-                        "/api/v1/admin/dashboard/**", "/api/v1/admin/users/**")
+                        "/api/v1/admin/dashboard/**", "/api/v1/admin/users/**",
+                        "/api/v1/admin/jobs/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session

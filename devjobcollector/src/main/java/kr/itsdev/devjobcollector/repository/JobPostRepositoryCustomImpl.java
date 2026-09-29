@@ -8,6 +8,7 @@ import com.querydsl.core.types.dsl.StringPath;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import kr.itsdev.devjobcollector.domain.JobPost;
+import kr.itsdev.devjobcollector.domain.JobModerationStatus;
 import kr.itsdev.devjobcollector.domain.QPostTag;
 import kr.itsdev.devjobcollector.domain.QTechStack;
 import lombok.RequiredArgsConstructor;
@@ -50,6 +51,7 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
                 .leftJoin(postTag.techStack, techStack).fetchJoin()
                 .where(
                         jobPost.isActive.eq(true),
+                        jobPost.moderationStatus.eq(JobModerationStatus.ACTIVE),
                         jobPost.endDate.goe(today),
                         keywordCondition(keywordTerms),
                         containsIgnoreCase(jobPost.location, location),
@@ -89,6 +91,7 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
                 .from(jobPost)
                 .where(
                         jobPost.isActive.eq(true),
+                        jobPost.moderationStatus.eq(JobModerationStatus.ACTIVE),
                         jobPost.endDate.goe(today),
                         keywordCondition(keywordTerms),
                         containsIgnoreCase(jobPost.location, location),
@@ -112,6 +115,7 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
                 .where(
                         techStack.stackName.in(stackNames),
                         jobPost.isActive.eq(true),
+                        jobPost.moderationStatus.eq(JobModerationStatus.ACTIVE),
                         jobPost.endDate.goe(today)
                 )
                 .offset(pageable.getOffset())
@@ -137,6 +141,7 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
                 .where(
                         techStack.stackName.in(stackNames),
                         jobPost.isActive.eq(true),
+                        jobPost.moderationStatus.eq(JobModerationStatus.ACTIVE),
                         jobPost.endDate.goe(today)
                 );
 

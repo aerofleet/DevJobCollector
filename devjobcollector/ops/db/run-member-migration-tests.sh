@@ -60,6 +60,7 @@ SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=0 \
     --tests kr.itsdev.devjobcollector.admin.AdminSecurityRepositoryIntegrationTest \
     --tests kr.itsdev.devjobcollector.admin.dashboard.AdminDashboardIntegrationTest \
     --tests kr.itsdev.devjobcollector.admin.users.AdminUserIntegrationTest \
+    --tests kr.itsdev.devjobcollector.admin.jobs.AdminJobIntegrationTest \
     --tests kr.itsdev.devjobcollector.migration.MemberV3AuditTest \
     --tests kr.itsdev.devjobcollector.security.account.MemberFoundationRepositoryTest \
     --tests kr.itsdev.devjobcollector.security.signup.PersonalSignupTransactionIntegrationTest \
@@ -73,3 +74,5 @@ grep -o 'ADMIN_DASHBOARD_SUMMARY_P95_MS=[0-9]*' \
   build/test-results/test/TEST-kr.itsdev.devjobcollector.admin.dashboard.AdminDashboardIntegrationTest.xml
 grep -o 'ADMIN_USER_LIST_P95_MS=[0-9]*' \
   build/test-results/test/TEST-kr.itsdev.devjobcollector.admin.users.AdminUserIntegrationTest.xml
+grep -o 'ADMIN_JOB_LIST_P95_MS=[0-9]*' \
+  build/test-results/test/TEST-kr.itsdev.devjobcollector.admin.jobs.AdminJobIntegrationTest.xml
