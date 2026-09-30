@@ -38,8 +38,8 @@ class AdminUserV9MigrationTest {
     @Test
     void cleanInstallCreatesRevocationColumn() throws SQLException {
         flyway(null).migrate();
-        assertThat(scalar("SELECT version FROM flyway_schema_history WHERE success = 1 "
-                + "ORDER BY installed_rank DESC LIMIT 1")).isEqualTo("9");
+        assertThat(scalar("SELECT COUNT(*) FROM flyway_schema_history WHERE success = 1 "
+                + "AND version = '9'")).isEqualTo("1");
         assertThat(scalar("""
                 SELECT COUNT(*) FROM information_schema.columns
                 WHERE table_schema = DATABASE() AND table_name = 'users'
