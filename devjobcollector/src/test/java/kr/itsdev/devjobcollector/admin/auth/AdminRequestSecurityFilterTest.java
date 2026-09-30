@@ -35,8 +35,23 @@ class AdminRequestSecurityFilterTest {
 
         assertThat(response.getStatus()).isEqualTo(403);
         assertThat(response.getContentAsString()).contains("ADMIN_ORIGIN_DENIED");
+        assertThat(response.getContentAsString()).contains("관리자 보안 검증에 실패했습니다.");
+        assertThat(response.getCharacterEncoding()).isEqualTo("UTF-8");
         assertThat(response.getHeader("Cache-Control")).isEqualTo("no-store");
         assertThat(response.getHeader("X-Request-Id")).isNotBlank();
+    }
+
+    @Test
+    void leavesPublicSignupOutsideAdminOriginPolicy() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest(
+                "POST", "/api/v1/auth/signup/personal");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, new MockFilterChain());
+
+        assertThat(response.getStatus()).isEqualTo(200);
+        assertThat(response.getHeader("X-Request-Id")).isNull();
+        assertThat(response.getContentAsString()).isEmpty();
     }
 
     @Test

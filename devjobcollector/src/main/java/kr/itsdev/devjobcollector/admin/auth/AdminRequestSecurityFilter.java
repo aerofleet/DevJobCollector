@@ -6,6 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.http.MediaType;
@@ -25,6 +26,11 @@ public class AdminRequestSecurityFilter extends OncePerRequestFilter {
         this.properties = properties;
         this.tokenCodec = tokenCodec;
         this.objectMapper = objectMapper;
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return !request.getRequestURI().startsWith("/api/v1/admin/");
     }
 
     @Override
@@ -62,6 +68,7 @@ public class AdminRequestSecurityFilter extends OncePerRequestFilter {
     private void reject(HttpServletResponse response, int status, String code, String requestId)
             throws IOException {
         response.setStatus(status);
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         objectMapper.writeValue(response.getWriter(), java.util.Map.of(
                 "code", code, "message", "관리자 보안 검증에 실패했습니다.",

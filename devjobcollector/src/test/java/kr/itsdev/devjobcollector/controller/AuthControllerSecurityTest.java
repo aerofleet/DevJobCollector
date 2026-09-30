@@ -15,8 +15,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
 import java.util.Date;
 import kr.itsdev.auth.common.spi.TokenIssueService;
+import kr.itsdev.devjobcollector.admin.auth.AdminAuthenticationService;
+import kr.itsdev.devjobcollector.admin.auth.AdminSecurityConfiguration;
+import kr.itsdev.devjobcollector.admin.auth.AdminTokenCodec;
 import kr.itsdev.devjobcollector.config.PerfLogProperties;
 import kr.itsdev.devjobcollector.dto.auth.AccountLinkStartResponse;
+import kr.itsdev.devjobcollector.dto.auth.PersonalSignupResponse;
 import kr.itsdev.devjobcollector.security.JwtAuthenticationFilter;
 import kr.itsdev.devjobcollector.security.JwtTokenVerifier;
 import kr.itsdev.devjobcollector.security.SecurityConfig;
@@ -28,11 +32,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(AuthController.class)
-@Import({SecurityConfig.class, JwtAuthenticationFilter.class})
+@Import({SecurityConfig.class, JwtAuthenticationFilter.class,
+        AdminSecurityConfiguration.class, AdminTokenCodec.class})
 class AuthControllerSecurityTest {
     @Autowired MockMvc mockMvc;
 
@@ -42,6 +48,26 @@ class AuthControllerSecurityTest {
     @MockitoBean AccountLinkService accountLinkService;
     @MockitoBean JwtTokenVerifier jwtTokenVerifier;
     @MockitoBean PerfLogProperties perfLogProperties;
+    @MockitoBean AdminAuthenticationService adminAuthenticationService;
+
+    @Test
+    void publicSignupIsNotBlockedByAdminOriginPolicy() throws Exception {
+        when(personalSignupService.signup(any(), any())).thenReturn(
+                new PersonalSignupResponse("recruiter@example.com", "PENDING_EMAIL", 10, null));
+
+        mockMvc.perform(post("/api/v1/auth/signup/personal")
+                        .header("Origin", "https://djc.itsdev.kr")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"recruiter@example.com","name":"Recruiter",
+                                 "password":"Password123!","termsAccepted":true,
+                                 "privacyAccepted":true}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.email").value("recruiter@example.com"));
+
+        verify(personalSignupService).signup(any(), any());
+    }
 
     @BeforeEach
     void validToken() {

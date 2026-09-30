@@ -1,6 +1,7 @@
 package kr.itsdev.devjobcollector.admin.auth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,6 +30,22 @@ public class AdminSecurityConfiguration {
                                                           AdminTokenCodec tokenCodec,
                                                           ObjectMapper objectMapper) {
         return new AdminRequestSecurityFilter(properties, tokenCodec, objectMapper);
+    }
+
+    @Bean
+    FilterRegistrationBean<AdminSessionAuthenticationFilter> adminSessionFilterRegistration(
+            AdminSessionAuthenticationFilter filter) {
+        FilterRegistrationBean<AdminSessionAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
+    FilterRegistrationBean<AdminRequestSecurityFilter> adminRequestFilterRegistration(
+            AdminRequestSecurityFilter filter) {
+        FilterRegistrationBean<AdminRequestSecurityFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
     }
 
     @Bean
