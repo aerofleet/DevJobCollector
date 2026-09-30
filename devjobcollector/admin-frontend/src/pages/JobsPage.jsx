@@ -94,23 +94,24 @@ export default function JobsPage() {
         <div><dt>출처</dt><dd>{selected.sourcePlatform}</dd></div>
         <div><dt>원본</dt><dd><a href={selected.originalUrl} target="_blank" rel="noreferrer">원본 공고 확인</a></dd></div></dl>
       {admin.role !== 'REVIEWER' && actions.length > 0 && <div className="moderation-form">
-        <label htmlFor="job-moderation-reason">변경 사유</label>
-        <textarea id="job-moderation-reason" value={reason} onChange={(event) => {
-          setReason(event.target.value); setPendingStatus(null);
-        }} maxLength={500} rows={3} />
         {!pendingStatus ? <div className="job-actions">{actions.map((action) =>
-          <button className="secondary-button" key={action} type="button" disabled={!reason.trim()}
-            onClick={() => setPendingStatus(action)}>{actionText[action]}</button>)}</div>
+          <button className="secondary-button" key={action} type="button" disabled={busy}
+            onClick={() => { setReason(''); setPendingStatus(action); }}>{actionText[action]}</button>)}</div>
           : <div className="moderation-confirm" role="group" aria-label="공고 상태 변경 확인">
+            <label htmlFor="job-moderation-reason">변경 사유
+              <textarea id="job-moderation-reason" value={reason}
+                onChange={(event) => setReason(event.target.value)} maxLength={500} rows={3} required />
+            </label>
             {pendingStatus === 'ACTIVE' && <label htmlFor="job-new-end-date">새 마감일 {needsNewEndDate ? '(필수)' : '(선택)'}
               <input id="job-new-end-date" type="date" value={newEndDate}
                 min={new Date().toLocaleDateString('sv-SE')}
                 onChange={(event) => setNewEndDate(event.target.value)} required={needsNewEndDate} />
             </label>}
             <p>{selected.title} 공고를 {actionText[pendingStatus]} 처리합니다. 변경 사유가 감사 기록에 남습니다.</p>
-            <button className="primary-button" type="button" disabled={busy || (needsNewEndDate && !newEndDate)} onClick={changeStatus}>
+            <button className="primary-button" type="button" disabled={busy || !reason.trim() || (needsNewEndDate && !newEndDate)} onClick={changeStatus}>
               {busy ? '처리 중…' : '변경 확정'}</button>
-            <button className="secondary-button" type="button" disabled={busy} onClick={() => setPendingStatus(null)}>취소</button>
+            <button className="secondary-button" type="button" disabled={busy}
+              onClick={() => { setReason(''); setPendingStatus(null); }}>취소</button>
           </div>}</div>}
     </DetailModal>}
   </section>;
