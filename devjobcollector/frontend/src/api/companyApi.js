@@ -10,10 +10,11 @@ export const createCompany = async (company) => {
   return response.data;
 };
 
-export const requestCompanyVerification = async (companyId, evidenceObjectKey) => {
-  const response = await authenticatedApi.post(`/companies/${companyId}/verification-requests`, {
-    method: 'BUSINESS_REGISTRATION_DOCUMENT',
-    evidenceObjectKey,
+export const requestCompanyVerification = async (companyId, file) => {
+  const form = new FormData();
+  form.append('file', file);
+  const response = await authenticatedApi.post(`/companies/${companyId}/verification-requests/document`, form, {
+    headers: { 'Content-Type': undefined },
   });
   return response.data;
 };

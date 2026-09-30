@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { Buffer } from 'node:buffer';
 
 const member = {
   id: 42,
@@ -85,8 +86,11 @@ const installJourneyApi = async (page) => {
       }, 201);
     }
 
-    if (path === `/api/v1/companies/${company.companyId}/verification-requests` && method === 'POST') {
-      state.evidencePayload = request.postDataJSON();
+    if (path === `/api/v1/companies/${company.companyId}/verification-requests/document` && method === 'POST') {
+      state.evidencePayload = {
+        contentType: request.headers()['content-type'],
+        body: request.postDataBuffer()?.toString(),
+      };
       state.companies = [{
         ...company,
         verificationStatus: 'PENDING',
@@ -165,15 +169,16 @@ test('기업회원 가입 선택 후 기업 OWNER 등록과 인증 요청까지 
     websiteUrl: company.websiteUrl,
   });
 
-  await page.getByLabel('증빙 문서 키').fill('company-verification/77/evidence.pdf');
+  await page.getByLabel('사업자등록증 파일').setInputFiles({
+    name: 'registration.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\nverification fixture'),
+  });
   await page.getByRole('button', { name: '인증 요청 제출' }).click();
 
   await expect(page.getByRole('heading', { name: '관리자 검토 중' })).toBeVisible();
   await expect(page.getByRole('status')).toContainText('기업 인증 요청을 접수했습니다');
-  expect(state.evidencePayload).toEqual({
-    method: 'BUSINESS_REGISTRATION_DOCUMENT',
-    evidenceObjectKey: 'company-verification/77/evidence.pdf',
-  });
+  expect(state.evidencePayload.contentType).toContain('multipart/form-data');
+  expect(state.evidencePayload.body).toContain('registration.pdf');
+  expect(state.evidencePayload.body).toContain('%PDF-1.4');
   await expectNoHorizontalScroll(page);
 });
 

@@ -51,7 +51,7 @@ const CompanyPage = () => {
   const [companyForm, setCompanyForm] = useState({
     legalName: '', displayName: '', businessNumber: '', websiteUrl: '',
   });
-  const [evidenceObjectKey, setEvidenceObjectKey] = useState('');
+  const [evidenceFile, setEvidenceFile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -116,17 +116,30 @@ const CompanyPage = () => {
 
   const submitVerification = async (event) => {
     event.preventDefault();
-    if (!selectedCompany) return;
+    if (!selectedCompany || !evidenceFile) return;
+    if (evidenceFile.size > 5 * 1024 * 1024) {
+      setErrorMessage('5MB 이하의 사업자등록증 파일을 선택해주세요.');
+      return;
+    }
+    if (!/\.(pdf|png|jpe?g)$/i.test(evidenceFile.name)) {
+      setErrorMessage('PDF, PNG, JPG 파일만 제출할 수 있습니다.');
+      return;
+    }
     setSubmitting('verification');
     setErrorMessage('');
     setNotice('');
     try {
-      await requestCompanyVerification(selectedCompany.companyId, evidenceObjectKey.trim());
-      setEvidenceObjectKey('');
+      await requestCompanyVerification(selectedCompany.companyId, evidenceFile);
+      setEvidenceFile(null);
+      event.target.reset();
       await loadCompanies();
       setNotice('기업 인증 요청을 접수했습니다. 관리자 검토 결과를 이 화면에서 확인할 수 있습니다.');
     } catch (error) {
-      setErrorMessage(errorMessageFor(error, '기업 인증 요청 중 오류가 발생했습니다.'));
+      setErrorMessage(error.response?.status === 413
+        ? '5MB 이하의 사업자등록증 파일을 선택해주세요.'
+        : error.response?.status === 400
+          ? '파일 형식을 확인해주세요. PDF, PNG, JPG 파일만 제출할 수 있습니다.'
+          : errorMessageFor(error, '기업 인증 요청 중 오류가 발생했습니다.'));
     } finally {
       setSubmitting('');
     }
@@ -218,11 +231,11 @@ const CompanyPage = () => {
                 <section className="company-panel verification-panel">
                   <div className="company-panel-heading">
                     <span><FileCheck2 size={22} /></span>
-                    <div><h2>기업 인증 요청</h2><p>사업자등록증 증빙의 Object Storage 키를 입력해주세요.</p></div>
+                    <div><h2>기업 인증 요청</h2><p>사업자등록증 파일을 첨부하면 관리자가 확인합니다.</p></div>
                   </div>
                   <form className="company-form" onSubmit={submitVerification}>
-                    <div className="company-field"><label htmlFor="company-evidence-key">증빙 문서 키</label><input id="company-evidence-key" value={evidenceObjectKey} onChange={(event) => setEvidenceObjectKey(event.target.value)} maxLength="500" pattern="^(?!/)(?!.*\.\.)(?!.*://).+$" placeholder="company-verification/.../evidence.pdf" aria-describedby="company-evidence-key-hint" required /><small id="company-evidence-key-hint">파일 원문이나 공개 URL이 아닌 발급된 비공개 저장소 키만 입력합니다.</small></div>
-                    <button type="submit" disabled={submitting === 'verification'}>{submitting === 'verification' ? '요청 중...' : '인증 요청 제출'}</button>
+                    <div className="company-field"><label htmlFor="company-evidence-file">사업자등록증 파일</label><input id="company-evidence-file" type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" onChange={(event) => { setEvidenceFile(event.target.files?.[0] || null); setErrorMessage(''); }} aria-describedby="company-evidence-file-hint" required /><small id="company-evidence-file-hint">PDF, PNG, JPG 파일 · 최대 5MB</small></div>
+                    <button type="submit" disabled={submitting === 'verification' || !evidenceFile}>{submitting === 'verification' ? '제출 중...' : '인증 요청 제출'}</button>
                   </form>
                 </section>
               )}

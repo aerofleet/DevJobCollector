@@ -128,7 +128,7 @@ public class CompanyVerificationService {
         return CompanyVerificationResponse.from(request);
     }
 
-    private UserAccount requirePlatformAdmin(String subject) {
+    UserAccount requirePlatformAdmin(String subject) {
         UserAccount reviewer = currentMemberService.requireCurrentMember(subject);
         if (!PLATFORM_ADMIN.equals(reviewer.getRole())) {
             throw CompanyVerificationException.platformAdminRequired();

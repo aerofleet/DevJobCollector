@@ -9,6 +9,7 @@ import kr.itsdev.devjobcollector.company.CompanyVerificationRequestRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,11 +19,14 @@ import org.springframework.web.server.ResponseStatusException;
 public class AdminCompanyService {
     private final CompanyRepository companies;
     private final CompanyVerificationRequestRepository requests;
+    private final JdbcTemplate jdbcTemplate;
 
     public AdminCompanyService(CompanyRepository companies,
-                               CompanyVerificationRequestRepository requests) {
+                               CompanyVerificationRequestRepository requests,
+                               JdbcTemplate jdbcTemplate) {
         this.companies = companies;
         this.requests = requests;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Transactional(readOnly = true)
@@ -44,7 +48,9 @@ public class AdminCompanyService {
         Company company = companies.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "COMPANY_NOT_FOUND"));
         VerificationView latest = requests.findTopByCompany_IdOrderByRequestedAtDescIdDesc(id)
-                .map(VerificationView::from).orElse(null);
+                .map(request -> VerificationView.from(request, jdbcTemplate.queryForObject(
+                        "SELECT EXISTS(SELECT 1 FROM company_verification_evidence WHERE request_id = ?)",
+                        Boolean.class, request.getId()))).orElse(null);
         return new CompanyDetail(CompanyView.from(company), latest);
     }
 
@@ -63,12 +69,13 @@ public class AdminCompanyService {
 
     public record VerificationView(Long id, String method, String status,
                                    Long requestedById, LocalDateTime requestedAt,
-                                   LocalDateTime reviewedAt, String rejectionReason) {
-        static VerificationView from(CompanyVerificationRequest request) {
+                                   LocalDateTime reviewedAt, String rejectionReason,
+                                   boolean evidenceAvailable) {
+        static VerificationView from(CompanyVerificationRequest request, boolean evidenceAvailable) {
             return new VerificationView(request.getId(), request.getMethod().name(),
                     request.getStatus().name(), request.getRequestedBy().getId(),
                     request.getRequestedAt(), request.getReviewedAt(),
-                    request.getRejectionReason());
+                    request.getRejectionReason(), evidenceAvailable);
         }
     }
 }

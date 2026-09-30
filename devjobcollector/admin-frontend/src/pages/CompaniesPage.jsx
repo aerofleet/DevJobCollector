@@ -34,6 +34,22 @@ export default function CompaniesPage() {
     catch (cause) { setError(cause.message); }
   };
 
+  const downloadEvidence = async () => {
+    setError('');
+    try {
+      const { blob, contentType } = await adminApi.companyEvidence(
+        selected.company.id, selected.latestRequest.id,
+      );
+      const extension = contentType?.includes('pdf') ? 'pdf' : contentType?.includes('png') ? 'png' : 'jpg';
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `business-registration.${extension}`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (cause) { setError(cause.message); }
+  };
+
   return <section className="users-page">
     <div className="page-heading"><div><p className="eyebrow">COMPANIES</p><h2>기업 심사</h2>
       <p>기업 상태와 최근 인증 요청을 확인합니다.</p></div></div>
@@ -71,7 +87,10 @@ export default function CompaniesPage() {
         <div><dt>요청 방식</dt><dd>{selected.latestRequest?.method || '—'}</dd></div>
         <div><dt>요청일</dt><dd>{selected.latestRequest?.requestedAt || '—'}</dd></div>
         <div><dt>반려 사유</dt><dd>{selected.latestRequest?.rejectionReason || '—'}</dd></div></dl>
-      <p>증빙 파일 열람 경로가 연결되기 전까지 관리자 승인·반려는 제공하지 않습니다.</p>
+      {selected.latestRequest?.evidenceAvailable && <button type="button" className="secondary-button" onClick={downloadEvidence}>
+        사업자등록증 다운로드
+      </button>}
+      <p>관리자 승인·반려 기능은 준비 중입니다.</p>
     </DetailModal>}
   </section>;
 }

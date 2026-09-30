@@ -66,6 +66,15 @@ const adminPageRequest = async (path) => {
   };
 };
 
+const downloadCompanyEvidence = async (companyId, requestId) => {
+  const response = await fetch(
+    `${API_BASE_URL}/companies/${companyId}/verification-requests/${requestId}/evidence`,
+    { credentials: 'include', headers: { Accept: 'application/pdf,image/png,image/jpeg' } },
+  );
+  if (!response.ok) throw new AdminApiError('증빙 파일을 불러오지 못했습니다.', response.status);
+  return { blob: await response.blob(), contentType: response.headers.get('Content-Type') };
+};
+
 export const adminApi = {
   login: (credentials) => adminRequest('/auth/login', {
     method: 'POST',
@@ -86,6 +95,7 @@ export const adminApi = {
   }),
   companies: (params) => adminPageRequest(`/companies?${new URLSearchParams(params)}`),
   company: (id) => adminRequest(`/companies/${id}`),
+  companyEvidence: downloadCompanyEvidence,
   audit: (params) => adminPageRequest(`/audit?${new URLSearchParams(params)}`),
   admins: (params) => adminPageRequest(`/admins?${new URLSearchParams(params)}`),
   admin: (id) => adminRequest(`/admins/${id}`),

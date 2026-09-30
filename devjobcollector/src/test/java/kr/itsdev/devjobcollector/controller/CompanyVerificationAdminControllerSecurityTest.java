@@ -11,6 +11,7 @@ import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import java.time.LocalDateTime;
 import kr.itsdev.devjobcollector.company.CompanyStatus;
+import kr.itsdev.devjobcollector.company.CompanyEvidenceService;
 import kr.itsdev.devjobcollector.company.CompanyVerificationException;
 import kr.itsdev.devjobcollector.company.CompanyVerificationService;
 import kr.itsdev.devjobcollector.company.CompanyVerificationStatus;
@@ -34,6 +35,7 @@ class CompanyVerificationAdminControllerSecurityTest {
     @Autowired MockMvc mockMvc;
 
     @MockitoBean CompanyVerificationService verificationService;
+    @MockitoBean CompanyEvidenceService evidenceService;
     @MockitoBean JwtTokenVerifier jwtTokenVerifier;
     @MockitoBean PerfLogProperties perfLogProperties;
 

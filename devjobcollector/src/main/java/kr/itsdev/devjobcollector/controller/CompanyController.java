@@ -3,6 +3,7 @@ package kr.itsdev.devjobcollector.controller;
 import jakarta.validation.Valid;
 import java.util.List;
 import kr.itsdev.devjobcollector.company.CompanyMemberManagementService;
+import kr.itsdev.devjobcollector.company.CompanyEvidenceService;
 import kr.itsdev.devjobcollector.company.CompanyProfileService;
 import kr.itsdev.devjobcollector.company.CompanySignupFacade;
 import kr.itsdev.devjobcollector.company.CompanyVerificationService;
@@ -25,6 +26,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/companies")
@@ -33,15 +36,18 @@ public class CompanyController {
     private final CompanyProfileService profileService;
     private final CompanyVerificationService verificationService;
     private final CompanyMemberManagementService memberManagementService;
+    private final CompanyEvidenceService evidenceService;
 
     public CompanyController(CompanySignupFacade signupFacade,
                              CompanyProfileService profileService,
                              CompanyVerificationService verificationService,
-                             CompanyMemberManagementService memberManagementService) {
+                             CompanyMemberManagementService memberManagementService,
+                             CompanyEvidenceService evidenceService) {
         this.signupFacade = signupFacade;
         this.profileService = profileService;
         this.verificationService = verificationService;
         this.memberManagementService = memberManagementService;
+        this.evidenceService = evidenceService;
     }
 
     @GetMapping("/me")
@@ -67,6 +73,16 @@ public class CompanyController {
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(verificationService.submit(subject, companyId, request));
+    }
+
+    @PostMapping(value = "/{companyId}/verification-requests/document", consumes = "multipart/form-data")
+    public ResponseEntity<CompanyVerificationResponse> submitVerificationDocument(
+            @AuthenticationPrincipal String subject,
+            @PathVariable Long companyId,
+            @RequestPart("file") MultipartFile file
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(evidenceService.submit(subject, companyId, file));
     }
 
     @GetMapping("/{companyId}/members")

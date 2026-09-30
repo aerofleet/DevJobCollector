@@ -14,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import kr.itsdev.devjobcollector.company.CompanyMemberRole;
+import kr.itsdev.devjobcollector.company.CompanyEvidenceService;
 import kr.itsdev.devjobcollector.company.CompanyMemberManagementService;
 import kr.itsdev.devjobcollector.company.CompanyMemberStatus;
 import kr.itsdev.devjobcollector.company.CompanyProfileService;
@@ -53,6 +54,7 @@ class CompanyControllerSecurityTest {
     @MockitoBean CompanySignupFacade signupFacade;
     @MockitoBean CompanyProfileService profileService;
     @MockitoBean CompanyVerificationService verificationService;
+    @MockitoBean CompanyEvidenceService evidenceService;
     @MockitoBean CompanyMemberManagementService memberManagementService;
     @MockitoBean JwtTokenVerifier jwtTokenVerifier;
     @MockitoBean PerfLogProperties perfLogProperties;

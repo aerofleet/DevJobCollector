@@ -3,6 +3,10 @@
 spring:
   application:
     name: devjobcollector
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
     
   profiles:
     active: local
