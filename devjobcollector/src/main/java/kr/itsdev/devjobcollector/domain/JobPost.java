@@ -204,6 +204,17 @@ public class JobPost {
         this.moderationStatus = java.util.Objects.requireNonNull(moderationStatus, "moderationStatus is required");
     }
 
+    public void reactivate(LocalDate newEndDate) {
+        if (newEndDate != null) {
+            if (newEndDate.isBefore(startDate)) {
+                throw new IllegalArgumentException("New end date precedes start date");
+            }
+            this.endDate = newEndDate;
+        }
+        this.isActive = true;
+        this.moderationStatus = JobModerationStatus.ACTIVE;
+    }
+
     public void refreshFromSource(
         String companyName,
         String title,

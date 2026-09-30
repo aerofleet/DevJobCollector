@@ -84,15 +84,20 @@ class AdminJobIntegrationTest {
         assertThat(jobs.findActiveAndNotExpiredSlice(LocalDate.now(), PageRequest.of(0, 20))
                 .getContent()).extracting(JobPost::getId).contains(id);
 
-        service.moderate(id, JobModerationStatus.CLOSED, restored.version(),
+        var closed = service.moderate(id, JobModerationStatus.CLOSED, restored.version(),
                 "closed", actor, "job-request-3", "127.0.0.1", "test");
         entityManager.clear();
         assertThat(publicSearch()).extracting(JobPost::getId).doesNotContain(id);
+        var reopened = service.moderate(id, JobModerationStatus.ACTIVE, closed.version(),
+                "reposted", actor, "job-request-4", "127.0.0.1", "test");
+        entityManager.clear();
+        assertThat(reopened.moderationStatus()).isEqualTo("ACTIVE");
+        assertThat(publicSearch()).extracting(JobPost::getId).contains(id);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM job_moderation_history WHERE job_id = ?",
-                Long.class, id)).isEqualTo(3L);
+                Long.class, id)).isEqualTo(4L);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM admin_audit_logs "
                 + "WHERE target_type = 'JOB' AND target_id = ?",
-                Long.class, id.toString())).isEqualTo(3L);
+                Long.class, id.toString())).isEqualTo(4L);
 
         for (int i = 0; i < 3; i++) service.list("Backend visibility", null, 0, 20);
         var durations = new ArrayList<Long>();

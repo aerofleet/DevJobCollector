@@ -4,7 +4,7 @@ import { useAdminAuth } from '../auth/AdminAuthContext';
 import DetailModal from '../components/DetailModal';
 
 const statusText = { ACTIVE: '노출', HIDDEN: '숨김', CLOSED: '강제 마감' };
-const actionText = { ACTIVE: '복구', HIDDEN: '숨김', CLOSED: '강제 마감' };
+const actionText = { ACTIVE: '재활성', HIDDEN: '공고 숨김', CLOSED: '강제 마감' };
 
 export default function JobsPage() {
   const { admin } = useAdminAuth();
@@ -15,6 +15,7 @@ export default function JobsPage() {
   const [result, setResult] = useState(null);
   const [selected, setSelected] = useState(null);
   const [reason, setReason] = useState('');
+  const [newEndDate, setNewEndDate] = useState('');
   const [pendingStatus, setPendingStatus] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -32,31 +33,36 @@ export default function JobsPage() {
   useEffect(() => { load(); }, [load]);
 
   const selectJob = async (id) => {
-    setError(''); setReason(''); setPendingStatus(null);
+    setError(''); setReason(''); setNewEndDate(''); setPendingStatus(null);
     try { setSelected((await adminApi.job(id)).data); }
     catch (cause) { setError(cause.message); }
   };
 
   const changeStatus = async () => {
-    if (!selected || !pendingStatus || !reason.trim() || busy) return;
+    if (!selected || !pendingStatus || !reason.trim() || busy || (needsNewEndDate && !newEndDate)) return;
     setBusy(true); setError('');
     try {
       const updated = (await adminApi.moderateJob(selected.id, {
         status: pendingStatus, expectedVersion: selected.version, reason: reason.trim(),
+        ...(pendingStatus === 'ACTIVE' && newEndDate ? { newEndDate } : {}),
       })).data;
-      setSelected(updated); setReason(''); setPendingStatus(null);
+      setSelected(updated); setReason(''); setNewEndDate(''); setPendingStatus(null);
       await load();
     } catch (cause) {
-      setError(cause.status === 409 ? '공고 상태가 변경되었습니다. 상세를 다시 열어 확인하세요.' : cause.message);
+      setError(cause.status === 409 ? '공고 상태가 변경되었습니다. 상세를 다시 열어 확인하세요.'
+        : cause.code === 'NEW_END_DATE_REQUIRED' ? '새 마감일을 입력해 주세요.' : cause.message);
     } finally { setBusy(false); }
   };
 
   const actions = selected?.moderationStatus === 'ACTIVE' ? ['HIDDEN', 'CLOSED']
-    : selected?.moderationStatus === 'HIDDEN' ? ['ACTIVE', 'CLOSED'] : [];
+    : selected?.moderationStatus === 'HIDDEN' ? ['ACTIVE', 'CLOSED']
+      : selected?.moderationStatus === 'CLOSED' ? ['ACTIVE'] : [];
+  const needsNewEndDate = pendingStatus === 'ACTIVE' && selected
+    && (!selected.active || selected.endDate < new Date().toLocaleDateString('sv-SE'));
 
   return <section className="users-page">
     <div className="page-heading"><div><p className="eyebrow">JOB POSTS</p><h2>공고 관리</h2>
-      <p>수집 상태와 관리자 노출 상태를 구분해 조치합니다.</p></div></div>
+      <p>공고 숨김·강제 마감·재활성을 관리합니다. 수집원이 공고를 다시 마감으로 판단하면 비활성화될 수 있습니다.</p></div></div>
     <form className="user-filters dashboard-panel" onSubmit={(event) => {
       event.preventDefault(); setPage(0); setSearch(keyword.trim());
     }}>
@@ -85,7 +91,8 @@ export default function JobsPage() {
         <div><dt>관리 상태</dt><dd>{statusText[selected.moderationStatus]}</dd></div>
         <div><dt>수집 활성</dt><dd>{selected.active ? '활성' : '비활성'}</dd></div>
         <div><dt>마감일</dt><dd>{selected.endDate}</dd></div>
-        <div><dt>출처</dt><dd>{selected.sourcePlatform}</dd></div></dl>
+        <div><dt>출처</dt><dd>{selected.sourcePlatform}</dd></div>
+        <div><dt>원본</dt><dd><a href={selected.originalUrl} target="_blank" rel="noreferrer">원본 공고 확인</a></dd></div></dl>
       {admin.role !== 'REVIEWER' && actions.length > 0 && <div className="moderation-form">
         <label htmlFor="job-moderation-reason">변경 사유</label>
         <textarea id="job-moderation-reason" value={reason} onChange={(event) => {
@@ -95,8 +102,13 @@ export default function JobsPage() {
           <button className="secondary-button" key={action} type="button" disabled={!reason.trim()}
             onClick={() => setPendingStatus(action)}>{actionText[action]}</button>)}</div>
           : <div className="moderation-confirm" role="group" aria-label="공고 상태 변경 확인">
+            {pendingStatus === 'ACTIVE' && <label htmlFor="job-new-end-date">새 마감일 {needsNewEndDate ? '(필수)' : '(선택)'}
+              <input id="job-new-end-date" type="date" value={newEndDate}
+                min={new Date().toLocaleDateString('sv-SE')}
+                onChange={(event) => setNewEndDate(event.target.value)} required={needsNewEndDate} />
+            </label>}
             <p>{selected.title} 공고를 {actionText[pendingStatus]} 처리합니다. 변경 사유가 감사 기록에 남습니다.</p>
-            <button className="primary-button" type="button" disabled={busy} onClick={changeStatus}>
+            <button className="primary-button" type="button" disabled={busy || (needsNewEndDate && !newEndDate)} onClick={changeStatus}>
               {busy ? '처리 중…' : '변경 확정'}</button>
             <button className="secondary-button" type="button" disabled={busy} onClick={() => setPendingStatus(null)}>취소</button>
           </div>}</div>}

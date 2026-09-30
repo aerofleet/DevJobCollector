@@ -30,4 +30,26 @@ class JobPostModerationVisibilityTest {
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("JOB_NOT_AVAILABLE");
     }
+
+    @Test
+    void inactiveOrExpiredJobDoesNotHavePublicDetail() {
+        JobPostRepository jobs = mock(JobPostRepository.class);
+        JobPost inactive = JobPost.builder().sourcePlatform(SourcePlatform.SARAMIN)
+                .originalSn("inactive-job").companyName("Company").title("Backend")
+                .startDate(LocalDate.now()).endDate(LocalDate.now().plusDays(7))
+                .originalUrl("https://example.com/jobs/2").build();
+        inactive.deactivate();
+        JobPost expired = JobPost.builder().sourcePlatform(SourcePlatform.SARAMIN)
+                .originalSn("expired-job").companyName("Company").title("Backend")
+                .startDate(LocalDate.now().minusDays(7)).endDate(LocalDate.now().minusDays(1))
+                .originalUrl("https://example.com/jobs/3").build();
+        when(jobs.findById(8L)).thenReturn(Optional.of(inactive));
+        when(jobs.findById(9L)).thenReturn(Optional.of(expired));
+        JobPostService service = new JobPostService(jobs, mock(JobSearchMetrics.class));
+
+        assertThatThrownBy(() -> service.getJobPostDetail(8L))
+                .isInstanceOf(ResponseStatusException.class).hasMessageContaining("JOB_NOT_AVAILABLE");
+        assertThatThrownBy(() -> service.getJobPostDetail(9L))
+                .isInstanceOf(ResponseStatusException.class).hasMessageContaining("JOB_NOT_AVAILABLE");
+    }
 }

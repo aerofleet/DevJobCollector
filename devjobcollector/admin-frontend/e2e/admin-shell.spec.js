@@ -110,18 +110,32 @@ test('공고 목록에서 사유를 확인하고 숨김 처리한다', async ({ 
   }));
   let moderationStatus = 'ACTIVE';
   let version = 0;
+  let active = true;
+  let endDate = '2026-12-31';
   const job = () => ({ id: 9, title: '백엔드 개발자', companyName: '데브잡스',
-    moderationStatus, version, active: true, sourcePlatform: 'SARAMIN', endDate: '2026-12-31' });
+    moderationStatus, version, active, sourcePlatform: 'SARAMIN', endDate,
+    originalUrl: 'https://example.com/jobs/9' });
   await page.route('**/api/v1/admin/jobs?*', (route) => fulfillJson(route, 200, {
     data: { content: [job()], totalElements: 1, totalPages: 1 },
   }));
   await page.route('**/api/v1/admin/jobs/9', (route) => fulfillJson(route, 200, { data: job() }));
   await page.route('**/api/v1/admin/jobs/9/status', async (route) => {
-    expect(route.request().postDataJSON()).toEqual({
+    const body = route.request().postDataJSON();
+    if (version === 0) expect(body).toEqual({
       status: 'HIDDEN', expectedVersion: 0, reason: '중복 공고',
     });
-    moderationStatus = 'HIDDEN';
-    version = 1;
+    if (version === 1) {
+      expect(body).toEqual({ status: 'CLOSED', expectedVersion: 1, reason: '채용 종료' });
+      active = false;
+    }
+    if (version === 2) {
+      expect(body).toEqual({ status: 'ACTIVE', expectedVersion: 2,
+        reason: '재등록 확인', newEndDate: '2027-01-31' });
+      active = true;
+      endDate = body.newEndDate;
+    }
+    moderationStatus = body.status;
+    version += 1;
     await fulfillJson(route, 200, { data: job() });
   });
 
@@ -130,10 +144,19 @@ test('공고 목록에서 사유를 확인하고 숨김 처리한다', async ({ 
   await page.getByRole('button', { name: '상세' }).click();
   await expect(page.getByRole('dialog', { name: '공고 상세' })).toBeVisible();
   await page.getByLabel('변경 사유').fill('중복 공고');
-  await page.getByRole('button', { name: '숨김' }).click();
+  await page.getByRole('button', { name: '공고 숨김' }).click();
   await expect(page.getByRole('group', { name: '공고 상태 변경 확인' })).toBeVisible();
   await page.getByRole('button', { name: '변경 확정' }).click();
-  await expect(page.getByRole('button', { name: '복구' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '재활성' })).toBeVisible();
+  await page.getByLabel('변경 사유').fill('채용 종료');
+  await page.getByRole('button', { name: '강제 마감' }).click();
+  await page.getByRole('button', { name: '변경 확정' }).click();
+  await page.getByLabel('변경 사유').fill('재등록 확인');
+  await page.getByRole('button', { name: '재활성' }).click();
+  await expect(page.getByRole('button', { name: '변경 확정' })).toBeDisabled();
+  await page.getByLabel('새 마감일 (필수)').fill('2027-01-31');
+  await page.getByRole('button', { name: '변경 확정' }).click();
+  await expect(page.getByText('활성', { exact: true })).toBeVisible();
 });
 
 test('기업 상세에서 인증 요청을 조회하되 증빙 키와 승인 버튼은 표시하지 않는다', async ({ page }) => {

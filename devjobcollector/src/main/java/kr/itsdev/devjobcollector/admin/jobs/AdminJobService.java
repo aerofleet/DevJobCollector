@@ -50,6 +50,13 @@ public class AdminJobService {
     public JobView moderate(Long id, JobModerationStatus target, long expectedVersion,
                             String reason, AdminPrincipal actor, String requestId,
                             String ipAddress, String userAgent) {
+        return moderate(id, target, expectedVersion, reason, null, actor, requestId, ipAddress, userAgent);
+    }
+
+    @Transactional
+    public JobView moderate(Long id, JobModerationStatus target, long expectedVersion,
+                            String reason, LocalDate newEndDate, AdminPrincipal actor, String requestId,
+                            String ipAddress, String userAgent) {
         if (actor.role() == AdminRole.REVIEWER) throw error(HttpStatus.FORBIDDEN, "ADMIN_ROLE_DENIED");
         if (target == null) throw error(HttpStatus.BAD_REQUEST, "INVALID_STATUS");
         if (reason == null || reason.isBlank() || reason.length() > 500) {
@@ -61,24 +68,45 @@ public class AdminJobService {
         JobModerationStatus previous = job.getModerationStatus();
         boolean valid = switch (target) {
             case HIDDEN -> previous == JobModerationStatus.ACTIVE;
-            case ACTIVE -> previous == JobModerationStatus.HIDDEN;
+            case ACTIVE -> previous == JobModerationStatus.HIDDEN || previous == JobModerationStatus.CLOSED;
             case CLOSED -> previous == JobModerationStatus.ACTIVE || previous == JobModerationStatus.HIDDEN;
         };
         if (!valid) throw error(HttpStatus.CONFLICT, "JOB_STATUS_CONFLICT");
 
-        job.changeModerationStatus(target);
+        if (target != JobModerationStatus.ACTIVE && newEndDate != null) {
+            throw error(HttpStatus.BAD_REQUEST, "END_DATE_ONLY_FOR_REACTIVATION");
+        }
+        if (target == JobModerationStatus.ACTIVE) {
+            if ((!job.isActive() || job.getEndDate().isBefore(LocalDate.now())) && newEndDate == null) {
+                throw error(HttpStatus.BAD_REQUEST, "NEW_END_DATE_REQUIRED");
+            }
+            if (newEndDate != null && (newEndDate.isBefore(LocalDate.now())
+                    || newEndDate.isBefore(job.getStartDate()))) {
+                throw error(HttpStatus.BAD_REQUEST, "INVALID_END_DATE");
+            }
+        }
+
+        boolean previousActive = job.isActive();
+        LocalDate previousEndDate = job.getEndDate();
+        if (target == JobModerationStatus.ACTIVE) job.reactivate(newEndDate);
+        else job.changeModerationStatus(target);
         jobs.saveAndFlush(job);
         history.save(new JobModerationHistory(id, previous.name(), target.name(),
                 reason.trim(), actor.id()));
         audit.save(AdminAuditLog.record(actor.id(), "JOB_STATUS_CHANGED", "JOB",
-                id.toString(), reason.trim(), "{\"status\":\"" + previous + "\"}",
-                "{\"status\":\"" + target + "\"}", AdminAuditResult.SUCCESS,
+                id.toString(), reason.trim(), auditState(previous, previousActive, previousEndDate),
+                auditState(target, job.isActive(), job.getEndDate()), AdminAuditResult.SUCCESS,
                 requestId, truncate(ipAddress, 45), truncate(userAgent, 500)));
         return JobView.from(job);
     }
 
     private static String truncate(String value, int max) {
         return value == null || value.length() <= max ? value : value.substring(0, max);
+    }
+
+    private static String auditState(JobModerationStatus status, boolean active, LocalDate endDate) {
+        return "{\"status\":\"" + status + "\",\"active\":" + active
+                + ",\"endDate\":\"" + endDate + "\"}";
     }
 
     private static ResponseStatusException error(HttpStatus status, String code) {

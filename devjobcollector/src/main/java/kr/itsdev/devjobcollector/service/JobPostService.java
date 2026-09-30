@@ -112,7 +112,8 @@ public class JobPostService {
         log.info("채용 공고 상세 조회: id={}", id);
         JobPost jobPost = jobPostRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("채용 공고를 찾을 수 없습니다. ID: " + id));
-        if (jobPost.getModerationStatus() != JobModerationStatus.ACTIVE) {
+        if (jobPost.getModerationStatus() != JobModerationStatus.ACTIVE
+                || !jobPost.isActive() || jobPost.getEndDate().isBefore(LocalDate.now())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "JOB_NOT_AVAILABLE");
         }
         

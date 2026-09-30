@@ -56,15 +56,34 @@ class AdminJobServiceTest {
     }
 
     @Test
-    void closedJobCannotBeRestored() {
+    void closedJobCanBeReactivated() {
         JobPost job = job();
         job.changeModerationStatus(JobModerationStatus.CLOSED);
         when(jobs.findByIdForModeration(7L)).thenReturn(Optional.of(job));
 
+        var result = service.moderate(7L, JobModerationStatus.ACTIVE, 0,
+                "reopened", admin, "request", null, null);
+        assertThat(result.moderationStatus()).isEqualTo("ACTIVE");
+        assertThat(result.active()).isTrue();
+        verify(history).save(any(JobModerationHistory.class));
+        verify(audit).save(any(AdminAuditLog.class));
+    }
+
+    @Test
+    void inactiveJobNeedsNewDeadlineToReactivate() {
+        JobPost job = job();
+        job.deactivate();
+        job.changeModerationStatus(JobModerationStatus.CLOSED);
+        when(jobs.findByIdForModeration(7L)).thenReturn(Optional.of(job));
+
         assertThatThrownBy(() -> service.moderate(7L, JobModerationStatus.ACTIVE, 0,
-                "restore", admin, "request", null, null))
+                "reopened", admin, "request", null, null))
                 .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("JOB_STATUS_CONFLICT");
+                .hasMessageContaining("NEW_END_DATE_REQUIRED");
+        var result = service.moderate(7L, JobModerationStatus.ACTIVE, 0,
+                "reopened", LocalDate.now().plusDays(14), admin, "request", null, null);
+        assertThat(result.active()).isTrue();
+        assertThat(result.endDate()).isEqualTo(LocalDate.now().plusDays(14));
     }
 
     @Test

@@ -46,7 +46,7 @@ public class AdminJobController {
                                         @AuthenticationPrincipal AdminPrincipal principal,
                                         HttpServletRequest request) {
         return Map.of("data", service.moderate(id, body.status(), body.expectedVersion(),
-                body.reason(), principal, requestId(request), request.getRemoteAddr(),
+                body.reason(), body.newEndDate(), principal, requestId(request), request.getRemoteAddr(),
                 request.getHeader("User-Agent")), "requestId", requestId(request));
     }
 
@@ -55,5 +55,5 @@ public class AdminJobController {
     }
 
     public record StatusRequest(@NotNull JobModerationStatus status, @NotNull Long expectedVersion,
-                                @NotBlank @Size(max = 500) String reason) {}
+                                @NotBlank @Size(max = 500) String reason, java.time.LocalDate newEndDate) {}
 }
