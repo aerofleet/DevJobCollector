@@ -168,6 +168,28 @@ test('공고 목록에서 사유를 확인하고 숨김 처리한다', async ({ 
   await expect(page.getByText('활성', { exact: true })).toBeVisible();
 });
 
+test('관리자 목록의 중첩 페이징 수치와 다음 페이지를 표시한다', async ({ page }) => {
+  await page.route('**/api/v1/admin/me', (route) => fulfillJson(route, 200, {
+    data: { id: 1, name: '관리자', role: 'ADMIN' },
+  }));
+  await page.route('**/api/v1/admin/jobs?*', (route) => {
+    const currentPage = Number(new URL(route.request().url()).searchParams.get('page'));
+    return fulfillJson(route, 200, { data: {
+      content: [{ id: currentPage + 1, title: `공고 ${currentPage + 1}`,
+        companyName: '테스트 기업', moderationStatus: 'ACTIVE', endDate: '2026-12-31' }],
+      page: { number: currentPage, size: 20, totalElements: 25, totalPages: 2 },
+    } });
+  });
+
+  await page.goto('/jobs');
+  await expect(page.locator('.user-pagination')).toContainText('총 25건 · 1 / 2 페이지');
+  await expect(page.getByRole('button', { name: '다음' })).toBeEnabled();
+  await page.getByRole('button', { name: '다음' }).click();
+  await expect(page.locator('.user-pagination')).toContainText('총 25건 · 2 / 2 페이지');
+  await expect(page.getByRole('button', { name: '다음' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '이전' })).toBeEnabled();
+});
+
 test('기업 상세에서 인증 요청을 조회하되 증빙 키와 승인 버튼은 표시하지 않는다', async ({ page }) => {
   await page.route('**/api/v1/admin/me', (route) => fulfillJson(route, 200, {
     data: { id: 1, name: '관리자', role: 'ADMIN' },

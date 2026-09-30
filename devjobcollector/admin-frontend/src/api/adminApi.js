@@ -52,6 +52,20 @@ export const adminRequest = async (path, options = {}) => {
   return payload;
 };
 
+const adminPageRequest = async (path) => {
+  const payload = await adminRequest(path);
+  const data = payload.data;
+  const totals = data.page ?? data;
+  return {
+    ...payload,
+    data: {
+      ...data,
+      totalElements: Number.isSafeInteger(totals.totalElements) ? totals.totalElements : 0,
+      totalPages: Number.isSafeInteger(totals.totalPages) ? totals.totalPages : 0,
+    },
+  };
+};
+
 export const adminApi = {
   login: (credentials) => adminRequest('/auth/login', {
     method: 'POST',
@@ -60,20 +74,20 @@ export const adminApi = {
   logout: () => adminRequest('/auth/logout', { method: 'POST' }),
   me: () => adminRequest('/me'),
   dashboardSummary: () => adminRequest('/dashboard/summary'),
-  users: (params) => adminRequest(`/users?${new URLSearchParams(params)}`),
+  users: (params) => adminPageRequest(`/users?${new URLSearchParams(params)}`),
   user: (id) => adminRequest(`/users/${id}`),
   moderateUser: (id, body) => adminRequest(`/users/${id}/status`, {
     method: 'PATCH', body: JSON.stringify(body),
   }),
-  jobs: (params) => adminRequest(`/jobs?${new URLSearchParams(params)}`),
+  jobs: (params) => adminPageRequest(`/jobs?${new URLSearchParams(params)}`),
   job: (id) => adminRequest(`/jobs/${id}`),
   moderateJob: (id, body) => adminRequest(`/jobs/${id}/status`, {
     method: 'PATCH', body: JSON.stringify(body),
   }),
-  companies: (params) => adminRequest(`/companies?${new URLSearchParams(params)}`),
+  companies: (params) => adminPageRequest(`/companies?${new URLSearchParams(params)}`),
   company: (id) => adminRequest(`/companies/${id}`),
-  audit: (params) => adminRequest(`/audit?${new URLSearchParams(params)}`),
-  admins: (params) => adminRequest(`/admins?${new URLSearchParams(params)}`),
+  audit: (params) => adminPageRequest(`/audit?${new URLSearchParams(params)}`),
+  admins: (params) => adminPageRequest(`/admins?${new URLSearchParams(params)}`),
   admin: (id) => adminRequest(`/admins/${id}`),
   createAdmin: (body) => adminRequest('/admins', { method: 'POST', body: JSON.stringify(body) }),
   changeAdminStatus: (id, body) => adminRequest(`/admins/${id}/status`, {
