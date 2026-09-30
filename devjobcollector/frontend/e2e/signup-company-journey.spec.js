@@ -169,9 +169,11 @@ test('기업회원 가입 선택 후 기업 OWNER 등록과 인증 요청까지 
     websiteUrl: company.websiteUrl,
   });
 
-  await page.getByLabel('사업자등록증 파일').setInputFiles({
+  await page.getByLabel('사업자등록증 파일 첨부').setInputFiles({
     name: 'registration.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\nverification fixture'),
   });
+  await expect(page.getByText('registration.pdf')).toBeVisible();
+  await expect(page.getByText('파일 변경')).toBeVisible();
   await page.getByRole('button', { name: '인증 요청 제출' }).click();
 
   await expect(page.getByRole('heading', { name: '관리자 검토 중' })).toBeVisible();

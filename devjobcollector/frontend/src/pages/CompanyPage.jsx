@@ -6,6 +6,7 @@ import {
   FileCheck2,
   RefreshCw,
   ShieldAlert,
+  Upload,
 } from 'lucide-react';
 import { createCompany, fetchMyCompanies, requestCompanyVerification } from '../api/companyApi';
 import MemberSidebar from '../components/member/MemberSidebar';
@@ -234,7 +235,19 @@ const CompanyPage = () => {
                     <div><h2>기업 인증 요청</h2><p>사업자등록증 파일을 첨부하면 관리자가 확인합니다.</p></div>
                   </div>
                   <form className="company-form" onSubmit={submitVerification}>
-                    <div className="company-field"><label htmlFor="company-evidence-file">사업자등록증 파일</label><input id="company-evidence-file" type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" onChange={(event) => { setEvidenceFile(event.target.files?.[0] || null); setErrorMessage(''); }} aria-describedby="company-evidence-file-hint" required /><small id="company-evidence-file-hint">PDF, PNG, JPG 파일 · 최대 5MB</small></div>
+                    <div className="company-field company-file-field">
+                      <label htmlFor="company-evidence-file">사업자등록증 파일 첨부</label>
+                      <div className={`company-file-picker${evidenceFile ? ' has-file' : ''}`}>
+                        <input id="company-evidence-file" type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" onChange={(event) => { setEvidenceFile(event.target.files?.[0] || null); setErrorMessage(''); }} aria-describedby="company-evidence-file-hint" required />
+                        <span className="company-file-icon" aria-hidden="true"><Upload size={22} /></span>
+                        <span className="company-file-copy">
+                          <strong>{evidenceFile ? evidenceFile.name : '파일을 선택해주세요'}</strong>
+                          <span>{evidenceFile ? '다른 파일로 변경할 수 있습니다' : '사업자등록증 파일을 첨부하세요'}</span>
+                        </span>
+                        <span className="company-file-action" aria-hidden="true">{evidenceFile ? '파일 변경' : '파일 선택'}</span>
+                      </div>
+                      <small id="company-evidence-file-hint">PDF, PNG, JPG 파일 · 최대 5MB</small>
+                    </div>
                     <button type="submit" disabled={submitting === 'verification' || !evidenceFile}>{submitting === 'verification' ? '제출 중...' : '인증 요청 제출'}</button>
                   </form>
                 </section>

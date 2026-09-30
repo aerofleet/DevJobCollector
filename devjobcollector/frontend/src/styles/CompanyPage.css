@@ -55,6 +55,16 @@
 .verification-timeline p { margin: 0; color: #827c8b; font-size: 12px; }
 .verification-panel { margin-top: 16px; }
 .verification-panel .company-form { grid-template-columns: 1fr; }
+.company-file-picker { position: relative; display: flex; align-items: center; gap: 15px; min-height: 92px; padding: 18px; border: 1px dashed #bcb1e8; border-radius: 14px; background: #faf9ff; transition: border-color .18s, background .18s, box-shadow .18s; }
+.company-file-picker:hover { border-color: #7757ec; background: #f5f1ff; }
+.company-file-picker:focus-within { border-color: #6c4dff; box-shadow: 0 0 0 3px rgba(108,77,255,.18); }
+.company-file-picker.has-file { border-style: solid; border-color: #b9aaf8; background: #f6f3ff; }
+.company-file-picker input[type="file"] { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; min-height: 0; padding: 0; border: 0; opacity: 0; cursor: pointer; }
+.company-file-icon { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; border-radius: 12px; background: #eae4ff; color: #6548e8; }
+.company-file-copy { display: grid; gap: 5px; min-width: 0; flex: 1; }
+.company-file-copy strong { overflow: hidden; color: #342d45; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.company-file-copy > span { color: #817b8b; font-size: 12px; }
+.company-file-action { flex: 0 0 auto; padding: 10px 13px; border-radius: 9px; background: #fff; color: #6548e8; font-size: 12px; font-weight: 800; box-shadow: 0 1px 5px rgba(42,28,85,.1); }
 .company-feedback { margin: 16px 0 0; padding: 13px 15px; border-radius: 11px; font-size: 13px; text-align: center; }
 .company-feedback.notice { background: #eeeaff; color: #583ed3; }
 .company-feedback.error { background: #fff0f0; color: #ad3742; }
@@ -66,4 +76,6 @@
   .company-status-topline { align-items: flex-start; flex-wrap: wrap; }
   .company-status-badge { margin-left: 0; }
   .company-switcher { align-items: stretch; flex-direction: column; }
+  .company-file-picker { flex-wrap: wrap; }
+  .company-file-action { margin-left: 59px; }
 }
