@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { searchJobs } from '../api/jobApi';
@@ -58,6 +58,7 @@ const JobsResults = ({ filters }) => {
   const [totalElements, setTotalElements] = useState(0);
   const [initialLoading, setInitialLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const requestVersion = useRef(0);
 
   const fetchPage = useCallback(
     (pageToLoad = 0) => searchJobs(filters, pageToLoad, PAGE_SIZE),
@@ -65,29 +66,47 @@ const JobsResults = ({ filters }) => {
   );
 
   useEffect(() => {
+    let disposed = false;
     const loadInitialData = async () => {
+      const version = ++requestVersion.current;
+      setInitialLoading(true);
+      setJobs([]);
+      setPage(0);
+      setTotalPages(0);
+      setTotalElements(0);
+      setErrorMessage('');
       try {
         const data = await fetchPage(0);
+        if (disposed || version !== requestVersion.current) return;
         setJobs(data.content ?? []);
         setTotalPages(data.totalPages ?? data.page?.totalPages ?? 0);
         setTotalElements(data.totalElements ?? data.page?.totalElements ?? 0);
         setPage(1);
       } catch (error) {
+        if (disposed || version !== requestVersion.current) return;
         setErrorMessage('공고를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
         console.error('공고 초기 로드 실패:', error);
       } finally {
-        setInitialLoading(false);
+        if (!disposed && version === requestVersion.current) setInitialLoading(false);
       }
     };
 
     loadInitialData();
+    window.addEventListener('focus', loadInitialData);
+    return () => {
+      disposed = true;
+      requestVersion.current += 1;
+      window.removeEventListener('focus', loadInitialData);
+    };
   }, [fetchPage]);
 
   const loadMoreData = useCallback(async () => {
     if (initialLoading || page >= totalPages) return false;
 
     try {
+      const version = requestVersion.current;
       const data = await fetchPage(page);
+      if (version !== requestVersion.current) return false;
       const nextPage = page + 1;
       const maxPages = data.totalPages ?? data.page?.totalPages ?? totalPages;
       setJobs((previous) => [...previous, ...(data.content ?? [])]);

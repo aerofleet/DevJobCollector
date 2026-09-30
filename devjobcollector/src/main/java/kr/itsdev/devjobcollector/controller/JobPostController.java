@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.CacheControl;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -33,7 +34,7 @@ public class JobPostController {
                 @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
             log.info("채용공고 목록 조회 요청 - page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
             Page<JobPostDto> jobs = jobPostService.getJobPosts(pageable);
-            return ResponseEntity.ok(jobs);
+            return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(jobs);
     }
 
     /**
@@ -44,7 +45,7 @@ public class JobPostController {
     public ResponseEntity<JobPostDetailDto> getJobDetail(@PathVariable("id") Long id) {
         log.info("채용공고 상세 조회 요청 - id: {}", id);
         JobPostDetailDto job = jobPostService.getJobPostDetail(id);
-        return ResponseEntity.ok(job);
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(job);
     }
 
     /**
@@ -79,7 +80,7 @@ public class JobPostController {
                 keyword, location, experience, jobCategory, techStack, pageable);
         log.info("검색 결과: {} 건", results.getTotalElements());
 
-        return ResponseEntity.ok(results);               
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(results);
     }   
 
         /**
@@ -91,7 +92,7 @@ public class JobPostController {
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         log.info("활성 채용공고 조회 요청 - page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
         Page<JobPostDto> jobs = jobPostService.getActiveJobPosts(pageable);
-        return ResponseEntity.ok(jobs);       
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(jobs);
     }
     /**
      * 기술 스택으로 필터링
@@ -104,6 +105,6 @@ public class JobPostController {
         log.info("기술스택 필터링 요청 - stackName: {}, page: {}, size: {}", 
                 stackName, pageable.getPageNumber(), pageable.getPageSize());
         Page<JobPostDto> jobs = jobPostService.getJobPostsByTechStack(stackName, pageable);
-        return ResponseEntity.ok(jobs);
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(jobs);
     } 
 }

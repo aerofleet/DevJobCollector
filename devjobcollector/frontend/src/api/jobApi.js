@@ -14,6 +14,9 @@ const apiClient = axios.create({
   withCredentials: true,
 });
 
+// 관리자 숨김·마감 직후에도 공개 목록과 상세가 브라우저/CDN의 이전 응답을 재사용하지 않도록 한다.
+const freshQuery = () => ({ _fresh: `${Date.now()}-${Math.random().toString(36).slice(2)}` });
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const shouldRetry = (error) => {
@@ -64,7 +67,7 @@ apiClient.interceptors.response.use(
 // 채용공고 목록 조회 (페이징)
 export const fetchJobs = async (page = 0, size = 10) => {
   const response = await apiClient.get('/jobs', {
-    params: { page, size },
+    params: { page, size, ...freshQuery() },
   });
   return response.data;
 };
@@ -125,6 +128,7 @@ export const searchJobs = async (filters = {}, page = 0, size = 10) => {
       direction: normalizedFilters.direction || 'DESC',
       page,
       size,
+      ...freshQuery(),
     },
   });
   return response.data;
@@ -132,7 +136,7 @@ export const searchJobs = async (filters = {}, page = 0, size = 10) => {
 
 // 채용공고 상세 조회
 export const fetchJobDetail = async (jobId) => {
-  const response = await apiClient.get(`/jobs/${jobId}`);
+  const response = await apiClient.get(`/jobs/${jobId}`, { params: freshQuery() });
   return response.data;
 };
 

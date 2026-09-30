@@ -83,3 +83,27 @@ test('공고 내용 검색 범위를 안내하고 복합 검색어를 API에 전
   await expect.poll(() => requestedKeywords.includes('Java/Kafka 신입')).toBe(true);
   await expect(page.locator('.job-match-snippet')).toHaveText('Java와 Kafka 기반 공고 내용 일치 구간');
 });
+
+test('탭 복귀 시 숨김 공고를 캐시 없이 다시 검색해 제거한다', async ({ page }) => {
+  const requestKeys = [];
+  let hidden = false;
+  await page.route('**/api/v1/jobs/search**', async (route) => {
+    const url = new URL(route.request().url());
+    requestKeys.push(url.searchParams.get('_fresh'));
+    const content = hidden ? [] : [{ ...makeJobs(9, 1)[0], companyName: '한국탄소산업진흥원' }];
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+      content, totalPages: content.length ? 1 : 0, totalElements: content.length,
+      number: 0, size: 12,
+    }) });
+  });
+
+  await page.goto('/jobs?keyword=한국탄소산업진흥원');
+  await expect(page.locator('.job-card')).toHaveCount(1);
+  hidden = true;
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect(page.locator('.job-card')).toHaveCount(0);
+  await expect(page.getByText('조건에 맞는 공고 0개')).toBeVisible();
+  expect(requestKeys.length).toBeGreaterThanOrEqual(2);
+  expect(requestKeys.every(Boolean)).toBe(true);
+  expect(new Set(requestKeys).size).toBe(requestKeys.length);
+});

@@ -20,6 +20,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @WebMvcTest(JobPostController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -58,7 +59,8 @@ class JobPostControllerTest {
                         .param("direction", "ASC")
                         .param("page", "2")
                         .param("size", "12"))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"));
 
         var pageableCaptor = org.mockito.ArgumentCaptor.forClass(Pageable.class);
         verify(jobPostService).searchJobPosts(
