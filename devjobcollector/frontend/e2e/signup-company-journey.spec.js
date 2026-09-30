@@ -266,6 +266,19 @@ test('기존 이메일로 기업회원 가입을 시도하면 기존 계정 로�
   await expect(page.getByText('새 인증 코드를 발송했습니다.')).toBeVisible();
 });
 
+test('기업 인증 반려 사유를 담당자에게 표시한다', async ({ page }) => {
+  await page.route('**/api/v1/members/me', (route) => respond(route, member));
+  await page.route('**/api/v1/companies/me', (route) => respond(route, [{
+    ...company,
+    companyStatus: 'REJECTED',
+    verificationStatus: 'REJECTED',
+    verificationRejectionReason: '사업자등록증 내용을 확인할 수 없습니다.',
+  }]));
+  await page.addInitScript(() => localStorage.setItem('accessToken', 'company-owner-token'));
+  await page.goto('/company');
+  await expect(page.getByText('반려 사유: 사업자등록증 내용을 확인할 수 없습니다.')).toBeVisible();
+});
+
 test('가입과 기업 등록 핵심 컨트롤은 키보드로 접근 가능하다', async ({ page }) => {
   await page.goto('/signup');
 

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { Buffer } from 'node:buffer';
 
 const fulfillJson = (route, status, body) => route.fulfill({
   status,
@@ -215,6 +216,75 @@ test('기업 상세에서 인증 요청을 조회하되 증빙 키와 승인 버
   await page.getByRole('button', { name: '상세' }).click();
   await page.locator('.detail-modal-overlay').click({ position: { x: 5, y: 5 } });
   await expect(page.getByRole('dialog', { name: '기업 상세' })).toHaveCount(0);
+});
+
+test('기업 상세에서 첨부 이미지를 확대하고 인증 요청을 승인한다', async ({ page }) => {
+  await page.route('**/api/v1/admin/me', (route) => fulfillJson(route, 200, {
+    data: { id: 1, name: '심사자', role: 'REVIEWER' },
+  }));
+  let status = 'PENDING_VERIFICATION';
+  let reviewStatus = 'PENDING';
+  const company = () => ({ id: 4, displayName: '데브잡스', legalName: '데브잡스 주식회사',
+    businessNumberMasked: '123-**-*****', status });
+  const detail = () => ({ company: company(), latestRequest: {
+    id: 8, method: 'BUSINESS_REGISTRATION_DOCUMENT', status: reviewStatus,
+    requestedAt: '2026-09-29T10:00:00', evidenceAvailable: true,
+    evidenceContentType: 'image/png',
+  } });
+  await page.route('**/api/v1/admin/companies?*', (route) => fulfillJson(route, 200, {
+    data: { content: [company()], totalElements: 1, totalPages: 1 },
+  }));
+  await page.route('**/api/v1/admin/companies/4', (route) => fulfillJson(route, 200, { data: detail() }));
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==', 'base64');
+  await page.route('**/api/v1/admin/companies/4/verification-requests/8/evidence', (route) => route.fulfill({
+    status: 200, contentType: 'image/png', body: png,
+  }));
+  await page.route('**/api/v1/admin/companies/4/verification-requests/8/approve', (route) => {
+    status = 'VERIFIED';
+    reviewStatus = 'APPROVED';
+    return fulfillJson(route, 200, { data: detail() });
+  });
+
+  await page.goto('/companies');
+  await page.getByRole('button', { name: '상세' }).click();
+  await expect(page.getByRole('img', { name: '사업자등록증 미리보기' })).toBeVisible();
+  await page.getByRole('button', { name: '사업자등록증 이미지 확대' }).click();
+  await expect(page.getByRole('dialog', { name: '사업자등록증 확대 보기' })).toBeVisible();
+  await expect(page.getByRole('img', { name: '사업자등록증 확대 이미지' })).toBeVisible();
+  await page.getByRole('button', { name: '기업 상세로 돌아가기' }).click();
+  await page.getByRole('button', { name: '승인', exact: true }).click();
+  await page.getByRole('button', { name: '승인 확정' }).click();
+  await expect(page.getByRole('status')).toContainText('기업 인증을 승인했습니다.');
+  await expect(page.getByRole('button', { name: '승인', exact: true })).toHaveCount(0);
+});
+
+test('기업 인증 반려에는 사유를 요구한다', async ({ page }) => {
+  await page.route('**/api/v1/admin/me', (route) => fulfillJson(route, 200, {
+    data: { id: 1, name: '심사자', role: 'REVIEWER' },
+  }));
+  const company = { id: 4, displayName: '데브잡스', legalName: '데브잡스 주식회사',
+    businessNumberMasked: '123-**-*****', status: 'PENDING_VERIFICATION' };
+  await page.route('**/api/v1/admin/companies?*', (route) => fulfillJson(route, 200, {
+    data: { content: [company], totalElements: 1, totalPages: 1 },
+  }));
+  await page.route('**/api/v1/admin/companies/4', (route) => fulfillJson(route, 200, {
+    data: { company, latestRequest: { id: 8, status: 'PENDING', evidenceAvailable: true,
+      evidenceContentType: 'application/pdf' } },
+  }));
+  await page.route('**/api/v1/admin/companies/4/verification-requests/8/reject', (route) => {
+    expect(route.request().postDataJSON()).toEqual({ reason: '증빙 자료 식별 불가' });
+    return fulfillJson(route, 200, { data: { company: { ...company, status: 'REJECTED' },
+      latestRequest: { id: 8, status: 'REJECTED', evidenceAvailable: true,
+        evidenceContentType: 'application/pdf', rejectionReason: '증빙 자료 식별 불가' } } });
+  });
+  await page.goto('/companies');
+  await page.getByRole('button', { name: '상세' }).click();
+  await page.getByRole('button', { name: '반려', exact: true }).click();
+  await page.getByRole('button', { name: '반려 확정' }).click();
+  await expect(page.getByRole('dialog').getByRole('alert')).toContainText('반려 사유를 입력해주세요.');
+  await page.getByLabel('반려 사유').fill('증빙 자료 식별 불가');
+  await page.getByRole('button', { name: '반려 확정' }).click();
+  await expect(page.getByRole('status')).toContainText('기업 인증을 반려했습니다.');
 });
 
 test('최고 관리자는 감사 기록을 검색하고 다른 역할은 접근할 수 없다', async ({ page }) => {

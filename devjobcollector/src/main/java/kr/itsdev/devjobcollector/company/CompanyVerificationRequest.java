@@ -48,6 +48,9 @@ public class CompanyVerificationRequest {
     @JoinColumn(name = "reviewed_by")
     private UserAccount reviewedBy;
 
+    @Column(name = "reviewed_by_admin")
+    private Long reviewedByAdminId;
+
     @Column(name = "requested_at", nullable = false, updatable = false)
     private LocalDateTime requestedAt;
 
@@ -97,6 +100,22 @@ public class CompanyVerificationRequest {
         this.rejectionReason = requireText(rejectionReason, "rejectionReason", 500);
     }
 
+    public void approveByAdmin(Long adminId, LocalDateTime reviewedAt) {
+        requirePending();
+        this.status = CompanyVerificationStatus.APPROVED;
+        this.reviewedByAdminId = Objects.requireNonNull(adminId, "adminId is required");
+        this.reviewedAt = Objects.requireNonNull(reviewedAt, "reviewedAt is required");
+        this.rejectionReason = null;
+    }
+
+    public void rejectByAdmin(Long adminId, String rejectionReason, LocalDateTime reviewedAt) {
+        requirePending();
+        this.status = CompanyVerificationStatus.REJECTED;
+        this.reviewedByAdminId = Objects.requireNonNull(adminId, "adminId is required");
+        this.reviewedAt = Objects.requireNonNull(reviewedAt, "reviewedAt is required");
+        this.rejectionReason = requireText(rejectionReason, "rejectionReason", 500);
+    }
+
     private void requirePending() {
         if (status != CompanyVerificationStatus.PENDING) {
             throw CompanyVerificationException.alreadyReviewed();
@@ -130,6 +149,7 @@ public class CompanyVerificationRequest {
     public String getEvidenceObjectKey() { return evidenceObjectKey; }
     public String getRejectionReason() { return rejectionReason; }
     public UserAccount getReviewedBy() { return reviewedBy; }
+    public Long getReviewedByAdminId() { return reviewedByAdminId; }
     public LocalDateTime getRequestedAt() { return requestedAt; }
     public LocalDateTime getReviewedAt() { return reviewedAt; }
     public LocalDateTime getCreatedAt() { return createdAt; }

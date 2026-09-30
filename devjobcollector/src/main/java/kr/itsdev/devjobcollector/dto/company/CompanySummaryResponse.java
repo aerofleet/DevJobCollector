@@ -22,7 +22,8 @@ public record CompanySummaryResponse(
         Long verificationRequestId,
         CompanyVerificationStatus verificationStatus,
         LocalDateTime verificationRequestedAt,
-        LocalDateTime verificationReviewedAt
+        LocalDateTime verificationReviewedAt,
+        String verificationRejectionReason
 ) {
     public static CompanySummaryResponse from(
             CompanyMember membership,
@@ -42,7 +43,8 @@ public record CompanySummaryResponse(
                 latestVerification == null ? null : latestVerification.getId(),
                 latestVerification == null ? null : latestVerification.getStatus(),
                 latestVerification == null ? null : latestVerification.getRequestedAt(),
-                latestVerification == null ? null : latestVerification.getReviewedAt()
+                latestVerification == null ? null : latestVerification.getReviewedAt(),
+                latestVerification == null ? null : latestVerification.getRejectionReason()
         );
     }
 }

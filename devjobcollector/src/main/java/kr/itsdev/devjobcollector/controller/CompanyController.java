@@ -6,7 +6,6 @@ import kr.itsdev.devjobcollector.company.CompanyMemberManagementService;
 import kr.itsdev.devjobcollector.company.CompanyEvidenceService;
 import kr.itsdev.devjobcollector.company.CompanyProfileService;
 import kr.itsdev.devjobcollector.company.CompanySignupFacade;
-import kr.itsdev.devjobcollector.company.CompanyVerificationService;
 import kr.itsdev.devjobcollector.dto.company.CompanyMemberInvitationRequest;
 import kr.itsdev.devjobcollector.dto.company.CompanyMemberResponse;
 import kr.itsdev.devjobcollector.dto.company.CompanyMemberRoleUpdateRequest;
@@ -14,7 +13,6 @@ import kr.itsdev.devjobcollector.dto.company.CompanySignupRequest;
 import kr.itsdev.devjobcollector.dto.company.CompanySignupResponse;
 import kr.itsdev.devjobcollector.dto.company.CompanySummaryResponse;
 import kr.itsdev.devjobcollector.dto.company.CompanyVerificationResponse;
-import kr.itsdev.devjobcollector.dto.company.CompanyVerificationSubmitRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -34,18 +32,15 @@ import org.springframework.web.multipart.MultipartFile;
 public class CompanyController {
     private final CompanySignupFacade signupFacade;
     private final CompanyProfileService profileService;
-    private final CompanyVerificationService verificationService;
     private final CompanyMemberManagementService memberManagementService;
     private final CompanyEvidenceService evidenceService;
 
     public CompanyController(CompanySignupFacade signupFacade,
                              CompanyProfileService profileService,
-                             CompanyVerificationService verificationService,
                              CompanyMemberManagementService memberManagementService,
                              CompanyEvidenceService evidenceService) {
         this.signupFacade = signupFacade;
         this.profileService = profileService;
-        this.verificationService = verificationService;
         this.memberManagementService = memberManagementService;
         this.evidenceService = evidenceService;
     }
@@ -63,16 +58,6 @@ public class CompanyController {
             @Valid @RequestBody CompanySignupRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED).body(signupFacade.signup(subject, request));
-    }
-
-    @PostMapping("/{companyId}/verification-requests")
-    public ResponseEntity<CompanyVerificationResponse> submitVerification(
-            @AuthenticationPrincipal String subject,
-            @PathVariable Long companyId,
-            @Valid @RequestBody CompanyVerificationSubmitRequest request
-    ) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(verificationService.submit(subject, companyId, request));
     }
 
     @PostMapping(value = "/{companyId}/verification-requests/document", consumes = "multipart/form-data")

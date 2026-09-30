@@ -25,7 +25,7 @@ class CompanyEvidenceServiceTest {
 
     @Test
     void submitsPdfWithServerGeneratedKeyAndStoresItsBytes() {
-        byte[] pdf = "%PDF-1.4\nfixture".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+        byte[] pdf = "%PDF-1.4\nfixture\n%%EOF".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
         MockMultipartFile file = new MockMultipartFile("file", "registration.pdf", "application/pdf", pdf);
         CompanyVerificationResponse response = new CompanyVerificationResponse(
                 10L, 20L, CompanyVerificationStatus.PENDING,
@@ -50,5 +50,41 @@ class CompanyEvidenceServiceTest {
         assertThatThrownBy(() -> new CompanyEvidenceService(verificationService, jdbcTemplate)
                 .submit("1", 20L, file)).isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("400 BAD_REQUEST");
+    }
+
+    @Test
+    void rejectsImageWithOnlyAValidSignature() {
+        byte[] signature = new byte[] {(byte) 0x89, 'P', 'N', 'G', 13, 10, 26, 10};
+        MockMultipartFile file = new MockMultipartFile("file", "registration.png", "image/png", signature);
+        assertThatThrownBy(() -> new CompanyEvidenceService(verificationService, jdbcTemplate)
+                .submit("1", 20L, file)).isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void rejectsMismatchedExtensionEvenWhenPdfSignatureIsValid() {
+        MockMultipartFile file = new MockMultipartFile("file", "registration.jpg", "image/jpeg",
+                "%PDF-1.4\n%%EOF".getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+        assertThatThrownBy(() -> new CompanyEvidenceService(verificationService, jdbcTemplate)
+                .submit("1", 20L, file)).isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void normalizesUploadedImageBeforeStoringIt() throws Exception {
+        var image = new java.awt.image.BufferedImage(1, 1, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        var output = new java.io.ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(image, "png", output);
+        byte[] original = java.util.Arrays.copyOf(output.toByteArray(), output.size() + 12);
+        java.util.Arrays.fill(original, output.size(), original.length, (byte) 'X');
+        MockMultipartFile file = new MockMultipartFile("file", "registration.png", "image/png", original);
+        when(verificationService.submit(eq("1"), eq(20L), any())).thenReturn(
+                new CompanyVerificationResponse(10L, 20L, CompanyVerificationStatus.PENDING,
+                        CompanyStatus.PENDING_VERIFICATION, java.time.LocalDateTime.now(), null));
+
+        new CompanyEvidenceService(verificationService, jdbcTemplate).submit("1", 20L, file);
+
+        ArgumentCaptor<byte[]> stored = ArgumentCaptor.forClass(byte[].class);
+        verify(jdbcTemplate).update(any(String.class), eq(10L), eq("image/png"), stored.capture());
+        assertThat(stored.getValue().length).isLessThan(original.length);
+        assertThat(javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(stored.getValue()))).isNotNull();
     }
 }

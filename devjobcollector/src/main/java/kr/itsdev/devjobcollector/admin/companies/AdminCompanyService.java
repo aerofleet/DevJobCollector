@@ -48,9 +48,12 @@ public class AdminCompanyService {
         Company company = companies.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "COMPANY_NOT_FOUND"));
         VerificationView latest = requests.findTopByCompany_IdOrderByRequestedAtDescIdDesc(id)
-                .map(request -> VerificationView.from(request, jdbcTemplate.queryForObject(
-                        "SELECT EXISTS(SELECT 1 FROM company_verification_evidence WHERE request_id = ?)",
-                        Boolean.class, request.getId()))).orElse(null);
+                .map(request -> {
+                    String contentType = jdbcTemplate.query(
+                            "SELECT content_type FROM company_verification_evidence WHERE request_id = ?",
+                            result -> result.next() ? result.getString(1) : null, request.getId());
+                    return VerificationView.from(request, contentType);
+                }).orElse(null);
         return new CompanyDetail(CompanyView.from(company), latest);
     }
 
@@ -70,12 +73,12 @@ public class AdminCompanyService {
     public record VerificationView(Long id, String method, String status,
                                    Long requestedById, LocalDateTime requestedAt,
                                    LocalDateTime reviewedAt, String rejectionReason,
-                                   boolean evidenceAvailable) {
-        static VerificationView from(CompanyVerificationRequest request, boolean evidenceAvailable) {
+                                   boolean evidenceAvailable, String evidenceContentType) {
+        static VerificationView from(CompanyVerificationRequest request, String contentType) {
             return new VerificationView(request.getId(), request.getMethod().name(),
                     request.getStatus().name(), request.getRequestedBy().getId(),
                     request.getRequestedAt(), request.getReviewedAt(),
-                    request.getRejectionReason(), evidenceAvailable);
+                    request.getRejectionReason(), contentType != null, contentType);
         }
     }
 }

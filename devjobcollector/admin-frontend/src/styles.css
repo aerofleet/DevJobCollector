@@ -116,6 +116,25 @@ button { cursor: pointer; }
 .detail-modal .panel-header { position: sticky; top: 0; z-index: 1; padding: 0 0 14px; border-bottom: 1px solid #edf0f5; background: #fff; }
 .detail-modal .panel-header button { min-width: 40px; min-height: 40px; border-radius: 8px; }
 .detail-modal .panel-header button:focus-visible { outline: 3px solid #5c84ff; outline-offset: 2px; }
+.company-evidence-preview { margin: 18px 0; }
+.company-evidence-preview h4 { margin: 0 0 10px; font-size: 13px; }
+.company-evidence-preview > button { width: min(280px, 100%); display: grid; gap: 8px; padding: 10px !important; border: 1px solid #dce1eb !important; border-radius: 12px; background: #f8faff !important; cursor: zoom-in; }
+.company-evidence-preview img { display: block; width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px; }
+.company-evidence-preview span { font-size: 12px; }
+.company-evidence-expanded { display: grid; gap: 16px; padding-top: 16px; }
+.company-evidence-expanded > button { justify-self: start; }
+.company-evidence-expanded img { display: block; max-width: 100%; max-height: calc(100dvh - 180px); margin: auto; object-fit: contain; }
+.company-review-actions { display: flex; gap: 10px; margin-top: 20px; }
+.company-review-actions button { min-height: 40px; padding: 0 18px !important; border-radius: 9px; background: #eef3ff !important; }
+.company-review-actions button:last-child { background: #fff1f1 !important; color: #b33142 !important; }
+.company-review-confirm { display: grid; gap: 12px; margin-top: 14px; padding: 16px; border: 1px solid #dce1eb; border-radius: 12px; background: #f8faff; }
+.company-review-confirm p { margin: 0; font-size: 13px; }
+.company-review-confirm label { display: grid; gap: 7px; font-size: 12px; font-weight: 700; }
+.company-review-confirm textarea { width: 100%; padding: 10px; border: 1px solid #cbd3e0; border-radius: 8px; resize: vertical; font: inherit; }
+.company-review-confirm > div { display: flex; gap: 8px; }
+.company-review-confirm button { min-height: 40px; padding: 0 14px !important; border-radius: 8px; }
+.company-review-confirm .primary-button { border: 0 !important; background: #245de9 !important; color: #fff !important; }
+.company-review-notice { padding: 10px 12px; border-radius: 8px; background: #eaf7ee; color: #187345; font-size: 13px; }
 .user-detail dl { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 20px 0; }
 .user-detail dt { color: #858d9e; font-size: 11px; }.user-detail dd { margin: 5px 0 0; font-size: 13px; }
 .moderation-form { display: grid; gap: 10px; max-width: 520px; }.moderation-form .primary-button { justify-self: start; padding: 0 20px; }

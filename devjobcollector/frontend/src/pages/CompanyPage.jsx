@@ -224,6 +224,8 @@ const CompanyPage = () => {
                     <small>최근 인증 요청</small>
                     <h2>{VERIFICATION_STATUS[selectedCompany.verificationStatus] || selectedCompany.verificationStatus}</h2>
                     <p>{formatDate(selectedCompany.verificationReviewedAt || selectedCompany.verificationRequestedAt)}</p>
+                    {selectedCompany.verificationStatus === 'REJECTED' && selectedCompany.verificationRejectionReason
+                      && <p>반려 사유: {selectedCompany.verificationRejectionReason}</p>}
                   </div>
                 </section>
               )}

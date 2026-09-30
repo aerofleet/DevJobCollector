@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -21,14 +22,12 @@ import kr.itsdev.devjobcollector.company.CompanyProfileService;
 import kr.itsdev.devjobcollector.company.CompanyAlreadyExistsException;
 import kr.itsdev.devjobcollector.company.CompanySignupFacade;
 import kr.itsdev.devjobcollector.company.CompanyStatus;
-import kr.itsdev.devjobcollector.company.CompanyVerificationService;
 import kr.itsdev.devjobcollector.company.CompanyVerificationStatus;
 import kr.itsdev.devjobcollector.config.PerfLogProperties;
 import kr.itsdev.devjobcollector.dto.company.CompanySignupRequest;
 import kr.itsdev.devjobcollector.dto.company.CompanySignupResponse;
 import kr.itsdev.devjobcollector.dto.company.CompanySummaryResponse;
 import kr.itsdev.devjobcollector.dto.company.CompanyVerificationResponse;
-import kr.itsdev.devjobcollector.dto.company.CompanyVerificationSubmitRequest;
 import java.time.LocalDateTime;
 import java.util.List;
 import kr.itsdev.devjobcollector.dto.company.CompanyMemberInvitationRequest;
@@ -43,6 +42,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -53,7 +53,6 @@ class CompanyControllerSecurityTest {
 
     @MockitoBean CompanySignupFacade signupFacade;
     @MockitoBean CompanyProfileService profileService;
-    @MockitoBean CompanyVerificationService verificationService;
     @MockitoBean CompanyEvidenceService evidenceService;
     @MockitoBean CompanyMemberManagementService memberManagementService;
     @MockitoBean JwtTokenVerifier jwtTokenVerifier;
@@ -133,7 +132,7 @@ class CompanyControllerSecurityTest {
                 7L, "테스트 주식회사", "테스트", "123-45-*****", "https://example.com",
                 CompanyStatus.PENDING_VERIFICATION, 11L, CompanyMemberRole.OWNER,
                 CompanyMemberStatus.ACTIVE, 9L, CompanyVerificationStatus.PENDING,
-                LocalDateTime.of(2026, 9, 9, 11, 0), null)));
+                LocalDateTime.of(2026, 9, 9, 11, 0), null, null)));
 
         mockMvc.perform(get("/api/v1/companies/me")
                         .header("Authorization", "Bearer valid-token"))
@@ -189,28 +188,36 @@ class CompanyControllerSecurityTest {
     }
 
     @Test
-    void submitsVerificationForAuthenticatedMemberWithoutReturningEvidenceKey() throws Exception {
-        when(verificationService.submit(
+    void submitsVerificationDocumentForAuthenticatedMemberWithoutReturningEvidenceKey() throws Exception {
+        when(evidenceService.submit(
                 org.mockito.ArgumentMatchers.eq("42"), org.mockito.ArgumentMatchers.eq(7L),
-                any(CompanyVerificationSubmitRequest.class)))
+                any(org.springframework.web.multipart.MultipartFile.class)))
                 .thenReturn(new CompanyVerificationResponse(
                         9L, 7L, CompanyVerificationStatus.PENDING,
                         CompanyStatus.PENDING_VERIFICATION,
                         LocalDateTime.of(2026, 9, 8, 10, 0), null));
 
-        mockMvc.perform(post("/api/v1/companies/7/verification-requests")
-                        .header("Authorization", "Bearer valid-token")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "method": "BUSINESS_REGISTRATION_DOCUMENT",
-                                  "evidenceObjectKey": "company-verification/7/evidence.pdf"
-                                }
-                                """))
+        mockMvc.perform(multipart("/api/v1/companies/7/verification-requests/document")
+                        .file(new MockMultipartFile("file", "registration.pdf", "application/pdf",
+                                "%PDF-1.4\n%%EOF".getBytes(java.nio.charset.StandardCharsets.US_ASCII)))
+                        .header("Authorization", "Bearer valid-token"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.requestId").value(9))
                 .andExpect(jsonPath("$.requestStatus").value("PENDING"))
                 .andExpect(jsonPath("$.evidenceObjectKey").doesNotExist());
+    }
+
+    @Test
+    void doesNotAcceptUnverifiedEvidenceKeys() throws Exception {
+        mockMvc.perform(post("/api/v1/companies/7/verification-requests")
+                        .header("Authorization", "Bearer valid-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"method":"BUSINESS_REGISTRATION_DOCUMENT",
+                                 "evidenceObjectKey":"forged/evidence.pdf"}
+                                """))
+                .andExpect(status().isNotFound());
+        verifyNoInteractions(evidenceService);
     }
 
     @Test

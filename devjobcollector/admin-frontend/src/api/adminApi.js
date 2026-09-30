@@ -96,6 +96,13 @@ export const adminApi = {
   companies: (params) => adminPageRequest(`/companies?${new URLSearchParams(params)}`),
   company: (id) => adminRequest(`/companies/${id}`),
   companyEvidence: downloadCompanyEvidence,
+  approveCompany: (companyId, requestId) => adminRequest(
+    `/companies/${companyId}/verification-requests/${requestId}/approve`, { method: 'POST' },
+  ),
+  rejectCompany: (companyId, requestId, reason) => adminRequest(
+    `/companies/${companyId}/verification-requests/${requestId}/reject`,
+    { method: 'POST', body: JSON.stringify({ reason }) },
+  ),
   audit: (params) => adminPageRequest(`/audit?${new URLSearchParams(params)}`),
   admins: (params) => adminPageRequest(`/admins?${new URLSearchParams(params)}`),
   admin: (id) => adminRequest(`/admins/${id}`),
