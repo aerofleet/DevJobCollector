@@ -147,7 +147,10 @@ test('공고 목록에서 사유를 확인하고 숨김 처리한다', async ({ 
   await expect(page.getByRole('button', { name: '강제 마감' })).toBeEnabled();
   await page.getByRole('button', { name: '공고 숨김' }).click();
   await expect(page.getByRole('group', { name: '공고 상태 변경 확인' })).toBeVisible();
-  await expect(page.getByRole('button', { name: '변경 확정' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '변경 확정' })).toBeEnabled();
+  await page.getByRole('button', { name: '변경 확정' }).click();
+  await expect(page.getByRole('dialog', { name: '공고 상세' }).getByRole('alert')).toHaveText('변경 사유를 입력해 주세요.');
+  await expect(page.getByLabel('변경 사유')).toBeFocused();
   await page.getByLabel('변경 사유').fill('중복 공고');
   await page.getByRole('button', { name: '변경 확정' }).click();
   await expect(page.getByRole('button', { name: '재활성' })).toBeVisible();
@@ -155,9 +158,11 @@ test('공고 목록에서 사유를 확인하고 숨김 처리한다', async ({ 
   await page.getByLabel('변경 사유').fill('채용 종료');
   await page.getByRole('button', { name: '변경 확정' }).click();
   await page.getByRole('button', { name: '재활성' }).click();
-  await expect(page.getByRole('button', { name: '변경 확정' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '변경 확정' })).toBeEnabled();
   await page.getByLabel('변경 사유').fill('재등록 확인');
-  await expect(page.getByRole('button', { name: '변경 확정' })).toBeDisabled();
+  await page.getByRole('button', { name: '변경 확정' }).click();
+  await expect(page.getByRole('dialog', { name: '공고 상세' }).getByRole('alert')).toHaveText('새 마감일을 입력해 주세요.');
+  await expect(page.getByLabel('새 마감일 (필수)')).toBeFocused();
   await page.getByLabel('새 마감일 (필수)').fill('2027-01-31');
   await page.getByRole('button', { name: '변경 확정' }).click();
   await expect(page.getByText('활성', { exact: true })).toBeVisible();

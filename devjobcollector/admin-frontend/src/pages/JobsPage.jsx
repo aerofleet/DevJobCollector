@@ -39,7 +39,17 @@ export default function JobsPage() {
   };
 
   const changeStatus = async () => {
-    if (!selected || !pendingStatus || !reason.trim() || busy || (needsNewEndDate && !newEndDate)) return;
+    if (!selected || !pendingStatus || busy) return;
+    if (!reason.trim()) {
+      setError('변경 사유를 입력해 주세요.');
+      document.getElementById('job-moderation-reason')?.focus();
+      return;
+    }
+    if (needsNewEndDate && !newEndDate) {
+      setError('새 마감일을 입력해 주세요.');
+      document.getElementById('job-new-end-date')?.focus();
+      return;
+    }
     setBusy(true); setError('');
     try {
       const updated = (await adminApi.moderateJob(selected.id, {
@@ -100,15 +110,15 @@ export default function JobsPage() {
           : <div className="moderation-confirm" role="group" aria-label="공고 상태 변경 확인">
             <label htmlFor="job-moderation-reason">변경 사유
               <textarea id="job-moderation-reason" value={reason}
-                onChange={(event) => setReason(event.target.value)} maxLength={500} rows={3} required />
+                onChange={(event) => { setReason(event.target.value); setError(''); }} maxLength={500} rows={3} required />
             </label>
             {pendingStatus === 'ACTIVE' && <label htmlFor="job-new-end-date">새 마감일 {needsNewEndDate ? '(필수)' : '(선택)'}
               <input id="job-new-end-date" type="date" value={newEndDate}
                 min={new Date().toLocaleDateString('sv-SE')}
-                onChange={(event) => setNewEndDate(event.target.value)} required={needsNewEndDate} />
+                onChange={(event) => { setNewEndDate(event.target.value); setError(''); }} required={needsNewEndDate} />
             </label>}
             <p>{selected.title} 공고를 {actionText[pendingStatus]} 처리합니다. 변경 사유가 감사 기록에 남습니다.</p>
-            <button className="primary-button" type="button" disabled={busy || !reason.trim() || (needsNewEndDate && !newEndDate)} onClick={changeStatus}>
+            <button className="primary-button" type="button" disabled={busy} onClick={changeStatus}>
               {busy ? '처리 중…' : '변경 확정'}</button>
             <button className="secondary-button" type="button" disabled={busy}
               onClick={() => { setReason(''); setPendingStatus(null); }}>취소</button>
