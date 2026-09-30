@@ -25,6 +25,7 @@ const SignupPage = () => {
   const [turnstileVersion, setTurnstileVersion] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [existingAccount, setExistingAccount] = useState(false);
   const [notice, setNotice] = useState('');
   const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
 
@@ -39,6 +40,8 @@ const SignupPage = () => {
 
   const selectMemberType = (type) => {
     setMemberType(type);
+    setErrorMessage('');
+    setExistingAccount(false);
     if (type === 'company') {
       sessionStorage.setItem('postLoginNextPath', '/company');
     } else if (sessionStorage.getItem('postLoginNextPath') === '/company') {
@@ -54,6 +57,7 @@ const SignupPage = () => {
   const submitSignup = async (event) => {
     event.preventDefault();
     setErrorMessage('');
+    setExistingAccount(false);
     setNotice('');
     if (form.password !== form.passwordConfirm) {
       setErrorMessage('비밀번호 확인이 일치하지 않습니다.');
@@ -83,7 +87,18 @@ const SignupPage = () => {
       setTurnstileToken('');
       setStep('verify');
     } catch (error) {
-      setErrorMessage(messageFor(error, '회원가입 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'));
+      if (siteKey) {
+        setTurnstileToken('');
+        setTurnstileVersion((current) => current + 1);
+      }
+      if (error.response?.status === 409) {
+        setExistingAccount(true);
+        setErrorMessage(memberType === 'company'
+          ? '이미 등록된 이메일입니다. 인증을 마쳤다면 로그인 후 기업을 등록하고, 인증 전이라면 코드를 다시 받으세요.'
+          : '이미 등록된 이메일입니다. 인증을 마쳤다면 로그인하고, 인증 전이라면 코드를 다시 받으세요.');
+      } else {
+        setErrorMessage(messageFor(error, '회원가입 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'));
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -119,8 +134,12 @@ const SignupPage = () => {
       setNotice(result.developmentVerificationCode
         ? `로컬 개발용 인증 코드: ${result.developmentVerificationCode}`
         : '새 인증 코드를 발송했습니다.');
+      setExistingAccount(false);
+      setStep('verify');
     } catch (error) {
-      setErrorMessage(messageFor(error, '인증 코드 재발송에 실패했습니다.'));
+      setErrorMessage(error.response?.status === 409
+        ? '이미 인증된 계정입니다. 로그인 후 계속 진행해주세요.'
+        : messageFor(error, '인증 코드 재발송에 실패했습니다.'));
     } finally {
       if (siteKey) {
         setTurnstileToken('');
@@ -146,7 +165,7 @@ const SignupPage = () => {
 
         {memberType === 'company' && step === 'form' && (
           <p className="company-signup-guide" role="status">
-            담당자 계정을 만든 뒤 기업 정보 등록과 인증을 이어서 진행합니다.
+            담당자 계정을 만든 뒤 기업 정보 등록과 인증을 이어서 진행합니다. 이미 계정이 있다면 로그인 후 기업을 등록할 수 있습니다.
           </p>
         )}
 
@@ -181,6 +200,12 @@ const SignupPage = () => {
 
         {notice && <p className="signup-notice" role="status">{notice}</p>}
         {errorMessage && <p className="signup-error" role="alert">{errorMessage}</p>}
+        {existingAccount && <div className="signup-existing-actions">
+          <Link to={memberType === 'company' ? '/login?next=/company' : '/login'}>
+            {memberType === 'company' ? '로그인하고 기업 등록하기' : '로그인하기'}
+          </Link>
+          <button type="button" disabled={isSubmitting} onClick={resend}>인증 코드 다시 받기</button>
+        </div>}
         <p className="login-link">이미 계정이 있나요? <Link to={memberType === 'company' ? '/login?next=/company' : '/login'}>로그인</Link></p>
       </section>
     </main>

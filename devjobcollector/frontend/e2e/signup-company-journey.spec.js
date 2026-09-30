@@ -221,7 +221,7 @@ test('가입과 기업 조회 오류를 알리고 사용자가 다시 시도할 
   await page.getByLabel(/이용약관/).check();
   await page.getByLabel(/개인정보 처리방침/).check();
   await page.getByRole('button', { name: '이메일로 가입하기' }).click();
-  await expect(page.getByRole('alert')).toHaveText('이미 사용 중인 이메일입니다.');
+  await expect(page.getByRole('alert')).toHaveText('이미 등록된 이메일입니다. 인증을 마쳤다면 로그인하고, 인증 전이라면 코드를 다시 받으세요.');
 
   await page.evaluate(() => localStorage.setItem('accessToken', 'company-owner-token'));
   await page.goto('/company');
@@ -230,6 +230,33 @@ test('가입과 기업 조회 오류를 알리고 사용자가 다시 시도할 
   await expect(page.getByRole('heading', { name: '기업 정보 등록' })).toBeVisible();
   expect(companyLoadCount).toBeGreaterThanOrEqual(2);
   await expectNoHorizontalScroll(page);
+});
+
+test('기존 이메일로 기업회원 가입을 시도하면 기존 계정 로그인으로 안내한다', async ({ page }) => {
+  await page.route('**/api/v1/auth/signup/personal', (route) => respond(route, {
+    timestamp: '2026-09-30T00:00:00Z', status: 409, error: 'Conflict',
+  }, 409));
+  await page.route('**/api/v1/auth/signup/personal/resend', (route) => respond(route, {
+    email: 'registered@example.com', status: 'PENDING_EMAIL', verificationExpiresMinutes: 10,
+  }));
+
+  await page.goto('/signup');
+  await page.getByRole('button', { name: /기업회원/ }).click();
+  await page.getByLabel('이름').fill('기업 담당자');
+  await page.getByLabel('이메일').fill('registered@example.com');
+  await page.getByLabel('비밀번호', { exact: true }).fill('Password1!');
+  await page.getByLabel('비밀번호 확인').fill('Password1!');
+  await page.getByLabel(/이용약관/).check();
+  await page.getByLabel(/개인정보 처리방침/).check();
+  await page.getByRole('button', { name: '가입 후 기업 등록하기' }).click();
+
+  await expect(page.getByRole('alert')).toHaveText(
+    '이미 등록된 이메일입니다. 인증을 마쳤다면 로그인 후 기업을 등록하고, 인증 전이라면 코드를 다시 받으세요.');
+  await expect(page.getByRole('link', { name: '로그인하고 기업 등록하기' }))
+    .toHaveAttribute('href', '/login?next=/company');
+  await page.getByRole('button', { name: '인증 코드 다시 받기' }).click();
+  await expect(page.getByRole('heading', { name: '이메일을 확인해주세요' })).toBeVisible();
+  await expect(page.getByText('새 인증 코드를 발송했습니다.')).toBeVisible();
 });
 
 test('가입과 기업 등록 핵심 컨트롤은 키보드로 접근 가능하다', async ({ page }) => {
