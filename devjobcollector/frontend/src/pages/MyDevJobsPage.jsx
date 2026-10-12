@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Bookmark, BriefcaseBusiness, ChevronRight, Clock3, RefreshCw, Search, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
@@ -32,6 +32,8 @@ const STATUS_LABELS = {
   WITHDRAWN: '지원 철회',
 };
 
+const ACTIVITY_LOADERS = { saved: fetchBookmarks, applied: fetchApplications, recent: fetchRecentJobs };
+
 const formatActivityDate = (value) => {
   if (!value) return '';
   return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium' }).format(new Date(value));
@@ -39,31 +41,30 @@ const formatActivityDate = (value) => {
 
 const MyDevJobsPage = () => {
   const [activeTab, setActiveTab] = useState('saved');
+  const initialRequestStarted = useRef(false);
   const [activities, setActivities] = useState({ saved: [], applied: [], recent: [] });
-  const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [loadStates, setLoadStates] = useState({ saved: 'loading', applied: 'loading', recent: 'loading' });
   const [pendingKey, setPendingKey] = useState('');
   const [title, description] = EMPTY_COPY[activeTab];
+  const loading = loadStates[activeTab] === 'loading';
+  const errorMessage = loadStates[activeTab] === 'error'
+    ? '채용 활동을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.' : '';
 
-  const loadActivities = async () => {
-    setLoading(true);
-    setErrorMessage('');
+  const loadActivity = async (tab) => {
+    setLoadStates((current) => ({ ...current, [tab]: 'loading' }));
     try {
-      const [saved, applied, recent] = await Promise.all([
-        fetchBookmarks(), fetchApplications(), fetchRecentJobs(),
-      ]);
-      setActivities({ saved, applied, recent });
-    } catch (error) {
-      if (error.response?.status !== 401) {
-        setErrorMessage('채용 활동을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
-      }
-    } finally {
-      setLoading(false);
+      const items = await ACTIVITY_LOADERS[tab]();
+      setActivities((current) => ({ ...current, [tab]: items }));
+      setLoadStates((current) => ({ ...current, [tab]: 'success' }));
+    } catch {
+      setLoadStates((current) => ({ ...current, [tab]: 'error' }));
     }
   };
 
   useEffect(() => {
-    loadActivities();
+    if (initialRequestStarted.current) return;
+    initialRequestStarted.current = true;
+    Object.keys(ACTIVITY_LOADERS).forEach(loadActivity);
   }, []);
 
   const activeItems = useMemo(() => activities[activeTab] ?? [], [activeTab, activities]);
@@ -113,7 +114,7 @@ const MyDevJobsPage = () => {
             {TABS.map(({ id, label, icon: Icon }) => (
               <button type="button" key={id} onClick={() => setActiveTab(id)} className={activeTab === id ? 'active' : ''}>
                 <span>{React.createElement(Icon, { size: 19 })}</span>
-                <strong>{loading ? '–' : activities[id].length}</strong>
+                <strong>{loadStates[id] === 'success' ? activities[id].length : '–'}</strong>
                 <small>{label}</small>
                 <ChevronRight size={17} aria-hidden="true" />
               </button>
@@ -139,7 +140,7 @@ const MyDevJobsPage = () => {
             {!loading && errorMessage && (
               <div className="member-activity-state error" role="alert">
                 <p>{errorMessage}</p>
-                <button type="button" onClick={loadActivities}><RefreshCw size={16} /> 다시 시도</button>
+                <button type="button" onClick={() => loadActivity(activeTab)}><RefreshCw size={16} /> 다시 시도</button>
               </div>
             )}
             {!loading && !errorMessage && activeItems.length === 0 && (

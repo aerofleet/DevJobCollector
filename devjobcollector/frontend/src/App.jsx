@@ -16,8 +16,10 @@ const TermsPage = lazy(() => import('./pages/TermsPage'));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
 const Resume = lazy(() => import('./pages/Resume'));
 const MemberHomePage = lazy(() => import('./pages/MemberHomePage'));
-const MyDevJobsPage = lazy(() => import('./pages/MyDevJobsPage'));
-const ResumesPage = lazy(() => import('./pages/ResumesPage'));
+const loadMyDevJobsPage = () => import('./pages/MyDevJobsPage');
+const loadResumesPage = () => import('./pages/ResumesPage');
+const MyDevJobsPage = lazy(loadMyDevJobsPage);
+const ResumesPage = lazy(loadResumesPage);
 const CompanyPage = lazy(() => import('./pages/CompanyPage'));
 
 class RouteErrorBoundary extends React.Component {
@@ -66,7 +68,7 @@ const AppRoutes = () => {
         <Route
           path="/my-devjobs"
           element={(
-            <ProtectedRoute>
+            <ProtectedRoute preload={loadMyDevJobsPage}>
               <MyDevJobsPage />
             </ProtectedRoute>
           )}
@@ -82,7 +84,7 @@ const AppRoutes = () => {
         <Route
           path="/resumes"
           element={(
-            <ProtectedRoute>
+            <ProtectedRoute preload={loadResumesPage}>
               <ResumesPage />
             </ProtectedRoute>
           )}
