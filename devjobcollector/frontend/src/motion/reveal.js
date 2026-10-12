@@ -1,4 +1,5 @@
-// Shared with ITSDEV Portal. Content stays visible if enhancement cannot run.
+// Based on the shared Portal reveal, with optional DJC hero entrance variants.
+// Content stays visible if enhancement cannot run.
 export function observeReveals() {
   if (!('IntersectionObserver' in window) || !Element.prototype.animate) return () => {};
   const selector = '[data-motion-reveal]';
@@ -33,10 +34,27 @@ export function observeReveals() {
       const step = target.dataset.motionStep;
       const staged = initiallyVisible && step !== undefined;
       const opaque = target.dataset.motionReveal === 'lead' || (initiallyVisible && !staged);
-      const animation = target.animate([
+      let frames = [
         { opacity: opaque ? 1 : 0.35, translate: `0 ${distance}px` },
         { opacity: 1, translate: '0 0' },
-      ], { duration: 1400, delay: staged ? Number(step) * 500 : Math.min(order++, 3) * 180, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'backwards' });
+      ];
+      if (document.documentElement.dataset.motion === 'standard') {
+        const variant = target.dataset.motionEnter;
+        if (variant === 'headline') frames = [
+          { opacity: 1, translate: '-48px 18px', scale: '0.96' },
+          { opacity: 1, translate: '0 0', scale: '1' },
+        ];
+        if (variant === 'search') frames = [
+          { opacity: 0.35, translate: '0 48px', scale: '0.94' },
+          { opacity: 1, translate: '0 0', scale: '1' },
+        ];
+        if (variant === 'visual') frames = [
+          { opacity: 0.35, translate: '40px 36px', scale: '0.78', rotate: '-8deg', offset: 0 },
+          { opacity: 1, translate: '-4px -6px', scale: '1.025', rotate: '1deg', offset: 0.78 },
+          { opacity: 1, translate: '0 0', scale: '1', rotate: '0deg', offset: 1 },
+        ];
+      }
+      const animation = target.animate(frames, { duration: 1400, delay: staged ? Number(step) * 500 : Math.min(order++, 3) * 180, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'backwards' });
       target.dataset.revealState = 'running';
       running.set(target, animation);
       animation.onfinish = () => finish(target);

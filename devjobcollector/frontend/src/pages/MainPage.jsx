@@ -74,13 +74,13 @@ const MainPage = ({ onSearch }) => {
       <section className="landing-hero" aria-labelledby="landing-title">
         <div className="hero-copy">
           <span className="hero-kicker" data-motion-reveal="" data-motion-step="0"><Sparkles size={15} /> 개발자 채용 탐색의 새로운 기준</span>
-          <h1 id="landing-title" data-motion-reveal="lead" data-motion-step="0">
+          <h1 id="landing-title" data-motion-reveal="lead" data-motion-step="0" data-motion-enter="headline">
             흩어진 개발자 채용공고,<br />
             <strong>데브잡스에서 한 번에.</strong>
           </h1>
           <p data-motion-reveal="" data-motion-step="1">여러 채용 플랫폼을 오갈 필요 없이, 지금 나에게 맞는 개발자 포지션을 빠르게 찾아보세요.</p>
 
-          <form className="hero-search" data-motion-reveal="" data-motion-step="2" onSubmit={submitSearch} role="search">
+          <form className="hero-search" data-motion-reveal="" data-motion-step="2" data-motion-enter="search" onSubmit={submitSearch} role="search">
             <Search size={22} aria-hidden="true" />
             <label className="sr-only" htmlFor="hero-job-search">채용공고 검색</label>
             <input
@@ -102,7 +102,7 @@ const MainPage = ({ onSearch }) => {
           </div>
         </div>
 
-        <div className="hero-visual" data-motion-reveal="" data-motion-step="3" aria-hidden="true">
+        <div className="hero-visual" data-motion-reveal="" data-motion-step="3" data-motion-enter="visual" aria-hidden="true">
           <div className="code-window">
             <div className="window-bar"><span /><span /><span /></div>
             <div className="code-lines">
