@@ -56,7 +56,8 @@ const JobsResults = ({ filters }) => {
   const [jobs, setJobs] = useState([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
+  const [totalElements, setTotalElements] = useState(null);
+  const [retryAttempt, setRetryAttempt] = useState(0);
   const [initialLoading, setInitialLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const requestVersion = useRef(0);
@@ -74,7 +75,7 @@ const JobsResults = ({ filters }) => {
       setJobs([]);
       setPage(0);
       setTotalPages(0);
-      setTotalElements(0);
+      setTotalElements(null);
       setErrorMessage('');
       try {
         const data = await fetchPage(0);
@@ -99,7 +100,7 @@ const JobsResults = ({ filters }) => {
       requestVersion.current += 1;
       window.removeEventListener('focus', loadInitialData);
     };
-  }, [fetchPage]);
+  }, [fetchPage, retryAttempt]);
 
   const loadMoreData = useCallback(async () => {
     if (initialLoading || page >= totalPages) return false;
@@ -126,8 +127,8 @@ const JobsResults = ({ filters }) => {
   return (
     <>
       <div className="results-toolbar">
-        <p>조건에 맞는 공고 <strong>{totalElements.toLocaleString()}</strong>개</p>
-        <span>스크롤하면 공고를 계속 불러옵니다</span>
+        <p role="status" aria-live="polite">{initialLoading ? '공고를 확인하고 있습니다.' : totalElements === null ? '공고 수를 확인하지 못했습니다.' : <>조건에 맞는 공고 <strong>{totalElements.toLocaleString()}</strong>개</>}</p>
+        {!initialLoading && totalElements !== null && !errorMessage && <span>스크롤하면 공고를 계속 불러옵니다</span>}
       </div>
 
       {initialLoading ? <JobGridSkeleton /> : (
@@ -137,7 +138,10 @@ const JobsResults = ({ filters }) => {
       )}
 
       {loading && <LoadingSpinner />}
-      {errorMessage && <div className="all-jobs-message error">{errorMessage}</div>}
+      {errorMessage && <div className="all-jobs-message error" role="alert">
+        <p>{errorMessage}</p>
+        <button type="button" className="search-submit im-button" disabled={initialLoading} onClick={() => setRetryAttempt(attempt => attempt + 1)}>다시 불러오기</button>
+      </div>}
       {!initialLoading && !errorMessage && jobs.length === 0 && (
         <div className="all-jobs-message empty">
           <strong>조건에 맞는 공고가 없어요.</strong>
