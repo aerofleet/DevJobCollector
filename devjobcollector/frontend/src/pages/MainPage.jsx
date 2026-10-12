@@ -71,14 +71,14 @@ const MainPage = ({ onSearch }) => {
     <div className="main-page">
       <section className="landing-hero" aria-labelledby="landing-title">
         <div className="hero-copy">
-          <span className="hero-kicker"><Sparkles size={15} /> 개발자 채용 탐색의 새로운 기준</span>
-          <h1 id="landing-title">
+          <span className="hero-kicker" data-motion-reveal=""><Sparkles size={15} /> 개발자 채용 탐색의 새로운 기준</span>
+          <h1 id="landing-title" data-motion-reveal="lead">
             흩어진 개발자 채용공고,<br />
             <strong>데브잡스에서 한 번에.</strong>
           </h1>
-          <p>여러 채용 플랫폼을 오갈 필요 없이, 지금 나에게 맞는 개발자 포지션을 빠르게 찾아보세요.</p>
+          <p data-motion-reveal="">여러 채용 플랫폼을 오갈 필요 없이, 지금 나에게 맞는 개발자 포지션을 빠르게 찾아보세요.</p>
 
-          <form className="hero-search" onSubmit={submitSearch} role="search">
+          <form className="hero-search" data-motion-reveal="" onSubmit={submitSearch} role="search">
             <Search size={22} aria-hidden="true" />
             <label className="sr-only" htmlFor="hero-job-search">채용공고 검색</label>
             <input
@@ -92,7 +92,7 @@ const MainPage = ({ onSearch }) => {
             <button type="submit">공고 찾기</button>
           </form>
 
-          <div className="quick-searches" aria-label="인기 검색어">
+          <div className="quick-searches" data-motion-reveal="" aria-label="인기 검색어">
             <span>인기 검색</span>
             {QUICK_SEARCHES.map((item) => (
               <button type="button" key={item} onClick={() => searchByKeyword(item)}>#{item}</button>
@@ -100,7 +100,7 @@ const MainPage = ({ onSearch }) => {
           </div>
         </div>
 
-        <div className="hero-visual" aria-hidden="true">
+        <div className="hero-visual" data-motion-reveal="" aria-hidden="true">
           <div className="code-window">
             <div className="window-bar"><span /><span /><span /></div>
             <div className="code-lines">
@@ -117,7 +117,7 @@ const MainPage = ({ onSearch }) => {
       </section>
 
       <section className="discovery-section" aria-labelledby="discovery-title">
-        <div className="section-heading">
+        <div className="section-heading" data-motion-reveal="">
           <div>
             <span className="section-eyebrow">CURATED FOR DEVELOPERS</span>
             <h2 id="discovery-title">지금 주목할 포지션</h2>
@@ -130,6 +130,7 @@ const MainPage = ({ onSearch }) => {
             <button
               type="button"
               className={`theme-card ${className}`}
+              data-motion-reveal=""
               key={themeKeyword}
               onClick={() => searchByKeyword(themeKeyword)}
             >
@@ -143,7 +144,7 @@ const MainPage = ({ onSearch }) => {
       </section>
 
       <section className="positions-section" id="positions" aria-labelledby="positions-title">
-        <div className="section-heading positions-heading">
+        <div className="section-heading positions-heading" data-motion-reveal="">
           <div>
             <span className="section-eyebrow">DISCOVER POSITIONS</span>
             <h2 id="positions-title">오늘의 개발자 채용공고</h2>
@@ -163,7 +164,7 @@ const MainPage = ({ onSearch }) => {
         {!loading && !errorMessage && jobs.length === 0 && <div className="empty-state">현재 노출할 공고가 없습니다.</div>}
       </section>
 
-      <section className="login-cta">
+      <section className="login-cta" data-motion-reveal="">
         <div>
           <span className="section-eyebrow">YOUR NEXT MOVE</span>
           <h2>마음에 드는 공고를 놓치지 마세요.</h2>

@@ -17,6 +17,7 @@ import './styles/App.css';
 import ScrollToTop from './components/common/ScrollToTop';
 import Header from './pages/Header';
 import MemberSessionProvider from './contexts/MemberSessionProvider';
+import ScrollReveals from './motion/ScrollReveals';
 
 const AppRoutes = () => {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ const AppRoutes = () => {
 
   return (
     <div className="app">
+      <ScrollReveals />
       <Header onSearch={handleSearch} />
       <Routes>
         <Route path="/" element={<MainPage onSearch={handleSearch} />} />

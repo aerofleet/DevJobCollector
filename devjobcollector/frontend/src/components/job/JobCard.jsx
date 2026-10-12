@@ -16,7 +16,7 @@ const JobCard = ({ job }) => {
   const showLogo = logoUrl && failedLogoUrl !== logoUrl;
 
   return (
-    <Link className='job-card im-card' to={`/job/${job.id}`}>
+    <Link className='job-card im-card' data-motion-reveal="" to={`/job/${job.id}`}>
       {/* 썸네일 영역 */}
       <div className='job-thumbnail'>
         {showLogo ? (

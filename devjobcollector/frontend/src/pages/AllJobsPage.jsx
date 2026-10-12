@@ -189,7 +189,7 @@ const AllJobsPage = () => {
     <main className="all-jobs-page">
       <div className="all-jobs-breadcrumb"><Link to="/">홈</Link><span>/</span>개발자 채용</div>
 
-      <header className="all-jobs-header">
+      <header className="all-jobs-header" data-motion-reveal="lead">
         <div>
           <span>DEVELOPER JOBS</span>
           <h1>개발 직무 탐색</h1>
@@ -197,7 +197,7 @@ const AllJobsPage = () => {
         </div>
       </header>
 
-      <section className="job-explorer" aria-label="채용공고 검색 및 필터">
+      <section className="job-explorer" data-motion-reveal="" aria-label="채용공고 검색 및 필터">
         <form className="jobs-search-form" onSubmit={submitKeyword} key={filters.keyword}>
           <Search size={20} />
           <input name="keyword" defaultValue={filters.keyword} placeholder="직무, 기술 스택, 공고 내용 검색" aria-label="채용공고 검색" />

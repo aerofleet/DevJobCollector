@@ -6,6 +6,12 @@ Original implementation; no third-party motion runtime or copied premium recipes
 
 ## Integration
 
+### Entrance and scroll correction — 2026-10-12
+
+User clarification supersedes the earlier interaction-only scope: first-viewport content and below-fold content must animate on entry. `src/motion/reveal.js` is shared verbatim with the portal. Homepage hero items, section headings, theme cards, CTA and asynchronously loaded job cards reveal once per mounted element. Duration 450ms, batch stagger 70ms capped at 210ms; travel 20px (`standard`) or 12px (`subtle`). Individual `translate` avoids overriding hover `transform`. Headlines remain opaque from frame one. No CSS hides content before JS; focus, printing, runtime off and OS reduced motion cancel animations.
+
+OKR: make the initial hierarchy and newly discovered content perceptible while preserving job-search access; conversion improvement is not measured. KPI/pass criteria: all 8 entrance/scroll cases at 360/768/1024/1440px pass, no replay on reverse scroll, focused content opacity 1, no reveal under reduced motion. Before: no viewport-triggered reveals; after: 8/8 pass. Combined motion regression: 22 passed, 2 desktop-only modal skips. Commands: `npm run lint`, `npm run build`, `npx playwright test e2e/entrance-scroll.spec.js e2e/motion.spec.js`. JS gzip 122.92KB; +1.47KB against original 121.45KB baseline, below 5KB budget. Field performance targets below remain unverified.
+
 `src/motion/motion.css` is the shared, vendored v1.0.0 source. The portal keeps an identical copy at `src/assets/motion.css`. Change both together and compare SHA-256 before releasing. Site adapters are separate. No package registry or new runtime dependency is required.
 
 - Cards: semantic router links, keyboard focus, 4px hover only for fine pointers; stable title height.
