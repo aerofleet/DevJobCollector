@@ -7,6 +7,7 @@ export function observeReveals() {
   const checked = new WeakSet();
   const waiting = new Set();
   const running = new Map();
+  let ready = document.readyState === 'complete';
   const enabled = () => !reduced.matches && document.documentElement.dataset.motion !== 'off';
   const finish = (element) => {
     seen.add(element);
@@ -27,13 +28,15 @@ export function observeReveals() {
       if (seen.has(target)) continue;
       seen.add(target);
       if (!enabled() || target.contains(document.activeElement)) { finish(target); continue; }
-      const distance = document.documentElement.dataset.motion === 'subtle' ? 12 : 20;
+      const distance = document.documentElement.dataset.motion === 'subtle' ? 20 : 28;
       // First-screen and newly fetched visible content must never wait for a fade.
-      const opaque = initiallyVisible || target.dataset.motionReveal === 'lead';
+      const step = target.dataset.motionStep;
+      const staged = initiallyVisible && step !== undefined;
+      const opaque = target.dataset.motionReveal === 'lead' || (initiallyVisible && !staged);
       const animation = target.animate([
         { opacity: opaque ? 1 : 0.35, translate: `0 ${distance}px` },
         { opacity: 1, translate: '0 0' },
-      ], { duration: 800, delay: Math.min(order++, 3) * 40, easing: 'cubic-bezier(.25,.1,.25,1)', fill: 'backwards' });
+      ], { duration: 1400, delay: staged ? Number(step) * 500 : Math.min(order++, 3) * 180, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'backwards' });
       target.dataset.revealState = 'running';
       running.set(target, animation);
       animation.onfinish = () => finish(target);
@@ -42,7 +45,7 @@ export function observeReveals() {
   const register = element => {
     if (seen.has(element)) return;
     if (!enabled()) { finish(element); return; }
-    if (!waiting.has(element)) { waiting.add(element); observer.observe(element); }
+    if (!waiting.has(element)) { waiting.add(element); if (ready) observer.observe(element); }
   };
   const scan = node => {
     if (!(node instanceof Element)) return;
@@ -51,6 +54,11 @@ export function observeReveals() {
   };
   const revealAll = () => { for (const element of [...waiting, ...running.keys()]) finish(element); };
   const syncMode = () => { if (!enabled()) revealAll(); };
+  const loaded = () => {
+    ready = true;
+    for (const element of waiting) observer.observe(element);
+  };
+  if (!ready) window.addEventListener('load', loaded, { once: true });
   const mutations = new MutationObserver(records => {
     let removed = false;
     for (const record of records) {
@@ -64,6 +72,9 @@ export function observeReveals() {
   });
   mutations.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-motion'] });
   const focus = event => {
+    // A pointer click must not move its target between pointerdown and pointerup.
+    // Keyboard focus still reveals immediately, without waiting for a sequence.
+    if (!event.target.matches(':focus-visible')) return;
     for (let element = event.target; element instanceof Element; element = element.parentElement) {
       if (element.matches(selector)) finish(element);
     }
@@ -79,5 +90,6 @@ export function observeReveals() {
     document.removeEventListener('focusin', focus);
     window.removeEventListener('beforeprint', revealAll);
     reduced.removeEventListener('change', syncMode);
+    window.removeEventListener('load', loaded);
   };
 }

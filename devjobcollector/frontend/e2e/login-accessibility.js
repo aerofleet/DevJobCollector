@@ -81,6 +81,8 @@ export const registerLoginAccessibilityTests = () => {
       '.social_icon',
     ].join(','));
 
+    await expect(targets).toHaveCount(11);
+
     const boxes = await targets.evaluateAll((elements) => elements.map((element) => {
       const rect = element.getBoundingClientRect();
       return {

@@ -8,6 +8,7 @@ test.beforeEach(async ({ page }) => {
 test('filters, keyboard cards, responsive indicator and rollback', async ({ page }, info) => {
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto('/jobs');
+  await expect(page.getByRole('heading', { name: '개발 직무 탐색' })).toBeVisible();
   const toggle = page.getByRole('button', { name: /^필터/ });
   if (await toggle.isVisible()) await toggle.click();
   const filter = page.getByRole('group', { name: '개발 직무' }).getByRole('button', { name: '백엔드', exact: true });

@@ -1,17 +1,6 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import React, { lazy, Suspense } from 'react';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import MainPage from './pages/MainPage';
-import AllJobsPage from './pages/AllJobsPage';
-import DetailPage from './pages/DetailPage';
-import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
-import TermsPage from './pages/TermsPage';
-import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
-import Resume from './pages/Resume';
-import MemberHomePage from './pages/MemberHomePage';
-import MyDevJobsPage from './pages/MyDevJobsPage';
-import ResumesPage from './pages/ResumesPage';
-import CompanyPage from './pages/CompanyPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import './styles/App.css';
 import ScrollToTop from './components/common/ScrollToTop';
@@ -19,8 +8,32 @@ import Header from './pages/Header';
 import MemberSessionProvider from './contexts/MemberSessionProvider';
 import ScrollReveals from './motion/ScrollReveals';
 
+const AllJobsPage = lazy(() => import('./pages/AllJobsPage'));
+const DetailPage = lazy(() => import('./pages/DetailPage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const SignupPage = lazy(() => import('./pages/SignupPage'));
+const TermsPage = lazy(() => import('./pages/TermsPage'));
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
+const Resume = lazy(() => import('./pages/Resume'));
+const MemberHomePage = lazy(() => import('./pages/MemberHomePage'));
+const MyDevJobsPage = lazy(() => import('./pages/MyDevJobsPage'));
+const ResumesPage = lazy(() => import('./pages/ResumesPage'));
+const CompanyPage = lazy(() => import('./pages/CompanyPage'));
+
+class RouteErrorBoundary extends React.Component {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() {
+    return this.state.failed ? <main role="alert" style={{ padding: 32, minHeight: '60vh' }}>
+      <h1>화면을 불러오지 못했습니다.</h1>
+      <button type="button" onClick={() => window.location.reload()}>다시 불러오기</button>
+    </main> : this.props.children;
+  }
+}
+
 const AppRoutes = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSearch = (keyword = '') => {
     const query = keyword.trim() ? `?keyword=${encodeURIComponent(keyword.trim())}` : '';
@@ -31,6 +44,8 @@ const AppRoutes = () => {
     <div className="app">
       <ScrollReveals />
       <Header onSearch={handleSearch} />
+      <RouteErrorBoundary key={location.pathname}>
+      <Suspense fallback={<main role="status" aria-busy="true" style={{ padding: 32, minHeight: '60vh' }}>화면 불러오는 중…</main>}>
       <Routes>
         <Route path="/" element={<MainPage onSearch={handleSearch} />} />
         <Route path="/jobs" element={<AllJobsPage />} />
@@ -81,6 +96,8 @@ const AppRoutes = () => {
           )}
         />
       </Routes>
+      </Suspense>
+      </RouteErrorBoundary>
       <ScrollToTop />
     </div>
   );

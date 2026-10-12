@@ -6,6 +6,12 @@ Original implementation; no third-party motion runtime or copied premium recipes
 
 ## Integration
 
+### Loaded, staged entrance — current behavior
+
+User clarified that the sequence should start after loading and remain visibly staged. Observer activation waits for `window.load` on the initial document; already-loaded SPA routes activate immediately. The page remains readable during that wait. Hero stages: kicker/title at 0ms, description at 500ms, search/quick actions at 1000ms, visual at 1500ms. Each movement lasts 1400ms, so the complete desktop sequence lasts 2900ms. Off-screen items instead reveal when reached, with <=540ms row stagger. Title stays opaque; staged supporting content fades from .35. Keyboard focus skips the remaining animation; pointer focus must not move a link between down/up events.
+
+Loading: other pages use route-level dynamic imports with an accessible loading state and retry on chunk failure. Bootstrap includes only reboot/grid; custom app styles remain. OKR: reduce initial download work independently of animation duration. KPI: initial HTML-referenced JS+CSS gzip <140KB, initial animations start only at document `complete`, stage delay 500ms and duration 1400ms, regression cases pass at 360/768/1024/1440px. Before: 185394 gzip bytes; after: about 129.6KB (about 30% less; fonts and later route chunks excluded). This is payload reduction, not a claim of 30% lower real-user load time. Evaluation: `npm run lint`, `npm run build`, `.codex/measure-entry-assets.mjs`, and Playwright entrance/infinite-scroll/login-accessibility/motion suites: 51 passed, 5 viewport-specific skips. The delayed-resource test confirms readable content before load and no premature animation; route failure test checks retry UI.
+
 ### Readable, slower entrances — 2026-10-12 follow-up
 
 User reported rushed motion and slow loading. Entrance duration is now 800ms (was 450ms), stagger 40ms capped at 120ms (was 70/210ms). Initially visible content starts at opacity 1; later scroll reveals start at .35. Results no longer have a second parent fade. Spinner rotation is 1.6s instead of 1s. Mutation handling scans only newly added subtrees, rather than the entire document for every DOM change.
