@@ -4,6 +4,7 @@ export function observeReveals() {
   const selector = '[data-motion-reveal]';
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const seen = new WeakSet();
+  const checked = new WeakSet();
   const waiting = new Set();
   const running = new Map();
   const enabled = () => !reduced.matches && document.documentElement.dataset.motion !== 'off';
@@ -18,6 +19,8 @@ export function observeReveals() {
   const observer = new IntersectionObserver(entries => {
     let order = 0;
     for (const { target, isIntersecting } of entries) {
+      const initiallyVisible = !checked.has(target);
+      checked.add(target);
       if (!isIntersecting) continue;
       observer.unobserve(target);
       waiting.delete(target);
@@ -25,44 +28,56 @@ export function observeReveals() {
       seen.add(target);
       if (!enabled() || target.contains(document.activeElement)) { finish(target); continue; }
       const distance = document.documentElement.dataset.motion === 'subtle' ? 12 : 20;
-      // Keep the headline painted from the first frame; never hide the LCP text.
-      const lead = target.dataset.motionReveal === 'lead';
+      // First-screen and newly fetched visible content must never wait for a fade.
+      const opaque = initiallyVisible || target.dataset.motionReveal === 'lead';
       const animation = target.animate([
-        { opacity: lead ? 1 : 0, translate: `0 ${distance}px` },
+        { opacity: opaque ? 1 : 0.35, translate: `0 ${distance}px` },
         { opacity: 1, translate: '0 0' },
-      ], { duration: 450, delay: Math.min(order++, 3) * 70, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'backwards' });
+      ], { duration: 800, delay: Math.min(order++, 3) * 40, easing: 'cubic-bezier(.25,.1,.25,1)', fill: 'backwards' });
       target.dataset.revealState = 'running';
       running.set(target, animation);
       animation.onfinish = () => finish(target);
     }
   }, { threshold: 0.08 });
-  const scan = () => {
-    for (const element of waiting) if (!element.isConnected) { observer.unobserve(element); waiting.delete(element); }
-    for (const element of running.keys()) if (!element.isConnected || !enabled()) finish(element);
-    document.querySelectorAll(selector).forEach(element => {
-      if (seen.has(element)) return;
-      if (!enabled()) { finish(element); return; }
-      if (!waiting.has(element)) { waiting.add(element); observer.observe(element); }
-    });
+  const register = element => {
+    if (seen.has(element)) return;
+    if (!enabled()) { finish(element); return; }
+    if (!waiting.has(element)) { waiting.add(element); observer.observe(element); }
   };
-  const mutations = new MutationObserver(scan);
+  const scan = node => {
+    if (!(node instanceof Element)) return;
+    if (node.matches(selector)) register(node);
+    node.querySelectorAll(selector).forEach(register);
+  };
+  const revealAll = () => { for (const element of [...waiting, ...running.keys()]) finish(element); };
+  const syncMode = () => { if (!enabled()) revealAll(); };
+  const mutations = new MutationObserver(records => {
+    let removed = false;
+    for (const record of records) {
+      if (record.type === 'attributes') syncMode();
+      else {
+        record.addedNodes.forEach(scan);
+        removed ||= record.removedNodes.length > 0;
+      }
+    }
+    if (removed) for (const element of [...waiting, ...running.keys()]) if (!element.isConnected) finish(element);
+  });
   mutations.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-motion'] });
   const focus = event => {
     for (let element = event.target; element instanceof Element; element = element.parentElement) {
       if (element.matches(selector)) finish(element);
     }
   };
-  const revealAll = () => { for (const element of [...waiting, ...running.keys()]) finish(element); };
   document.addEventListener('focusin', focus);
   window.addEventListener('beforeprint', revealAll);
-  reduced.addEventListener('change', scan);
-  scan();
+  reduced.addEventListener('change', syncMode);
+  scan(document.documentElement);
   return () => {
     mutations.disconnect();
     observer.disconnect();
     for (const animation of running.values()) animation.cancel();
     document.removeEventListener('focusin', focus);
     window.removeEventListener('beforeprint', revealAll);
-    reduced.removeEventListener('change', scan);
+    reduced.removeEventListener('change', syncMode);
   };
 }

@@ -6,6 +6,14 @@ Original implementation; no third-party motion runtime or copied premium recipes
 
 ## Integration
 
+### Readable, slower entrances — 2026-10-12 follow-up
+
+User reported rushed motion and slow loading. Entrance duration is now 800ms (was 450ms), stagger 40ms capped at 120ms (was 70/210ms). Initially visible content starts at opacity 1; later scroll reveals start at .35. Results no longer have a second parent fade. Spinner rotation is 1.6s instead of 1s. Mutation handling scans only newly added subtrees, rather than the entire document for every DOM change.
+
+Loading work: replace the blocking remote Font Awesome kit with existing Lucide icons; use Pretendard variable Unicode subsets instead of whole per-weight fonts; cache fingerprinted `/assets/*` for one year with immutable, leaving HTML revalidation intact. OKR: immediate readable job discovery while preserving perceptible movement. Pass criteria/evaluation: 4 viewport fixtures assert first-screen opacity 1, 800ms duration, delay <=120ms, and existing focus/off/scroll cases; 22 passed, 2 desktop modal skips; lint/build pass.
+
+Diagnostic baseline: fresh 390x844 Chromium, no throttling, alternating motion on/reduced, two homepage visits per mode. LCP on 9444/16024ms, reduced 5404/17536ms; JS/CSS requests 2062–13105ms. The following jobs navigation hit a 60s timeout. This incomplete, highly variable sample cannot establish animation causality or a speedup. A separate asset request was a CDN HIT but timed out during transfer. Network latency and field Core Web Vitals remain unverified; do not describe them as fixed solely by the animation changes.
+
 ### Entrance and scroll correction — 2026-10-12
 
 User clarification supersedes the earlier interaction-only scope: first-viewport content and below-fold content must animate on entry. `src/motion/reveal.js` is shared verbatim with the portal. Homepage hero items, section headings, theme cards, CTA and asynchronously loaded job cards reveal once per mounted element. Duration 450ms, batch stagger 70ms capped at 210ms; travel 20px (`standard`) or 12px (`subtle`). Individual `translate` avoids overriding hover `transform`. Headlines remain opaque from frame one. No CSS hides content before JS; focus, printing, runtime off and OS reduced motion cancel animations.

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { ArrowUp, ChevronUp, ChevronsUp } from 'lucide-react';
 import '../../styles/ScrollToTop.css';
 
 const ScrollToTop = () => {
@@ -132,13 +133,13 @@ const ScrollToTop = () => {
           {/* state로 클릭 단계 표시 */}
           <div className="click-indicator">
             {clickCount === 0 && (
-              <i className="fa fa-angle-double-up up-arrow" aria-hidden="true"></i>
+              <ChevronsUp className="up-arrow" size={22} aria-hidden="true" />
             )}
             {clickCount === 1 && (
-              <i className="fa fa-angle-up up-arrow" aria-hidden="true"></i>
+              <ChevronUp className="up-arrow" size={22} aria-hidden="true" />
             )}
             {clickCount >= 2 && (
-              <i className="fas fa-arrow-up up-arrow pulse" aria-hidden="true"></i>
+              <ArrowUp className="up-arrow pulse" size={22} aria-hidden="true" />
             )} 
           </div>
          

@@ -1,6 +1,7 @@
 .job-card.im-card { color: inherit; text-decoration: none; min-height: 355px; }
 .job-card.im-card:hover { border-color: #d9d2fb; }
 .job-card-skeleton.im-skeleton { background: #f0eef5; }
+.all-jobs-grid.im-content { animation: none; }
 .im-filter { position: relative; isolation: isolate; }
 .im-filter-indicator { position: absolute; z-index: -1; top: 0; left: 0; pointer-events: none; border-radius: 999px; background: #191724; width: var(--im-tab-width); height: var(--im-tab-height); transform: translate(var(--im-tab-x), var(--im-tab-y)); visibility: hidden; }
 .im-filter[data-ready=true] .im-filter-indicator { visibility: visible; transition: transform var(--im-duration-normal) var(--im-ease-standard), width var(--im-duration-normal) var(--im-ease-standard), height var(--im-duration-normal) var(--im-ease-standard); }

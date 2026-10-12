@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }) => {
     window.revealEvents = [];
     const animate = Element.prototype.animate;
     Element.prototype.animate = function (frames, options) {
-      if (this.hasAttribute('data-motion-reveal')) window.revealEvents.push({ text: this.textContent, delay: options.delay });
+      if (this.hasAttribute('data-motion-reveal')) window.revealEvents.push({ text: this.textContent, delay: options.delay, duration: options.duration, opacity: frames[0].opacity });
       return animate.call(this, frames, options);
     };
   });
@@ -20,6 +20,8 @@ test('entrance is staggered; below-fold blocks reveal once on scroll', async ({ 
   await page.goto('/');
   await expect(page.locator('#landing-title')).toHaveAttribute('data-reveal-state', 'done');
   expect(await page.evaluate(() => window.revealEvents.some(e => e.delay > 0))).toBe(true);
+  const firstScreen = await page.evaluate(() => window.revealEvents);
+  expect(firstScreen.every(e => e.duration === 800 && e.delay <= 120 && e.opacity === 1)).toBe(true);
   const target = page.locator('.login-cta');
   await expect(target).not.toHaveAttribute('data-reveal-state', /running|done/);
   await target.scrollIntoViewIfNeeded();
