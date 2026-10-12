@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, BriefcaseBusiness, Code2, Search, Sparkles } from 'lucide-react';
 import { fetchRandomDeveloperJobs } from '../api/jobApi';
@@ -38,6 +38,7 @@ const MainPage = ({ onSearch }) => {
   const [errorMessage, setErrorMessage] = useState('');
   const [heroKeyword, setHeroKeyword] = useState('');
   const [loading, setLoading] = useState(true);
+  const initialRequest = useRef(null);
 
   const submitSearch = (event) => {
     event.preventDefault();
@@ -53,7 +54,8 @@ const MainPage = ({ onSearch }) => {
     const loadRandomJobs = async () => {
       try {
         setErrorMessage('');
-        const data = await fetchRandomDeveloperJobs(8);
+        initialRequest.current ??= fetchRandomDeveloperJobs(8);
+        const data = await initialRequest.current;
         setJobs(data.content);
         setCandidateCount(data.candidateCount);
       } catch (error) {

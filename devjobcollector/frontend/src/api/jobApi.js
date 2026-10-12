@@ -73,7 +73,8 @@ export const fetchJobs = async (page = 0, size = 10) => {
 };
 
 // 랜딩 페이지용 무작위 공고 조회
-// 전체 건수를 확인한 뒤 임의 구간을 가져와 섞으므로 DB 랜덤 정렬 부하를 만들지 않는다.
+// 최신 공개 공고 후보를 한 번 조회하고 개발 직무를 골라 섞는다.
+// 후보가 부족한 경우에만 키워드 검색으로 보충한다.
 const DEVELOPER_SEARCH_KEYWORDS = [
   '개발', 'Engineer', 'Software', 'Backend', 'Frontend', 'DevOps', '데이터',
 ];
@@ -88,18 +89,24 @@ const isDeveloperJob = (job) => {
 };
 
 export const fetchRandomDeveloperJobs = async (count = 8) => {
-  const searchResults = await Promise.allSettled(
-    DEVELOPER_SEARCH_KEYWORDS.map((keyword) => searchJobs(keyword, 0, 20))
-  );
   const uniqueJobs = new Map();
+  const collect = (data) => (data.content ?? [])
+    .filter(isDeveloperJob)
+    .forEach((job) => uniqueJobs.set(job.id, job));
+  const initial = await searchJobs({}, 0, 60);
+  collect(initial);
 
-  searchResults.forEach((result) => {
-    if (result.status !== 'fulfilled') return;
-
-    (result.value.content ?? [])
-      .filter(isDeveloperJob)
-      .forEach((job) => uniqueJobs.set(job.id, job));
-  });
+  if (uniqueJobs.size < count && initial.totalPages !== 0) {
+    const searchResults = await Promise.allSettled(
+      DEVELOPER_SEARCH_KEYWORDS.map((keyword) => searchJobs(keyword, 0, 20))
+    );
+    searchResults.forEach((result) => {
+      if (result.status === 'fulfilled') collect(result.value);
+    });
+    if (!uniqueJobs.size && searchResults.every((result) => result.status === 'rejected')) {
+      throw searchResults[0].reason;
+    }
+  }
 
   const shuffled = [...uniqueJobs.values()];
 

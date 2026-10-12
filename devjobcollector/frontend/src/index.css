@@ -30,6 +30,12 @@ body {
   background-color: #fff;
 }
 
+/* Home must not download additional font subsets as random job titles arrive. */
+body:has(.main-page) {
+  font-family: -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI",
+    "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+
 #root {
   min-height: 100vh;
 }
