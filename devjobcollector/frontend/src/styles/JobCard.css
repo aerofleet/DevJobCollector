@@ -3,18 +3,12 @@
   border: 1px solid #ebe9ef;
   border-radius: 16px;
   cursor: pointer;
-  transition: all 0.3s ease;
   background: white;
   display: flex;
   flex-direction: column;
   height: 100%;
 }
 
-.job-card:hover {
-  border-color: #d9d2fb;
-  box-shadow: 0 14px 30px rgba(42, 32, 86, 0.11);
-  transform: translateY(-4px);
-}
 
 .job-card.loading {
   animation: pulse 1.5s ease-in-out infinite;

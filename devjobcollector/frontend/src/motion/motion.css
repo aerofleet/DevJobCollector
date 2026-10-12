@@ -1,0 +1,57 @@
+/* ITSDEV motion v1.0.0 — shared verbatim with itsdev-portal.
+ * Original implementation of the ITSDEV specification; patterns: transitions.dev.
+ */
+:root {
+  --im-duration-instant: 80ms;
+  --im-duration-fast: 140ms;
+  --im-duration-normal: 220ms;
+  --im-duration-moderate: 320ms;
+  --im-duration-slow: 450ms;
+  --im-ease-standard: cubic-bezier(.2,.8,.2,1);
+  --im-ease-enter: cubic-bezier(0,0,.2,1);
+  --im-ease-exit: cubic-bezier(.4,0,1,1);
+  --im-distance-xs: 4px;
+  --im-distance-sm: 8px;
+  --im-distance-md: 12px;
+  --im-distance-lg: 20px;
+  --im-scale-press: .98;
+  --im-scale-enter: .97;
+  --im-shadow-hover: 0 12px 28px rgb(0 0 0 / .08);
+}
+:root[data-motion=subtle] {
+  --im-distance-xs: 2px;
+  --im-distance-sm: 4px;
+  --im-distance-md: 4px;
+  --im-distance-lg: 8px;
+  --im-scale-press: .99;
+  --im-scale-enter: .99;
+}
+.im-card {
+  transition: transform var(--im-duration-normal) var(--im-ease-standard), box-shadow var(--im-duration-normal) var(--im-ease-standard);
+}
+@media (hover: hover) and (pointer: fine) {
+  .im-card:hover { transform: translateY(calc(-1 * var(--im-distance-xs))); box-shadow: var(--im-shadow-hover); }
+}
+.im-card:focus-visible, .im-card:has(:focus-visible) { transform: translateY(calc(-1 * var(--im-distance-xs))); box-shadow: var(--im-shadow-hover); }
+.im-button {
+  transition: transform var(--im-duration-fast) var(--im-ease-standard), background-color var(--im-duration-fast) var(--im-ease-standard), color var(--im-duration-fast) var(--im-ease-standard);
+}
+.im-button:active:not(:disabled) { transform: scale(var(--im-scale-press)); transition-duration: var(--im-duration-instant); }
+.im-button:focus-visible, .im-card:focus-visible { outline: 3px solid currentColor; outline-offset: 4px; }
+@keyframes im-reveal { from { opacity: 0; transform: translateY(var(--im-distance-md)); } to { opacity: 1; transform: none; } }
+@keyframes im-fade { from { opacity: .4; } to { opacity: 1; } }
+@keyframes im-pulse { 50% { opacity: .5; } }
+@keyframes im-modal { from { opacity: 0; transform: scale(var(--im-scale-enter)); } to { opacity: 1; transform: none; } }
+.im-reveal { animation: im-reveal var(--im-duration-moderate) var(--im-ease-enter); }
+.im-content { animation: im-fade var(--im-duration-moderate) var(--im-ease-enter); }
+.im-skeleton { animation: im-pulse 1200ms var(--im-ease-standard) infinite; }
+.im-toast { animation: im-reveal var(--im-duration-moderate) var(--im-ease-enter); }
+.im-modal[open] { animation: im-modal var(--im-duration-normal) var(--im-ease-enter); }
+:root[data-motion=off] *, :root[data-motion=off] *::before, :root[data-motion=off] *::after {
+  animation: none !important; transition: none !important; scroll-behavior: auto !important;
+}
+:root[data-motion=off] .im-card, :root[data-motion=off] .im-button { transform: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  .im-card, .im-button { transform: none !important; }
+}

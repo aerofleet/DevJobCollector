@@ -1,18 +1,13 @@
 ﻿import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import TechStackBadge from './TechStackBadge';
 import { formatDate, getDaysRemaining, isOpenEndedDate } from '../../utils/dateParser';
 import { getCompanyInitials, getCompanyLogoUrl } from '../../utils/companyLogo';
 import '../../styles/JobCard.css';
 
 const JobCard = ({ job }) => {
-  const navigate = useNavigate();
-  const [isExpanded, setIsExpanded] = useState(false);
   const [failedLogoUrl, setFailedLogoUrl] = useState(null);
 
-  const handleCardClick = () => {
-      navigate(`/job/${job.id}`);      
-  };
 
   const daysRemaining = getDaysRemaining(job.endDate);
   const isOpenEnded = isOpenEndedDate(job.endDate);
@@ -21,7 +16,7 @@ const JobCard = ({ job }) => {
   const showLogo = logoUrl && failedLogoUrl !== logoUrl;
 
   return (
-    <div className='job-card' onClick={handleCardClick}>
+    <Link className='job-card im-card' to={`/job/${job.id}`}>
       {/* 썸네일 영역 */}
       <div className='job-thumbnail'>
         {showLogo ? (
@@ -62,9 +57,8 @@ const JobCard = ({ job }) => {
 
         {/* 고용 카테고리 */}
         <h3  
-          className={`job-title ${isExpanded ? 'expanded' : ''}`}
-          onMouseEnter={() => setIsExpanded(true)}
-          onMouseLeave={() => setIsExpanded(false)}
+          className="job-title"
+          title={job.title}
         >
             {job.title}
         </h3>
@@ -92,7 +86,7 @@ const JobCard = ({ job }) => {
           )}
         </div>
       </div>
-    </div>
+    </Link>
   );
 };
 

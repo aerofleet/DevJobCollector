@@ -4,6 +4,7 @@ import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { searchJobs } from '../api/jobApi';
 import JobCard from '../components/job/JobCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import MotionFilter from '../motion/MotionFilter';
 import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import '../styles/AllJobsPage.css';
 
@@ -46,8 +47,8 @@ const getFilters = (searchParams) => {
 };
 
 const JobGridSkeleton = () => (
-  <div className="all-jobs-grid" aria-label="공고 불러오는 중">
-    {Array.from({ length: 8 }, (_, index) => <div className="job-card-skeleton" key={index} />)}
+  <div className="all-jobs-grid" role="status" aria-label="공고 불러오는 중" aria-busy="true">
+    {Array.from({ length: PAGE_SIZE }, (_, index) => <div className="job-card-skeleton im-skeleton" aria-hidden="true" key={index} />)}
   </div>
 );
 
@@ -130,7 +131,7 @@ const JobsResults = ({ filters }) => {
       </div>
 
       {initialLoading ? <JobGridSkeleton /> : (
-        <div className="all-jobs-grid">
+        <div className="all-jobs-grid im-content">
           {jobs.map((job) => <JobCard key={job.id} job={job} />)}
         </div>
       )}
@@ -197,31 +198,21 @@ const AllJobsPage = () => {
           <Search size={20} />
           <input name="keyword" defaultValue={filters.keyword} placeholder="직무, 기술 스택, 공고 내용 검색" aria-label="채용공고 검색" />
           {filters.keyword && <button type="button" className="search-clear" onClick={() => updateParams({ keyword: '' })} aria-label="검색어 지우기"><X size={16} /></button>}
-          <button type="submit" className="search-submit">검색</button>
+          <button type="submit" className="search-submit im-button">검색</button>
         </form>
 
         <button
           type="button"
-          className="mobile-filter-toggle"
+          className="mobile-filter-toggle im-button"
           onClick={() => setIsMobileFilterOpen((open) => !open)}
           aria-expanded={isMobileFilterOpen}
+          aria-controls="job-filter-panel"
         >
           <SlidersHorizontal size={17} /> 필터 {activeFilters.length > 0 && <b>{activeFilters.length}</b>}
         </button>
 
-        <div className={`filter-panel ${isMobileFilterOpen ? 'open' : ''}`}>
-          <div className="role-filter" aria-label="개발 직무">
-            {JOB_ROLES.map((role) => (
-              <button
-                type="button"
-                className={filters.jobCategory === role.value ? 'active' : ''}
-                key={role.value || 'all'}
-                onClick={() => updateParams({ jobCategory: role.value })}
-              >
-                {role.label}
-              </button>
-            ))}
-          </div>
+        <div id="job-filter-panel" className={`filter-panel ${isMobileFilterOpen ? 'open' : ''}`}>
+          <MotionFilter options={JOB_ROLES} value={filters.jobCategory} onChange={(jobCategory) => updateParams({ jobCategory })} />
 
           <div className="detail-filters">
             <label>

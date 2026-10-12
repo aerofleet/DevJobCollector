@@ -15,7 +15,7 @@ const jobDetail = {
 };
 
 test.beforeEach(async ({ page }) => {
-  await page.route('**/api/v1/jobs/42', (route) => route.fulfill({
+  await page.route('**/api/v1/jobs/42?*', (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
     body: JSON.stringify(jobDetail),

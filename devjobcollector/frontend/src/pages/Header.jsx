@@ -1,5 +1,5 @@
 // src/pages/Header.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useScrollDirection } from '../hooks/useScrollDirection';
 import '../styles/Header.css';
@@ -10,6 +10,13 @@ const Header = ({ onSearch }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuDialog = useRef(null);
+
+  useEffect(() => {
+    const dialog = menuDialog.current;
+    if (isMenuOpen && !dialog.open) dialog.showModal();
+    else if (!isMenuOpen && dialog.open) dialog.close();
+  }, [isMenuOpen]);
   const isNavVisible = useScrollDirection(100); // 100px 이상 스크롤 시 작동
   const isAuthenticated = Boolean(localStorage.getItem('accessToken'));
 
@@ -179,19 +186,17 @@ const Header = ({ onSearch }) => {
           </ul>
         </nav>
 
-        {isMenuOpen && (
-          <button
-            type="button"
-            className="mobile-menu-backdrop"
-            onClick={() => setIsMenuOpen(false)}
-            aria-label="메뉴 닫기"
-          />
-        )}
-
-        <aside
+        <dialog
+          ref={menuDialog}
           id="mobile-menu-drawer"
-          className={`mobile-menu-drawer ${isMenuOpen ? 'open' : ''}`}
-          aria-hidden={!isMenuOpen}
+          className="mobile-menu-drawer im-modal"
+          aria-label="모바일 메뉴"
+          onCancel={() => setIsMenuOpen(false)}
+          onClose={() => setIsMenuOpen(false)}
+          onClick={(event) => { if (event.target === event.currentTarget) {
+            const bounds = event.currentTarget.getBoundingClientRect();
+            if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) setIsMenuOpen(false);
+          } }}
         >
           <div className="mobile-menu-header">
             <strong>메뉴</strong>
@@ -218,7 +223,7 @@ const Header = ({ onSearch }) => {
               </>
             )}
           </div>
-        </aside>
+        </dialog>
       </div>
 
       <nav className="mobile-tabbar" aria-label="모바일 빠른 메뉴">

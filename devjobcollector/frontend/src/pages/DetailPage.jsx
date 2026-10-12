@@ -59,6 +59,7 @@ const DetailPage = () => {
   const handleBookmark = async () => {
     if (!requireMember()) return;
     setActivityPending('bookmark');
+    setActivityMessage('');
     try {
       await createBookmark(id);
       setActivityMessage('저장한 공고에 추가했습니다.');
@@ -71,8 +72,9 @@ const DetailPage = () => {
 
   const handleApply = () => {
     if (!requireMember()) return;
-    createApplication(id).catch((activityError) => {
-      if (activityError.response?.status !== 401) console.error('지원 기록 실패:', activityError);
+    setActivityMessage('');
+    createApplication(id).then(() => setActivityMessage('지원 기록을 저장했습니다. 열린 채용 사이트에서 지원을 완료해주세요.')).catch((activityError) => {
+      if (activityError.response?.status !== 401) setActivityMessage('지원 기록 저장에 실패했습니다. 열린 채용 사이트에서 지원 여부를 확인해주세요.');
     });
     window.open(job.originalUrl, '_blank', 'noopener,noreferrer');
   };
@@ -150,15 +152,17 @@ const DetailPage = () => {
         <div className="action-buttons">
           <button
             type="button"
-            className="save-job-button"
+            className="save-job-button im-button"
             disabled={activityPending === 'bookmark'}
             onClick={handleBookmark}
           >
             {activityPending === 'bookmark' ? '저장 중...' : '공고 저장'}
           </button>
-          <button type="button" className="apply-button" onClick={handleApply}>지원하기 🚀</button>
+          <button type="button" className="apply-button im-button" onClick={handleApply}>지원하기 🚀</button>
         </div>
-        {activityMessage && <p className="detail-activity-message" role="status">{activityMessage}</p>}
+        <div className="im-feedback" role="status" aria-live="polite" aria-atomic="true">
+          {activityMessage && <div className="im-toast"><span>{activityMessage}</span><button type="button" className="im-button" aria-label="알림 닫기" onClick={() => setActivityMessage('')}>닫기</button></div>}
+        </div>
       </div>
     </div>
   );
