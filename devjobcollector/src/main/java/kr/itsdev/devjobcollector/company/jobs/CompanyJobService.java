@@ -113,6 +113,11 @@ public class CompanyJobService {
         return new Detail(view(job), audits.findTop50ByCompanyJobIdOrderByIdDesc(id), duplicates);
     }
 
+    @Transactional(readOnly=true)
+    public View reviewByPublishedId(Long publishedId) {
+        return view(drafts.findByPublishedJob_Id(publishedId).orElseThrow(CompanyJobService::notFound));
+    }
+
     public View review(Long id, long version, String action, String reason, AdminPrincipal actor) {
         if (actor == null || actor.role() == AdminRole.REVIEWER) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "ADMIN_ROLE_DENIED");
         if (reason == null || reason.isBlank() || reason.length() > 500) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "INVALID_REASON");

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { adminApi } from '../api/adminApi';
+import { adminApi, adminRequest } from '../api/adminApi';
 import { useAdminAuth } from '../auth/AdminAuthContext';
 import DetailModal from '../components/DetailModal';
 
 const statusText = { ACTIVE: '노출', HIDDEN: '숨김', CLOSED: '강제 마감' };
-const actionText = { ACTIVE: '재활성', HIDDEN: '공고 숨김', CLOSED: '강제 마감' };
+const actionText = { ACTIVE: '재활성', HIDDEN: '공고 숨김', CLOSED: '강제 마감', DELETED: '공고 삭제' };
+const companyActions = { HIDDEN: 'SUSPEND', CLOSED: 'FORCE_CLOSE', DELETED: 'DELETE' };
 
 export default function JobsPage() {
   const { admin } = useAdminAuth();
@@ -34,7 +35,13 @@ export default function JobsPage() {
 
   const selectJob = async (id) => {
     setError(''); setReason(''); setNewEndDate(''); setPendingStatus(null);
-    try { setSelected((await adminApi.job(id)).data); }
+    try {
+      const job = (await adminApi.job(id)).data;
+      if (job.sourcePlatform === 'COMPANY_DIRECT') {
+        job.companyJob = (await adminRequest(`/jobs/company-submissions/published/${id}`)).data;
+      }
+      setSelected(job);
+    }
     catch (cause) { setError(cause.message); }
   };
 
@@ -52,7 +59,13 @@ export default function JobsPage() {
     }
     setBusy(true); setError('');
     try {
-      const updated = (await adminApi.moderateJob(selected.id, {
+      let updated;
+      if (selected.sourcePlatform === 'COMPANY_DIRECT') {
+        const companyJob = (await adminRequest(`/jobs/company-submissions/${selected.companyJob.id}/review`, {
+          method: 'POST', body: JSON.stringify({ action: companyActions[pendingStatus], expectedVersion: selected.companyJob.version, reason: reason.trim() }),
+        })).data;
+        updated = { ...selected, companyJob, moderationStatus: companyJob.liveStatus, active: false };
+      } else updated = (await adminApi.moderateJob(selected.id, {
         status: pendingStatus, expectedVersion: selected.version, reason: reason.trim(),
         ...(pendingStatus === 'ACTIVE' && newEndDate ? { newEndDate } : {}),
       })).data;
@@ -64,7 +77,11 @@ export default function JobsPage() {
     } finally { setBusy(false); }
   };
 
-  const actions = selected?.moderationStatus === 'ACTIVE' ? ['HIDDEN', 'CLOSED']
+  const actions = selected?.sourcePlatform === 'COMPANY_DIRECT'
+    ? selected.companyJob?.state === 'DELETED' ? [] : [
+      ...(selected.companyJob?.state !== 'SUSPENDED' ? ['HIDDEN'] : []),
+      ...(selected.companyJob?.state !== 'CLOSED' ? ['CLOSED'] : []), 'DELETED',
+    ] : selected?.moderationStatus === 'ACTIVE' ? ['HIDDEN', 'CLOSED']
     : selected?.moderationStatus === 'HIDDEN' ? ['ACTIVE', 'CLOSED']
       : selected?.moderationStatus === 'CLOSED' ? ['ACTIVE'] : [];
   const needsNewEndDate = pendingStatus === 'ACTIVE' && selected
@@ -98,13 +115,14 @@ export default function JobsPage() {
     {selected && <DetailModal title="공고 상세" onClose={() => setSelected(null)} closeDisabled={busy}>
       {error && <p className="form-error" role="alert">{error}</p>}
       <dl><div><dt>공고명</dt><dd>{selected.title}</dd></div><div><dt>기업</dt><dd>{selected.companyName}</dd></div>
-        <div><dt>관리 상태</dt><dd>{statusText[selected.moderationStatus]}</dd></div>
+        <div><dt>관리 상태</dt><dd>{selected.companyJob?.state === 'DELETED' ? '삭제됨' : statusText[selected.moderationStatus]}</dd></div>
         <div><dt>수집 활성</dt><dd>{selected.active ? '활성' : '비활성'}</dd></div>
         <div><dt>마감일</dt><dd>{selected.endDate}</dd></div>
         <div><dt>출처</dt><dd>{selected.sourcePlatform}</dd></div>
         <div><dt>원본</dt><dd><a href={selected.originalUrl} target="_blank" rel="noreferrer">원본 공고 확인</a></dd></div></dl>
-      {selected.sourcePlatform === 'COMPANY_DIRECT' && <p>기업 직접 등록 공고입니다. 기업 공고 검수 메뉴에서 관리해주세요.</p>}
-      {admin.role !== 'REVIEWER' && selected.sourcePlatform !== 'COMPANY_DIRECT' && actions.length > 0 && <div className="moderation-form">
+      {selected.sourcePlatform === 'COMPANY_DIRECT' && <p>기업 직접 등록 공고입니다. 이 화면에서 처리한 내용은 기업 공고 검수의 처리 이력에도 기록됩니다.</p>}
+      {selected.companyJob?.state === 'DELETED' && <p>삭제 처리된 공고입니다. 공고와 감사 기록은 보존되며 수정·재게시할 수 없습니다.</p>}
+      {admin.role !== 'REVIEWER' && actions.length > 0 && <div className="moderation-form">
         {!pendingStatus ? <div className="job-actions">{actions.map((action) =>
           <button className="secondary-button" key={action} type="button" disabled={busy}
             onClick={() => { setReason(''); setPendingStatus(action); }}>{actionText[action]}</button>)}</div>
@@ -119,6 +137,7 @@ export default function JobsPage() {
                 onChange={(event) => { setNewEndDate(event.target.value); setError(''); }} required={needsNewEndDate} />
             </label>}
             <p>{selected.title} 공고를 {actionText[pendingStatus]} 처리합니다. 변경 사유가 감사 기록에 남습니다.</p>
+            {pendingStatus === 'DELETED' && <p>공개 노출을 중단하고 공고와 기록을 보존합니다. 삭제 후에는 수정·재게시할 수 없습니다.</p>}
             <button className="primary-button" type="button" disabled={busy} onClick={changeStatus}>
               {busy ? '처리 중…' : '변경 확정'}</button>
             <button className="secondary-button" type="button" disabled={busy}

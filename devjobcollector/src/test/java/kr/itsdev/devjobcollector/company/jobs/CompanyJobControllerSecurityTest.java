@@ -52,6 +52,14 @@ class CompanyJobControllerSecurityTest {
                 .cookie(new Cookie("DJC_ADMIN_SESSION","reviewer"))).andExpect(status().isOk());
         verify(service).reviewHistory(0,"DELETE",5L);
     }
+    @Test void publishedLookupRequiresAdminAndUsesPublishedId() throws Exception {
+        mvc.perform(get("/api/v1/admin/jobs/company-submissions/published/90")).andExpect(status().isUnauthorized());
+        when(authentication.authenticate("reviewer")).thenReturn(new AdminPrincipal(2L,"r@example.com","Reviewer",AdminRole.REVIEWER,Set.of(),"s",codec.hash("csrf")));
+        when(service.reviewByPublishedId(90L)).thenReturn(new CompanyJobService.View(5L,1L,"기업",null,CompanyJob.State.PUBLISHED,"ACTIVE",90L,7L,null,0,0));
+        mvc.perform(get("/api/v1/admin/jobs/company-submissions/published/90").cookie(new Cookie("DJC_ADMIN_SESSION","reviewer")))
+                .andExpect(status().isOk());
+        verify(service).reviewByPublishedId(90L);
+    }
     @Test void memberEditRequiresVersion() throws Exception {
         DecodedJWT jwt=mock(DecodedJWT.class); Claim role=mock(Claim.class);
         when(jwtTokenVerifier.verify("member")).thenReturn(jwt); when(jwt.getSubject()).thenReturn("42");

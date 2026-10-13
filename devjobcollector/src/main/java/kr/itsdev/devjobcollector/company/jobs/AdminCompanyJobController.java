@@ -15,6 +15,9 @@ public class AdminCompanyJobController {
     @GetMapping public Map<String,Object> list(@RequestParam(defaultValue="0") int page,
             @RequestParam(required=false) CompanyJob.State state) { return Map.of("data", service.reviewList(page, state)); }
     @GetMapping("/{id}") public Map<String,Object> detail(@PathVariable Long id) { return Map.of("data", service.reviewDetail(id)); }
+    @GetMapping("/published/{publishedId}") public Map<String,Object> published(@PathVariable Long publishedId) {
+        return Map.of("data", service.reviewByPublishedId(publishedId));
+    }
     @GetMapping("/history") public Map<String,Object> history(@RequestParam(defaultValue="0") int page,
             @RequestParam(required=false) String action, @RequestParam(required=false) Long jobId) {
         return Map.of("data", service.reviewHistory(page, action, jobId));

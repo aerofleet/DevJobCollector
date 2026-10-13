@@ -154,10 +154,15 @@ class CompanyJobIntegrationTest {
     }
     @Test void forceCloseImmediatelyRemovesActivePublicPost() {
         var p=publish();
-        var closed=service.review(p.id(),p.version(),"FORCE_CLOSE","채용 종료",ADMIN);
+        var linked=service.reviewByPublishedId(p.publishedJobId());
+        assertThat(linked.id()).isEqualTo(p.id());
+        assertThat(linked.version()).isEqualTo(p.version());
+        var closed=service.review(linked.id(),linked.version(),"FORCE_CLOSE","채용 종료",ADMIN);
         assertThat(closed.state()).isEqualTo(CompanyJob.State.CLOSED);
         assertThat(closed.liveStatus()).isEqualTo("CLOSED");
         assertThat(posts.findById(p.publishedJobId()).orElseThrow().isActive()).isFalse();
+        assertThat(service.reviewByPublishedId(p.publishedJobId()).state()).isEqualTo(CompanyJob.State.CLOSED);
+        assertThatThrownBy(() -> service.reviewByPublishedId(-1L)).hasMessageContaining("COMPANY_JOB_NOT_FOUND");
         assertThatThrownBy(() -> service.review(p.id(),closed.version(),"FORCE_CLOSE","중복",ADMIN)).hasMessageContaining("JOB_STATE_CONFLICT");
     }
     @Test void foreignCompanyJobAndStaleVersionAreRejected() {
