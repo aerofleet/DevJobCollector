@@ -5,7 +5,7 @@ import '../../styles/CompanyJobs.css';
 
 const EMPTY = { title: '', jobCategory: '', experience: '', location: '', hireType: '', techStacks: '', description: '', endDate: '', applyUrl: '' };
 const editableContent = (content) => Object.fromEntries(Object.keys(EMPTY).map((key) => [key, content?.[key] ?? '']));
-const STATES = { DRAFT: '임시저장', IN_REVIEW: '검수 대기', CHANGES_REQUESTED: '수정 요청', PUBLISHED: '승인 완료', CLOSED: '마감', SUSPENDED: '게시 중단' };
+const STATES = { DRAFT: '임시저장', IN_REVIEW: '검수 대기', CHANGES_REQUESTED: '수정 요청', PUBLISHED: '승인 완료', CLOSED: '마감', SUSPENDED: '게시 중단', DELETED: '삭제됨' };
 const LIVE = { UNPUBLISHED: '미게시', ACTIVE: '게시 중', CLOSED: '마감', HIDDEN: '게시 중단' };
 const FIELDS = [['title', '공고 제목'], ['jobCategory', '직무'], ['experience', '경력'], ['location', '근무지'], ['hireType', '고용형태'], ['techStacks', '기술스택 (쉼표로 구분)'], ['endDate', '마감일'], ['applyUrl', '지원 URL (https)']];
 const failure = (e) => e.response?.status === 409 ? '다른 작업으로 공고가 변경되었습니다. 목록을 새로고침한 뒤 다시 열어주세요.'
@@ -86,7 +86,7 @@ export default function CompanyJobs({ company }) {
       {job.reviewReason && <p>처리 사유: {job.reviewReason}</p>}
       <div className="company-job-actions">
         {job.liveStatus === 'ACTIVE' && <Link to={`/job/${job.publishedJobId}`}>게시 공고 보기</Link>}
-        {canWrite && <>
+        {canWrite && job.state !== 'DELETED' && <>
           {!['IN_REVIEW', 'CLOSED', 'SUSPENDED'].includes(job.state) && <button disabled={busy} onClick={() => openEditor(job)}>수정</button>}
           <button disabled={busy} onClick={() => openEditor(job, true)}>복사</button>
           {['DRAFT', 'CHANGES_REQUESTED'].includes(job.state) && <button disabled={busy || hasUnsavedChanges} aria-describedby={hasUnsavedChanges ? 'company-job-submit-help' : undefined} onClick={() => act(job, 'submit')}>검수 요청</button>}

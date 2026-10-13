@@ -33,6 +33,24 @@ public class CompanyJobService {
             String reviewReason, long views, long applyClicks) {}
     public record Duplicate(Long id, String title, String companyName, String originalUrl) {}
     public record Detail(View job, List<CompanyJobAudit> history, List<Duplicate> duplicates) {}
+    public record History(Long id, Long companyJobId, String title, String companyName,
+            Long actorId, String actorType, String action, String reason, java.time.LocalDateTime createdAt) {}
+
+    @Transactional(readOnly=true)
+    public Page<History> reviewHistory(int page, String action, Long jobId) {
+        if (action != null && !Set.of("CREATED", "EDITED", "SUBMITTED", "APPROVE", "REQUEST_CHANGES",
+                "SUSPEND", "FORCE_CLOSE", "DELETE", "CLOSED", "EXPIRED").contains(action))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "INVALID_ACTION");
+        var events = audits.history(action, jobId, paging(page));
+        Map<Long, CompanyJob> jobs = new HashMap<>();
+        drafts.findAllById(events.stream().map(CompanyJobAudit::getCompanyJobId).distinct().toList())
+                .forEach(job -> jobs.put(job.getId(), job));
+        return events.map(a -> {
+            CompanyJob job = jobs.get(a.getCompanyJobId());
+            return new History(a.getId(), a.getCompanyJobId(), job.getContent().getTitle(),
+                    job.getCompany().getDisplayName(), a.getActorId(), a.getActorType(), a.getAction(), a.getReason(), a.getCreatedAt());
+        });
+    }
 
     @Transactional(readOnly=true)
     public Page<View> list(String subject, Long companyId, int page) {
@@ -51,7 +69,7 @@ public class CompanyJobService {
         Long actor = authorizeWrite(subject, companyId, CompanyPermission.EDIT_JOB_POST);
         CompanyJob job = locked(companyId, id, version);
         if (job.getState() == CompanyJob.State.IN_REVIEW || job.getState() == CompanyJob.State.SUSPENDED
-                || job.getState() == CompanyJob.State.CLOSED) throw conflict();
+                || job.getState() == CompanyJob.State.CLOSED || job.getState() == CompanyJob.State.DELETED) throw conflict();
         job.edit(CompanyJobContent.from(content));
         audit(job, actor, "MEMBER", "EDITED", null);
         drafts.flush(); return view(job);
@@ -70,7 +88,8 @@ public class CompanyJobService {
     public View close(String subject, Long companyId, Long id, long version) {
         Long actor = authorizeWrite(subject, companyId, CompanyPermission.EDIT_JOB_POST);
         CompanyJob job = locked(companyId, id, version);
-        if (job.getState() == CompanyJob.State.CLOSED || job.getState() == CompanyJob.State.SUSPENDED) throw conflict();
+        if (job.getState() == CompanyJob.State.CLOSED || job.getState() == CompanyJob.State.SUSPENDED
+                || job.getState() == CompanyJob.State.DELETED) throw conflict();
         closeLive(job, JobModerationStatus.CLOSED);
         job.transition(CompanyJob.State.CLOSED, "기업 조기 마감");
         audit(job, actor, "MEMBER", "CLOSED", "기업 조기 마감");
@@ -100,6 +119,7 @@ public class CompanyJobService {
         Long companyId = drafts.companyId(id).orElseThrow(CompanyJobService::notFound);
         Company company = companies.findByIdForUpdate(companyId).orElseThrow(CompanyJobService::notFound);
         CompanyJob job = locked(companyId, id, version);
+        if (job.getState() == CompanyJob.State.DELETED) throw conflict();
         switch (action) {
             case "APPROVE" -> {
                 if (job.getState() != CompanyJob.State.IN_REVIEW) throw conflict();
@@ -114,6 +134,16 @@ public class CompanyJobService {
                 if (job.getState() == CompanyJob.State.SUSPENDED) throw conflict();
                 closeLive(job, JobModerationStatus.HIDDEN);
                 job.transition(CompanyJob.State.SUSPENDED, reason.trim());
+            }
+            case "FORCE_CLOSE" -> {
+                if (job.getState() == CompanyJob.State.CLOSED) throw conflict();
+                closeLive(job, JobModerationStatus.CLOSED);
+                job.transition(CompanyJob.State.CLOSED, reason.trim());
+            }
+            case "DELETE" -> {
+                // Retain the public row, member references and immutable audit trail.
+                closeLive(job, JobModerationStatus.HIDDEN);
+                job.transition(CompanyJob.State.DELETED, reason.trim());
             }
             default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "INVALID_ACTION");
         }

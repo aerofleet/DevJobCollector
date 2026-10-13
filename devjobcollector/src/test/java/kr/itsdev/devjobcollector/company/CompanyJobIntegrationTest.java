@@ -98,6 +98,68 @@ class CompanyJobIntegrationTest {
         assertThat(suspended.liveStatus()).isEqualTo("HIDDEN");
         assertThatThrownBy(() -> service.edit("owner",company.getId(),p.id(),suspended.version(),input("우회"))).hasMessageContaining("JOB_STATE_CONFLICT");
     }
+    @Test void adminHistoryRetainsApprovalAfterHideCloseAndSoftDelete() {
+        var p=publish();
+        var hidden=service.review(p.id(),p.version(),"SUSPEND","허위 내용 조사",ADMIN);
+        var closed=service.review(p.id(),hidden.version(),"FORCE_CLOSE","채용 종료 확인",ADMIN);
+        assertThat(closed.liveStatus()).isEqualTo("CLOSED");
+        var deleted=service.review(p.id(),closed.version(),"DELETE","기업 삭제 요청",ADMIN);
+        assertThat(deleted.state()).isEqualTo(CompanyJob.State.DELETED);
+        assertThat(deleted.liveStatus()).isEqualTo("HIDDEN");
+        assertThat(posts.findById(p.publishedJobId())).isPresent();
+        assertThat(posts.findActiveAndNotExpiredSlice(LocalDate.now(),PageRequest.of(0,100)).getContent())
+                .noneMatch(j -> j.getId().equals(p.publishedJobId()));
+        for (String action : List.of("APPROVE", "SUSPEND", "FORCE_CLOSE", "DELETE")) {
+            var history=service.reviewHistory(0,action,p.id());
+            assertThat(history.getTotalElements()).isEqualTo(1);
+            var entry=history.getContent().getFirst();
+            assertThat(entry.actorId()).isEqualTo(ADMIN.id());
+            assertThat(entry.actorType()).isEqualTo("ADMIN");
+            assertThat(entry.createdAt()).isNotNull();
+            assertThat(entry.reason()).isNotBlank();
+            assertThat(entry.companyJobId()).isEqualTo(p.id());
+        }
+        assertThat(service.reviewDetail(p.id()).history()).hasSize(6);
+        assertThatThrownBy(() -> service.edit("owner",company.getId(),p.id(),deleted.version(),input("복구 시도"))).hasMessageContaining("JOB_STATE_CONFLICT");
+        assertThatThrownBy(() -> service.close("owner",company.getId(),p.id(),deleted.version())).hasMessageContaining("JOB_STATE_CONFLICT");
+        assertThatThrownBy(() -> service.submit("owner",company.getId(),p.id(),deleted.version())).hasMessageContaining("JOB_STATE_CONFLICT");
+        assertThatThrownBy(() -> service.review(p.id(),deleted.version(),"APPROVE","복구 시도",ADMIN)).hasMessageContaining("JOB_STATE_CONFLICT");
+        assertThatThrownBy(() -> service.review(p.id(),deleted.version(),"DELETE","중복",ADMIN)).hasMessageContaining("JOB_STATE_CONFLICT");
+    }
+    @Test void historyIsPaginatedNewestFirstAndCanFilterByJob() {
+        var d=create(); var other=create();
+        for(int i=0;i<25;i++) audits.save(new CompanyJobAudit(d.id(),ADMIN.id(),"ADMIN","REQUEST_CHANGES","보완 "+i));
+        audits.flush();
+        var first=service.reviewHistory(0,"REQUEST_CHANGES",d.id());
+        var second=service.reviewHistory(1,"REQUEST_CHANGES",d.id());
+        assertThat(first.getTotalElements()).isEqualTo(25);
+        assertThat(first.getContent()).hasSize(20);
+        assertThat(second.getContent()).hasSize(5);
+        assertThat(first.getContent().getFirst().reason()).isEqualTo("보완 24");
+        assertThat(second.getContent().getLast().reason()).isEqualTo("보완 0");
+        assertThat(service.reviewHistory(0,"REQUEST_CHANGES",other.id()).getTotalElements()).isZero();
+        assertThatThrownBy(() -> service.reviewHistory(0,"UNKNOWN",null)).hasMessageContaining("INVALID_ACTION");
+        assertThatThrownBy(() -> service.reviewHistory(-1,null,null)).hasMessageContaining("INVALID_PAGE");
+    }
+    @Test void moderationRequiresRoleReasonAndCurrentVersion() {
+        var p=publish();
+        var reviewer=new AdminPrincipal(2L,"r@example.com","Reviewer",AdminRole.REVIEWER,Set.of(),"s","c");
+        for(String action : List.of("SUSPEND","FORCE_CLOSE","DELETE")) {
+            assertThatThrownBy(() -> service.review(p.id(),p.version(),action,"조회자",reviewer)).hasMessageContaining("ADMIN_ROLE_DENIED");
+            assertThatThrownBy(() -> service.review(p.id(),p.version(),action," ",ADMIN)).hasMessageContaining("INVALID_REASON");
+            assertThatThrownBy(() -> service.review(p.id(),p.version()+1,action,"버전 충돌",ADMIN)).hasMessageContaining("JOB_VERSION_CONFLICT");
+        }
+        assertThat(service.reviewDetail(p.id()).history()).hasSize(3);
+        assertThat(service.reviewDetail(p.id()).job().liveStatus()).isEqualTo("ACTIVE");
+    }
+    @Test void forceCloseImmediatelyRemovesActivePublicPost() {
+        var p=publish();
+        var closed=service.review(p.id(),p.version(),"FORCE_CLOSE","채용 종료",ADMIN);
+        assertThat(closed.state()).isEqualTo(CompanyJob.State.CLOSED);
+        assertThat(closed.liveStatus()).isEqualTo("CLOSED");
+        assertThat(posts.findById(p.publishedJobId()).orElseThrow().isActive()).isFalse();
+        assertThatThrownBy(() -> service.review(p.id(),closed.version(),"FORCE_CLOSE","중복",ADMIN)).hasMessageContaining("JOB_STATE_CONFLICT");
+    }
     @Test void foreignCompanyJobAndStaleVersionAreRejected() {
         var p=create();
         Company other=companies.save(Company.pendingVerification("다른기업","다른기업","a".repeat(64),"123-**-12345",null,user));

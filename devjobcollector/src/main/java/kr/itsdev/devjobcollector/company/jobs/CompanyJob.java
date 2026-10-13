@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 public class CompanyJob {
-    public enum State { DRAFT, IN_REVIEW, CHANGES_REQUESTED, PUBLISHED, CLOSED, SUSPENDED }
+    public enum State { DRAFT, IN_REVIEW, CHANGES_REQUESTED, PUBLISHED, CLOSED, SUSPENDED, DELETED }
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
     @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name="company_id") private Company company;
     @OneToOne(fetch = FetchType.LAZY) @JoinColumn(name="published_job_id", unique=true) private JobPost publishedJob;

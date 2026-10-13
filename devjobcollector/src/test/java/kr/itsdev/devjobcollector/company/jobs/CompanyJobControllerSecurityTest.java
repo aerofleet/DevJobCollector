@@ -44,6 +44,14 @@ class CompanyJobControllerSecurityTest {
                 .andExpect(status().isForbidden());
         verifyNoInteractions(service);
     }
+    @Test void historyRequiresAdminSessionButReviewerMayRead() throws Exception {
+        mvc.perform(get("/api/v1/admin/jobs/company-submissions/history")).andExpect(status().isUnauthorized());
+        when(authentication.authenticate("reviewer")).thenReturn(new AdminPrincipal(2L,"r@example.com","Reviewer",AdminRole.REVIEWER,Set.of(),"s",codec.hash("csrf")));
+        when(service.reviewHistory(0,"DELETE",5L)).thenReturn(org.springframework.data.domain.Page.empty());
+        mvc.perform(get("/api/v1/admin/jobs/company-submissions/history?action=DELETE&jobId=5")
+                .cookie(new Cookie("DJC_ADMIN_SESSION","reviewer"))).andExpect(status().isOk());
+        verify(service).reviewHistory(0,"DELETE",5L);
+    }
     @Test void memberEditRequiresVersion() throws Exception {
         DecodedJWT jwt=mock(DecodedJWT.class); Claim role=mock(Claim.class);
         when(jwtTokenVerifier.verify("member")).thenReturn(jwt); when(jwt.getSubject()).thenReturn("42");

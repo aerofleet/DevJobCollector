@@ -75,6 +75,14 @@ test('VIEWER는 목록만 조회한다', async ({ page }) => {
   await expect(page.getByText('조회 권한입니다.', { exact: false })).toBeVisible();
   await expect(page.getByRole('button', { name: '새 공고 작성' })).toHaveCount(0);
 });
+
+test('삭제된 공고는 사유를 확인할 수 있지만 수정 복사 제출 마감할 수 없다', async ({ page }) => {
+  await setup(page, {}, [{ id: 1, content, state: 'DELETED', liveStatus: 'HIDDEN', version: 4, reviewReason: '기업 요청', views: 0, applyClicks: 0 }]);
+  await page.goto('/company');
+  await expect(page.locator('.company-job-status')).toContainText('삭제됨');
+  await expect(page.getByText('처리 사유: 기업 요청')).toBeVisible();
+  for (const name of ['수정', '복사', '검수 요청', '공고 마감']) await expect(page.getByRole('button', { name, exact: true })).toHaveCount(0);
+});
 test('미인증 기업은 공고 작성 기능을 노출하지 않는다', async ({ page }) => {
   await setup(page, { companyStatus: 'PENDING_VERIFICATION' }); await page.goto('/company');
   await expect(page.getByRole('heading', { name: '기업 인증 요청', exact: true })).toBeVisible();

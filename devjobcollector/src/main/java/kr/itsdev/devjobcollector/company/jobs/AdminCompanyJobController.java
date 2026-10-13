@@ -15,6 +15,10 @@ public class AdminCompanyJobController {
     @GetMapping public Map<String,Object> list(@RequestParam(defaultValue="0") int page,
             @RequestParam(required=false) CompanyJob.State state) { return Map.of("data", service.reviewList(page, state)); }
     @GetMapping("/{id}") public Map<String,Object> detail(@PathVariable Long id) { return Map.of("data", service.reviewDetail(id)); }
+    @GetMapping("/history") public Map<String,Object> history(@RequestParam(defaultValue="0") int page,
+            @RequestParam(required=false) String action, @RequestParam(required=false) Long jobId) {
+        return Map.of("data", service.reviewHistory(page, action, jobId));
+    }
     @PostMapping("/{id}/review") public Map<String,Object> review(@PathVariable Long id,
             @Valid @RequestBody Review body, @AuthenticationPrincipal AdminPrincipal actor) {
         return Map.of("data", service.review(id, body.expectedVersion(), body.action(), body.reason(), actor));
