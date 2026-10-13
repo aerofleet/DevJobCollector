@@ -108,12 +108,11 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
     public Page<JobPost> findByTechStackNamesOptimized(List<String> stackNames, LocalDate today, Pageable pageable) {
         List<Long> jobPostIds = queryFactory
                 .select(jobPost.id)
-                .distinct()
                 .from(jobPost)
-                .join(jobPost.postTags, postTag)
-                .join(postTag.techStack, techStack)
                 .where(
-                        techStack.stackName.in(stackNames),
+                        JPAExpressions.selectOne().from(postTag)
+                                .join(postTag.techStack, techStack)
+                                .where(postTag.jobPost.eq(jobPost), techStack.stackName.in(stackNames)).exists(),
                         jobPost.isActive.eq(true),
                         jobPost.moderationStatus.eq(JobModerationStatus.ACTIVE),
                         jobPost.endDate.goe(today)

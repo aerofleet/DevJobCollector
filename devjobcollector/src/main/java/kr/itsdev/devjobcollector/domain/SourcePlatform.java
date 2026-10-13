@@ -11,7 +11,8 @@ public enum SourcePlatform {
     LEVER("Lever"),
     SARAMIN("사람인"),
     COMPANY_PAGE("기업 채용페이지"),
-    JOBKOREA("잡코리아");
+    JOBKOREA("잡코리아"),
+    COMPANY_DIRECT("기업 직접 등록");
 
     private final String platFormName;
 

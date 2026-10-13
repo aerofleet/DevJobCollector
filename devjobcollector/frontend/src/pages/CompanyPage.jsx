@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { createCompany, fetchMyCompanies, requestCompanyVerification } from '../api/companyApi';
 import MemberSidebar from '../components/member/MemberSidebar';
+import CompanyJobs from '../components/company/CompanyJobs';
 import '../styles/CompanyPage.css';
 import '../styles/MemberPages.css';
 
@@ -159,7 +160,7 @@ const CompanyPage = () => {
           <header className="member-page-heading company-heading">
             <span className="member-eyebrow">COMPANY CENTER</span>
             <h1>기업 서비스</h1>
-            <p>기업 정보를 등록하고 인증 진행 상태를 확인하세요.</p>
+            <p>기업 인증부터 채용 공고 등록과 관리까지 한곳에서 진행하세요.</p>
           </header>
 
           {loading && <section className="company-state-card" aria-live="polite">기업 정보를 불러오는 중입니다.</section>}
@@ -230,6 +231,9 @@ const CompanyPage = () => {
                 </section>
               )}
 
+              {selectedCompany.companyStatus === 'VERIFIED' && selectedCompany.membershipStatus === 'ACTIVE' && (
+                <CompanyJobs key={selectedCompany.companyId} company={selectedCompany} />
+              )}
               {canRequestVerification && (
                 <section className="company-panel verification-panel">
                   <div className="company-panel-heading">

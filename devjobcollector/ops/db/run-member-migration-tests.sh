@@ -46,6 +46,7 @@ SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=0 \
     --tests kr.itsdev.devjobcollector.migration.SecurityAuditV7MigrationTest \
     --tests kr.itsdev.devjobcollector.migration.AdminSecurityV8MigrationTest \
     --tests kr.itsdev.devjobcollector.migration.AdminUserV9MigrationTest \
+    --tests kr.itsdev.devjobcollector.migration.CompanyJobV12MigrationTest \
     --tests kr.itsdev.devjobcollector.migration.CareerHubV4AuditTest \
     --tests kr.itsdev.devjobcollector.career.CareerRepositoryIntegrationTest \
     --tests kr.itsdev.devjobcollector.career.CareerActivityConcurrencyIntegrationTest \
@@ -55,6 +56,7 @@ SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=0 \
     --tests kr.itsdev.devjobcollector.company.CompanySignupTransactionIntegrationTest \
     --tests kr.itsdev.devjobcollector.company.CompanyVerificationIntegrationTest \
     --tests kr.itsdev.devjobcollector.company.CompanyMemberManagementIntegrationTest \
+    --tests kr.itsdev.devjobcollector.company.CompanyJobIntegrationTest \
     --tests kr.itsdev.devjobcollector.company.CompanyMvpHardeningIntegrationTest \
     --tests kr.itsdev.devjobcollector.security.hardening.SecurityHardeningIntegrationTest \
     --tests kr.itsdev.devjobcollector.admin.AdminSecurityRepositoryIntegrationTest \

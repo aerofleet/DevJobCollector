@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fetchJobDetail } from '../api/jobApi';
+import { fetchJobDetail, recordJobEngagement } from '../api/jobApi';
 import { createApplication, createBookmark, recordRecentJob } from '../api/careerActivityApi';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import TechStackBadge from '../components/job/TechStackBadge';
@@ -17,15 +17,23 @@ const DetailPage = () => {
   const [error, setError] = useState(null);
   const [activityMessage, setActivityMessage] = useState('');
   const [activityPending, setActivityPending] = useState('');
+  const viewEvent = useRef(null);
 
   useEffect(() => {  
+  let cancelled = false;
+  if (viewEvent.current?.id !== id) viewEvent.current = { id, eventId: crypto.randomUUID() };
+  const eventId = viewEvent.current.eventId;
   const loadJobDetail = async () => {
     if (!id) return;
     
     try {
       setLoading(true);
       const data = await fetchJobDetail(id);
+      if (cancelled) return;
       setJob(data);
+      if (data.sourcePlatform === 'COMPANY_DIRECT') {
+        recordJobEngagement(id, 'VIEW', eventId).catch(() => {});
+      }
       if (localStorage.getItem('accessToken')) {
         recordRecentJob(id).catch((activityError) => {
           if (activityError.response?.status !== 401) console.error('최근 조회 기록 실패:', activityError);
@@ -40,6 +48,7 @@ const DetailPage = () => {
   };
   
   loadJobDetail();
+  return () => { cancelled = true; };
   }, [id]);
 
   if (loading) return <LoadingSpinner />;
@@ -72,6 +81,7 @@ const DetailPage = () => {
 
   const handleApply = () => {
     if (!requireMember()) return;
+    if (job.sourcePlatform === 'COMPANY_DIRECT') recordJobEngagement(id, 'APPLY_CLICK').catch(() => {});
     setActivityMessage('');
     createApplication(id).then(() => setActivityMessage('지원 기록을 저장했습니다. 열린 채용 사이트에서 지원을 완료해주세요.')).catch((activityError) => {
       if (activityError.response?.status !== 401) setActivityMessage('지원 기록 저장에 실패했습니다. 열린 채용 사이트에서 지원 여부를 확인해주세요.');
@@ -88,6 +98,7 @@ const DetailPage = () => {
       <div className="detail-container">
         <header className="detail-header">
           <h1>{job.title}</h1>
+          {job.sourcePlatform === 'COMPANY_DIRECT' && <span className="company-direct-badge">기업 직접 등록</span>}
           <span>{job.companyName} {'>'}</span>
         </header>
 
@@ -145,7 +156,9 @@ const DetailPage = () => {
                 <h2>상세 내용</h2>
               </div>
             </div>
-            <StructuredJobContent content={job.applyQual} />
+            {job.sourcePlatform === 'COMPANY_DIRECT'
+              ? <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{job.applyQual}</div>
+              : <StructuredJobContent content={job.applyQual} />}
           </section>
         )}
 

@@ -65,6 +65,9 @@ public class AdminJobService {
         JobPost job = jobs.findByIdForModeration(id)
                 .orElseThrow(() -> error(HttpStatus.NOT_FOUND, "JOB_NOT_FOUND"));
         if (job.getVersion() != expectedVersion) throw error(HttpStatus.CONFLICT, "JOB_VERSION_CONFLICT");
+        if (job.getSourcePlatform() == kr.itsdev.devjobcollector.domain.SourcePlatform.COMPANY_DIRECT) {
+            throw error(HttpStatus.CONFLICT, "USE_COMPANY_JOB_REVIEW");
+        }
         JobModerationStatus previous = job.getModerationStatus();
         boolean valid = switch (target) {
             case HIDDEN -> previous == JobModerationStatus.ACTIVE;

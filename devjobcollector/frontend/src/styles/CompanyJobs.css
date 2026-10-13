@@ -1,0 +1,18 @@
+.company-jobs { margin-top: 24px; }
+.company-jobs-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; align-items: center; }
+.company-jobs h2 { font-size: 1.3rem; }
+.company-jobs p { color: #5c6575; line-height: 1.7; }
+.company-jobs button, .company-job-actions a { border: 1px solid #d8dbe5; background: white; color: #37324f; border-radius: 8px; padding: 9px 14px; font: inherit; cursor: pointer; }
+.company-jobs button:disabled { opacity: .5; cursor: not-allowed; }
+.company-jobs button:focus-visible, .company-jobs input:focus-visible, .company-jobs textarea:focus-visible { outline: 3px solid #7c5cdb; outline-offset: 2px; }
+.company-job-editor { margin: 24px 0; padding: 20px; background: #f7f6fc; border: 1px solid #e2ddf2; border-radius: 12px; }
+.company-job-editor fieldset { padding: 0; border: 0; min-width: 0; }
+.company-job-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
+.company-job-editor label { display: flex; flex-direction: column; gap: 7px; font-weight: 600; }
+.company-job-editor input, .company-job-editor textarea { width: 100%; min-width: 0; box-sizing: border-box; border: 1px solid #cdd0dc; border-radius: 8px; padding: 10px; font: inherit; background: white; color: #202638; }
+.company-job-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 16px 0; }
+.company-job-list { display: grid; gap: 14px; }
+.company-job-list article, .company-job-preview { border: 1px solid #e1e3eb; padding: 20px; border-radius: 12px; overflow-wrap: anywhere; background: white; }
+.company-job-status { color: #6553a6; font-size: .875rem; margin-bottom: 8px; }
+.company-job-footnote { font-size: .85rem; }
+@media (max-width: 600px) { .company-job-fields { grid-template-columns: 1fr; } .company-job-editor { padding: 14px; } }

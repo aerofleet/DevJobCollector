@@ -103,7 +103,8 @@ export default function JobsPage() {
         <div><dt>마감일</dt><dd>{selected.endDate}</dd></div>
         <div><dt>출처</dt><dd>{selected.sourcePlatform}</dd></div>
         <div><dt>원본</dt><dd><a href={selected.originalUrl} target="_blank" rel="noreferrer">원본 공고 확인</a></dd></div></dl>
-      {admin.role !== 'REVIEWER' && actions.length > 0 && <div className="moderation-form">
+      {selected.sourcePlatform === 'COMPANY_DIRECT' && <p>기업 직접 등록 공고입니다. 기업 공고 검수 메뉴에서 관리해주세요.</p>}
+      {admin.role !== 'REVIEWER' && selected.sourcePlatform !== 'COMPANY_DIRECT' && actions.length > 0 && <div className="moderation-form">
         {!pendingStatus ? <div className="job-actions">{actions.map((action) =>
           <button className="secondary-button" key={action} type="button" disabled={busy}
             onClick={() => { setReason(''); setPendingStatus(action); }}>{actionText[action]}</button>)}</div>

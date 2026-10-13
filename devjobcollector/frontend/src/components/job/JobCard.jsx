@@ -47,6 +47,7 @@ const JobCard = ({ job }) => {
       
       {/* 컨텐츠 영역 */}
       <div className='job-content'>
+        {job.sourcePlatform === 'COMPANY_DIRECT' && <span className="company-direct-badge">기업 직접 등록</span>}
         {/* 회사명 + 마감일 */}
         <div className='job-company-row'>
           <p className='job-company'>{job.companyName}</p>

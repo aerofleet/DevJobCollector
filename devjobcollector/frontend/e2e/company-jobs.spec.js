@@ -1,0 +1,62 @@
+import { expect, test } from '@playwright/test';
+
+const company = { companyId: 77, displayName: '테스트 기업', legalName: '테스트 기업', companyStatus: 'VERIFIED', role: 'OWNER', membershipStatus: 'ACTIVE' };
+const content = { title: '백엔드 개발자', jobCategory: 'backend', experience: '신입', location: '서울', hireType: '정규직', techStacks: 'Java,Spring', description: '함께 개발할 동료를 찾습니다.', endDate: '2030-12-31', applyUrl: 'https://example.com/jobs' };
+const reply = (route, data, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(data) });
+
+async function setup(page, overrides = {}, initial = []) {
+  const state = { jobs: initial, writes: [] };
+  await page.addInitScript(() => localStorage.setItem('accessToken', 'owner-token'));
+  await page.route('**/api/v1/**', (route) => {
+    const req = route.request(), path = new URL(req.url()).pathname;
+    if (path === '/api/v1/members/me') return reply(route, { id: 42, name: '담당자', email: 'owner@example.com', role: 'USER', profileStatus: 'ACTIVE' });
+    if (path === '/api/v1/companies/me') return reply(route, [{ ...company, ...overrides }]);
+    if (path === '/api/v1/companies/77/jobs' && req.method() === 'GET') return reply(route, { content: state.jobs, totalPages: 1 });
+    if (path === '/api/v1/companies/77/jobs' && req.method() === 'POST') {
+      const job = { id: 1, content: req.postDataJSON(), state: 'DRAFT', liveStatus: 'UNPUBLISHED', version: 0, views: 0, applyClicks: 0 };
+      state.writes.push(job.content); state.jobs = [job]; return reply(route, job);
+    }
+    if (path.endsWith('/submit')) { state.jobs[0] = { ...state.jobs[0], state: 'IN_REVIEW', version: 1 }; return reply(route, state.jobs[0]); }
+    if (path.endsWith('/close')) { state.jobs[0] = { ...state.jobs[0], state: 'CLOSED', liveStatus: 'CLOSED', version: 2 }; return reply(route, state.jobs[0]); }
+    return reply(route, {});
+  });
+  return state;
+}
+test('기업 공고 작성 미리보기 임시저장 검수요청 마감', async ({ page }) => {
+  const state = await setup(page);
+  await page.goto('/company');
+  await page.getByRole('button', { name: '새 공고 작성' }).click();
+  for (const [key, value] of Object.entries(content)) await page.locator(`#cj-${key}`).fill(value);
+  await page.getByRole('button', { name: '미리보기', exact: true }).click();
+  await expect(page.getByRole('article', { name: '공고 미리보기' })).toContainText(content.description);
+  await page.screenshot({ path: `.codex/company-job-editor-${test.info().project.name}.png`, fullPage: true });
+  await page.getByRole('button', { name: '임시저장', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('임시저장했습니다');
+  expect(state.writes[0]).toEqual(content);
+  await page.getByRole('button', { name: '편집 닫기' }).click();
+  await page.getByRole('button', { name: '검수 요청', exact: true }).click();
+  await expect(page.locator('.company-job-status')).toContainText('검수 대기');
+  await page.getByRole('button', { name: '공고 마감', exact: true }).click();
+  await expect(page.locator('.company-job-status')).toContainText('마감');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.screenshot({ path: `.codex/company-jobs-${test.info().project.name}.png`, fullPage: true });
+});
+test('VIEWER는 목록만 조회한다', async ({ page }) => {
+  await setup(page, { role: 'VIEWER' }); await page.goto('/company');
+  await expect(page.getByText('조회 권한입니다.', { exact: false })).toBeVisible();
+  await expect(page.getByRole('button', { name: '새 공고 작성' })).toHaveCount(0);
+});
+test('미인증 기업은 공고 작성 기능을 노출하지 않는다', async ({ page }) => {
+  await setup(page, { companyStatus: 'PENDING_VERIFICATION' }); await page.goto('/company');
+  await expect(page.getByRole('heading', { name: '기업 인증 요청', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '새 공고 작성' })).toHaveCount(0);
+});
+test('공고 복사는 새 초안을 생성하며 기존 공고를 수정하지 않는다', async ({ page }) => {
+  const original = { id: 8, content, state: 'PUBLISHED', liveStatus: 'ACTIVE', version: 3, views: 20, applyClicks: 2 };
+  const state = await setup(page, {}, [original]); await page.goto('/company');
+  await page.getByRole('button', { name: '복사', exact: true }).click();
+  await expect(page.locator('#cj-title')).toHaveValue(content.title);
+  await page.getByRole('button', { name: '임시저장', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('임시저장했습니다');
+  expect(state.writes).toHaveLength(1); expect(original.version).toBe(3);
+});

@@ -238,3 +238,4 @@
   -webkit-line-clamp: 2;
   line-clamp: 2;
 }
+.company-direct-badge { display: inline-block; width: fit-content; margin-bottom: 8px; padding: 3px 8px; border-radius: 6px; background: #f0ebff; color: #61429d; font-size: 12px; font-weight: 600; }

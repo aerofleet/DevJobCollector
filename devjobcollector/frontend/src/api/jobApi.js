@@ -17,6 +17,9 @@ const apiClient = axios.create({
 // 관리자 숨김·마감 직후에도 공개 목록과 상세가 브라우저/CDN의 이전 응답을 재사용하지 않도록 한다.
 const freshQuery = () => ({ _fresh: `${Date.now()}-${Math.random().toString(36).slice(2)}` });
 
+export const recordJobEngagement = (id, kind, eventId = crypto.randomUUID()) =>
+  apiClient.post(`/jobs/${id}/engagement`, { kind, eventId });
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const shouldRetry = (error) => {

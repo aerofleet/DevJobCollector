@@ -25,6 +25,8 @@ import java.util.Optional;
  */
 @Repository
 public interface JobPostRepository extends JpaRepository<JobPost, Long>, JobPostRepositoryCustom {
+    List<JobPost> findTop10ByCompanyNameIgnoreCaseAndOriginalUrlAndSourcePlatformNot(
+            String companyName, String originalUrl, SourcePlatform platform);
 
     @Query("""
             select j from JobPost j
@@ -166,13 +168,13 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long>, JobPost
     /**
      * 1년 이상 지난 비활성 공고 ID 조회 (백업용)
      */
-    @Query("SELECT j.id FROM JobPost j WHERE j.isActive = false AND j.endDate < :threshold")
+    @Query("SELECT j.id FROM JobPost j WHERE j.isActive = false AND j.endDate < :threshold AND j.sourcePlatform <> 'COMPANY_DIRECT'")
     List<Long> findInactiveIdsOlderThan(@Param("threshold") LocalDate threshold);
 
     /**
      * 1년 이상 지난 비활성 공고 물리 삭제
      */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("DELETE FROM JobPost j WHERE j.isActive = false AND j.endDate < :threshold")
+    @Query("DELETE FROM JobPost j WHERE j.isActive = false AND j.endDate < :threshold AND j.sourcePlatform <> 'COMPANY_DIRECT'")
     int deleteInactiveOlderThan(@Param("threshold") LocalDate threshold);
 }
