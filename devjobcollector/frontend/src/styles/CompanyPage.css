@@ -1,3 +1,24 @@
+.company-page {
+  --company-heading-size: 20px;
+  --company-subheading-size: 18px;
+  --company-body-size: 14px;
+  --company-label-size: 13px;
+  font-size: var(--company-body-size);
+  line-height: 1.6;
+}
+.company-page :is(button, input, textarea, select) { font-family: inherit; }
+.company-page h2 { font-weight: 700; line-height: 1.4; letter-spacing: -.02em; }
+.company-page :is(.company-form label, .company-job-editor label) { font-size: var(--company-label-size); font-weight: 600; }
+.company-page :is(.company-form input, .company-job-editor input, .company-job-editor textarea, .company-switcher select) {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+.company-page :is(.company-form button, .company-state-card button, .company-jobs button, .company-job-actions a) {
+  font-size: var(--company-body-size);
+  font-weight: 700;
+  line-height: 1.5;
+}
 .company-heading { display: flex; flex-direction: column; align-items: flex-start; }
 .company-state-card, .company-panel, .company-status-card, .verification-timeline {
   border: 1px solid #e8e5ef;
@@ -12,7 +33,7 @@
 .company-panel { padding: 30px; }
 .company-panel-heading { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
 .company-panel-heading > span { width: 46px; height: 46px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 14px; background: #eeeaff; color: #6548e8; }
-.company-panel-heading h2 { margin: 0 0 4px; font-size: 20px; }
+.company-panel-heading h2 { margin: 0 0 4px; font-size: var(--company-heading-size); }
 .company-panel-heading p { margin: 0; color: #817b8b; font-size: 13px; }
 .company-form { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .company-field { display: grid; gap: 7px; }
@@ -36,7 +57,7 @@
 .company-status-topline { display: flex; align-items: center; gap: 14px; }
 .company-logo { width: 54px; height: 54px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 17px; background: linear-gradient(135deg, #eeeaff, #ded6ff); color: #6548e8; }
 .company-status-topline p { margin: 0 0 3px; color: #817b8b; font-size: 12px; }
-.company-status-topline h2 { margin: 0; font-size: 23px; }
+.company-status-topline h2 { margin: 0; font-size: var(--company-heading-size); }
 .company-status-badge { margin-left: auto; padding: 7px 10px; border-radius: 999px; background: #fff2d9; color: #986000; font-size: 11px; font-weight: 800; }
 .status-verified .company-status-badge { background: #e6f8ef; color: #167651; }
 .status-rejected .company-status-badge, .status-suspended .company-status-badge { background: #fff0f0; color: #ad3742; }
