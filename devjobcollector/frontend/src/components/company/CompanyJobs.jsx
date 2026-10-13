@@ -4,6 +4,7 @@ import { companyJobsApi } from '../../api/companyJobsApi';
 import '../../styles/CompanyJobs.css';
 
 const EMPTY = { title: '', jobCategory: '', experience: '', location: '', hireType: '', techStacks: '', description: '', endDate: '', applyUrl: '' };
+const editableContent = (content) => Object.fromEntries(Object.keys(EMPTY).map((key) => [key, content?.[key] ?? '']));
 const STATES = { DRAFT: '임시저장', IN_REVIEW: '검수 대기', CHANGES_REQUESTED: '수정 요청', PUBLISHED: '승인 완료', CLOSED: '마감', SUSPENDED: '게시 중단' };
 const LIVE = { UNPUBLISHED: '미게시', ACTIVE: '게시 중', CLOSED: '마감', HIDDEN: '게시 중단' };
 const FIELDS = [['title', '공고 제목'], ['jobCategory', '직무'], ['experience', '경력'], ['location', '근무지'], ['hireType', '고용형태'], ['techStacks', '기술스택 (쉼표로 구분)'], ['endDate', '마감일'], ['applyUrl', '지원 URL (https)']];
@@ -21,6 +22,7 @@ export default function CompanyJobs({ company }) {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const canWrite = company.membershipStatus === 'ACTIVE' && ['OWNER', 'ADMIN', 'RECRUITER'].includes(company.role);
+  const hasUnsavedChanges = editor !== null && (!editor.id || Object.keys(EMPTY).some((key) => form[key] !== editableContent(editor.content)[key]));
   const load = useCallback(async () => {
     try { setResult(await companyJobsApi.list(company.companyId, page)); }
     catch (e) { setError(failure(e)); }
@@ -29,7 +31,7 @@ export default function CompanyJobs({ company }) {
 
   const openEditor = (job, copy = false) => {
     setEditor(copy || !job ? { id: null } : job);
-    setForm(job ? { ...EMPTY, ...job.content, endDate: job.content.endDate || '' } : { ...EMPTY });
+    setForm(editableContent(job?.content));
     setPreview(false); setError(''); setNotice('');
   };
   const save = async (event) => {
@@ -39,7 +41,7 @@ export default function CompanyJobs({ company }) {
       const content = { ...form, endDate: form.endDate || null };
       const saved = editor.id ? await companyJobsApi.edit(company.companyId, editor.id, editor.version, content)
         : await companyJobsApi.create(company.companyId, content);
-      setEditor(saved); setNotice('임시저장했습니다. 목록에서 검수를 요청하면 승인 후 게시됩니다.'); await load();
+      setEditor(saved); setForm(editableContent(saved.content)); setNotice('임시저장했습니다. 목록에서 바로 검수를 요청할 수 있습니다.'); await load();
     } catch (e) { setError(failure(e)); } finally { setBusy(false); }
   };
   const act = async (job, action) => {
@@ -75,6 +77,7 @@ export default function CompanyJobs({ company }) {
         <p>{form.techStacks}</p><div style={{ whiteSpace: 'pre-wrap' }}>{form.description}</div><p>마감일: {form.endDate || '미입력'}</p><p>지원: {form.applyUrl || '미입력'}</p></article>}
     </form>}
     <div className="company-job-actions"><button type="button" disabled={busy} onClick={() => { setError(''); load(); }}>목록 새로고침</button></div>
+    {hasUnsavedChanges && <p id="company-job-submit-help">저장하지 않은 내용이 있습니다. 임시저장하거나 편집을 닫으면 검수를 요청할 수 있습니다.</p>}
     {!result && !error && <p role="status">공고를 불러오는 중입니다.</p>}
     {result?.content.length === 0 && <p>아직 등록한 공고가 없습니다.</p>}
     <div className="company-job-list">{result?.content.map((job) => <article key={job.id}>
@@ -86,12 +89,12 @@ export default function CompanyJobs({ company }) {
         {canWrite && <>
           {!['IN_REVIEW', 'CLOSED', 'SUSPENDED'].includes(job.state) && <button disabled={busy} onClick={() => openEditor(job)}>수정</button>}
           <button disabled={busy} onClick={() => openEditor(job, true)}>복사</button>
-          {['DRAFT', 'CHANGES_REQUESTED'].includes(job.state) && <button disabled={busy || editor !== null} onClick={() => act(job, 'submit')}>검수 요청</button>}
+          {['DRAFT', 'CHANGES_REQUESTED'].includes(job.state) && <button disabled={busy || hasUnsavedChanges} aria-describedby={hasUnsavedChanges ? 'company-job-submit-help' : undefined} onClick={() => act(job, 'submit')}>검수 요청</button>}
           {!['CLOSED', 'SUSPENDED'].includes(job.state) && <button disabled={busy} onClick={() => act(job, 'close')}>공고 마감</button>}
         </>}
       </div>
     </article>)}</div>
-    <p className="company-job-footnote">조회와 지원 링크 클릭은 참고 지표이며, 실제 지원 완료 건수가 아닙니다. 저장 후 편집을 닫으면 검수를 요청할 수 있습니다.</p>
+    <p className="company-job-footnote">조회와 지원 링크 클릭은 참고 지표이며, 실제 지원 완료 건수가 아닙니다. 임시저장 후 바로 검수를 요청할 수 있습니다.</p>
     <div className="company-job-actions"><button disabled={page === 0 || busy} onClick={() => setPage(page - 1)}>이전</button>
       <span>{page + 1} / {Math.max(1, totalPages)}</span><button disabled={page + 1 >= totalPages || busy} onClick={() => setPage(page + 1)}>다음</button></div>
   </section>;
