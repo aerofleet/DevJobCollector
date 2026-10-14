@@ -1,9 +1,13 @@
 import { test, expect } from '@playwright/test';
 
-test('JavaScript를 기다리지 않고 홈 내용을 표시하고 동일 DOM으로 hydration', async ({ page, request }) => {
+for (const consent of [null, 'granted']) {
+test(`JavaScript를 기다리지 않고 홈 내용을 표시하고 동일 DOM으로 hydration (${consent})`, async ({ page, request }) => {
+  if (consent) await page.addInitScript((value) => localStorage.setItem('djc-analytics-consent', value), consent);
+  await page.route('**/api/v1/analytics/events', (route) => route.fulfill({ status: 204 }));
   const raw = await request.get('/');
   expect(raw.status()).toBe(200);
   expect(await raw.text()).toContain('흩어진 개발자 채용공고');
+  expect(await raw.text()).toContain('data-prerender-css');
   let release;
   const gate = new Promise((resolve) => { release = resolve; });
   const errors = [];
@@ -22,6 +26,7 @@ test('JavaScript를 기다리지 않고 홈 내용을 표시하고 동일 DOM으
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errors).toEqual([]);
 });
+}
 
 test('robots와 내부 페이지는 올바른 HTTP 내용과 메타데이터 제공', async ({ request }) => {
   const robots = await request.get('/robots.txt');

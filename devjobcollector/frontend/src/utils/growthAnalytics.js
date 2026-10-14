@@ -9,6 +9,19 @@ export function analyticsConsent() {
   try { return localStorage.getItem(CONSENT); } catch { return 'denied'; }
 }
 
+export function subscribeAnalyticsConsent(onChange) {
+  const changed = () => { onChange(); };
+  const storage = (event) => {
+    if (event.key !== CONSENT && event.key !== null) return;
+    if (analyticsConsent() !== 'granted') { try { sessionStorage.removeItem(SESSION); } catch { /* Restricted storage. */ } }
+    lastPage = undefined;
+    onChange();
+  };
+  window.addEventListener('analytics-consent-change', changed);
+  window.addEventListener('storage', storage);
+  return () => { window.removeEventListener('analytics-consent-change', changed); window.removeEventListener('storage', storage); };
+}
+
 export function setAnalyticsConsent(value) {
   try {
     localStorage.setItem(CONSENT, value === 'granted' ? 'granted' : 'denied');
