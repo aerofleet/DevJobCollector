@@ -3,6 +3,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useScrollDirection } from '../hooks/useScrollDirection';
 import '../styles/Header.css';
+import { useMemberSession } from '../contexts/memberSession';
+import { clearAccessToken } from '../utils/accessToken';
 
 const Header = ({ onSearch }) => {
   const location = useLocation();
@@ -18,7 +20,8 @@ const Header = ({ onSearch }) => {
     else if (!isMenuOpen && dialog.open) dialog.close();
   }, [isMenuOpen]);
   const isNavVisible = useScrollDirection(100); // 100px 이상 스크롤 시 작동
-  const isAuthenticated = Boolean(localStorage.getItem('accessToken'));
+  const { token } = useMemberSession();
+  const isAuthenticated = Boolean(token);
 
   const isMobile = () => window.innerWidth <= 768;
 
@@ -40,7 +43,7 @@ const Header = ({ onSearch }) => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('accessToken');
+    clearAccessToken();
     sessionStorage.removeItem('postLoginNextPath');
     setIsMenuOpen(false);
     navigate('/', { replace: true });

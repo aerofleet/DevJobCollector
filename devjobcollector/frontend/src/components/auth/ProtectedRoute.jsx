@@ -4,8 +4,7 @@ import { useMemberSession } from '../../contexts/memberSession';
 
 const ProtectedRoute = ({ children, preload }) => {
   const location = useLocation();
-  const token = localStorage.getItem('accessToken');
-  const { status, loadMember } = useMemberSession();
+  const { token, status, loadMember } = useMemberSession();
 
   useEffect(() => {
     if (token && preload) {

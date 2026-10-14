@@ -1,3 +1,4 @@
+import { getAccessToken, clearAccessToken } from '../utils/accessToken';
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
@@ -11,7 +12,7 @@ const authenticatedApi = axios.create({
 });
 
 authenticatedApi.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
+  const token = getAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -25,7 +26,7 @@ authenticatedApi.interceptors.response.use(
       const nextPath = `${window.location.pathname}${window.location.search}`;
       const authFailureReason = error.response?.data?.error || 'ACCESS_TOKEN_INVALID';
       sessionStorage.setItem('authFailureReason', authFailureReason);
-      localStorage.removeItem('accessToken');
+      clearAccessToken();
       if (!window.location.pathname.startsWith('/login')) {
         sessionStorage.setItem('postLoginNextPath', nextPath);
         window.location.replace(`/login?next=${encodeURIComponent(nextPath)}`);

@@ -7,7 +7,7 @@ for (const [path, moduleName, heading] of [
   ['/resumes', 'ResumesPage', '이력서 관리'],
 ]) {
   test(`${path}: 인증 대기 중 화면 코드 준비, 인증 요청 중복 방지`, async ({ page }) => {
-    await page.addInitScript(() => localStorage.setItem('accessToken', 'loading-test'));
+    await page.addInitScript(() => localStorage.setItem('accessToken', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJsb2FkaW5nLXRlc3QiLCJleHAiOjQxMDI0NDQ4MDB9.test-signature'));
     let release;
     const gate = new Promise((resolve) => { release = resolve; });
     let authRequests = 0;
@@ -32,7 +32,7 @@ for (const [path, moduleName, heading] of [
 }
 
 test('느린 최근 공고와 지원 API 오류가 저장 목록을 막지 않음, 실패 탭만 재시도', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('accessToken', 'loading-test'));
+  await page.addInitScript(() => localStorage.setItem('accessToken', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJsb2FkaW5nLXRlc3QiLCJleHAiOjQxMDI0NDQ4MDB9.test-signature'));
   let release;
   const gate = new Promise((resolve) => { release = resolve; });
   const counts = { bookmarks: 0, applications: 0 };

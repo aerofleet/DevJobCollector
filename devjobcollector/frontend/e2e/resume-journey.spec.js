@@ -30,7 +30,7 @@ const installApiMock = async (page, initialResumes) => {
   };
 
   await page.addInitScript(() => {
-    localStorage.setItem('accessToken', 'resume-e2e-token');
+    localStorage.setItem('accessToken', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJyZXN1bWUtZTJlLXRva2VuIiwiZXhwIjo0MTAyNDQ0ODAwfQ.test-signature');
   });
 
   await page.route('**/api/v1/**', async (route) => {

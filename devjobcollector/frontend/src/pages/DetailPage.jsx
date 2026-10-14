@@ -1,3 +1,4 @@
+import { getAccessToken } from '../utils/accessToken';
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchJobDetail, recordJobEngagement } from '../api/jobApi';
@@ -34,7 +35,7 @@ const DetailPage = () => {
       if (data.sourcePlatform === 'COMPANY_DIRECT') {
         recordJobEngagement(id, 'VIEW', eventId).catch(() => {});
       }
-      if (localStorage.getItem('accessToken')) {
+      if (getAccessToken()) {
         recordRecentJob(id).catch((activityError) => {
           if (activityError.response?.status !== 401) console.error('최근 조회 기록 실패:', activityError);
         });
@@ -58,7 +59,7 @@ const DetailPage = () => {
   const daysRemaining = getDaysRemaining(job.endDate);
 
   const requireMember = () => {
-    if (localStorage.getItem('accessToken')) return true;
+    if (getAccessToken()) return true;
     const nextPath = `/job/${id}`;
     sessionStorage.setItem('postLoginNextPath', nextPath);
     navigate(`/login?next=${encodeURIComponent(nextPath)}`);

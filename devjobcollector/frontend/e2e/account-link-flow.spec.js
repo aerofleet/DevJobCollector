@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('인증된 기존 계정은 오류 화면 없이 Google 연결을 자동 시작한다', async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem('accessToken', 'existing-account-token');
+    localStorage.setItem('accessToken', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJleGlzdGluZy1hY2NvdW50LXRva2VuIiwiZXhwIjo0MTAyNDQ0ODAwfQ.test-signature');
   });
 
   await page.route('http://localhost:8080/**', async (route) => {
@@ -32,7 +32,7 @@ test('인증된 기존 계정은 오류 화면 없이 Google 연결을 자동 �
   await page.goto('/oauth/callback?error=ACCOUNT_LINK_REQUIRED&provider=google');
   const startRequest = await startRequestPromise;
 
-  expect(startRequest.headers().authorization).toBe('Bearer existing-account-token');
+  expect(startRequest.headers().authorization).toBe('Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJleGlzdGluZy1hY2NvdW50LXRva2VuIiwiZXhwIjo0MTAyNDQ0ODAwfQ.test-signature');
   await expect(page.getByText('현재 로그인한 기존 계정에 소셜 계정을 연결할 수 있습니다.'))
     .toHaveCount(0);
   await expect(page).toHaveURL('http://localhost:8080/oauth2/authorization/google');
@@ -54,7 +54,7 @@ test('Google 충돌 후 GitHub 재인증을 마치면 Google 연결을 자동 �
       await route.fulfill({
         status: 302,
         headers: {
-          Location: 'http://127.0.0.1:4174/oauth/callback?token=fresh-github-token',
+          Location: 'http://127.0.0.1:4174/oauth/callback?token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJmcmVzaC1naXRodWItdG9rZW4iLCJleHAiOjQxMDI0NDQ4MDB9.test-signature',
         },
       });
       return;
@@ -89,7 +89,7 @@ test('Google 충돌 후 GitHub 재인증을 마치면 Google 연결을 자동 �
   await page.getByTitle('github').click();
   const startRequest = await startRequestPromise;
 
-  expect(startRequest.headers().authorization).toBe('Bearer fresh-github-token');
+  expect(startRequest.headers().authorization).toBe('Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJmcmVzaC1naXRodWItdG9rZW4iLCJleHAiOjQxMDI0NDQ4MDB9.test-signature');
   await expect(page).toHaveURL('http://localhost:8080/oauth2/authorization/google');
 });
 
@@ -102,7 +102,7 @@ test('Google 연결 성공 callback은 연결 상태를 폐기하고 회원 화�
     sessionStorage.setItem('accountLinkInProgressProvider', 'google');
   });
 
-  await page.goto('/oauth/callback?token=linked-account-token');
+  await page.goto('/oauth/callback?token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJsaW5rZWQtYWNjb3VudC10b2tlbiIsImV4cCI6NDEwMjQ0NDgwMH0.test-signature');
 
   await expect(page).toHaveURL(/\/member$/);
   const authState = await page.evaluate(() => ({
@@ -111,7 +111,7 @@ test('Google 연결 성공 callback은 연결 상태를 폐기하고 회원 화�
     inProgressProvider: sessionStorage.getItem('accountLinkInProgressProvider'),
   }));
   expect(authState).toEqual({
-    accessToken: 'linked-account-token',
+    accessToken: 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJsaW5rZWQtYWNjb3VudC10b2tlbiIsImV4cCI6NDEwMjQ0NDgwMH0.test-signature',
     pendingProvider: null,
     inProgressProvider: null,
   });
@@ -119,7 +119,7 @@ test('Google 연결 성공 callback은 연결 상태를 폐기하고 회원 화�
 
 test('기존 로그인이 유효한 Google 연결 충돌은 로그인 화면 대신 기본 페이지로 이동한다', async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem('accessToken', 'valid-github-token');
+    localStorage.setItem('accessToken', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ2YWxpZC1naXRodWItdG9rZW4iLCJleHAiOjQxMDI0NDQ4MDB9.test-signature');
     sessionStorage.setItem('pendingAccountLinkProvider', JSON.stringify({
       provider: 'google',
       createdAt: Date.now(),
@@ -136,7 +136,7 @@ test('기존 로그인이 유효한 Google 연결 충돌은 로그인 화면 대
     inProgressProvider: sessionStorage.getItem('accountLinkInProgressProvider'),
   }));
   expect(authState).toEqual({
-    accessToken: 'valid-github-token',
+    accessToken: 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ2YWxpZC1naXRodWItdG9rZW4iLCJleHAiOjQxMDI0NDQ4MDB9.test-signature',
     pendingProvider: null,
     inProgressProvider: null,
   });

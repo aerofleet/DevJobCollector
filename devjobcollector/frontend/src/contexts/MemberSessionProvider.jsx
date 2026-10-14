@@ -1,30 +1,32 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { getCurrentMember } from '../api/memberApi';
 import { MemberSessionContext } from './memberSession';
+import { getAccessToken, subscribeAccessToken } from '../utils/accessToken';
 
 const MemberSessionProvider = ({ children }) => {
-  const [member, setMember] = useState(null);
-  const [status, setStatus] = useState('idle');
-  const inFlight = useRef(false);
+  const token = useSyncExternalStore(subscribeAccessToken, getAccessToken);
+  const [session, setSession] = useState(null);
+  const member = token && session?.token === token ? session.member : null;
+  const status = token && session?.token === token ? session.status : 'idle';
+  const inFlight = useRef(null);
 
   const loadMember = useCallback(async () => {
-    if (inFlight.current || status === 'success') {
+    if (!token || inFlight.current === token || status === 'success') {
       return;
     }
-    inFlight.current = true;
-    setStatus('loading');
+    inFlight.current = token;
+    setSession({ token, member: null, status: 'loading' });
     try {
       const currentMember = await getCurrentMember();
-      setMember(currentMember);
-      setStatus('success');
+      if (getAccessToken() === token) setSession({ token, member: currentMember, status: 'success' });
     } catch {
-      setStatus('error');
+      if (getAccessToken() === token) setSession({ token, member: null, status: 'error' });
     } finally {
-      inFlight.current = false;
+      if (inFlight.current === token) inFlight.current = null;
     }
-  }, [status]);
+  }, [status, token]);
 
-  const value = useMemo(() => ({ member, status, loadMember }), [member, status, loadMember]);
+  const value = useMemo(() => ({ token, member, status, loadMember }), [token, member, status, loadMember]);
 
   return <MemberSessionContext.Provider value={value}>{children}</MemberSessionContext.Provider>;
 };

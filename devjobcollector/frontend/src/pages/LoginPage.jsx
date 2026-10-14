@@ -1,3 +1,4 @@
+import { getAccessToken, setAccessToken, clearAccessToken } from '../utils/accessToken';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { loginWithPassword } from '../api/authApi';
@@ -81,7 +82,7 @@ const LoginPage = () => {
       sessionStorage.removeItem(LINK_IN_PROGRESS_PROVIDER_KEY);
       setLinkProvider(provider);
       if (error.response?.status === 401) {
-        localStorage.removeItem('accessToken');
+        clearAccessToken();
         setErrorMessage('보안을 위해 기존 가입 방식으로 다시 로그인해주세요.');
       } else if (error.response?.status === 409) {
         clearAccountLinkFlow();
@@ -118,7 +119,7 @@ const LoginPage = () => {
           storePendingLinkProvider(provider);
         }
         setLinkProvider(provider);
-        if (localStorage.getItem('accessToken') && provider && !linkWasInProgress) {
+        if (getAccessToken() && provider && !linkWasInProgress) {
           void beginAccountLink(provider);
           return;
         }
@@ -134,7 +135,7 @@ const LoginPage = () => {
         setErrorMessage('계정 연결 요청이 만료되었거나 올바르지 않습니다. 다시 시도해주세요.');
       } else if (oauthError === 'ACCOUNT_LINK_CONFLICT') {
         sessionStorage.removeItem(LINK_IN_PROGRESS_PROVIDER_KEY);
-        if (localStorage.getItem('accessToken')) {
+        if (getAccessToken()) {
           clearAccountLinkFlow();
           navigate('/', { replace: true });
           return;
@@ -155,7 +156,7 @@ const LoginPage = () => {
     }
     callbackHandledRef.current = true;
 
-    localStorage.setItem('accessToken', token);
+    setAccessToken(token);
     setRecentSocialProvider(commitSuccessfulSocialLogin(oauthProvider));
     sessionStorage.removeItem('postLoginNextPath');
     const pendingLinkProvider = readPendingLinkProvider();
@@ -181,7 +182,7 @@ const LoginPage = () => {
         identifier: identifier.trim(),
         password,
       });
-      localStorage.setItem('accessToken', data.accessToken);
+      setAccessToken(data.accessToken);
 
       const query = new URLSearchParams(location.search);
       const next = query.get('next') || '/';
@@ -274,7 +275,7 @@ const LoginPage = () => {
               {isSubmitting ? '로그인 중...' : '로그인'}
             </button>
             {errorMessage && <p style={{ color: '#d64545', marginTop: '12px' }}>{errorMessage}</p>}
-            {linkProvider && localStorage.getItem('accessToken') && (
+            {linkProvider && getAccessToken() && (
               <button
                 type="button"
                 className="btn_account_link"

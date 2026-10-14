@@ -61,7 +61,7 @@ const installJourneyApi = async (page) => {
 
     if (path === '/api/v1/auth/signup/personal/verify-email' && method === 'POST') {
       state.verificationPayload = request.postDataJSON();
-      return respond(route, { accessToken: 'company-owner-token' });
+      return respond(route, { accessToken: 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjb21wYW55LW93bmVyLXRva2VuIiwiZXhwIjo0MTAyNDQ0ODAwfQ.test-signature' });
     }
 
     if (path === '/api/v1/members/me' && method === 'GET') {
@@ -189,14 +189,14 @@ test('기업회원 선택 의도는 소셜 로그인 callback 후 기업 등록�
 
   await page.goto('/signup');
   await page.getByRole('button', { name: /기업회원/ }).click();
-  await page.goto('/oauth/callback?token=company-social-token');
+  await page.goto('/oauth/callback?token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjb21wYW55LXNvY2lhbC10b2tlbiIsImV4cCI6NDEwMjQ0NDgwMH0.test-signature');
 
   await expect(page).toHaveURL(/\/company$/);
   await expect(page.getByRole('heading', { name: '기업 정보 등록' })).toBeVisible();
   expect(await page.evaluate(() => ({
     accessToken: localStorage.getItem('accessToken'),
     nextPath: sessionStorage.getItem('postLoginNextPath'),
-  }))).toEqual({ accessToken: 'company-social-token', nextPath: null });
+  }))).toEqual({ accessToken: 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjb21wYW55LXNvY2lhbC10b2tlbiIsImV4cCI6NDEwMjQ0NDgwMH0.test-signature', nextPath: null });
 });
 
 test('가입과 기업 조회 오류를 알리고 사용자가 다시 시도할 수 있다', async ({ page }) => {
@@ -230,7 +230,7 @@ test('가입과 기업 조회 오류를 알리고 사용자가 다시 시도할 
   await page.getByRole('button', { name: '이메일로 가입하기' }).click();
   await expect(page.getByRole('alert')).toHaveText('이미 등록된 이메일입니다. 인증을 마쳤다면 로그인하고, 인증 전이라면 코드를 다시 받으세요.');
 
-  await page.evaluate(() => localStorage.setItem('accessToken', 'company-owner-token'));
+  await page.evaluate(() => localStorage.setItem('accessToken', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjb21wYW55LW93bmVyLXRva2VuIiwiZXhwIjo0MTAyNDQ0ODAwfQ.test-signature'));
   await page.goto('/company');
   await expect(page.getByRole('alert')).toContainText('기업 정보를 불러오지 못했습니다');
   await page.getByRole('button', { name: '다시 시도' }).click();
@@ -274,7 +274,7 @@ test('기업 인증 반려 사유를 담당자에게 표시한다', async ({ pag
     verificationStatus: 'REJECTED',
     verificationRejectionReason: '사업자등록증 내용을 확인할 수 없습니다.',
   }]));
-  await page.addInitScript(() => localStorage.setItem('accessToken', 'company-owner-token'));
+  await page.addInitScript(() => localStorage.setItem('accessToken', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjb21wYW55LW93bmVyLXRva2VuIiwiZXhwIjo0MTAyNDQ0ODAwfQ.test-signature'));
   await page.goto('/company');
   await expect(page.getByText('반려 사유: 사업자등록증 내용을 확인할 수 없습니다.')).toBeVisible();
 });
@@ -300,7 +300,7 @@ test('가입과 기업 등록 핵심 컨트롤은 키보드로 접근 가능하�
   }
   await expect(page.getByRole('link', { name: '네이버로 계속' })).toHaveCount(0);
 
-  await page.addInitScript(() => localStorage.setItem('accessToken', 'company-owner-token'));
+  await page.addInitScript(() => localStorage.setItem('accessToken', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjb21wYW55LW93bmVyLXRva2VuIiwiZXhwIjo0MTAyNDQ0ODAwfQ.test-signature'));
   await page.route('**/api/v1/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path === '/api/v1/members/me') return respond(route, member);
@@ -337,7 +337,7 @@ test('모바일 가입과 기업 등록 컨트롤은 44px touch target을 제공
     expect.soft(box.height, `${box.name} height`).toBeGreaterThanOrEqual(44);
   }
 
-  await page.addInitScript(() => localStorage.setItem('accessToken', 'company-owner-token'));
+  await page.addInitScript(() => localStorage.setItem('accessToken', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjb21wYW55LW93bmVyLXRva2VuIiwiZXhwIjo0MTAyNDQ0ODAwfQ.test-signature'));
   await page.route('**/api/v1/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path === '/api/v1/members/me') return respond(route, member);

@@ -1,3 +1,4 @@
+import { setAccessToken } from '../utils/accessToken';
 import { useCallback, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -110,7 +111,7 @@ const SignupPage = () => {
     setIsSubmitting(true);
     try {
       const result = await verifyPersonalEmail({ email: form.email, code });
-      localStorage.setItem('accessToken', result.accessToken);
+      setAccessToken(result.accessToken);
       const destination = memberType === 'company' ? '/company' : '/member';
       sessionStorage.removeItem('postLoginNextPath');
       navigate(destination, { replace: true });

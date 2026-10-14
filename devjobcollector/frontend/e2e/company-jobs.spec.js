@@ -6,7 +6,7 @@ const reply = (route, data, status = 200) => route.fulfill({ status, contentType
 
 async function setup(page, overrides = {}, initial = []) {
   const state = { jobs: initial, writes: [], submissions: [] };
-  await page.addInitScript(() => localStorage.setItem('accessToken', 'owner-token'));
+  await page.addInitScript(() => localStorage.setItem('accessToken', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJvd25lci10b2tlbiIsImV4cCI6NDEwMjQ0NDgwMH0.test-signature'));
   await page.route('**/api/v1/**', (route) => {
     const req = route.request(), path = new URL(req.url()).pathname;
     if (path === '/api/v1/members/me') return reply(route, { id: 42, name: '담당자', email: 'owner@example.com', role: 'USER', profileStatus: 'ACTIVE' });

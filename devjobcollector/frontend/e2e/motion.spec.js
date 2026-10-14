@@ -60,7 +60,7 @@ test('mobile modal traps focus, closes with Escape and restores trigger', async 
   await expect(trigger).toBeFocused();
 });
 test('bookmark toast reports success and dismisses without navigation', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('accessToken', 'motion-fixture'));
+  await page.addInitScript(() => localStorage.setItem('accessToken', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtb3Rpb24tZml4dHVyZSIsImV4cCI6NDEwMjQ0NDgwMH0.test-signature'));
   await page.route('**/api/v1/members/**', route => route.fulfill({ json: {} }));
   await page.goto('/job/42');
   await page.getByRole('button', { name: '공고 저장', exact: true }).click();
