@@ -7,20 +7,10 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import MotionFilter from '../motion/MotionFilter';
 import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import '../styles/AllJobsPage.css';
+import { JOB_ROLES, JOB_ROLE_GROUPS, QUICK_JOB_ROLES, TECH_STACK_GROUPS } from '../data/jobFilters';
 
 const PAGE_SIZE = 12;
 
-const JOB_ROLES = [
-  { value: '', label: '전체 직무' },
-  { value: 'backend', label: '백엔드' },
-  { value: 'frontend', label: '프론트엔드' },
-  { value: 'fullstack', label: '풀스택' },
-  { value: 'mobile', label: '모바일' },
-  { value: 'data-ai', label: '데이터·AI' },
-  { value: 'devops-security', label: 'DevOps·보안' },
-];
-
-const TECH_STACKS = ['', 'Java', 'Spring', 'JavaScript', 'TypeScript', 'React', 'Python', 'Node.js', 'AWS', 'Docker'];
 const EXPERIENCES = [
   { value: '', label: '경력 전체' },
   { value: '신입', label: '신입' },
@@ -179,7 +169,7 @@ const AllJobsPage = () => {
   const clearFilters = () => setSearchParams({});
   const activeFilters = [
     filters.keyword && { key: 'keyword', label: `검색: ${filters.keyword}` },
-    filters.jobCategory && { key: 'jobCategory', label: JOB_ROLES.find((role) => role.value === filters.jobCategory)?.label },
+    filters.jobCategory && { key: 'jobCategory', label: JOB_ROLES.find((role) => role.value === filters.jobCategory)?.label ?? filters.jobCategory },
     filters.techStack && { key: 'techStack', label: filters.techStack },
     filters.experience && { key: 'experience', label: filters.experience },
     filters.location && { key: 'location', label: filters.location },
@@ -216,13 +206,25 @@ const AllJobsPage = () => {
         </button>
 
         <div id="job-filter-panel" className={`filter-panel ${isMobileFilterOpen ? 'open' : ''}`}>
-          <MotionFilter options={JOB_ROLES} value={filters.jobCategory} onChange={(jobCategory) => updateParams({ jobCategory })} />
+          <MotionFilter options={QUICK_JOB_ROLES} value={filters.jobCategory} onChange={(jobCategory) => updateParams({ jobCategory })} />
 
           <div className="detail-filters">
             <label>
+              <span>직무 상세</span>
+              <select aria-label="직무 상세" value={filters.jobCategory} onChange={(event) => updateParams({ jobCategory: event.target.value })}>
+                <option value="">전체 직무</option>
+                {JOB_ROLE_GROUPS.map(group => <optgroup label={group.label} key={group.label}>
+                  {group.options.map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+                </optgroup>)}
+              </select>
+            </label>
+            <label>
               <span>기술 스택</span>
-              <select value={filters.techStack} onChange={(event) => updateParams({ techStack: event.target.value })}>
-                {TECH_STACKS.map((stack) => <option value={stack} key={stack || 'all'}>{stack || '전체 기술'}</option>)}
+              <select aria-label="기술 스택" value={filters.techStack} onChange={(event) => updateParams({ techStack: event.target.value })}>
+                <option value="">전체 기술</option>
+                {TECH_STACK_GROUPS.map(group => <optgroup label={group.label} key={group.label}>
+                  {group.options.map(stack => <option value={stack} key={stack}>{stack}</option>)}
+                </optgroup>)}
               </select>
             </label>
             <label>

@@ -143,6 +143,42 @@ class JobSearchRepositoryIntegrationTest {
         assertThat(p95).isLessThan(300L);
     }
 
+    @Test
+    void expandedRolesMatchKoreanAndEnglishTitlesWithoutReturningUnrelatedJobs() {
+        saveJob("android-role", "안드로이드 앱 개발자", null, null, "정규직");
+        saveJob("data-role", "Data Engineer", null, null, "정규직");
+        saveJob("embedded-role", "펌웨어 개발자", null, null, "정규직");
+        saveJob("qa-role", "테스트 엔지니어", null, null, "정규직");
+        saveJob("unrelated-role", "마케팅 담당자", null, null, "정규직");
+        entityManager.flush();
+        entityManager.clear();
+        for (String[] example : List.of(
+                new String[]{"android", "android-role"},
+                new String[]{"data-engineer", "data-role"},
+                new String[]{"embedded", "embedded-role"},
+                new String[]{"qa", "qa-role"})) {
+            assertThat(repository.searchByAllFieldsOptimized(
+                    "", null, null, example[0], null, LocalDate.now(), PageRequest.of(0, 20)))
+                    .extracting(JobPost::getOriginalSn).containsExactly(example[1]);
+        }
+    }
+
+    @Test
+    void stackFiltersKeepShortAndOverlappingNamesDistinct() {
+        for (String stack : List.of("C", "C++", "C#", "Java", "JavaScript", "Kubernetes", "PyTorch")) {
+            JobPost job = saveJob("stack-" + stack, "개발자", null, null, "정규직");
+            job.addTechStack(techStackRepository.save(TechStack.builder().stackName(stack).build()));
+            repository.save(job);
+        }
+        entityManager.flush();
+        entityManager.clear();
+        for (String stack : List.of("C", "C++", "C#", "Java", "JavaScript", "Kubernetes", "PyTorch")) {
+            assertThat(repository.searchByAllFieldsOptimized(
+                    "", null, null, null, stack, LocalDate.now(), PageRequest.of(0, 20)))
+                    .extracting(JobPost::getOriginalSn).containsExactly("stack-" + stack);
+        }
+    }
+
     private java.util.List<JobPost> search(String keyword) {
         return repository.searchByAllFieldsOptimized(
                         keyword, null, null, null, null, LocalDate.now(),
