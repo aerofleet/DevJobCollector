@@ -1,11 +1,14 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "djc",
+  "main": "worker/index.js",
   "compatibility_date": "2025-09-27",
   "observability": {
     "enabled": true
   },
   "assets": {
+    "binding": "ASSETS",
+    "run_worker_first": ["/", "/jobs", "/job/*", "/robots.txt", "/sitemap*", "/terms", "/privacy", "/login", "/signup", "/oauth/*", "/member", "/my-devjobs", "/resumes", "/resume", "/company"],
     "not_found_handling": "single-page-application"
   },
   "compatibility_flags": [

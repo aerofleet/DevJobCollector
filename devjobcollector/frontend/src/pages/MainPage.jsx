@@ -80,11 +80,12 @@ const MainPage = ({ onSearch }) => {
           </h1>
           <p data-motion-reveal="" data-motion-step="1">여러 채용 플랫폼을 오갈 필요 없이, 지금 나에게 맞는 개발자 포지션을 빠르게 찾아보세요.</p>
 
-          <form className="hero-search" data-motion-reveal="" data-motion-step="2" data-motion-enter="search" onSubmit={submitSearch} role="search">
+          <form className="hero-search" action="/jobs" method="get" data-motion-reveal="" data-motion-step="2" data-motion-enter="search" onSubmit={submitSearch} role="search">
             <Search size={22} aria-hidden="true" />
             <label className="sr-only" htmlFor="hero-job-search">채용공고 검색</label>
             <input
               id="hero-job-search"
+              name="keyword"
               type="search"
               value={heroKeyword}
               onChange={(event) => setHeroKeyword(event.target.value)}

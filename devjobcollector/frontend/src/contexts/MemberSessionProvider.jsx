@@ -4,7 +4,7 @@ import { MemberSessionContext } from './memberSession';
 import { getAccessToken, subscribeAccessToken } from '../utils/accessToken';
 
 const MemberSessionProvider = ({ children }) => {
-  const token = useSyncExternalStore(subscribeAccessToken, getAccessToken);
+  const token = useSyncExternalStore(subscribeAccessToken, getAccessToken, () => null);
   const [session, setSession] = useState(null);
   const member = token && session?.token === token ? session.member : null;
   const status = token && session?.token === token ? session.status : 'idle';

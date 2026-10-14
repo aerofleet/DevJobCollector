@@ -7,6 +7,7 @@ import ScrollToTop from './components/common/ScrollToTop';
 import Header from './pages/Header';
 import MemberSessionProvider from './contexts/MemberSessionProvider';
 import ScrollReveals from './motion/ScrollReveals';
+import GrowthAnalytics from './components/common/GrowthAnalytics';
 
 const AllJobsPage = lazy(() => import('./pages/AllJobsPage'));
 const DetailPage = lazy(() => import('./pages/DetailPage'));
@@ -101,17 +102,19 @@ const AppRoutes = () => {
       </Suspense>
       </RouteErrorBoundary>
       <ScrollToTop />
+      <GrowthAnalytics />
     </div>
   );
 };
 
-function App() {
+function App(props) {
+  const Router = props.Router || BrowserRouter;
   return (
-    <BrowserRouter>
+    <Router>
       <MemberSessionProvider>
         <AppRoutes />
       </MemberSessionProvider>
-    </BrowserRouter>
+    </Router>
   );
 }
 

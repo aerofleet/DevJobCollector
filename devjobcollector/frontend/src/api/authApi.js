@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { trackGrowth } from '../utils/growthAnalytics';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
 
@@ -12,6 +13,7 @@ const authClient = axios.create({
 
 export const loginWithPassword = async ({ identifier, password }) => {
   const response = await authClient.post('/auth/login', { identifier, password });
+  trackGrowth('LOGIN');
   return response.data;
 };
 
@@ -22,6 +24,7 @@ export const signupPersonal = async (payload) => {
 
 export const verifyPersonalEmail = async ({ email, code }) => {
   const response = await authClient.post('/auth/signup/personal/verify-email', { email, code });
+  trackGrowth('SIGNUP');
   return response.data;
 };
 

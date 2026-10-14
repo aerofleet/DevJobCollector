@@ -1,4 +1,5 @@
 import { getAccessToken, setAccessToken, clearAccessToken } from '../utils/accessToken';
+import { trackGrowth } from '../utils/growthAnalytics';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { loginWithPassword } from '../api/authApi';
@@ -157,6 +158,7 @@ const LoginPage = () => {
     callbackHandledRef.current = true;
 
     setAccessToken(token);
+    trackGrowth('LOGIN');
     setRecentSocialProvider(commitSuccessfulSocialLogin(oauthProvider));
     sessionStorage.removeItem('postLoginNextPath');
     const pendingLinkProvider = readPendingLinkProvider();

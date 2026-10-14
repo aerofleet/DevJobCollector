@@ -1,4 +1,5 @@
 import authenticatedApi from './authenticatedApi';
+import { trackGrowth } from '../utils/growthAnalytics';
 
 export const fetchBookmarks = async () => {
   const response = await authenticatedApi.get('/members/me/bookmarks');
@@ -7,6 +8,7 @@ export const fetchBookmarks = async () => {
 
 export const createBookmark = async (jobPostId) => {
   const response = await authenticatedApi.post(`/members/me/bookmarks/${jobPostId}`);
+  trackGrowth('BOOKMARK', jobPostId);
   return response.data;
 };
 

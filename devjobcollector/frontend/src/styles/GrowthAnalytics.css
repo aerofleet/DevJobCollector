@@ -1,0 +1,5 @@
+.growth-consent { position: relative; padding: 12px 20px; text-align: center; font-size: 12px; color: #57516b; }
+.growth-consent button { min-height: 44px; padding: 8px 14px; border: 1px solid #d8d1e8; border-radius: 8px; background: #fff; color: #493b73; cursor: pointer; }
+.growth-consent-panel { max-width: 600px; margin: 12px auto; padding: 18px; border: 1px solid #d8d1e8; border-radius: 12px; text-align: left; line-height: 1.7; }
+.growth-consent-panel p { margin: 10px 0; }
+.growth-consent-panel div { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; }

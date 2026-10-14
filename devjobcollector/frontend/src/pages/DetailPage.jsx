@@ -1,4 +1,5 @@
 import { getAccessToken } from '../utils/accessToken';
+import { trackGrowth } from '../utils/growthAnalytics';
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchJobDetail, recordJobEngagement } from '../api/jobApi';
@@ -32,6 +33,7 @@ const DetailPage = () => {
       const data = await fetchJobDetail(id);
       if (cancelled) return;
       setJob(data);
+      if (!viewEvent.current.tracked) { trackGrowth('JOB_VIEW', id); viewEvent.current.tracked = true; }
       if (data.sourcePlatform === 'COMPANY_DIRECT') {
         recordJobEngagement(id, 'VIEW', eventId).catch(() => {});
       }
@@ -82,6 +84,7 @@ const DetailPage = () => {
 
   const handleApply = () => {
     if (!requireMember()) return;
+    trackGrowth('APPLY_CLICK', id);
     if (job.sourcePlatform === 'COMPANY_DIRECT') recordJobEngagement(id, 'APPLY_CLICK').catch(() => {});
     setActivityMessage('');
     createApplication(id).then(() => setActivityMessage('지원 기록을 저장했습니다. 열린 채용 사이트에서 지원을 완료해주세요.')).catch((activityError) => {
@@ -164,6 +167,14 @@ const DetailPage = () => {
         )}
 
         <div className="action-buttons">
+          <button type="button" className="save-job-button im-button" onClick={async () => {
+            const url = `${window.location.origin}/job/${id}`;
+            try {
+              if (navigator.share) await navigator.share({ title: `${job.title} | 데브잡스`, url });
+              else { await navigator.clipboard.writeText(url); setActivityMessage('공고 링크를 복사했습니다.'); }
+              trackGrowth('SHARE', id);
+            } catch (error) { if (error.name !== 'AbortError') setActivityMessage('링크를 복사하지 못했습니다. 주소창의 공고 주소를 복사해주세요.'); }
+          }}>공고 공유</button>
           <button
             type="button"
             className="save-job-button im-button"

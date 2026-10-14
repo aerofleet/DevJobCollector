@@ -1,6 +1,7 @@
 import { AlertTriangle, ArrowUpRight, Building2, BriefcaseBusiness, RefreshCw, UserPlus, Users } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { adminApi } from '../api/adminApi';
+import GrowthPanel from '../components/GrowthPanel';
 
 const cards = [
   { key: 'totalUsers', label: '전체 일반 회원', icon: Users, tone: 'blue' },
@@ -59,6 +60,7 @@ const DashboardPage = () => {
   );
   return (
     <div className="dashboard-grid">
+      <GrowthPanel />
       <section className="page-heading">
         <div><p className="eyebrow">OVERVIEW</p><h2>오늘의 운영 현황</h2><p>{state.data?.timezone || 'Asia/Seoul'} · {state.data?.asOf ? new Date(state.data.asOf).toLocaleString('ko-KR') : '기준 시각 없음'}</p></div>
         <button className="secondary-button" type="button" onClick={load}><RefreshCw size={16} /> 새로고침</button>

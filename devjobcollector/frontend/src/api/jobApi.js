@@ -8,10 +8,8 @@ const RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  withCredentials: true,
+  // Public reads need neither cookies nor a JSON Content-Type preflight.
+  withCredentials: false,
 });
 
 // 관리자 숨김·마감 직후에도 공개 목록과 상세가 브라우저/CDN의 이전 응답을 재사용하지 않도록 한다.
