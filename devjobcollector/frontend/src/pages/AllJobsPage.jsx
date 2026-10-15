@@ -84,11 +84,19 @@ const JobsResults = ({ filters }) => {
     };
 
     loadInitialData();
-    window.addEventListener('focus', loadInitialData);
+    const hiddenAt = { current: null };
+    const handleVisibility = () => {
+      if (document.hidden) {
+        hiddenAt.current = Date.now();
+      } else if (hiddenAt.current && Date.now() - hiddenAt.current > 5 * 60 * 1000) {
+        loadInitialData();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
     return () => {
       disposed = true;
       requestVersion.current += 1;
-      window.removeEventListener('focus', loadInitialData);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [fetchPage, retryAttempt]);
 
