@@ -72,6 +72,7 @@ collection:
     poll-delay-ms: ${ATS_COLLECTION_POLL_DELAY_MS:600000}
     closure-miss-threshold: ${ATS_COLLECTION_CLOSURE_MISS_THRESHOLD:2}
     targets:
+      # ── 기존 타겟 ──
       - enabled: true
         company-name: GitLab
         provider: GREENHOUSE
@@ -102,6 +103,141 @@ collection:
         source-identifier: naver-careers
         careers-url: https://recruit.navercorp.com/rcrt/list.do
         collection-tier: B
+      # ── Greenhouse: 한국 IT기업 ──
+      - enabled: true
+        company-name: 쿠팡
+        provider: GREENHOUSE
+        source-identifier: coupang
+        careers-url: https://www.coupang.jobs
+        collection-tier: A
+      - enabled: true
+        company-name: 당근
+        provider: GREENHOUSE
+        source-identifier: daangn
+        careers-url: https://about.daangn.com/jobs
+        collection-tier: A
+      - enabled: true
+        company-name: 크래프톤
+        provider: GREENHOUSE
+        source-identifier: krafton
+        careers-url: https://careers.krafton.com
+        collection-tier: A
+      - enabled: true
+        company-name: 몰로코
+        provider: GREENHOUSE
+        source-identifier: moloco
+        careers-url: https://www.moloco.com/careers
+        collection-tier: A
+      - enabled: true
+        company-name: 센드버드
+        provider: GREENHOUSE
+        source-identifier: sendbird
+        careers-url: https://sendbird.com/careers
+        collection-tier: A
+      # ── Greenhouse: 글로벌 IT기업 ──
+      - enabled: true
+        company-name: Stripe
+        provider: GREENHOUSE
+        source-identifier: stripe
+        careers-url: https://stripe.com/jobs
+        collection-tier: A
+      - enabled: true
+        company-name: Cloudflare
+        provider: GREENHOUSE
+        source-identifier: cloudflare
+        careers-url: https://www.cloudflare.com/careers
+        collection-tier: A
+      - enabled: true
+        company-name: Datadog
+        provider: GREENHOUSE
+        source-identifier: datadog
+        careers-url: https://careers.datadoghq.com
+        collection-tier: B
+      - enabled: true
+        company-name: Discord
+        provider: GREENHOUSE
+        source-identifier: discord
+        careers-url: https://discord.com/careers
+        collection-tier: A
+      - enabled: true
+        company-name: Coinbase
+        provider: GREENHOUSE
+        source-identifier: coinbase
+        careers-url: https://www.coinbase.com/careers
+        collection-tier: B
+      - enabled: true
+        company-name: Figma
+        provider: GREENHOUSE
+        source-identifier: figma
+        careers-url: https://www.figma.com/careers
+        collection-tier: A
+      - enabled: true
+        company-name: Twitch
+        provider: GREENHOUSE
+        source-identifier: twitch
+        careers-url: https://www.twitch.tv/jobs
+        collection-tier: B
+      - enabled: true
+        company-name: Elastic
+        provider: GREENHOUSE
+        source-identifier: elastic
+        careers-url: https://www.elastic.co/careers
+        collection-tier: B
+      - enabled: true
+        company-name: Databricks
+        provider: GREENHOUSE
+        source-identifier: databricks
+        careers-url: https://www.databricks.com/company/careers
+        collection-tier: B
+      - enabled: true
+        company-name: MongoDB
+        provider: GREENHOUSE
+        source-identifier: mongodb
+        careers-url: https://www.mongodb.com/careers
+        collection-tier: B
+      - enabled: true
+        company-name: Airbnb
+        provider: GREENHOUSE
+        source-identifier: airbnb
+        careers-url: https://careers.airbnb.com
+        collection-tier: B
+      - enabled: true
+        company-name: Pinterest
+        provider: GREENHOUSE
+        source-identifier: pinterest
+        careers-url: https://www.pinterestcareers.com
+        collection-tier: B
+      - enabled: true
+        company-name: Instacart
+        provider: GREENHOUSE
+        source-identifier: instacart
+        careers-url: https://instacart.careers
+        collection-tier: B
+      - enabled: true
+        company-name: PagerDuty
+        provider: GREENHOUSE
+        source-identifier: pagerduty
+        careers-url: https://careers.pagerduty.com
+        collection-tier: B
+      - enabled: true
+        company-name: CockroachLabs
+        provider: GREENHOUSE
+        source-identifier: cockroachlabs
+        careers-url: https://www.cockroachlabs.com/careers
+        collection-tier: B
+      - enabled: true
+        company-name: Airtable
+        provider: GREENHOUSE
+        source-identifier: airtable
+        careers-url: https://airtable.com/careers
+        collection-tier: B
+      # ── Greenhouse: 우아한형제들 ──
+      - enabled: true
+        company-name: 우아한형제들
+        provider: WOOWAHAN
+        source-identifier: woowahan
+        careers-url: https://career.woowahan.com
+        collection-tier: A
 
 server:
   forward-headers-strategy: ${SERVER_FORWARD_HEADERS_STRATEGY:none}
