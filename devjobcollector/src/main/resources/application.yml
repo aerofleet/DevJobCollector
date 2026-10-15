@@ -231,12 +231,19 @@ collection:
         source-identifier: airtable
         careers-url: https://airtable.com/careers
         collection-tier: B
-      # ── Greenhouse: 우아한형제들 ──
+      # ── 우아한형제들 ──
       - enabled: true
         company-name: 우아한형제들
         provider: WOOWAHAN
         source-identifier: woowahan
         careers-url: https://career.woowahan.com
+        collection-tier: A
+      # ── 카카오 ──
+      - enabled: true
+        company-name: 카카오
+        provider: KAKAO
+        source-identifier: kakao-careers
+        careers-url: https://careers.kakao.com
         collection-tier: A
 
 server:

@@ -11,6 +11,7 @@ public enum SourcePlatform {
     LEVER("Lever"),
     SARAMIN("사람인"),
     WOOWAHAN("우아한형제들"),
+    KAKAO("카카오"),
     COMPANY_PAGE("기업 채용페이지"),
     JOBKOREA("잡코리아"),
     COMPANY_DIRECT("기업 직접 등록");

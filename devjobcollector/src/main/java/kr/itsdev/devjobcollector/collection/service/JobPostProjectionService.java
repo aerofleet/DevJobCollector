@@ -83,6 +83,7 @@ public class JobPostProjectionService {
             case TOSS_CAREERS -> SourcePlatform.COMPANY_PAGE;
             case NAVER_CAREERS -> SourcePlatform.COMPANY_PAGE;
             case WOOWAHAN -> SourcePlatform.WOOWAHAN;
+            case KAKAO -> SourcePlatform.KAKAO;
             case COMPANY_PAGE -> SourcePlatform.COMPANY_PAGE;
             default -> throw new IllegalArgumentException("Unsupported ATS provider: " + sourceType);
         };

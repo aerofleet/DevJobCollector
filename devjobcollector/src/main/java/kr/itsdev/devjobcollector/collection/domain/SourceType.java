@@ -8,6 +8,7 @@ public enum SourceType {
     TOSS_CAREERS,
     NAVER_CAREERS,
     WOOWAHAN,
+    KAKAO,
     GREETING,
     SITEMAP,
     COMPANY_PAGE
