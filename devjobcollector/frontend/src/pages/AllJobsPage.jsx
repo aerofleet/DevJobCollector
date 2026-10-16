@@ -32,7 +32,7 @@ const getFilters = (searchParams) => {
     jobCategory: [...new Set(searchParams.getAll('jobCategory').flatMap(value => value.split(',')).map(value => value.trim()).filter(Boolean))],
     techStack: [...new Set(searchParams.getAll('techStack').flatMap(value => value.split(',')).map(value => value.trim()).filter(Boolean))],
     experience: searchParams.get('experience') ?? '',
-    location: searchParams.get('location') ?? '',
+    location: [...new Set(searchParams.getAll('location').flatMap(value => value.split(',')).map(value => value.trim()).filter(Boolean))],
     sortBy: sort.sortBy,
     direction: sort.direction,
   };
@@ -190,7 +190,7 @@ const AllJobsPage = () => {
     ...filters.jobCategory.map(value => ({ key: 'jobCategory', value, label: JOB_ROLES.find(role => role.value === value)?.label ?? value })),
     ...filters.techStack.map(value => ({ key: 'techStack', value, label: value })),
     filters.experience && { key: 'experience', label: filters.experience },
-    filters.location && { key: 'location', label: locationLabel(filters.location) },
+    ...filters.location.map(value => ({ key: 'location', value, label: locationLabel(value) })),
   ].filter(Boolean);
 
   return (
@@ -236,16 +236,12 @@ const AllJobsPage = () => {
                 {EXPERIENCES.map((option) => <option value={option.value} key={option.value || 'all'}>{option.label}</option>)}
               </select>
             </label>
-            <label>
-              <span>지역</span>
-              <select aria-label="지역" value={filters.location} onChange={(event) => updateParams({ location: event.target.value })}>
-                <option value="">지역 전체</option>
-                {filters.location && !LOCATION_GROUPS.some(group => group.options.some(([value]) => value === filters.location)) && <option value={filters.location}>{filters.location}</option>}
-                {LOCATION_GROUPS.map(group => <optgroup label={group.label} key={group.label}>
-                  {group.options.map(([value, label]) => <option value={value} key={value}>{label}</option>)}
-                </optgroup>)}
-              </select>
-            </label>
+            <MultiSelectFilter label="지역" groups={[
+              ...LOCATION_GROUPS.map(group => ({ ...group, options: group.options.map(([value, label]) => ({ value, label })) })),
+              { label: '기타 선택 지역', options: filters.location
+                .filter(value => !LOCATION_GROUPS.some(group => group.options.some(([key]) => key === value)))
+                .map(value => ({ value, label: value })) },
+            ]} values={filters.location} onChange={location => updateParams({ location })} />
             <label className="sort-filter">
               <span>정렬</span>
               <select value={searchParams.get('sort') ?? 'latest'} onChange={(event) => updateParams({ sort: event.target.value === 'latest' ? '' : event.target.value })}>

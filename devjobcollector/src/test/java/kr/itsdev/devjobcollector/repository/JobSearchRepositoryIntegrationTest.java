@@ -242,6 +242,17 @@ class JobSearchRepositoryIntegrationTest {
         assertThat(repository.searchByAllFieldsOptimized("", "청주", null, null, null,
                 LocalDate.now(), PageRequest.of(0, 20))).extracting(JobPost::getOriginalSn)
                 .containsExactly("chungbuk-location");
+        assertThat(repository.searchByAllFieldsOptimized("", "서울,일본,Remote", null, "backend", null,
+                LocalDate.now(), PageRequest.of(0, 20))).extracting(JobPost::getOriginalSn)
+                .containsExactlyInAnyOrder("seoul-location", "japan-location", "remote-location");
+        assertThat(repository.searchByAllFieldsOptimized("", "서울,일본", null, "frontend", null,
+                LocalDate.now(), PageRequest.of(0, 20))).isEmpty();
+        var overlapping = repository.searchByAllFieldsOptimized("", " domestic,서울,일본,일본, ", null, null, null,
+                LocalDate.now(), PageRequest.of(0, 1));
+        assertThat(overlapping.getTotalElements()).isEqualTo(4);
+        assertThat(repository.searchByAllFieldsOptimized("", "청주,일본", null, null, null,
+                LocalDate.now(), PageRequest.of(0, 20))).extracting(JobPost::getOriginalSn)
+                .containsExactlyInAnyOrder("chungbuk-location", "japan-location");
     }
 
     private java.util.List<JobPost> search(String keyword) {

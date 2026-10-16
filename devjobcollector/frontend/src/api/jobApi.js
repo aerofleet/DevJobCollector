@@ -110,7 +110,7 @@ export const searchJobs = async (filters = {}, page = 0, size = 10) => {
   const response = await apiClient.get('/jobs/search', {
     params: {
       keyword: normalizedFilters.keyword?.trim() || '',
-      location: normalizedFilters.location || undefined,
+      location: (Array.isArray(normalizedFilters.location) ? normalizedFilters.location.join(',') : normalizedFilters.location) || undefined,
       experience: normalizedFilters.experience || undefined,
       jobCategory: (Array.isArray(normalizedFilters.jobCategory) ? normalizedFilters.jobCategory.join(',') : normalizedFilters.jobCategory) || undefined,
       techStack: (Array.isArray(normalizedFilters.techStack) ? normalizedFilters.techStack.join(',') : normalizedFilters.techStack) || undefined,

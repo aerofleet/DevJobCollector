@@ -48,10 +48,11 @@ class JobPostControllerTest {
         when(jobPostService.searchJobPosts(any(), any(), any(), any(), any(), any(Pageable.class)))
                 .thenReturn(Page.empty());
         mockMvc.perform(get("/api/v1/jobs/search")
+                        .param("location", "서울,일본,Remote")
                         .param("jobCategory", "backend,frontend")
                         .param("techStack", "C++,C#,Java"))
                 .andExpect(status().isOk());
-        verify(jobPostService).searchJobPosts(any(), any(), any(),
+        verify(jobPostService).searchJobPosts(any(), eq("서울,일본,Remote"), any(),
                 eq("backend,frontend"), eq("C++,C#,Java"), any(Pageable.class));
     }
 

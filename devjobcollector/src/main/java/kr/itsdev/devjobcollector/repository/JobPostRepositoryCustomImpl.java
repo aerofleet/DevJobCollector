@@ -196,6 +196,10 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
     }
 
     private BooleanExpression locationCondition(String location) {
+        return anySelected(location, this::singleLocationCondition);
+    }
+
+    private BooleanExpression singleLocationCondition(String location) {
         String pattern = JobLocationFilter.pattern(location);
         return pattern == null ? containsIgnoreCase(jobPost.location, location)
                 : Expressions.booleanTemplate("function('regexp_like', {0}, {1}) = true", jobPost.location.lower(), pattern);
