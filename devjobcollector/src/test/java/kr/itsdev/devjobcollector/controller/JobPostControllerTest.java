@@ -44,6 +44,18 @@ class JobPostControllerTest {
     }
 
     @Test
+    void forwardsMultipleSelectionsIncludingSpecialCharacterStacks() throws Exception {
+        when(jobPostService.searchJobPosts(any(), any(), any(), any(), any(), any(Pageable.class)))
+                .thenReturn(Page.empty());
+        mockMvc.perform(get("/api/v1/jobs/search")
+                        .param("jobCategory", "backend,frontend")
+                        .param("techStack", "C++,C#,Java"))
+                .andExpect(status().isOk());
+        verify(jobPostService).searchJobPosts(any(), any(), any(),
+                eq("backend,frontend"), eq("C++,C#,Java"), any(Pageable.class));
+    }
+
+    @Test
     void forwardsExplorerFiltersAndDeadlineSort() throws Exception {
         when(jobPostService.searchJobPosts(
                 any(), any(), any(), any(), any(), any(Pageable.class)))

@@ -5,6 +5,7 @@ import { searchJobs } from '../api/jobApi';
 import JobCard from '../components/job/JobCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import MotionFilter from '../motion/MotionFilter';
+import MultiSelectFilter from '../components/job/MultiSelectFilter';
 import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import '../styles/AllJobsPage.css';
 import { JOB_ROLES, JOB_ROLE_GROUPS, QUICK_JOB_ROLES, TECH_STACK_GROUPS } from '../data/jobFilters';
@@ -27,8 +28,8 @@ const getFilters = (searchParams) => {
   const sort = SORT_OPTIONS.find((option) => option.value === searchParams.get('sort')) ?? SORT_OPTIONS[0];
   return {
     keyword: searchParams.get('keyword') ?? '',
-    jobCategory: searchParams.get('jobCategory') ?? '',
-    techStack: searchParams.get('techStack') ?? '',
+    jobCategory: [...new Set(searchParams.getAll('jobCategory').flatMap(value => value.split(',')).map(value => value.trim()).filter(Boolean))],
+    techStack: [...new Set(searchParams.getAll('techStack').flatMap(value => value.split(',')).map(value => value.trim()).filter(Boolean))],
     experience: searchParams.get('experience') ?? '',
     location: searchParams.get('location') ?? '',
     sortBy: sort.sortBy,
@@ -162,7 +163,8 @@ const AllJobsPage = () => {
   const updateParams = (updates) => {
     const nextParams = new URLSearchParams(searchParams);
     Object.entries(updates).forEach(([key, value]) => {
-      if (value) nextParams.set(key, value);
+      const serialized = Array.isArray(value) ? value.join(',') : value;
+      if (serialized) nextParams.set(key, serialized);
       else nextParams.delete(key);
     });
     setSearchParams(nextParams);
@@ -177,8 +179,8 @@ const AllJobsPage = () => {
   const clearFilters = () => setSearchParams({});
   const activeFilters = [
     filters.keyword && { key: 'keyword', label: `검색: ${filters.keyword}` },
-    filters.jobCategory && { key: 'jobCategory', label: JOB_ROLES.find((role) => role.value === filters.jobCategory)?.label ?? filters.jobCategory },
-    filters.techStack && { key: 'techStack', label: filters.techStack },
+    ...filters.jobCategory.map(value => ({ key: 'jobCategory', value, label: JOB_ROLES.find(role => role.value === value)?.label ?? value })),
+    ...filters.techStack.map(value => ({ key: 'techStack', value, label: value })),
     filters.experience && { key: 'experience', label: filters.experience },
     filters.location && { key: 'location', label: filters.location },
   ].filter(Boolean);
@@ -214,27 +216,12 @@ const AllJobsPage = () => {
         </button>
 
         <div id="job-filter-panel" className={`filter-panel ${isMobileFilterOpen ? 'open' : ''}`}>
-          <MotionFilter options={QUICK_JOB_ROLES} value={filters.jobCategory} onChange={(jobCategory) => updateParams({ jobCategory })} />
+          <MotionFilter options={QUICK_JOB_ROLES} value={filters.jobCategory} onChange={value => updateParams({ jobCategory: !value ? [] : filters.jobCategory.includes(value) ? filters.jobCategory.filter(item => item !== value) : [...filters.jobCategory, value] })} />
 
+          <p className="filter-selection-help">여러 항목을 선택할 수 있습니다. 같은 필터에서는 하나라도 일치하는 공고를 표시합니다.</p>
           <div className="detail-filters">
-            <label>
-              <span>직무 상세</span>
-              <select aria-label="직무 상세" value={filters.jobCategory} onChange={(event) => updateParams({ jobCategory: event.target.value })}>
-                <option value="">전체 직무</option>
-                {JOB_ROLE_GROUPS.map(group => <optgroup label={group.label} key={group.label}>
-                  {group.options.map(([value, label]) => <option value={value} key={value}>{label}</option>)}
-                </optgroup>)}
-              </select>
-            </label>
-            <label>
-              <span>기술 스택</span>
-              <select aria-label="기술 스택" value={filters.techStack} onChange={(event) => updateParams({ techStack: event.target.value })}>
-                <option value="">전체 기술</option>
-                {TECH_STACK_GROUPS.map(group => <optgroup label={group.label} key={group.label}>
-                  {group.options.map(stack => <option value={stack} key={stack}>{stack}</option>)}
-                </optgroup>)}
-              </select>
-            </label>
+            <MultiSelectFilter label="직무 상세" groups={JOB_ROLE_GROUPS.map(group => ({ ...group, options: group.options.map(([value, label]) => ({ value, label })) }))} values={filters.jobCategory} onChange={jobCategory => updateParams({ jobCategory })} />
+            <MultiSelectFilter label="기술 스택" groups={TECH_STACK_GROUPS.map(group => ({ ...group, options: group.options.map(value => ({ value, label: value })) }))} values={filters.techStack} onChange={techStack => updateParams({ techStack })} />
             <label>
               <span>경력</span>
               <select value={filters.experience} onChange={(event) => updateParams({ experience: event.target.value })}>
@@ -260,7 +247,7 @@ const AllJobsPage = () => {
           <div className="active-filter-row">
             <span>선택 조건</span>
             {activeFilters.map((filter) => (
-              <button type="button" key={filter.key} onClick={() => updateParams({ [filter.key]: '' })}>
+              <button type="button" key={`${filter.key}:${filter.value ?? ''}`} aria-label={`${filter.label} 해제`} onClick={() => updateParams({ [filter.key]: filter.value ? filters[filter.key].filter(value => value !== filter.value) : '' })}>
                 {filter.label} <X size={13} />
               </button>
             ))}

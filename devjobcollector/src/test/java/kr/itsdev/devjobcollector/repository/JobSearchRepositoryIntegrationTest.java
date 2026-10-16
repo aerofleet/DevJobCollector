@@ -179,6 +179,31 @@ class JobSearchRepositoryIntegrationTest {
         }
     }
 
+    @Test
+    void multipleFiltersUseOrWithinGroupsAndAcrossGroupsWithoutDuplicates() {
+        TechStack java = techStackRepository.save(TechStack.builder().stackName("Java").build());
+        TechStack react = techStackRepository.save(TechStack.builder().stackName("React").build());
+        TechStack javascript = techStackRepository.save(TechStack.builder().stackName("JavaScript").build());
+        JobPost backend = saveJob("multi-backend", "백엔드 개발자", null, null, "정규직");
+        backend.addTechStack(java);
+        backend.addTechStack(react);
+        saveJob("multi-frontend", "프론트엔드 개발자", null, null, "정규직").addTechStack(react);
+        saveJob("wrong-role", "QA 엔지니어", null, null, "정규직").addTechStack(java);
+        saveJob("wrong-stack", "백엔드 개발자", null, null, "정규직").addTechStack(javascript);
+        entityManager.flush();
+        entityManager.clear();
+
+        var results = repository.searchByAllFieldsOptimized("", null, null,
+                " backend,frontend,backend, ", "java,React,", LocalDate.now(), PageRequest.of(0, 1));
+        assertThat(results.getTotalElements()).isEqualTo(2);
+        var all = repository.searchByAllFieldsOptimized("", null, null,
+                "backend,frontend", "Java,React", LocalDate.now(), PageRequest.of(0, 20));
+        assertThat(all).extracting(JobPost::getOriginalSn)
+                .containsExactlyInAnyOrder("multi-backend", "multi-frontend");
+        assertThat(repository.searchByAllFieldsOptimized("", null, null,
+                "backend,frontend", "C++,C#", LocalDate.now(), PageRequest.of(0, 20))).isEmpty();
+    }
+
     private java.util.List<JobPost> search(String keyword) {
         return repository.searchByAllFieldsOptimized(
                         keyword, null, null, null, null, LocalDate.now(),

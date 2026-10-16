@@ -112,6 +112,27 @@
 
 .filter-panel { margin-top: 20px; }
 
+.filter-selection-help { color: #77727f; font-size: 12px; margin: 14px 0 0; }
+.multi-filter { position: relative; min-width: 0; }
+.multi-filter[open] { z-index: 20; }
+.multi-filter summary { cursor: pointer; border: 1px solid #dcd8e5; border-radius: 10px; min-height: 58px; padding: 8px 12px; list-style: none; }
+.multi-filter summary::-webkit-details-marker { display: none; }
+.multi-filter summary:focus-visible { outline: 2px solid #7659f4; outline-offset: 2px; }
+.multi-filter-label { display: block; color: #77727f; font-size: 10px; }
+.multi-filter-value { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; margin-top: 4px; }
+.multi-filter-menu { position: absolute; top: calc(100% + 6px); left: 0; width: max(100%, 250px); max-width: calc(100vw - 64px); padding: 12px; border: 1px solid #dcd8e5; border-radius: 12px; background: white; box-shadow: 0 8px 24px #28242f22; }
+.multi-filter-menu > input { width: 100%; min-width: 0; padding: 8px; border: 1px solid #dcd8e5; border-radius: 6px; }
+.multi-filter-menu > button { border: 0; background: none; color: #5c40de; padding: 10px 0; cursor: pointer; }
+.multi-filter-options { max-height: 280px; overflow-y: auto; overscroll-behavior: contain; }
+.multi-filter-options fieldset { border: 0; padding: 0; margin: 0 0 12px; min-width: 0; }
+.multi-filter-options legend { float: none; width: auto; font-size: 12px; color: #77727f; margin-bottom: 6px; }
+.detail-filters .multi-filter-options label { display: flex; align-items: center; gap: 8px; min-height: 38px; padding: 6px 2px; font-size: 13px; cursor: pointer; }
+.multi-filter-options input { accent-color: #6c4dff; flex: 0 0 auto; }
+@media (max-width: 640px) {
+  .multi-filter-menu { position: static; width: 100%; max-width: 100%; margin-top: 6px; }
+  .multi-filter summary { scroll-margin-block: 80px; }
+}
+
 .role-filter {
   display: flex;
   flex-wrap: wrap;

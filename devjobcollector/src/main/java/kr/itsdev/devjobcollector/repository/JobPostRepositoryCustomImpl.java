@@ -196,9 +196,16 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
     }
 
     private BooleanExpression techStackCondition(String techStackName) {
-        return techStackName == null || techStackName.isBlank()
-                ? null
-                : techStackEquals(techStackName.trim());
+        return anySelected(techStackName, this::techStackEquals);
+    }
+
+    // Comma-separated selections preserve existing single-value search URLs.
+    // OR within a filter; the surrounding where clauses AND the filter groups.
+    private BooleanExpression anySelected(String values, java.util.function.Function<String, BooleanExpression> predicate) {
+        if (values == null || values.isBlank()) return null;
+        return java.util.Arrays.stream(values.split(","))
+                .map(String::trim).filter(value -> !value.isEmpty()).distinct()
+                .map(predicate).reduce(BooleanExpression::or).orElse(null);
     }
 
     private BooleanExpression techStackContainsAny(List<String> values) {
@@ -250,6 +257,10 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
     }
 
     private BooleanExpression jobRoleCondition(String role) {
+        return anySelected(role, this::singleJobRoleCondition);
+    }
+
+    private BooleanExpression singleJobRoleCondition(String role) {
         if (role == null || role.isBlank()) {
             return null;
         }

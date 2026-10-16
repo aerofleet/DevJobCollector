@@ -1,36 +1,73 @@
 import { test, expect } from '@playwright/test';
 import { JOB_ROLES, TECH_STACK_GROUPS } from '../src/data/jobFilters.js';
 
-test('expanded filters preserve URL, API parameters and mobile layout', async ({ page }) => {
-  await page.route('**/api/v1/jobs/search**', route => route.fulfill({ json: { content: [], totalElements: 0, totalPages: 0 } }));
-  await page.goto('/jobs');
+async function openFilters(page) {
   await expect(page.getByRole('heading', { name: '개발 직무 탐색' })).toBeVisible();
   const toggle = page.getByRole('button', { name: /^필터/ });
-  if (await toggle.isVisible()) await toggle.click();
-  const role = page.getByLabel('직무 상세', { exact: true });
-  const stack = page.getByLabel('기술 스택', { exact: true });
-  await expect(role.locator('option')).toHaveCount(JOB_ROLES.length);
-  const stacks = TECH_STACK_GROUPS.flatMap(group => group.options);
-  expect(new Set(stacks).size).toBe(stacks.length);
-  expect(stacks.length).toBeGreaterThan(150);
-  await expect(stack.locator('option')).toHaveCount(stacks.length + 1);
-  await role.selectOption('embedded');
+  if (await toggle.isVisible() && await toggle.getAttribute('aria-expanded') === 'false') await toggle.click();
+}
+
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/v1/jobs/search**', route => route.fulfill({ json: { content: [], totalElements: 0, totalPages: 0 } }));
+});
+
+test('multiple selections preserve URL, API, individual removal and history', async ({ page }) => {
+  await page.goto('/jobs');
+  await openFilters(page);
+  await page.getByLabel('직무 상세', { exact: true }).click();
+  const role = page.getByRole('group', { name: '직무 상세 선택' });
+  await expect(role.getByRole('checkbox')).toHaveCount(JOB_ROLES.length - 1);
+  await role.getByLabel('백엔드', { exact: true }).click();
+  await expect(role.getByLabel('백엔드', { exact: true })).toBeChecked();
+  await role.getByLabel('프론트엔드', { exact: true }).click();
+  await expect(role.getByLabel('프론트엔드', { exact: true })).toBeChecked();
+  await page.getByLabel('기술 스택', { exact: true }).click();
+  const stack = page.getByRole('group', { name: '기술 스택 선택' });
+  await expect(stack.getByRole('checkbox')).toHaveCount(TECH_STACK_GROUPS.flatMap(group => group.options).length);
+  await stack.getByLabel('C++', { exact: true }).click();
+  await expect(stack.getByLabel('C++', { exact: true })).toBeChecked();
   const request = page.waitForRequest(req => {
     const url = new URL(req.url());
-    return url.pathname.endsWith('/jobs/search') && url.searchParams.get('jobCategory') === 'embedded' && url.searchParams.get('techStack') === 'C++';
+    return url.pathname.endsWith('/jobs/search') && url.searchParams.get('jobCategory') === 'backend,frontend' && url.searchParams.get('techStack') === 'C++,Java' && url.searchParams.get('page') === '0';
   });
-  await stack.selectOption('C++');
+  await stack.getByLabel('Java', { exact: true }).click();
+  await expect(stack.getByLabel('Java', { exact: true })).toBeChecked();
   await request;
-  await expect(page).toHaveURL(/jobCategory=embedded&techStack=C%2B%2B/);
+  expect(new URL(page.url()).searchParams.get('techStack')).toBe('C++,Java');
   await page.reload();
-  await expect(page.getByRole('heading', { name: '개발 직무 탐색' })).toBeVisible();
-  if (await toggle.isVisible()) await toggle.click();
-  await expect(role).toHaveValue('embedded');
-  await expect(stack).toHaveValue('C++');
-  await expect(page.locator('.active-filter-row')).toContainText('임베디드·펌웨어');
+  await openFilters(page);
+  await page.getByLabel('직무 상세', { exact: true }).click();
+  await expect(role.getByLabel('백엔드', { exact: true })).toBeChecked();
+  await expect(role.getByLabel('프론트엔드', { exact: true })).toBeChecked();
+  await page.getByLabel('기술 스택', { exact: true }).click();
+  await expect(stack.getByLabel('C++', { exact: true })).toBeChecked();
+  await expect(stack.getByLabel('Java', { exact: true })).toBeChecked();
+  await stack.getByLabel('기술 스택 검색').fill('zzzz');
+  await expect(stack.getByText('일치하는 항목이 없습니다.')).toBeVisible();
+  await stack.getByLabel('기술 스택 검색').press('Escape');
+  await expect(stack).toBeHidden();
+  await page.getByRole('button', { name: 'Java 해제', exact: true }).click();
+  expect(new URL(page.url()).searchParams.get('techStack')).toBe('C++');
+  await page.goBack();
+  await expect(page.getByRole('button', { name: 'Java 해제', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.getByRole('button', { name: '전체 초기화', exact: true }).click();
-  await expect(role).toHaveValue('');
-  await expect(stack).toHaveValue('');
   await expect(page).toHaveURL(/\/jobs$/);
+});
+
+test('legacy URL and quick role buttons support multiple selections', async ({ page }) => {
+  await page.goto('/jobs?jobCategory=backend&techStack=Java');
+  await openFilters(page);
+  const quick = page.getByRole('group', { name: '개발 직무', exact: true });
+  await expect(quick.getByRole('button', { name: '백엔드', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await quick.getByRole('button', { name: '프론트엔드', exact: true }).click();
+  await expect(quick.getByRole('button', { name: '프론트엔드', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  expect(new URL(page.url()).searchParams.get('jobCategory')).toBe('backend,frontend');
+  await quick.getByRole('button', { name: '백엔드', exact: true }).click();
+  await expect(quick.getByRole('button', { name: '백엔드', exact: true })).toHaveAttribute('aria-pressed', 'false');
+  expect(new URL(page.url()).searchParams.get('jobCategory')).toBe('frontend');
+  await quick.getByRole('button', { name: '전체 직무', exact: true }).click();
+  await expect(quick.getByRole('button', { name: '전체 직무', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  expect(new URL(page.url()).searchParams.has('jobCategory')).toBe(false);
+  expect(new URL(page.url()).searchParams.get('techStack')).toBe('Java');
 });
