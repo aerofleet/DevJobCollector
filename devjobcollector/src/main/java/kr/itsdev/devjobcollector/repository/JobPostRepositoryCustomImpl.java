@@ -54,7 +54,7 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
                         jobPost.moderationStatus.eq(JobModerationStatus.ACTIVE),
                         jobPost.endDate.goe(today),
                         keywordCondition(keywordTerms),
-                        containsIgnoreCase(jobPost.location, location),
+                        locationCondition(location),
                         experienceCondition(experience),
                         jobRoleCondition(jobCategory),
                         techStackCondition(techStackName)
@@ -94,7 +94,7 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
                         jobPost.moderationStatus.eq(JobModerationStatus.ACTIVE),
                         jobPost.endDate.goe(today),
                         keywordCondition(keywordTerms),
-                        containsIgnoreCase(jobPost.location, location),
+                        locationCondition(location),
                         experienceCondition(experience),
                         jobRoleCondition(jobCategory),
                         techStackCondition(techStackName)
@@ -193,6 +193,12 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
             String value
     ) {
         return value == null || value.isBlank() ? null : path.containsIgnoreCase(value.trim());
+    }
+
+    private BooleanExpression locationCondition(String location) {
+        String pattern = JobLocationFilter.pattern(location);
+        return pattern == null ? containsIgnoreCase(jobPost.location, location)
+                : Expressions.booleanTemplate("function('regexp_like', {0}, {1}) = true", jobPost.location.lower(), pattern);
     }
 
     private BooleanExpression techStackCondition(String techStackName) {

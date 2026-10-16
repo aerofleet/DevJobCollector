@@ -5,6 +5,7 @@ import { searchJobs } from '../api/jobApi';
 import JobCard from '../components/job/JobCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import MotionFilter from '../motion/MotionFilter';
+import { LOCATION_GROUPS, locationLabel } from '../data/locationFilters';
 import MultiSelectFilter from '../components/job/MultiSelectFilter';
 import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import '../styles/AllJobsPage.css';
@@ -18,7 +19,7 @@ const EXPERIENCES = [
   { value: '경력', label: '경력' },
   { value: '경력무관', label: '경력 무관' },
 ];
-const LOCATIONS = ['', '서울', '경기', '인천', '대전', '세종', '부산', '대구', '광주', 'Remote'];
+
 const SORT_OPTIONS = [
   { value: 'latest', label: '최신 등록순', sortBy: 'createdAt', direction: 'DESC' },
   { value: 'deadline', label: '마감 임박순', sortBy: 'endDate', direction: 'ASC' },
@@ -189,7 +190,7 @@ const AllJobsPage = () => {
     ...filters.jobCategory.map(value => ({ key: 'jobCategory', value, label: JOB_ROLES.find(role => role.value === value)?.label ?? value })),
     ...filters.techStack.map(value => ({ key: 'techStack', value, label: value })),
     filters.experience && { key: 'experience', label: filters.experience },
-    filters.location && { key: 'location', label: filters.location },
+    filters.location && { key: 'location', label: locationLabel(filters.location) },
   ].filter(Boolean);
 
   return (
@@ -237,8 +238,12 @@ const AllJobsPage = () => {
             </label>
             <label>
               <span>지역</span>
-              <select value={filters.location} onChange={(event) => updateParams({ location: event.target.value })}>
-                {LOCATIONS.map((location) => <option value={location} key={location || 'all'}>{location || '지역 전체'}</option>)}
+              <select aria-label="지역" value={filters.location} onChange={(event) => updateParams({ location: event.target.value })}>
+                <option value="">지역 전체</option>
+                {filters.location && !LOCATION_GROUPS.some(group => group.options.some(([value]) => value === filters.location)) && <option value={filters.location}>{filters.location}</option>}
+                {LOCATION_GROUPS.map(group => <optgroup label={group.label} key={group.label}>
+                  {group.options.map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+                </optgroup>)}
               </select>
             </label>
             <label className="sort-filter">

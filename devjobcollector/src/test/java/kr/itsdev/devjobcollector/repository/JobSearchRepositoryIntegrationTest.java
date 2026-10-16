@@ -204,6 +204,46 @@ class JobSearchRepositoryIntegrationTest {
                 "backend,frontend", "C++,C#", LocalDate.now(), PageRequest.of(0, 20))).isEmpty();
     }
 
+    @Test
+    void locationFiltersMatchAliasesAndKeepDomesticOverseasAndRemoteDistinct() {
+        for (String[] sample : List.of(
+                new String[]{"seoul-location", "Seoul, South Korea"},
+                new String[]{"chungbuk-location", "충청북도 청주시"},
+                new String[]{"busan-location", "Busan"},
+                new String[]{"usa-location", "San Francisco, US"},
+                new String[]{"japan-location", "Tokyo, Japan"},
+                new String[]{"australia-location", "Sydney, Australia"},
+                new String[]{"remote-location", "재택 근무"},
+                new String[]{"unknown-location", "근무지 미정"})) {
+            JobPost job = saveJob(sample[0], "백엔드 개발자", null, null, "정규직");
+            entityManager.flush();
+            jdbcTemplate.update("UPDATE job_posts SET location = ? WHERE id = ?", sample[1], job.getId());
+        }
+        entityManager.clear();
+        for (String[] expected : List.of(
+                new String[]{"서울", "seoul-location"},
+                new String[]{"충북", "chungbuk-location"},
+                new String[]{"미국", "usa-location"},
+                new String[]{"일본", "japan-location"},
+                new String[]{"Remote", "remote-location"})) {
+            assertThat(repository.searchByAllFieldsOptimized("", expected[0], null, "backend", null,
+                    LocalDate.now(), PageRequest.of(0, 20))).extracting(JobPost::getOriginalSn)
+                    .containsExactly(expected[1]);
+        }
+        assertThat(repository.searchByAllFieldsOptimized("", "domestic", null, null, null,
+                LocalDate.now(), PageRequest.of(0, 20))).extracting(JobPost::getOriginalSn)
+                .containsExactlyInAnyOrder("seoul-location", "chungbuk-location", "busan-location");
+        var overseas = repository.searchByAllFieldsOptimized("", "overseas", null, null, null,
+                LocalDate.now(), PageRequest.of(0, 1));
+        assertThat(overseas.getTotalElements()).isEqualTo(3);
+        assertThat(repository.searchByAllFieldsOptimized("", "overseas", null, null, null,
+                LocalDate.now(), PageRequest.of(0, 20))).extracting(JobPost::getOriginalSn)
+                .containsExactlyInAnyOrder("usa-location", "japan-location", "australia-location");
+        assertThat(repository.searchByAllFieldsOptimized("", "청주", null, null, null,
+                LocalDate.now(), PageRequest.of(0, 20))).extracting(JobPost::getOriginalSn)
+                .containsExactly("chungbuk-location");
+    }
+
     private java.util.List<JobPost> search(String keyword) {
         return repository.searchByAllFieldsOptimized(
                         keyword, null, null, null, null, LocalDate.now(),
