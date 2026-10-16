@@ -156,6 +156,7 @@
 
 .role-filter button:hover { border-color: #b7a9f5; color: #5c40de; }
 .role-filter button.active { border-color: #191724; background: #191724; color: #fff; }
+.role-filter button.partial { border-color: #a492ec; background: #f0ecff; color: #5c40de; }
 
 .detail-filters {
   display: grid;

@@ -3,7 +3,13 @@ import { useLayoutEffect, useRef } from 'react';
 // Filters remain native toggle buttons, not ARIA tabs: they change a query.
 export default function MotionFilter({ options, value, onChange }) {
   const root = useRef(null);
-  const isActive = option => Array.isArray(value) ? (option.value ? value.includes(option.value) : value.length === 0) : value === option.value;
+  const selectionState = option => {
+    if (!Array.isArray(value)) return value === option.value;
+    if (!option.value) return value.length === 0;
+    const roles = option.values ?? [option.value];
+    const selected = roles.filter(role => value.includes(role)).length;
+    return selected === roles.length ? true : selected > 0 ? 'mixed' : false;
+  };
   useLayoutEffect(() => {
     const element = root.current;
     const update = () => {
@@ -24,7 +30,8 @@ export default function MotionFilter({ options, value, onChange }) {
   }, [value]);
   return <div ref={root} className="role-filter im-filter" role="group" aria-label="개발 직무">
     <span className="im-filter-indicator" aria-hidden="true" />
-    {options.map(option => <button type="button" key={option.value} aria-pressed={isActive(option)}
-      className={isActive(option) ? 'active' : ''} onClick={() => onChange(option.value)}>{option.label}</button>)}
+    {options.map(option => <button type="button" key={option.value} aria-pressed={selectionState(option)}
+      className={selectionState(option) === true ? 'active' : selectionState(option) === 'mixed' ? 'partial' : ''}
+      onClick={() => onChange(option.value)}>{option.label}</button>)}
   </div>;
 }

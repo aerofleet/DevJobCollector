@@ -30,8 +30,24 @@ export const JOB_ROLES = [
   { value: '', label: '전체 직무' },
   ...JOB_ROLE_GROUPS.flatMap(group => group.options.map(([value, label]) => ({ value, label }))),
 ];
-export const QUICK_JOB_ROLES = JOB_ROLES.filter(role =>
-  ['', 'backend', 'frontend', 'fullstack', 'mobile', 'data-ai', 'devops-security'].includes(role.value));
+// Quick categories expand into existing role values, keeping search URLs/API compatible.
+export const QUICK_JOB_ROLES = [
+  { value: '', label: '전체 직무', values: [] },
+  { value: 'backend', label: '백엔드', values: ['backend'] },
+  { value: 'frontend', label: '프론트엔드', values: ['frontend', 'web-publishing'] },
+  { value: 'fullstack', label: '풀스택', values: ['fullstack'] },
+  { value: 'mobile', label: '모바일', values: ['mobile', 'android', 'ios', 'cross-platform'] },
+  { value: 'data-ai', label: '데이터·AI 전체', values: JOB_ROLE_GROUPS[1].options.map(([value]) => value) },
+  { value: 'devops-security', label: '인프라·보안 전체', values: JOB_ROLE_GROUPS[2].options.map(([value]) => value) },
+  { value: 'game', label: '게임 개발', values: ['game'] },
+  { value: 'embedded', label: '임베디드·로보틱스·IoT', values: ['embedded', 'robotics', 'iot'] },
+  { value: 'blockchain', label: '블록체인', values: ['blockchain'] },
+  { value: 'desktop', label: '데스크톱 앱', values: ['desktop'] },
+  { value: 'qa', label: 'QA·테스트', values: ['qa'] },
+  { value: 'architect', label: '설계·개발 리드', values: ['architect', 'engineering-manager'] },
+  { value: 'product-manager', label: '제품 기획·디자인', values: ['product-manager', 'product-designer'] },
+  { value: 'technical-support', label: '기술지원·솔루션', values: ['technical-support'] },
+];
 
 export const TECH_STACK_GROUPS = [
   { label: '프로그래밍 언어', options: ['Java', 'JavaScript', 'TypeScript', 'Python', 'Kotlin', 'Swift', 'Go', 'Rust', 'C', 'C++', 'C#', 'PHP', 'Ruby', 'Scala', 'Dart', 'R', 'Objective-C', 'Elixir', 'Erlang', 'Lua', 'Perl', 'Haskell', 'Clojure', 'Groovy', 'SQL', 'Bash', 'PowerShell'] },

@@ -177,6 +177,13 @@ const AllJobsPage = () => {
   };
 
   const clearFilters = () => setSearchParams({});
+  const toggleQuickRole = value => {
+    const roles = QUICK_JOB_ROLES.find(option => option.value === value)?.values ?? [];
+    const allSelected = roles.every(role => filters.jobCategory.includes(role));
+    updateParams({ jobCategory: !value ? [] : allSelected
+      ? filters.jobCategory.filter(role => !roles.includes(role))
+      : [...new Set([...filters.jobCategory, ...roles])] });
+  };
   const activeFilters = [
     filters.keyword && { key: 'keyword', label: `검색: ${filters.keyword}` },
     ...filters.jobCategory.map(value => ({ key: 'jobCategory', value, label: JOB_ROLES.find(role => role.value === value)?.label ?? value })),
@@ -216,7 +223,7 @@ const AllJobsPage = () => {
         </button>
 
         <div id="job-filter-panel" className={`filter-panel ${isMobileFilterOpen ? 'open' : ''}`}>
-          <MotionFilter options={QUICK_JOB_ROLES} value={filters.jobCategory} onChange={value => updateParams({ jobCategory: !value ? [] : filters.jobCategory.includes(value) ? filters.jobCategory.filter(item => item !== value) : [...filters.jobCategory, value] })} />
+          <MotionFilter options={QUICK_JOB_ROLES} value={filters.jobCategory} onChange={toggleQuickRole} />
 
           <p className="filter-selection-help">여러 항목을 선택할 수 있습니다. 같은 필터에서는 하나라도 일치하는 공고를 표시합니다.</p>
           <div className="detail-filters">
