@@ -6,6 +6,7 @@
 }
 
 .back-button {
+  scroll-margin-top: 140px;
   background: none;
   border: 1px solid #ddd;
   padding: 8px 16px;
@@ -123,7 +124,7 @@
 /* Mobile: single column and compact layout */
 @media (max-width: 640px) {
   .detail-page {
-    padding: 24px 16px 60px;
+    padding: 80px 16px 60px;
   }
 
   .detail-container {

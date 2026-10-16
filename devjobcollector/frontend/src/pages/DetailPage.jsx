@@ -95,7 +95,10 @@ const DetailPage = () => {
 
   return (
     <div className="detail-page">
-      <button className="back-button" onClick={() => navigate(-1)}>
+      <button className="back-button" onClick={() => {
+        if (window.history.state?.idx > 0) navigate(-1);
+        else navigate('/jobs', { replace: true });
+      }}>
         ← 돌아가기
       </button>
 

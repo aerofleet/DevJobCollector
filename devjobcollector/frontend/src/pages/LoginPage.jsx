@@ -1,7 +1,7 @@
 import { getAccessToken, setAccessToken, clearAccessToken } from '../utils/accessToken';
 import { trackGrowth } from '../utils/growthAnalytics';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useNavigationType } from 'react-router-dom';
 import { loginWithPassword } from '../api/authApi';
 import { startAccountLink } from '../api/authenticatedApi';
 import SocialLoginList from '../components/auth/SocialLoginList';
@@ -49,6 +49,7 @@ const clearAccountLinkFlow = () => {
 const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const navigationType = useNavigationType();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -150,6 +151,21 @@ const LoginPage = () => {
     }
 
     if (!token) {
+      // OAuth leaves the original login entry behind. Skip it on Back instead
+      // of sending the member to next again and trapping them in a history loop.
+      if (location.pathname === '/login' && getAccessToken() && !readPendingLinkProvider()) {
+        if (callbackHandledRef.current) return;
+        callbackHandledRef.current = true;
+        if (navigationType === 'POP' && window.history.state?.idx > 0) {
+          navigate(-1);
+        } else {
+          const target = new URL(redirectTo, window.location.origin);
+          const safePath = target.origin === window.location.origin
+            && !/^\/(login|oauth|signup)(\/|$)/.test(target.pathname)
+            ? `${target.pathname}${target.search}${target.hash}` : fallbackPath;
+          navigate(safePath, { replace: true });
+        }
+      }
       return;
     }
     if (callbackHandledRef.current) {
@@ -173,7 +189,7 @@ const LoginPage = () => {
       return;
     }
     navigate(redirectTo, { replace: true });
-  }, [beginAccountLink, location.search, navigate]);
+  }, [beginAccountLink, location.pathname, location.search, navigate, navigationType]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
