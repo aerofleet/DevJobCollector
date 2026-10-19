@@ -78,4 +78,12 @@ public class ResumeController {
         resumeService.delete(subject, resumeId);
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/{resumeId}/visibility")
+    public ResumeDetailResponse changeVisibility(
+            @AuthenticationPrincipal String subject,
+            @PathVariable Long resumeId,
+            @Valid @RequestBody kr.itsdev.devjobcollector.dto.career.ResumeVisibilityUpdateRequest request) {
+        return resumeService.changeVisibility(subject, resumeId, request);
+    }
 }

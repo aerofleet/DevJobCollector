@@ -1,5 +1,10 @@
 import authenticatedApi from './authenticatedApi';
 
+export const updateResumeVisibility = async (resumeId, visibility) => {
+  const response = await authenticatedApi.patch(`/members/me/resumes/${resumeId}/visibility`, { visibility });
+  return response.data;
+};
+
 export const listResumes = async () => {
   const response = await authenticatedApi.get('/members/me/resumes');
   return response.data;

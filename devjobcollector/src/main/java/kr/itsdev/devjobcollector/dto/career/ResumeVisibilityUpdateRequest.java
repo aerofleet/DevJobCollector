@@ -1,0 +1,6 @@
+package kr.itsdev.devjobcollector.dto.career;
+
+import jakarta.validation.constraints.NotNull;
+import kr.itsdev.devjobcollector.career.ResumeVisibility;
+
+public record ResumeVisibilityUpdateRequest(@NotNull ResumeVisibility visibility) {}

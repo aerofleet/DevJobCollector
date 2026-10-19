@@ -9,6 +9,7 @@ public record ResumeDetailResponse(
         Long id,
         String title,
         ResumeStatus status,
+        kr.itsdev.devjobcollector.career.ResumeVisibility visibility,
         JsonNode content,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
@@ -18,6 +19,7 @@ public record ResumeDetailResponse(
                 resume.getId(),
                 resume.getTitle(),
                 resume.getStatus(),
+                resume.getVisibility(),
                 content,
                 resume.getCreatedAt(),
                 resume.getUpdatedAt()

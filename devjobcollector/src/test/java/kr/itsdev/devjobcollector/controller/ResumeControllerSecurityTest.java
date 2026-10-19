@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import kr.itsdev.devjobcollector.career.ResumeService;
 import kr.itsdev.devjobcollector.career.ResumeStatus;
+import kr.itsdev.devjobcollector.career.ResumeVisibility;
 import kr.itsdev.devjobcollector.config.PerfLogProperties;
 import kr.itsdev.devjobcollector.dto.career.ResumeDetailResponse;
 import kr.itsdev.devjobcollector.dto.career.ResumeStatusUpdateRequest;
@@ -37,12 +38,13 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(ResumeController.class)
+@WebMvcTest({ResumeController.class, CompanyResumeController.class})
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class})
 class ResumeControllerSecurityTest {
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
     @MockitoBean ResumeService resumeService;
+    @MockitoBean kr.itsdev.devjobcollector.career.CompanyResumeService companyResumeService;
     @MockitoBean JwtTokenVerifier jwtTokenVerifier;
     @MockitoBean PerfLogProperties perfLogProperties;
 
@@ -58,6 +60,9 @@ class ResumeControllerSecurityTest {
 
     @Test
     void rejectsAllResumeOperationsWithoutBearerToken() throws Exception {
+        mockMvc.perform(get("/api/v1/companies/7/resumes")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/companies/7/resumes/11")).andExpect(status().isUnauthorized());
+        verifyNoInteractions(companyResumeService);
         String body = "{\"title\":\"이력서\",\"content\":{}}";
         mockMvc.perform(get("/api/v1/members/me/resumes")).andExpect(status().isUnauthorized());
         mockMvc.perform(post("/api/v1/members/me/resumes").contentType(MediaType.APPLICATION_JSON).content(body))
@@ -76,15 +81,15 @@ class ResumeControllerSecurityTest {
     void servesAuthenticatedOwnerCrudContract() throws Exception {
         LocalDateTime now = LocalDateTime.of(2026, 8, 27, 12, 0);
         ResumeDetailResponse detail = new ResumeDetailResponse(
-                11L, "이력서", ResumeStatus.DRAFT, objectMapper.readTree("{}"), now, now);
+                11L, "이력서", ResumeStatus.DRAFT, ResumeVisibility.PRIVATE, objectMapper.readTree("{}"), now, now);
         when(resumeService.list("42"))
-                .thenReturn(List.of(new ResumeSummaryResponse(11L, "이력서", ResumeStatus.DRAFT, now, now)));
+                .thenReturn(List.of(new ResumeSummaryResponse(11L, "이력서", ResumeStatus.DRAFT, ResumeVisibility.PRIVATE, now, now)));
         when(resumeService.create(eq("42"), any(ResumeUpsertRequest.class))).thenReturn(detail);
         when(resumeService.get("42", 11L)).thenReturn(detail);
         when(resumeService.update(eq("42"), eq(11L), any(ResumeUpsertRequest.class))).thenReturn(detail);
         when(resumeService.changeStatus(eq("42"), eq(11L), any(ResumeStatusUpdateRequest.class)))
                 .thenReturn(new ResumeDetailResponse(
-                        11L, "이력서", ResumeStatus.READY, objectMapper.readTree("{}"), now, now));
+                        11L, "이력서", ResumeStatus.READY, ResumeVisibility.PRIVATE, objectMapper.readTree("{}"), now, now));
         String body = "{\"title\":\"이력서\",\"content\":{}}";
 
         mockMvc.perform(get("/api/v1/members/me/resumes").header("Authorization", "Bearer valid-token"))
@@ -112,6 +117,15 @@ class ResumeControllerSecurityTest {
 
     @Test
     void rejectsInvalidResumePayloads() throws Exception {
+        mockMvc.perform(patch("/api/v1/members/me/resumes/11/visibility")
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"visibility\":\"PUBLIC\"}"))
+                .andExpect(status().isUnauthorized());
+        for (String payload : List.of("{}", "{\"visibility\":\"UNKNOWN\"}")) {
+            mockMvc.perform(patch("/api/v1/members/me/resumes/11/visibility")
+                            .header("Authorization", "Bearer valid-token")
+                            .contentType(MediaType.APPLICATION_JSON).content(payload))
+                    .andExpect(status().isBadRequest());
+        }
         mockMvc.perform(post("/api/v1/members/me/resumes")
                         .header("Authorization", "Bearer valid-token")
                         .contentType(MediaType.APPLICATION_JSON)

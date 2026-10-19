@@ -19,6 +19,7 @@ import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "resumes")
+@org.hibernate.annotations.DynamicUpdate
 public class CareerResume {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,6 +35,17 @@ public class CareerResume {
     @Enumerated(EnumType.STRING)
     @Column(name = "resume_status", nullable = false, length = 30)
     private ResumeStatus status = ResumeStatus.DRAFT;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private ResumeVisibility visibility = ResumeVisibility.PRIVATE;
+
+    public ResumeVisibility getVisibility() { return visibility; }
+
+    public void changeVisibility(ResumeVisibility visibility) {
+        this.visibility = Objects.requireNonNull(visibility, "visibility is required");
+        this.updatedAt = LocalDateTime.now();
+    }
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "content_json", nullable = false, columnDefinition = "json")

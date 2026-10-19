@@ -83,6 +83,15 @@ public class ResumeService {
         resumeRepository.delete(resume);
     }
 
+    @Transactional
+    public ResumeDetailResponse changeVisibility(String subject, Long resumeId,
+            kr.itsdev.devjobcollector.dto.career.ResumeVisibilityUpdateRequest request) {
+        UserAccount member = currentMemberService.requireCurrentMember(subject);
+        CareerResume resume = requireOwnedResume(resumeId, member.getId());
+        resume.changeVisibility(request.visibility());
+        return detail(resume);
+    }
+
     private CareerResume requireOwnedResume(Long resumeId, Long userId) {
         return resumeRepository.findByIdAndUser_Id(resumeId, userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resume not found"));

@@ -52,6 +52,7 @@ class ResumeServiceTest {
         assertThat(saved.getUser()).isSameAs(member);
         assertThat(saved.getTitle()).isEqualTo("개발자 이력서");
         assertThat(saved.getStatus()).isEqualTo(ResumeStatus.DRAFT);
+        assertThat(response.visibility()).isEqualTo(ResumeVisibility.PRIVATE);
         assertThat(response.content().get("basicInfo").isObject()).isTrue();
         assertThat(response.content().get("techStack").isArray()).isTrue();
         assertThat(response.content().get("projects").isArray()).isTrue();
@@ -88,6 +89,9 @@ class ResumeServiceTest {
 
     @Test
     void hidesAnotherOwnersResumeAsNotFound() {
+        assertThatThrownBy(() -> service.changeVisibility("42", 99L,
+                new kr.itsdev.devjobcollector.dto.career.ResumeVisibilityUpdateRequest(ResumeVisibility.PUBLIC)))
+                .isInstanceOf(ResponseStatusException.class);
         when(resumeRepository.findByIdAndUser_Id(99L, 42L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.get("42", 99L))
@@ -109,5 +113,19 @@ class ResumeServiceTest {
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(error -> assertThat(((ResponseStatusException) error).getStatusCode())
                         .isEqualTo(HttpStatus.BAD_REQUEST));
+    }
+
+    @Test
+    void visibilityIsPreservedByContentUpdatesAndCanBeRevoked() throws Exception {
+        CareerResume resume = CareerResume.draft(member, "이력서", "{}");
+        when(resumeRepository.findByIdAndUser_Id(11L, 42L)).thenReturn(Optional.of(resume));
+        assertThat(service.changeVisibility("42", 11L,
+                new kr.itsdev.devjobcollector.dto.career.ResumeVisibilityUpdateRequest(ResumeVisibility.PUBLIC))
+                .visibility()).isEqualTo(ResumeVisibility.PUBLIC);
+        assertThat(service.update("42", 11L, new ResumeUpsertRequest("수정", objectMapper.readTree("{}")))
+                .visibility()).isEqualTo(ResumeVisibility.PUBLIC);
+        assertThat(service.changeVisibility("42", 11L,
+                new kr.itsdev.devjobcollector.dto.career.ResumeVisibilityUpdateRequest(ResumeVisibility.PRIVATE))
+                .visibility()).isEqualTo(ResumeVisibility.PRIVATE);
     }
 }

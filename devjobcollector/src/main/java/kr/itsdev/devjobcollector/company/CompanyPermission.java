@@ -4,6 +4,7 @@ import java.util.EnumSet;
 import java.util.Set;
 
 public enum CompanyPermission {
+    VIEW_RESUMES(CompanyMemberRole.OWNER, CompanyMemberRole.ADMIN, CompanyMemberRole.RECRUITER),
     VIEW_COMPANY(CompanyMemberRole.OWNER, CompanyMemberRole.ADMIN,
             CompanyMemberRole.RECRUITER, CompanyMemberRole.VIEWER),
     EDIT_COMPANY(CompanyMemberRole.OWNER, CompanyMemberRole.ADMIN),

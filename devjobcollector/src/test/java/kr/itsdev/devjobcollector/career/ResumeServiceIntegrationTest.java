@@ -118,6 +118,46 @@ class ResumeServiceIntegrationTest {
                         .isEqualTo(HttpStatus.NOT_FOUND));
     }
 
+    @Test
+    void companyQueriesEnforceVisibilityApplicationOwnershipAndWithdrawal() {
+        var company = kr.itsdev.devjobcollector.company.Company.pendingVerification(
+                "채용 기업", "채용 기업", "b".repeat(64), "***-**-12345", null, other);
+        entityManager.persist(company);
+        var post = kr.itsdev.devjobcollector.domain.JobPost.builder()
+                .sourcePlatform(kr.itsdev.devjobcollector.domain.SourcePlatform.COMPANY_DIRECT)
+                .originalSn("resume-visibility-test").companyName("채용 기업").title("개발자")
+                .startDate(java.time.LocalDate.of(2026, 10, 1)).endDate(java.time.LocalDate.of(2030, 12, 31))
+                .originalUrl("https://example.com/resume-test").build();
+        entityManager.persist(post);
+        var job = new kr.itsdev.devjobcollector.company.jobs.CompanyJob(company,
+                new kr.itsdev.devjobcollector.company.jobs.CompanyJobContent());
+        job.publish(post);
+        entityManager.persist(job);
+        CareerResume resume = resumeRepository.saveAndFlush(CareerResume.draft(owner, "비공개", "{}"));
+        Long id = resume.getId();
+        Long companyId = company.getId();
+        var page = org.springframework.data.domain.PageRequest.of(0, 20);
+        assertThat(resumeRepository.findVisibleToCompanyById(companyId, id)).isEmpty();
+        assertThat(resumeRepository.findVisibleToCompany(companyId, page).getContent()).isEmpty();
+        resume.changeVisibility(ResumeVisibility.PUBLIC);
+        entityManager.flush();
+        assertThat(resumeRepository.findVisibleToCompanyById(companyId, id)).isPresent();
+        assertThat(resumeRepository.findVisibleToCompany(companyId, page).getContent()).hasSize(1);
+        resume.changeVisibility(ResumeVisibility.PRIVATE);
+        var application = JobApplication.applied(owner, post, java.time.LocalDateTime.now(), null);
+        entityManager.persist(application);
+        entityManager.flush();
+        assertThat(resumeRepository.findVisibleToCompanyById(companyId, id)).isPresent();
+        assertThat(resumeRepository.findVisibleToCompany(companyId, page).getContent()).hasSize(1);
+        assertThat(resumeRepository.findVisibleToCompanyById(-1L, id)).isEmpty();
+        application.changeStatus(ApplicationStatus.WITHDRAWN);
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(resumeRepository.findVisibleToCompanyById(companyId, id)).isEmpty();
+        assertThat(resumeRepository.findVisibleToCompany(companyId, page).getContent()).isEmpty();
+        assertThat(resumeRepository.findById(id).orElseThrow().getVisibility()).isEqualTo(ResumeVisibility.PRIVATE);
+    }
+
     private UserAccount saveUser(String email) {
         return userRepository.saveAndFlush(UserAccount.activeSocial(
                 email, email, AuthProvider.GITHUB, "subject-" + email));

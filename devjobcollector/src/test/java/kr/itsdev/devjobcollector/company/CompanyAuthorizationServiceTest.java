@@ -89,7 +89,7 @@ class CompanyAuthorizationServiceTest {
             case EDIT_COMPANY, INVITE_MEMBERS, ASSIGN_RECRUITER, REMOVE_MEMBER ->
                     role == CompanyMemberRole.OWNER || role == CompanyMemberRole.ADMIN;
             case ASSIGN_ADMIN, TRANSFER_OWNERSHIP -> role == CompanyMemberRole.OWNER;
-            case CREATE_JOB_POST, EDIT_JOB_POST -> role != CompanyMemberRole.VIEWER;
+            case CREATE_JOB_POST, EDIT_JOB_POST, VIEW_RESUMES -> role != CompanyMemberRole.VIEWER;
         };
     }
 

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { CheckCircle2, FilePlus2, FileText, Lightbulb, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MemberSidebar from '../components/member/MemberSidebar';
-import { deleteResume, listResumes } from '../api/resumeApi';
+import { deleteResume, listResumes, updateResumeVisibility } from '../api/resumeApi';
 import '../styles/MemberPages.css';
 
 const RESUME_CHECKS = ['기본 정보', '기술 스택', '프로젝트', '경력'];
@@ -26,6 +26,21 @@ const ResumesPage = () => {
   const [deleteErrorMessage, setDeleteErrorMessage] = useState('');
   const [deletingResumeId, setDeletingResumeId] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [savingVisibilityId, setSavingVisibilityId] = useState(null);
+  const [visibilityError, setVisibilityError] = useState('');
+
+  const changeVisibility = async (resume, visibility) => {
+    setSavingVisibilityId(resume.id);
+    setVisibilityError('');
+    try {
+      const updated = await updateResumeVisibility(resume.id, visibility);
+      setResumes((current) => current.map((item) => item.id === resume.id ? updated : item));
+    } catch (error) {
+      if (error.response?.status !== 401) setVisibilityError('공개 설정을 저장하지 못했습니다. 다시 시도해 주세요.');
+    } finally {
+      setSavingVisibilityId(null);
+    }
+  };
 
   const loadResumes = useCallback(async () => {
     setIsLoading(true);
@@ -100,6 +115,7 @@ const ResumesPage = () => {
           </header>
 
           {isLoading && <section className="member-activity-state">이력서 목록을 불러오는 중입니다.</section>}
+          {visibilityError && <p role="alert" className="resume-delete-error">{visibilityError}</p>}
           {!isLoading && errorMessage && (
             <section className="member-activity-state error">
               <p>{errorMessage}</p>
@@ -128,6 +144,22 @@ const ResumesPage = () => {
                     </span>
                     <h2>{resume.title}</h2>
                     <p>{formatUpdatedAt(resume.updatedAt)}</p>
+                    <div className="resume-visibility">
+                      <label>
+                        공개 설정
+                        <select aria-label={`${resume.title} 공개 설정`}
+                          value={resume.visibility === 'PUBLIC' ? 'PUBLIC' : 'PRIVATE'}
+                          disabled={savingVisibilityId !== null || deletingResumeId !== null}
+                          onChange={(event) => changeVisibility(resume, event.target.value)}>
+                          <option value="PRIVATE">비공개</option>
+                          <option value="PUBLIC">공개</option>
+                        </select>
+                      </label>
+                      <p>{resume.visibility === 'PUBLIC'
+                        ? '인증된 기업의 채용 담당자가 이력서의 모든 정보를 확인할 수 있습니다.'
+                        : '모든 정보가 비공개됩니다. 본인과 입사지원한 기업의 채용 담당자만 이력서를 확인할 수 있습니다.'}</p>
+                      {savingVisibilityId === resume.id && <span role="status">공개 설정 저장 중…</span>}
+                    </div>
                     <div className="resume-check-list">
                       {RESUME_CHECKS.map((item) => <span key={item}><CheckCircle2 size={15} /> {item}</span>)}
                     </div>

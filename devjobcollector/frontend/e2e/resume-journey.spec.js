@@ -17,6 +17,23 @@ const initialContent = {
 
 const timestamp = '2026-08-28T09:00:00';
 
+test('이력서 공개 설정 저장·새로고침·비공개 전환·실패 복원', async ({ page }) => {
+  await installApiMock(page, [{ id: 11, title: '내 이력서', status: 'DRAFT', updatedAt: timestamp }]);
+  await page.goto('/resumes');
+  const select = page.getByRole('combobox', { name: '내 이력서 공개 설정' });
+  await expect(select).toHaveValue('PRIVATE');
+  await select.selectOption('PUBLIC');
+  await expect(select).toHaveValue('PUBLIC');
+  await page.reload();
+  await expect(select).toHaveValue('PUBLIC');
+  await select.selectOption('PRIVATE');
+  await expect(select).toHaveValue('PRIVATE');
+  await page.route('**/members/me/resumes/11/visibility', (route) => route.fulfill({ status: 500, body: '' }));
+  await select.selectOption('PUBLIC');
+  await expect(page.getByRole('alert')).toContainText('공개 설정을 저장하지 못했습니다');
+  await expect(select).toHaveValue('PRIVATE');
+});
+
 const installApiMock = async (page, initialResumes) => {
   const state = {
     resumes: [...initialResumes],
@@ -66,6 +83,14 @@ const installApiMock = async (page, initialResumes) => {
       return respond(created, 201);
     }
 
+    const visibilityMatch = path.match(/^\/api\/v1\/members\/me\/resumes\/(\d+)\/visibility$/);
+    if (visibilityMatch && method === 'PATCH') {
+      const id = Number(visibilityMatch[1]);
+      const updated = { ...state.details.get(id), visibility: request.postDataJSON().visibility };
+      state.details.set(id, updated);
+      state.resumes = state.resumes.map((resume) => resume.id === id ? updated : resume);
+      return respond(updated);
+    }
     const resumeMatch = path.match(/^\/api\/v1\/members\/me\/resumes\/(\d+)$/);
     if (resumeMatch) {
       const resumeId = Number(resumeMatch[1]);

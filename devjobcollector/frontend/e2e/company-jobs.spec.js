@@ -74,6 +74,29 @@ test('VIEWER는 목록만 조회한다', async ({ page }) => {
   await setup(page, { role: 'VIEWER' }); await page.goto('/company');
   await expect(page.getByText('조회 권한입니다.', { exact: false })).toBeVisible();
   await expect(page.getByRole('button', { name: '새 공고 작성' })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: '기업 이력서 열람' })).toHaveCount(0);
+});
+
+test('기업 담당자는 이력서를 읽고 접근 철회 시 이전 상세를 지운다', async ({ page }) => {
+  await setup(page);
+  await page.route('**/companies/77/resumes*', (route) => reply(route, {
+    content: [{ id: 11, title: '지원자 이력서', visibility: 'PRIVATE' }], first: true, last: true, number: 0,
+  }));
+  await page.route('**/companies/77/resumes/11', (route) => reply(route, {
+    id: 11, title: '지원자 이력서', visibility: 'PRIVATE',
+    content: { basicInfo: { name: '지원자', email: 'applicant@example.com' }, techStack: [{ name: 'Java' }], projects: [], experience: [] },
+  }));
+  await page.goto('/company');
+  await page.getByRole('button', { name: '이력서 목록 보기' }).click();
+  await page.getByRole('button', { name: '지원자 이력서' }).click();
+  await expect(page.locator('input[value="지원자"]')).toBeDisabled();
+  await expect(page.locator('input[value="applicant@example.com"]')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.screenshot({ path: `.codex/company-resume-${test.info().project.name}.png`, fullPage: true });
+  await page.route('**/companies/77/resumes/11', (route) => reply(route, {}, 404));
+  await page.getByRole('button', { name: '지원자 이력서' }).click();
+  await expect(page.getByRole('alert')).toContainText('이력서를 불러오지 못했습니다');
+  await expect(page.locator('input[value="applicant@example.com"]')).toHaveCount(0);
 });
 
 test('삭제된 공고는 사유를 확인할 수 있지만 수정 복사 제출 마감할 수 없다', async ({ page }) => {

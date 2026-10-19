@@ -8,6 +8,7 @@ public record ResumeSummaryResponse(
         Long id,
         String title,
         ResumeStatus status,
+        kr.itsdev.devjobcollector.career.ResumeVisibility visibility,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
@@ -16,6 +17,7 @@ public record ResumeSummaryResponse(
                 resume.getId(),
                 resume.getTitle(),
                 resume.getStatus(),
+                resume.getVisibility(),
                 resume.getCreatedAt(),
                 resume.getUpdatedAt()
         );

@@ -11,6 +11,7 @@ import {
 import { createCompany, fetchMyCompanies, requestCompanyVerification } from '../api/companyApi';
 import MemberSidebar from '../components/member/MemberSidebar';
 import CompanyJobs from '../components/company/CompanyJobs';
+import CompanyResumes from '../components/company/CompanyResumes';
 import '../styles/CompanyPage.css';
 import '../styles/MemberPages.css';
 
@@ -232,7 +233,10 @@ const CompanyPage = () => {
               )}
 
               {selectedCompany.companyStatus === 'VERIFIED' && selectedCompany.membershipStatus === 'ACTIVE' && (
-                <CompanyJobs key={selectedCompany.companyId} company={selectedCompany} />
+                <>
+                  <CompanyJobs key={selectedCompany.companyId} company={selectedCompany} />
+                  <CompanyResumes key={`resumes-${selectedCompany.companyId}`} company={selectedCompany} />
+                </>
               )}
               {canRequestVerification && (
                 <section className="company-panel verification-panel">

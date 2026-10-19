@@ -242,3 +242,17 @@
   color: #586174;
   font-weight: 600;
 }
+.resume-visibility { margin: 14px 0; }
+.company-resume-readonly { min-width: 0; border: 0; padding: 0; }
+.company-resume-readonly button { display: none; }
+.company-resumes > button, .company-resumes li button, .company-resumes article > button { padding: 9px 14px; margin: 6px 6px 6px 0; border: 1px solid #ded9ee; border-radius: 8px; background: #fff; color: #51416e; font: inherit; cursor: pointer; }
+.company-resumes > button:disabled, .company-resumes li button:disabled { opacity: .5; cursor: default; }
+.company-resumes ul { list-style: none; padding: 0; }
+.company-resumes li { padding: 8px 0; border-bottom: 1px solid #eeeaf6; }
+.company-resumes article { margin-top: 20px; }
+.company-resume-readonly input::placeholder, .company-resume-readonly textarea::placeholder { color: transparent; -webkit-text-fill-color: transparent; }
+.company-resume-readonly #techStack input { display: none; }
+.company-resume-readonly input:disabled, .company-resume-readonly textarea:disabled { color: #1e293b; opacity: 1; -webkit-text-fill-color: #1e293b; }
+.resume-visibility label { display: flex; align-items: center; gap: 12px; font-weight: 600; }
+.resume-visibility select { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: white; color: #1e293b; font-size: 16px; }
+.resume-visibility p { margin-top: 8px; line-height: 1.6; }
