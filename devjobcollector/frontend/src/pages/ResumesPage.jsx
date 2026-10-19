@@ -145,19 +145,19 @@ const ResumesPage = () => {
                     <h2>{resume.title}</h2>
                     <p>{formatUpdatedAt(resume.updatedAt)}</p>
                     <div className="resume-visibility">
-                      <label>
-                        공개 설정
-                        <select aria-label={`${resume.title} 공개 설정`}
-                          value={resume.visibility === 'PUBLIC' ? 'PUBLIC' : 'PRIVATE'}
-                          disabled={savingVisibilityId !== null || deletingResumeId !== null}
-                          onChange={(event) => changeVisibility(resume, event.target.value)}>
-                          <option value="PRIVATE">비공개</option>
-                          <option value="PUBLIC">공개</option>
-                        </select>
-                      </label>
-                      <p>{resume.visibility === 'PUBLIC'
-                        ? '인증된 기업의 채용 담당자가 이력서의 모든 정보를 확인할 수 있습니다.'
-                        : '모든 정보가 비공개됩니다. 본인과 입사지원한 기업의 채용 담당자만 이력서를 확인할 수 있습니다.'}</p>
+                      <button type="button" className="resume-visibility-switch" role="switch"
+                        aria-label={`${resume.title} 공개 설정`}
+                        aria-checked={resume.visibility === 'PUBLIC'}
+                        disabled={savingVisibilityId !== null || deletingResumeId !== null}
+                        onClick={() => changeVisibility(resume, resume.visibility === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC')}
+                      />
+                      <span>{resume.visibility === 'PUBLIC' ? '공개' : '비공개'}</span>
+                      <details className="resume-visibility-help">
+                        <summary aria-label="이력서 공개 범위 안내">?</summary>
+                        <p>{resume.visibility === 'PUBLIC'
+                          ? '인증된 기업의 채용 담당자가 이력서의 모든 정보를 확인할 수 있습니다.'
+                          : '모든 정보가 비공개됩니다. 본인과 입사지원한 기업의 채용 담당자만 이력서를 확인할 수 있습니다.'}</p>
+                      </details>
                       {savingVisibilityId === resume.id && <span role="status">공개 설정 저장 중…</span>}
                     </div>
                     <div className="resume-check-list">

@@ -20,18 +20,20 @@ const timestamp = '2026-08-28T09:00:00';
 test('이력서 공개 설정 저장·새로고침·비공개 전환·실패 복원', async ({ page }) => {
   await installApiMock(page, [{ id: 11, title: '내 이력서', status: 'DRAFT', updatedAt: timestamp }]);
   await page.goto('/resumes');
-  const select = page.getByRole('combobox', { name: '내 이력서 공개 설정' });
-  await expect(select).toHaveValue('PRIVATE');
-  await select.selectOption('PUBLIC');
-  await expect(select).toHaveValue('PUBLIC');
+  const toggle = page.getByRole('switch', { name: '내 이력서 공개 설정' });
+  await expect(toggle).not.toBeChecked();
+  await page.screenshot({ path: `.codex/resume-visibility-simple-${test.info().project.name}.png`, fullPage: true });
+  await toggle.click();
+  await expect(toggle).toBeChecked();
   await page.reload();
-  await expect(select).toHaveValue('PUBLIC');
-  await select.selectOption('PRIVATE');
-  await expect(select).toHaveValue('PRIVATE');
+  await expect(toggle).toBeChecked();
+  await toggle.focus();
+  await page.keyboard.press('Space');
+  await expect(toggle).not.toBeChecked();
   await page.route('**/members/me/resumes/11/visibility', (route) => route.fulfill({ status: 500, body: '' }));
-  await select.selectOption('PUBLIC');
+  await toggle.click();
   await expect(page.getByRole('alert')).toContainText('공개 설정을 저장하지 못했습니다');
-  await expect(select).toHaveValue('PRIVATE');
+  await expect(toggle).not.toBeChecked();
 });
 
 const installApiMock = async (page, initialResumes) => {

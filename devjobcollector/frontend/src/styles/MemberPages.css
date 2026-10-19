@@ -242,7 +242,7 @@
   color: #586174;
   font-weight: 600;
 }
-.resume-visibility { margin: 14px 0; }
+.resume-visibility { position: relative; display: flex; align-items: center; gap: 8px; margin: 12px 0; color: #68686e; font-size: 13px; }
 .company-resume-readonly { min-width: 0; border: 0; padding: 0; }
 .company-resume-readonly button { display: none; }
 .company-resumes > button, .company-resumes li button, .company-resumes article > button { padding: 9px 14px; margin: 6px 6px 6px 0; border: 1px solid #ded9ee; border-radius: 8px; background: #fff; color: #51416e; font: inherit; cursor: pointer; }
@@ -253,6 +253,12 @@
 .company-resume-readonly input::placeholder, .company-resume-readonly textarea::placeholder { color: transparent; -webkit-text-fill-color: transparent; }
 .company-resume-readonly #techStack input { display: none; }
 .company-resume-readonly input:disabled, .company-resume-readonly textarea:disabled { color: #1e293b; opacity: 1; -webkit-text-fill-color: #1e293b; }
-.resume-visibility label { display: flex; align-items: center; gap: 12px; font-weight: 600; }
-.resume-visibility select { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: white; color: #1e293b; font-size: 16px; }
-.resume-visibility p { margin-top: 8px; line-height: 1.6; }
+.resume-visibility-switch { position: relative; flex: 0 0 32px; width: 32px; height: 18px; padding: 0; border: 0; border-radius: 10px; background: #d3d3d7; cursor: pointer; }
+.resume-visibility-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 12px; height: 12px; border-radius: 50%; background: #fff; }
+.resume-visibility-switch[aria-checked='true'] { background: #55555e; }
+.resume-visibility-switch[aria-checked='true']::after { transform: translateX(14px); }
+.resume-visibility-switch:disabled { opacity: .5; cursor: wait; }
+.resume-visibility-switch:focus-visible, .resume-visibility-help summary:focus-visible { outline: 2px solid #55555e; outline-offset: 4px; }
+.resume-visibility-help summary { display: grid; place-items: center; width: 15px; height: 15px; border: 1px solid #c8c8ce; border-radius: 50%; color: #85858e; font-size: 10px; line-height: 1; list-style: none; cursor: pointer; }
+.resume-visibility-help summary::-webkit-details-marker { display: none; }
+.resume-visibility-help p { position: absolute; z-index: 2; top: 24px; left: 0; width: min(280px, 100%); margin: 0; padding: 10px 12px; border: 1px solid #e5e5e9; border-radius: 6px; background: #fff; color: #68686e; font-size: 12px; line-height: 1.6; }
