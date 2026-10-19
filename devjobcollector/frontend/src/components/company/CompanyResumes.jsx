@@ -4,6 +4,7 @@ import BasicInfo from '../resume/BasicInfo';
 import TechStack from '../resume/TechStack';
 import Projects from '../resume/Projects';
 import Experience from '../resume/Experience';
+import Attachments from '../resume/Attachments';
 
 const noChange = () => {};
 
@@ -58,6 +59,7 @@ export default function CompanyResumes({ company }) {
         <Projects data={detail.content.projects || []} onChange={noChange} />
         <Experience data={detail.content.experience || []} onChange={noChange} />
       </fieldset>
+      <Attachments key={detail.id} resumeId={detail.id} companyId={company.companyId} />
     </article>}
   </section>;
 }

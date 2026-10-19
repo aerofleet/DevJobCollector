@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ResumeNav from '../components/resume/ResumeNav';
 import BasicInfo from '../components/resume/BasicInfo';
 import TechStack from '../components/resume/TechStack';
 import Projects from '../components/resume/Projects';
 import Experience from '../components/resume/Experience';
+import Attachments from '../components/resume/Attachments';
 import BottomBar from '../components/resume/BottomBar';
 import { createResume, getResume, updateResume } from '../api/resumeApi';
 import styles from '../styles/Resume.module.css';
@@ -20,6 +21,9 @@ const Resume = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const resumeId = searchParams.get('resumeId');
+  const persistedId = useRef(resumeId);
+  const locallyCreatedId = useRef(null);
+  const [attachmentBusy, setAttachmentBusy] = useState(false);
   const [activeSection, setActiveSection] = useState('basicInfo');
   const [resumeData, setResumeData] = useState(INITIAL_RESUME);
   const [resumeTitle, setResumeTitle] = useState('개발자 이력서');
@@ -39,6 +43,8 @@ const Resume = () => {
   }, [resumeData]);
 
   useEffect(() => {
+    persistedId.current = resumeId;
+    if (resumeId && resumeId === locallyCreatedId.current) return undefined;
     if (!resumeId) {
       return undefined;
     }
@@ -71,7 +77,7 @@ const Resume = () => {
   }, [resumeId]);
 
   useEffect(() => {
-    const sectionIds = ['basicInfo', 'techStack', 'projects', 'experience'];
+    const sectionIds = ['basicInfo', 'techStack', 'projects', 'experience', 'attachments'];
     const handleScroll = () => {
       for (const id of sectionIds) {
         const element = document.getElementById(id);
@@ -99,8 +105,8 @@ const Resume = () => {
     setIsSaving(true);
     try {
       const request = { title: resumeTitle, content: resumeData };
-      if (resumeId) {
-        await updateResume(resumeId, request);
+      if (persistedId.current) {
+        await updateResume(persistedId.current, request);
       } else {
         await createResume(request);
       }
@@ -111,6 +117,16 @@ const Resume = () => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const ensureResume = async () => {
+    if (persistedId.current) return persistedId.current;
+    if (!resumeTitle.trim()) throw new Error('이력서 제목을 입력한 뒤 파일을 추가해 주세요.');
+    const created = await createResume({ title: resumeTitle, content: resumeData });
+    persistedId.current = String(created.id);
+    locallyCreatedId.current = String(created.id);
+    navigate(`/resume?resumeId=${created.id}`, { replace: true });
+    return created.id;
   };
 
   if (isLoading) {
@@ -161,10 +177,11 @@ const Resume = () => {
               data={resumeData.experience}
               onChange={(data) => setResumeData((prev) => ({ ...prev, experience: data }))}
             />
+            <Attachments resumeId={resumeId} ensureResume={ensureResume} onBusyChange={setAttachmentBusy} disabled={isSaving} />
           </div>
         </main>
       </div>
-      <BottomBar onSave={handleSave} isSaving={isSaving} completionRate={completionRate} />
+      <BottomBar onSave={handleSave} isSaving={isSaving || attachmentBusy} completionRate={completionRate} />
     </div>
   );
 };

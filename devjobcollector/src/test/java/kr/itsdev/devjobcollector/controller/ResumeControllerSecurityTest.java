@@ -38,13 +38,14 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest({ResumeController.class, CompanyResumeController.class})
+@WebMvcTest({ResumeController.class, CompanyResumeController.class, ResumeAttachmentController.class})
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class})
 class ResumeControllerSecurityTest {
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
     @MockitoBean ResumeService resumeService;
     @MockitoBean kr.itsdev.devjobcollector.career.CompanyResumeService companyResumeService;
+    @MockitoBean kr.itsdev.devjobcollector.career.ResumeAttachmentService resumeAttachmentService;
     @MockitoBean JwtTokenVerifier jwtTokenVerifier;
     @MockitoBean PerfLogProperties perfLogProperties;
 
@@ -60,6 +61,14 @@ class ResumeControllerSecurityTest {
 
     @Test
     void rejectsAllResumeOperationsWithoutBearerToken() throws Exception {
+        for (String path : List.of("/api/v1/members/me/resumes/11/attachments", "/api/v1/companies/7/resumes/11/attachments")) {
+            mockMvc.perform(get(path)).andExpect(status().isUnauthorized());
+            mockMvc.perform(get(path + "/1")).andExpect(status().isUnauthorized());
+        }
+        mockMvc.perform(delete("/api/v1/members/me/resumes/11/attachments/1")).andExpect(status().isUnauthorized());
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/api/v1/members/me/resumes/11/attachments")
+                .file("file", "test".getBytes())).andExpect(status().isUnauthorized());
+        verifyNoInteractions(resumeAttachmentService);
         mockMvc.perform(get("/api/v1/companies/7/resumes")).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/v1/companies/7/resumes/11")).andExpect(status().isUnauthorized());
         verifyNoInteractions(companyResumeService);

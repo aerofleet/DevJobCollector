@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { Buffer } from 'node:buffer';
 
 const member = {
   id: 42,
@@ -16,6 +17,32 @@ const initialContent = {
 };
 
 const timestamp = '2026-08-28T09:00:00';
+
+test('새 이력서에서 파일 첨부·유지·다운로드·삭제 및 형식 오류 처리', async ({ page }) => {
+  const state = await installApiMock(page, []);
+  await page.goto('/resume');
+  await page.getByPlaceholder('이력서 제목을 입력하세요').fill('포트폴리오 이력서');
+  const section = page.getByRole('region', { name: '첨부파일', exact: true });
+  await expect(section).toContainText('첨부파일이 비어있습니다.');
+  await page.getByLabel('첨부파일 선택').setInputFiles({ name: 'bad.html', mimeType: 'text/html', buffer: Buffer.from('bad') });
+  await expect(section.getByRole('alert')).toContainText('PDF, PNG, JPG');
+  expect(state.lastCreate).toBeNull();
+  await page.getByLabel('첨부파일 선택').setInputFiles({ name: 'portfolio.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n%%EOF') });
+  await expect(page).toHaveURL(/resumeId=12/);
+  await expect(section.getByRole('button', { name: 'portfolio.pdf', exact: true })).toBeVisible();
+  expect(state.uploads).toBe(1);
+  await page.reload();
+  await expect(page.getByPlaceholder('이력서 제목을 입력하세요')).toHaveValue('포트폴리오 이력서');
+  const downloadPromise = page.waitForEvent('download');
+  await section.getByRole('button', { name: 'portfolio.pdf', exact: true }).click();
+  expect((await downloadPromise).suggestedFilename()).toBe('portfolio.pdf');
+  await section.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `.codex/resume-attachments-${test.info().project.name}.png`, fullPage: true });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  page.once('dialog', (dialog) => dialog.accept());
+  await section.getByRole('button', { name: 'portfolio.pdf 삭제' }).click();
+  await expect(section).toContainText('첨부파일이 비어있습니다.');
+});
 
 test('이력서 공개 설정 저장·새로고침·비공개 전환·실패 복원', async ({ page }) => {
   await installApiMock(page, [{ id: 11, title: '내 이력서', status: 'DRAFT', updatedAt: timestamp }]);
@@ -46,6 +73,8 @@ const installApiMock = async (page, initialResumes) => {
     lastCreate: null,
     lastUpdate: null,
     lastDelete: null,
+    attachments: new Map(),
+    uploads: 0,
   };
 
   await page.addInitScript(() => {
@@ -64,6 +93,26 @@ const installApiMock = async (page, initialResumes) => {
 
     if (path === '/api/v1/members/me') {
       return respond(member);
+    }
+
+    const attachmentMatch = path.match(/^\/api\/v1\/members\/me\/resumes\/(\d+)\/attachments(?:\/(\d+))?$/);
+    if (attachmentMatch) {
+      const id = Number(attachmentMatch[1]);
+      const fileId = Number(attachmentMatch[2]);
+      const files = state.attachments.get(id) || [];
+      if (method === 'POST') {
+        expect(request.headers()['content-type']).toContain('multipart/form-data; boundary=');
+        state.uploads += 1;
+        const file = { id: state.uploads, filename: 'portfolio.pdf', contentType: 'application/pdf', size: 14 };
+        state.attachments.set(id, [...files, file]);
+        return respond(file, 201);
+      }
+      if (method === 'DELETE') {
+        state.attachments.set(id, files.filter((file) => file.id !== fileId));
+        return route.fulfill({ status: 204, body: '' });
+      }
+      if (fileId) return route.fulfill({ contentType: 'application/pdf', body: '%PDF-1.4\n%%EOF' });
+      return respond(files);
     }
 
     if (path === '/api/v1/members/me/resumes' && method === 'GET') {

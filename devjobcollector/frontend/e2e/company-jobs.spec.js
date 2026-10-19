@@ -11,6 +11,7 @@ async function setup(page, overrides = {}, initial = []) {
     const req = route.request(), path = new URL(req.url()).pathname;
     if (path === '/api/v1/members/me') return reply(route, { id: 42, name: '담당자', email: 'owner@example.com', role: 'USER', profileStatus: 'ACTIVE' });
     if (path === '/api/v1/companies/me') return reply(route, [{ ...company, ...overrides }]);
+    if (path.endsWith('/attachments')) return reply(route, []);
     if (path === '/api/v1/companies/77/jobs' && req.method() === 'GET') return reply(route, { content: state.jobs, totalPages: 1 });
     if (path === '/api/v1/companies/77/jobs' && req.method() === 'POST') {
       const job = { id: 1, content: req.postDataJSON(), state: 'DRAFT', liveStatus: 'UNPUBLISHED', version: 0, views: 0, applyClicks: 0 };

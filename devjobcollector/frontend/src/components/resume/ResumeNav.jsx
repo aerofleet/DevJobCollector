@@ -6,6 +6,7 @@ const sections = [
   { id: 'techStack', label: '기술스택' },
   { id: 'projects', label: '프로젝트' },
   { id: 'experience', label: '경력' },
+  { id: 'attachments', label: '첨부파일' },
 ];
 
 const ResumeNav = ({ activeSection, completionRate, setActiveSection }) => {

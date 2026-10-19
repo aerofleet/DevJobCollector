@@ -38,6 +38,7 @@ class ResumeServiceIntegrationTest {
     @Autowired CareerResumeRepository resumeRepository;
     @Autowired UserAccountRepository userRepository;
     @Autowired EntityManager entityManager;
+    @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
 
     private CurrentMemberService currentMemberService;
     private ObjectMapper objectMapper;
@@ -119,7 +120,7 @@ class ResumeServiceIntegrationTest {
     }
 
     @Test
-    void companyQueriesEnforceVisibilityApplicationOwnershipAndWithdrawal() {
+    void companyQueriesEnforceVisibilityApplicationOwnershipAndWithdrawal() throws Exception {
         var company = kr.itsdev.devjobcollector.company.Company.pendingVerification(
                 "채용 기업", "채용 기업", "b".repeat(64), "***-**-12345", null, other);
         entityManager.persist(company);
@@ -150,12 +151,50 @@ class ResumeServiceIntegrationTest {
         assertThat(resumeRepository.findVisibleToCompanyById(companyId, id)).isPresent();
         assertThat(resumeRepository.findVisibleToCompany(companyId, page).getContent()).hasSize(1);
         assertThat(resumeRepository.findVisibleToCompanyById(-1L, id)).isEmpty();
+        var companyReader = new CompanyResumeService(currentMemberService,
+                mock(kr.itsdev.devjobcollector.company.CompanyAuthorizationService.class), resumeRepository, objectMapper);
+        var attachments = new ResumeAttachmentService(jdbc, currentMemberService, companyReader);
+        var uploaded = attachments.upload("owner", id, pdf());
+        assertThat(attachments.listForCompany("other", companyId, id)).hasSize(1);
+        assertThat(attachments.downloadForCompany("other", companyId, id, uploaded.id()).content()).isEqualTo(pdf().getBytes());
+        assertThatThrownBy(() -> attachments.downloadForCompany("other", -1L, id, uploaded.id())).isInstanceOf(ResponseStatusException.class);
         application.changeStatus(ApplicationStatus.WITHDRAWN);
         entityManager.flush();
         entityManager.clear();
         assertThat(resumeRepository.findVisibleToCompanyById(companyId, id)).isEmpty();
         assertThat(resumeRepository.findVisibleToCompany(companyId, page).getContent()).isEmpty();
         assertThat(resumeRepository.findById(id).orElseThrow().getVisibility()).isEqualTo(ResumeVisibility.PRIVATE);
+        assertThatThrownBy(() -> attachments.downloadForCompany("other", companyId, id, uploaded.id())).isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void attachmentPersistenceLimitsOwnerIsolationAndCascadeDeletion() throws Exception {
+        var resume = service.create("owner", new ResumeUpsertRequest("첨부 이력서", objectMapper.readTree("{}")));
+        var second = service.create("owner", new ResumeUpsertRequest("다른 이력서", objectMapper.readTree("{}")));
+        entityManager.flush();
+        var attachments = new ResumeAttachmentService(jdbc, currentMemberService, mock(CompanyResumeService.class));
+        var uploaded = attachments.upload("owner", resume.id(), pdf());
+        entityManager.clear();
+        assertThat(attachments.list("owner", resume.id())).hasSize(1);
+        assertThat(attachments.download("owner", resume.id(), uploaded.id()).content()).isEqualTo(pdf().getBytes());
+        assertNotFound(() -> attachments.list("other", resume.id()));
+        assertNotFound(() -> attachments.upload("other", resume.id(), pdf()));
+        assertNotFound(() -> attachments.download("other", resume.id(), uploaded.id()));
+        assertNotFound(() -> attachments.delete("other", resume.id(), uploaded.id()));
+        assertNotFound(() -> attachments.download("owner", second.id(), uploaded.id()));
+        for (int index = 1; index < 5; index++) attachments.upload("owner", resume.id(), pdf());
+        assertThatThrownBy(() -> attachments.upload("owner", resume.id(), pdf())).isInstanceOf(ResponseStatusException.class);
+        assertThat(attachments.list("owner", resume.id())).hasSize(5);
+        attachments.delete("owner", resume.id(), uploaded.id());
+        assertNotFound(() -> attachments.download("owner", resume.id(), uploaded.id()));
+        attachments.upload("owner", resume.id(), pdf());
+        service.delete("owner", resume.id());
+        entityManager.flush();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM resume_attachments WHERE resume_id = ?", Integer.class, resume.id())).isZero();
+    }
+
+    private org.springframework.mock.web.MockMultipartFile pdf() {
+        return new org.springframework.mock.web.MockMultipartFile("file", "portfolio.pdf", "application/pdf", "%PDF-1.4\n%%EOF".getBytes());
     }
 
     private UserAccount saveUser(String email) {
