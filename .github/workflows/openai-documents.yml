@@ -1,0 +1,57 @@
+name: OpenAI document assistant
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Check credentials or generate a document
+        required: true
+        type: choice
+        options:
+          - check
+          - generate
+        default: check
+      context:
+        description: Evidence for the document (no secrets or personal data; public repository)
+        required: false
+        type: string
+      task:
+        description: Document instructions
+        required: false
+        type: string
+        default: Write a concise Korean technical report using only the supplied evidence.
+
+permissions:
+  contents: read
+
+concurrency:
+  group: openai-document-assistant
+  cancel-in-progress: false
+
+jobs:
+  document:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate helper without network
+        shell: pwsh
+        run: ./ops/documentation/test-openai.ps1
+      - name: Call OpenAI
+        shell: pwsh
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DOC_MODE: ${{ inputs.mode }}
+          DOC_CONTEXT: ${{ inputs.context }}
+          DOC_TASK: ${{ inputs.task }}
+        run: ./ops/documentation/run-openai.ps1
+      - name: Save generated document
+        if: inputs.mode == 'generate'
+        uses: actions/upload-artifact@v4
+        with:
+          name: openai-document
+          path: ${{ runner.temp }}/openai-document/report.md
+          if-no-files-found: error
+          retention-days: 3
