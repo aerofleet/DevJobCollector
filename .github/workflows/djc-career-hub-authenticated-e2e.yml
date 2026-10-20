@@ -2,6 +2,12 @@ name: DJC Career Hub Authenticated E2E
 
 on:
   workflow_dispatch:
+    inputs:
+      suite:
+        description: Authenticated production journey
+        type: choice
+        options: [career, ai]
+        default: career
 
 permissions:
   contents: read
@@ -45,4 +51,9 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run authenticated Career Hub journey
+        if: inputs.suite != 'ai'
         run: npm run e2e:production:authenticated
+
+      - name: Run synthetic AI analysis and explanation journey
+        if: inputs.suite == 'ai'
+        run: npx playwright test --config playwright.production.config.js --project=desktop-1440 production-e2e/ai-analysis.spec.js

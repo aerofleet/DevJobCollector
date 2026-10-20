@@ -1,7 +1,7 @@
 const SITE = 'https://djc.itsdev.kr';
 const API = 'https://djc-api.itsdev.kr/api/v1';
 const publicPages = ['/', '/jobs', '/terms', '/privacy'];
-const appPages = [...publicPages, '/login', '/signup', '/oauth/callback', '/member', '/my-devjobs', '/resumes', '/resume', '/company'];
+const appPages = [...publicPages, '/login', '/signup', '/oauth/callback', '/member', '/my-devjobs', '/resumes', '/resume', '/resume-analysis', '/company'];
 export const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const text = (value) => String(value ?? '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
 const xml = (body) => new Response(`<?xml version="1.0" encoding="UTF-8"?>${body}`, { headers: { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'no-store' } });
