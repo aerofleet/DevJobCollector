@@ -74,8 +74,8 @@ public class ResumeAnalysisService {
         ObjectNode result = mapper.createObjectNode();
         result.put("mode", "LOCAL");
         result.put("piiGatePassed", false);
-        result.put("externalCallCount", 0);
-        result.put("externalProcessingStatus", "BLOCKED_PII");
+        result.put("rawTextExternalCallCount", 0);
+        result.put("rawTextExternalProcessingStatus", "BLOCKED_PII");
         result.put("algorithmVersion", engine.algorithmVersion());
         result.put("freshnessBasis", "CREATED_AT");
         result.put("candidateCount", candidates.size());

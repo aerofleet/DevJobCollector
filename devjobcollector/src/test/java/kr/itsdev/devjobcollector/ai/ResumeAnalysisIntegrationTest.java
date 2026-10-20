@@ -70,7 +70,7 @@ class ResumeAnalysisIntegrationTest {
         assertThatThrownBy(()->create(key,new LocalRecommendationEngine.Preferences(2,"백엔드","","")))
                 .isInstanceOfSatisfying(ResponseStatusException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(409));
         assertThat(service.get("owner",id).toString()).doesNotContain("private@example.com");
-        assertThat(service.get("owner",id).path("externalCallCount").asInt()).isZero();
+        assertThat(service.get("owner",id).path("rawTextExternalCallCount").asInt()).isZero();
     }
     @Test void enforcesOwnershipAndCascadeWhilePreservingQuota() {
         long id=create(UUID.randomUUID().toString(),prefs);

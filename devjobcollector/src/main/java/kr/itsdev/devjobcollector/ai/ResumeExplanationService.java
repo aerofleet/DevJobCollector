@@ -76,6 +76,8 @@ public class ResumeExplanationService {
         var result=mapper.createObjectNode();
         result.put("analysisId",id);
         result.put("model",OpenAiEvidenceClient.MODEL);
+        result.put("payloadPolicy",RecommendationEvidence.VERSION);
+        result.put("externalAttemptCount",0);
         var highlights=mapper.createArrayNode();
         result.set("jobs",highlights);
         var rows=jdbc.queryForList("""
@@ -83,6 +85,7 @@ public class ResumeExplanationService {
                 FROM ai_evidence_explanation WHERE analysis_id=?
                 """,id);
         if(rows.isEmpty()) { result.put("status","NOT_REQUESTED"); return result; }
+        result.put("externalAttemptCount",1);
         var row=rows.getFirst();
         String state=row.get("status").toString();
         if(state.equals("PENDING") && ((Number)row.get("age_seconds")).longValue()>120) state="INTERRUPTED";
