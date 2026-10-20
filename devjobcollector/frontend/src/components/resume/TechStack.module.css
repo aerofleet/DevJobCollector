@@ -37,6 +37,7 @@
 
 .input {
   flex: 1;
+  min-width: 0;
   height: 44px;
   border: 1px solid #d8d8d8;
   border-radius: 8px;
