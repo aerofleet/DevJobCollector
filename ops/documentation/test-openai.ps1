@@ -16,7 +16,7 @@ function Invoke-RestMethod {
         'refusal' { @(@{type='refusal'; refusal='test'}) }
         default { @(@{type='output_text'; text='검증 완료'}) }
     }
-    return @{status=$status;model='gpt-5-mini';usage=@{input_tokens=10;output_tokens=3};
+    return @{status=$status;model='gpt-5-nano';usage=@{input_tokens=10;output_tokens=3};
         output=@(@{type='reasoning'},@{type='message';content=$content})}
 }
 if ((Invoke-OpenAIDocumentText -InputText '한글 테스트') -ne '검증 완료') { throw 'Output extraction failed' }

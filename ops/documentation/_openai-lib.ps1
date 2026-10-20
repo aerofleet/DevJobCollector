@@ -16,7 +16,7 @@ function Invoke-OpenAIDocumentText {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$InputText,
-        [string]$Model = 'gpt-5-mini',
+        [string]$Model = 'gpt-5-nano',
         [ValidateRange(64, 8192)][int]$MaxOutputTokens = 4096
     )
     if ($InputText.Length -gt 120000) { throw 'INPUT_TOO_LARGE: maximum 120000 characters; split the task.' }
