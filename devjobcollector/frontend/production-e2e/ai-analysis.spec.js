@@ -2,7 +2,9 @@ import { expect, test } from '@playwright/test';
 
 test.use({ trace: 'off', screenshot: 'off' });
 
-test('운영 합성 이력서 분석·동의·gpt-5-nano 근거 정리·삭제', async ({ page, request }) => {
+test('운영 합성 이력서 분석·동의·gpt-5-nano 근거 정리·삭제', async ({ page, request }, testInfo) => {
+  test.skip(globalThis.process?.env.DJC_E2E_AI_ENABLED !== 'true'
+    || testInfo.project.name !== 'desktop-1440', '합성 AI 운영 평가는 명시적으로 선택한 경우에만 1회 실행합니다.');
   test.setTimeout(90000);
   const token = globalThis.process?.env.DJC_E2E_ACCESS_TOKEN;
   expect(Boolean(token), 'Authenticated E2E token is required').toBe(true);

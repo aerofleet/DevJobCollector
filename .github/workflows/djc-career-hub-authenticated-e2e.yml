@@ -56,4 +56,6 @@ jobs:
 
       - name: Run synthetic AI analysis and explanation journey
         if: inputs.suite == 'ai'
+        env:
+          DJC_E2E_AI_ENABLED: "true"
         run: npx playwright test --config playwright.production.config.js --project=desktop-1440 production-e2e/ai-analysis.spec.js
