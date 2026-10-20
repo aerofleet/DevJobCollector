@@ -74,6 +74,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/admin/company-verification-requests/**").denyAll()
                         .requestMatchers("/api/v1/admin/**").authenticated()
                         .requestMatchers("/api/v1/companies/**").authenticated()
+                        .requestMatchers("/api/v1/ai/**").authenticated()
                         .requestMatchers("/api/v1/resume/**", "/api/v1/members/**").authenticated()
                         .anyRequest().permitAll()
                 )

@@ -23,6 +23,9 @@ configurations {
 def querydslGenerated = file("build/generated/sources/annotationProcessor/java/main")
 
 sourceSets {
+	extractor {
+		java.srcDir 'src/extractor/java'
+	}
 	main {
 		java {
 			srcDir querydslGenerated
@@ -35,6 +38,8 @@ repositories {
 }
 
 dependencies {
+	extractorImplementation 'org.apache.pdfbox:pdfbox:3.0.8'
+	testImplementation 'org.apache.pdfbox:pdfbox:3.0.8'
 	implementation project(':auth-common')
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
@@ -61,11 +66,29 @@ dependencies {
 	runtimeOnly 'org.flywaydb:flyway-mysql'
 }
 
+tasks.register('resumeExtractorJar', Jar) {
+	dependsOn tasks.named('extractorClasses')
+	archiveFileName = 'resume-extractor.jar'
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+	manifest { attributes 'Main-Class': 'kr.itsdev.extractor.ResumeExtractor' }
+	from sourceSets.extractor.output
+	from { configurations.extractorRuntimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+	exclude 'META-INF/*.SF', 'META-INF/*.RSA', 'META-INF/*.DSA'
+}
+
+tasks.named('test') {
+	dependsOn tasks.named('resumeExtractorJar')
+	systemProperty 'ai.extractor.test-jar', layout.buildDirectory.file('libs/resume-extractor.jar').get().asFile.absolutePath
+}
+
 tasks.named('test') {
 	useJUnitPlatform()
 }
 
 tasks.withType(JavaCompile) {
     options.compilerArgs << '-parameters'
-    options.annotationProcessorGeneratedSourcesDirectory = querydslGenerated
+}
+
+tasks.named('compileJava', JavaCompile) {
+	options.annotationProcessorGeneratedSourcesDirectory = querydslGenerated
 }

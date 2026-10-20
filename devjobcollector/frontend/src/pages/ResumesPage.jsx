@@ -3,6 +3,7 @@ import { CheckCircle2, FilePlus2, FileText, Lightbulb, MoreHorizontal, Pencil, T
 import { Link } from 'react-router-dom';
 import MemberSidebar from '../components/member/MemberSidebar';
 import { deleteResume, listResumes, updateResumeVisibility } from '../api/resumeApi';
+import { getAnalysisCapabilities } from '../api/resumeAnalysisApi';
 import '../styles/MemberPages.css';
 
 const RESUME_CHECKS = ['기본 정보', '기술 스택', '프로젝트', '경력'];
@@ -28,6 +29,15 @@ const ResumesPage = () => {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [savingVisibilityId, setSavingVisibilityId] = useState(null);
   const [visibilityError, setVisibilityError] = useState('');
+  const [analysisAvailable, setAnalysisAvailable] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getAnalysisCapabilities().then((value) => {
+      if (!cancelled) setAnalysisAvailable(value.mode === 'LOCAL');
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   const changeVisibility = async (resume, visibility) => {
     setSavingVisibilityId(resume.id);
@@ -144,6 +154,7 @@ const ResumesPage = () => {
                     </span>
                     <h2>{resume.title}</h2>
                     <p>{formatUpdatedAt(resume.updatedAt)}</p>
+                    {analysisAvailable && <Link to={`/resume-analysis?resumeId=${resume.id}`}>이력서 점검 · 맞춤 공고</Link>}
                     <div className="resume-visibility">
                       <button type="button" className="resume-visibility-switch" role="switch"
                         aria-label={`${resume.title} 공개 설정`}

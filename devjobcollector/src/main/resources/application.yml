@@ -1,5 +1,15 @@
 ﻿# src/main/resources/application.yml
 
+ai:
+  openai:
+    enabled: ${AI_OPENAI_ENABLED:false}
+    api-key: ${OPENAI_API_KEY:}
+  analysis:
+    enabled: ${AI_ANALYSIS_ENABLED:false}
+  preprocessing:
+    enabled: ${AI_PREPROCESSING_ENABLED:false}
+    worker-jar: ${AI_PREPROCESSING_WORKER_JAR:}
+
 spring:
   application:
     name: devjobcollector

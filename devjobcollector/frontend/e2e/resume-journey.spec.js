@@ -38,7 +38,14 @@ test('새 이력서에서 파일 첨부·유지·다운로드·삭제 및 형식
   expect((await downloadPromise).suggestedFilename()).toBe('portfolio.pdf');
   await section.scrollIntoViewIfNeeded();
   await page.screenshot({ path: `.codex/resume-attachments-${test.info().project.name}.png`, fullPage: true });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  const layout = await page.evaluate(() => ({
+    width: window.innerWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+    overflow: [...document.querySelectorAll('body *')].map((element) => ({
+      tag: element.tagName, className: element.className?.toString(), right: element.getBoundingClientRect().right,
+    })).filter((element) => element.right > window.innerWidth).slice(0, 12),
+  }));
+  expect(layout.scrollWidth, JSON.stringify(layout)).toBeLessThanOrEqual(layout.width);
   page.once('dialog', (dialog) => dialog.accept());
   await section.getByRole('button', { name: 'portfolio.pdf 삭제' }).click();
   await expect(section).toContainText('첨부파일이 비어있습니다.');
