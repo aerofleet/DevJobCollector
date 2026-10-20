@@ -1,0 +1,96 @@
+import { expect, test } from '@playwright/test';
+
+test('분석 동의·재시도 키 유지·추천 피드백·결과 삭제', async ({ page }) => {
+  const keys = [];
+  let history = [];
+  let explanation = { analysisId: 8, status: 'NOT_REQUESTED', jobs: [] };
+  const result = {
+    id: 8, resumeId: 11, mode: 'LOCAL',
+    improvements: [{ sourcePath: '/projects', issueType: 'MISSING_PROJECT', feedback: '프로젝트 역할을 작성해 주세요.' }],
+    recommendations: [{
+      jobId: 17, rank: 1, matchScore: 80, title: '백엔드 개발자', companyName: '테스트 기업',
+      location: '서울', experience: '신입', matchPoints: ['java'], missingPoints: ['mysql'],
+    }],
+  };
+  await page.addInitScript(() => {
+    localStorage.setItem('accessToken', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0IiwiZXhwIjo0MTAyNDQ0ODAwfQ.test');
+  });
+  await page.route('**/api/v1/**', async (route) => {
+    const req = route.request();
+    const path = new URL(req.url()).pathname;
+    const respond = (json, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(json) });
+    if (path === '/api/v1/members/me') return respond({ id: 42, name: '회원', email: 'test@example.com', role: 'USER', profileStatus: 'ACTIVE' });
+    if (path === '/api/v1/members/me/resumes') return respond([{ id: 11, title: '내 이력서' }]);
+    if (path.endsWith('/capabilities')) return respond({
+      mode: 'LOCAL', consentVersion: 'local-analysis-v1', dailyLimit: 5,
+      externalProcessing: true, externalConsentVersion: 'openai-evidence-v1', externalModel: 'gpt-5-nano',
+    });
+    if (path === '/api/v1/ai/resume-analyses') {
+      if (req.method() === 'GET') return respond(history);
+      keys.push(req.headers()['idempotency-key']);
+      expect(req.postDataJSON()).toMatchObject({ resumeId: 11, consentVersion: 'local-analysis-v1' });
+      if (keys.length === 1) return respond({}, 500);
+      history = [{ id: 8, resumeTitle: '내 이력서', createdAt: '2026-10-20T12:00:00' }];
+      return respond(result);
+    }
+    if (path.endsWith('/8/feedback')) {
+      expect(req.postDataJSON()).toEqual({ jobId: 17, type: 'MATCHED' });
+      return route.fulfill({ status: 204 });
+    }
+    if (path.endsWith('/8/explanation')) {
+      if (req.method() === 'POST') {
+        expect(req.postDataJSON()).toEqual({ consentVersion: 'openai-evidence-v1' });
+        explanation = {
+          analysisId: 8, status: 'COMPLETED', model: 'gpt-5-nano',
+          jobs: [{ jobId: 17, highlights: ['이력서에 작성한 기술과 공고의 기술 태그가 일치합니다.'] }],
+        };
+      }
+      return respond(explanation);
+    }
+    if (path.endsWith('/8')) {
+      if (req.method() === 'DELETE') { history = []; return route.fulfill({ status: 204 }); }
+      return respond(result);
+    }
+    return respond([]);
+  });
+  await page.goto('/resume-analysis?resumeId=11');
+  const submit = page.getByRole('button', { name: '분석하기', exact: true });
+  await expect(submit).toBeDisabled();
+  await page.getByRole('checkbox').check();
+  await submit.click();
+  await expect(page.getByRole('alert')).toBeVisible();
+  await submit.click();
+  await expect(page.getByRole('region', { name: '분석 결과' })).toBeVisible();
+  expect(keys).toHaveLength(2);
+  expect(keys[0]).toBe(keys[1]);
+  await expect(page.getByRole('link', { name: '백엔드 개발자' })).toHaveAttribute('href', '/job/17');
+  const explain = page.getByRole('button', { name: 'AI로 추천 근거 정리', exact: true });
+  await expect(explain).toBeDisabled();
+  await page.getByLabel(/추천 근거 정리를 위해/).check();
+  await explain.click();
+  await expect(page.getByText('이력서에 작성한 기술과 공고의 기술 태그가 일치합니다.')).toBeVisible();
+  await expect(explain).toHaveCount(0);
+  await page.getByLabel('추천 피드백').selectOption('MATCHED');
+  await expect(page.getByLabel('추천 피드백')).toHaveValue('MATCHED');
+  await page.screenshot({ path: `.codex/resume-analysis-${test.info().project.name}.png`, fullPage: true });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: '결과 삭제', exact: true }).click();
+  await expect(page.getByRole('region', { name: '분석 결과' })).toHaveCount(0);
+  await expect(page.getByText('저장된 분석 결과가 없습니다.')).toBeVisible();
+});
+
+test('비활성 기능은 분석 양식을 노출하지 않는다', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('accessToken', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0IiwiZXhwIjo0MTAyNDQ0ODAwfQ.test');
+  });
+  await page.route('**/api/v1/**', (route) => {
+    if (new URL(route.request().url()).pathname === '/api/v1/members/me') {
+      return route.fulfill({ json: { id: 42, name: '회원', role: 'USER', profileStatus: 'ACTIVE' } });
+    }
+    return route.fulfill({ status: 404, json: {} });
+  });
+  await page.goto('/resume-analysis');
+  await expect(page.getByText('기능을 준비하고 있습니다.')).toBeVisible();
+  await expect(page.getByRole('button', { name: '분석하기' })).toHaveCount(0);
+});

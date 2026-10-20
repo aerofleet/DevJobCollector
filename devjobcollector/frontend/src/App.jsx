@@ -16,6 +16,7 @@ const SignupPage = lazy(() => import('./pages/SignupPage'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
 const Resume = lazy(() => import('./pages/Resume'));
+const ResumeAnalysisPage = lazy(() => import('./pages/ResumeAnalysisPage'));
 const MemberHomePage = lazy(() => import('./pages/MemberHomePage'));
 const loadMyDevJobsPage = () => import('./pages/MyDevJobsPage');
 const loadResumesPage = () => import('./pages/ResumesPage');
@@ -58,6 +59,7 @@ const AppRoutes = () => {
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPolicyPage />} />
         <Route path="/oauth/callback" element={<LoginPage />} />
+        <Route path="/resume-analysis" element={<ProtectedRoute><ResumeAnalysisPage /></ProtectedRoute>} />
         <Route
           path="/member"
           element={(

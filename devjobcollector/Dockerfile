@@ -10,15 +10,15 @@ COPY auth-common ./auth-common
 COPY src ./src
 
 RUN chmod +x gradlew \
-    && ./gradlew clean bootJar --no-daemon \
-    && jar_path="$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-plain.jar' -print -quit)" \
+    && ./gradlew clean bootJar resumeExtractorJar --no-daemon \
+    && jar_path="$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-plain.jar' ! -name 'resume-extractor.jar' -print -quit)" \
     && test -n "$jar_path" \
     && cp "$jar_path" /workspace/app.jar
 
 FROM eclipse-temurin:21-jre-jammy AS runtime
 
 RUN apt-get update \
-    && apt-get install --no-install-recommends -y ca-certificates curl \
+    && apt-get install --no-install-recommends -y ca-certificates curl tesseract-ocr tesseract-ocr-kor tesseract-ocr-eng \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --system --gid 10001 app \
     && useradd --system --uid 10001 --gid app --home-dir /app --shell /usr/sbin/nologin app
@@ -26,10 +26,12 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY --from=builder --chown=app:app /workspace/app.jar ./app.jar
+COPY --from=builder --chown=app:app /workspace/build/libs/resume-extractor.jar ./resume-extractor.jar
 
 USER app
 
 ENV SPRING_PROFILES_ACTIVE=prod
+ENV AI_PREPROCESSING_WORKER_JAR=/app/resume-extractor.jar
 
 EXPOSE 8080
 

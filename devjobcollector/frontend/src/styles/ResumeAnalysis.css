@@ -1,0 +1,30 @@
+.resume-analysis { min-width: 0; }
+.analysis-panel { padding: 24px; margin-bottom: 24px; border: 1px solid #dce3ed; border-radius: 16px; background: #fff; }
+.analysis-panel h2 { font-size: 21px; margin: 0 0 14px; }
+.analysis-panel h3 { font-size: 18px; margin: 24px 0 12px; }
+.analysis-panel p { color: #475569; line-height: 1.7; overflow-wrap: anywhere; }
+.analysis-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 20px 0; }
+.resume-analysis label { display: flex; flex-direction: column; gap: 7px; font-size: 14px; font-weight: 600; min-width: 0; }
+.resume-analysis select, .resume-analysis input[type=number] { width: 100%; min-width: 0; min-height: 44px; padding: 10px; border: 1px solid #b9c4d2; border-radius: 8px; background: #fff; color: #172033; font: inherit; font-size: 16px; }
+.resume-analysis .analysis-consent { flex-direction: row; align-items: flex-start; gap: 10px; line-height: 1.7; }
+.analysis-consent input { margin-top: 5px; flex-shrink: 0; width: 18px; height: 18px; }
+.analysis-note { font-size: 13px; }
+.analysis-heading, .analysis-history li { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.analysis-heading button, .analysis-history button { border: 0; background: #eff3f8; border-radius: 7px; padding: 10px 14px; color: #243c62; text-align: left; }
+.analysis-history { list-style: none; padding: 0; display: grid; gap: 10px; }
+.analysis-jobs { display: grid; gap: 16px; }
+.analysis-job { padding: 20px; border: 1px solid #e1e7ef; border-radius: 12px; }
+.analysis-job h4 { font-size: 18px; margin: 10px 0; overflow-wrap: anywhere; }
+.analysis-job p { margin: 8px 0; font-size: 14px; }
+.analysis-score { color: #2758a5; font-weight: 700; font-size: 13px; }
+.analysis-issues { padding-left: 20px; line-height: 1.8; }
+.analysis-issues li { margin-bottom: 10px; }
+.analysis-error { background: #fff1f1; color: #8c2424; border: 1px solid #edbcbc; border-radius: 8px; padding: 14px; }
+.resume-analysis button:disabled { opacity: .55; cursor: not-allowed; }
+.resume-analysis :focus-visible { outline: 3px solid #3d74bc; outline-offset: 3px; }
+@media (max-width: 600px) {
+  .analysis-panel { padding: 18px; }
+  .analysis-fields { grid-template-columns: 1fr; }
+  .analysis-job { padding: 15px; }
+  .analysis-heading { align-items: flex-start; }
+}

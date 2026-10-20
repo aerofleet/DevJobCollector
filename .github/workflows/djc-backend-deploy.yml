@@ -119,6 +119,9 @@ jobs:
 
       - name: Prepare deployment bundle
         env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AI_ANALYSIS_ENABLED: ${{ vars.DJC_AI_ANALYSIS_ENABLED || 'false' }}
+          AI_OPENAI_ENABLED: ${{ vars.DJC_AI_OPENAI_ENABLED || 'false' }}
           DB_SERVER_IP: ${{ secrets.DB_SERVER_IP }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
@@ -149,6 +152,10 @@ jobs:
           set -euo pipefail
           umask 077
           mkdir -p deploy-bundle
+          if [ "$AI_OPENAI_ENABLED" = "true" ] && [ -z "$OPENAI_API_KEY" ]; then
+            echo "::error::OPENAI_API_KEY is required when DJC_AI_OPENAI_ENABLED is true"
+            exit 1
+          fi
 
           mail_enabled=false
           if [ -n "$MAIL_HOST" ] && [ -n "$MAIL_USERNAME" ] && [ -n "$MAIL_PASSWORD" ] && [ -n "$AUTH_SIGNUP_MAIL_FROM" ]; then
@@ -163,6 +170,9 @@ jobs:
           {
             printf '%s\n' "SPRING_PROFILES_ACTIVE=prod,kakao"
             printf '%s\n' "SERVER_FORWARD_HEADERS_STRATEGY=framework"
+            printf '%s\n' "AI_ANALYSIS_ENABLED=$AI_ANALYSIS_ENABLED"
+            printf '%s\n' "AI_OPENAI_ENABLED=$AI_OPENAI_ENABLED"
+            printf '%s\n' "OPENAI_API_KEY=$OPENAI_API_KEY"
             printf '%s\n' "SPRING_DATASOURCE_URL=jdbc:mysql://${DB_SERVER_IP}:3306/devjob?serverTimezone=Asia/Seoul&useSSL=false&allowPublicKeyRetrieval=true"
             printf '%s\n' "SPRING_DATASOURCE_USERNAME=$DB_USERNAME"
             printf '%s\n' "DB_PASSWORD=$DB_PASSWORD"
