@@ -66,12 +66,12 @@ class ResumeAnalysisIntegrationTest {
     @Test void savedInputIncludesAttachmentAndInvalidatesCacheWhenRemoved() {
         jdbc.update("INSERT IGNORE INTO tech_stacks(stack_name) VALUES('Java')");
         jdbc.update("INSERT INTO resume_attachments(resume_id,filename,content_type,byte_size,content) VALUES(?,'resume.pdf','application/pdf',5,?)", resume, "%PDF-".getBytes());
-        when(extractor.extractStored(anyString(), anyString(), any())).thenReturn("Java project delivered 20% improvement");
+        when(extractor.extractStored(anyString(), anyString(), any())).thenReturn("Java Docker project delivered 20% improvement");
         var prepared = savedInput.prepare("owner", resume);
         var result = service.createSaved("owner", resume, UUID.randomUUID().toString(), ResumeAnalysisService.CONSENT_VERSION, prepared);
         assertThat(result.path("sources").size()).isEqualTo(1);
         assertThat(result.path("sources").get(0).path("filename").asText()).isEqualTo("resume.pdf");
-        assertThat(result.path("detectedSkills").toString()).contains("java");
+        assertThat(result.path("detectedSkills").toString()).contains("java", "docker");
         assertThat(result.path("derivedPreferences").path("careerYears").isNull()).isTrue();
         assertThat(result.toString()).doesNotContain("private@example.com", "delivered 20%");
         long id = result.path("id").asLong();
@@ -169,6 +169,26 @@ class ResumeAnalysisIntegrationTest {
                 DATE_ADD(CURRENT_DATE,INTERVAL 30 DAY),NOW(),'백엔드','신입')
                 """,sn);
         return jdbc.queryForObject("SELECT id FROM job_posts WHERE original_sn=?",Long.class,sn);
+    }
+    @Test void untaggedTitleSkillsQualifyWithoutConfusingJavaScriptOrHiddenJobs() {
+        long java = seedJob(), javascript = seedJob(), hidden = seedJob(), closed = seedJob();
+        try {
+            jdbc.update("UPDATE job_posts SET title='Senior Java Engineer' WHERE id=?", java);
+            jdbc.update("UPDATE job_posts SET title='JavaScript Engineer' WHERE id=?", javascript);
+            jdbc.update("UPDATE job_posts SET title='Java Engineer', moderation_status='HIDDEN' WHERE id=?", hidden);
+            jdbc.update("UPDATE job_posts SET title='Java Engineer', end_date=DATE_SUB(CURRENT_DATE,INTERVAL 1 DAY) WHERE id=?", closed);
+            jdbc.update("UPDATE resumes SET content_json=? WHERE id=?", "{\"techStack\":[\"Java\"]}", resume);
+            var result = service.createSaved("owner", resume, UUID.randomUUID().toString(), ResumeAnalysisService.CONSENT_VERSION, savedInput.prepare("owner", resume));
+            assertThat(result.path("recommendations")).hasSize(1);
+            var job = result.path("recommendations").get(0);
+            assertThat(job.path("jobId").asLong()).isEqualTo(java);
+            assertThat(job.path("skillEvidenceSource").asText()).isEqualTo("JOB_TITLE");
+            assertThat(job.path("unknownFactors").toString()).contains("requiredSkills");
+            assertThat(RecommendationEvidence.project(result).getFirst().evidence())
+                    .contains(RecommendationEvidence.Code.TITLE_SKILL_MATCH).doesNotContain(RecommendationEvidence.Code.SKILL_MATCH);
+            jdbc.update("UPDATE job_posts SET moderation_status='HIDDEN' WHERE id=?", java);
+            assertThat(service.get("owner", result.path("id").asLong()).path("recommendations")).isEmpty();
+        } finally { jdbc.update("DELETE FROM job_posts WHERE id IN (?,?,?,?)", java, javascript, hidden, closed); }
     }
     @Test void explanationRequiresConsentCachesAndFiltersHiddenJobs() throws Exception {
         long job=seedJob();

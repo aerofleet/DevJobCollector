@@ -56,7 +56,9 @@ public class SavedResumeAnalysisInput {
             sources.add(Map.of("id", id, "filename", file.get("filename").toString(), "status", "READ"));
         }
         var skills = new TreeSet<>(engine.skills(content));
-        var vocabulary = jdbc.queryForList("SELECT stack_name FROM tech_stacks ORDER BY id", String.class);
+        var vocabulary = new ArrayList<>(jdbc.queryForList("SELECT stack_name FROM tech_stacks ORDER BY id", String.class));
+        // Keep the resume editor's preset skills usable even before collected jobs have populated tag data.
+        vocabulary.addAll(List.of("Java", "Spring Boot", "React", "TypeScript", "MySQL", "Docker"));
         skills.addAll(findSkills(text.toString(), vocabulary));
         if (skills.size() > 50) throw ResumeTextExtractor.failure(HttpStatus.UNPROCESSABLE_ENTITY, "TOO_MANY_SKILLS");
         var preferences = new LocalRecommendationEngine.Preferences(careerYears(content), "", "", "");

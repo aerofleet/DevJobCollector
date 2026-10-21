@@ -12,6 +12,7 @@ public final class RecommendationEvidence {
     public static final String VERSION = "enum-evidence-v1";
     public enum Code {
         SKILL_MATCH("이력서에 작성한 기술과 공고의 기술 태그가 일치합니다."),
+        TITLE_SKILL_MATCH("이력서에서 확인된 기술이 공고 제목에 명시되어 있습니다. 전체 필수 기술은 공고 원문을 확인해 주세요."),
         CAREER_MATCH("입력한 경력 연수가 공고의 경력 조건과 일치합니다."),
         CATEGORY_MATCH("선택한 희망 직무가 공고의 직무와 일치합니다."),
         LOCATION_MATCH("선택한 희망 지역이 공고의 지역과 일치합니다."),
@@ -33,13 +34,15 @@ public final class RecommendationEvidence {
         for (JsonNode job : jobs) {
             var codes = new ArrayList<Code>();
             var components = job.path("components");
-            add(components, "skillExactMatch", Code.SKILL_MATCH, codes);
+            add(components, "skillExactMatch", "JOB_TITLE".equals(job.path("skillEvidenceSource").asText())
+                    ? Code.TITLE_SKILL_MATCH : Code.SKILL_MATCH, codes);
             add(components, "careerFit", Code.CAREER_MATCH, codes);
             add(components, "jobCategory", Code.CATEGORY_MATCH, codes);
             add(components, "locationFit", Code.LOCATION_MATCH, codes);
             add(components, "employmentType", Code.EMPLOYMENT_MATCH, codes);
             add(components, "jobFreshness", Code.RECENT_JOB, codes);
-            if (job.path("missingPoints").isArray() && !job.path("missingPoints").isEmpty()) codes.add(Code.CHECK_MISSING_SKILLS);
+            if (!"JOB_TITLE".equals(job.path("skillEvidenceSource").asText())
+                    && job.path("missingPoints").isArray() && !job.path("missingPoints").isEmpty()) codes.add(Code.CHECK_MISSING_SKILLS);
             for (var unknown : job.path("unknownFactors")) {
                 if (unknown.asText().equals("careerFit")) codes.add(Code.CHECK_CAREER);
             }

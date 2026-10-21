@@ -66,4 +66,14 @@ class RecommendationEvidenceTest {
         assertThatThrownBy(()->new OpenAiEvidenceClient(mapper,"test",false).select(List.of()))
                 .hasMessage("EXPLANATION_UNAVAILABLE");
     }
+    @Test void titleEvidenceCannotBeRenderedAsVerifiedTags() throws Exception {
+        var analysis = mapper.readTree("""
+                {"recommendations":[{"jobId":17,"skillEvidenceSource":"JOB_TITLE","components":{"skillExactMatch":30}}]}
+                """);
+        var input = RecommendationEvidence.project(analysis);
+        assertThat(input.getFirst().evidence()).containsExactly(RecommendationEvidence.Code.TITLE_SKILL_MATCH);
+        assertThatThrownBy(() -> RecommendationEvidence.validateAndRender(
+                mapper.readTree("{\"jobs\":[{\"slot\":0,\"reasons\":[\"SKILL_MATCH\"]}]}"), input, analysis))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }

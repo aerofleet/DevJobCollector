@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class LocalRecommendationEngine {
-    public static final String VERSION = "local-tags-v1";
+    public static final String VERSION = "local-tags-title-v2";
     private final double skillWeight, careerWeight, categoryWeight, locationWeight, employmentWeight, freshnessWeight;
 
     public LocalRecommendationEngine(
@@ -84,17 +84,17 @@ public class LocalRecommendationEngine {
             double score = Math.round(components.values().stream().mapToDouble(Double::doubleValue).sum() / total * 10000) / 100.0;
             var unknown = new ArrayList<String>();
             unknown.add("semanticSimilarity");
-            if (requirements.isEmpty()) unknown.add("requiredSkills");
+            if (requirements.isEmpty() || job.titleEvidence()) unknown.add("requiredSkills");
             if (career == null) unknown.add("careerFit");
             if (job.createdDate() == null) unknown.add("jobFreshness");
             ranked.add(new Recommendation(job.id(), 0, score, List.copyOf(matching), List.copyOf(missing),
-                    Map.copyOf(components), List.copyOf(unknown)));
+                    Map.copyOf(components), List.copyOf(unknown), job.titleEvidence() ? "JOB_TITLE" : "TECH_TAGS"));
         }
         ranked.sort(Comparator.comparingDouble(Recommendation::matchScore).reversed().thenComparingLong(Recommendation::jobId));
         var result = new ArrayList<Recommendation>();
         for (var value : ranked.subList(0, Math.min(5, ranked.size()))) {
             result.add(new Recommendation(value.jobId(), result.size() + 1, value.matchScore(),
-                    value.matchPoints(), value.missingPoints(), value.components(), value.unknownFactors()));
+                    value.matchPoints(), value.missingPoints(), value.components(), value.unknownFactors(), value.skillEvidenceSource()));
         }
         return List.copyOf(result);
     }
@@ -148,8 +148,14 @@ public class LocalRecommendationEngine {
 
     public record Preferences(Integer careerYears, String category, String location, String employmentType) {}
     public record Candidate(long id, String category, String experience, String location, String employmentType,
-                            LocalDate createdDate, List<String> skills) {}
+                            LocalDate createdDate, List<String> skills, boolean titleEvidence) {
+        public Candidate(long id, String category, String experience, String location, String employmentType,
+                         LocalDate createdDate, List<String> skills) {
+            this(id, category, experience, location, employmentType, createdDate, skills, false);
+        }
+    }
     public record Recommendation(long jobId, int rank, double matchScore, List<String> matchPoints,
-                                 List<String> missingPoints, Map<String, Double> components, List<String> unknownFactors) {}
+                                 List<String> missingPoints, Map<String, Double> components, List<String> unknownFactors,
+                                 String skillEvidenceSource) {}
     public record Improvement(String sourcePath, String issueType, String feedback) {}
 }

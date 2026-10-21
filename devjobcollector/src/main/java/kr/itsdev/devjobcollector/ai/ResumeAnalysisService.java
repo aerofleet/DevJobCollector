@@ -223,7 +223,7 @@ public class ResumeAnalysisService {
                 (row, index) -> Map.entry(row.getInt("id"), LocalRecommendationEngine.normalizeSkill(row.getString("stack_name"))))
                 .stream().filter(entry -> skills.contains(entry.getValue())).map(Map.Entry::getKey).toList();
         String category = preferences.category() == null ? "" : preferences.category();
-        if (tagIds.isEmpty() && category.isBlank()) return List.of();
+        if (tagIds.isEmpty() && category.isBlank()) return titleCandidates(skills, today);
         String placeholders = tagIds.isEmpty() ? "NULL" : String.join(",", Collections.nCopies(tagIds.size(), "?"));
         String match = "(SELECT COUNT(*) FROM post_tags p WHERE p.job_post_id=j.id AND p.tech_stack_id IN (" + placeholders + "))";
         String sql = "SELECT j.id,j.job_category,j.experience,j.location,j.hire_type,DATE(j.created_at) created_date,"
@@ -235,7 +235,7 @@ public class ResumeAnalysisService {
         var candidates = jdbc.query(sql, (row, index) -> new LocalRecommendationEngine.Candidate(row.getLong("id"),
                 row.getString("job_category"), row.getString("experience"), row.getString("location"), row.getString("hire_type"),
                 row.getDate("created_date") == null ? null : row.getDate("created_date").toLocalDate(), new ArrayList<>()), args.toArray());
-        if (candidates.isEmpty()) return List.of();
+        if (candidates.isEmpty()) return titleCandidates(skills, today);
         var ids = candidates.stream().map(LocalRecommendationEngine.Candidate::id).toList();
         var tags = jdbc.query("SELECT p.job_post_id,t.stack_name FROM post_tags p JOIN tech_stacks t ON t.id=p.tech_stack_id WHERE p.job_post_id IN ("
                 + String.join(",", Collections.nCopies(ids.size(), "?")) + ") ORDER BY p.job_post_id,t.stack_name",
@@ -243,7 +243,54 @@ public class ResumeAnalysisService {
         var byId = new HashMap<Long, LocalRecommendationEngine.Candidate>();
         candidates.forEach(candidate -> byId.put(candidate.id(), candidate));
         tags.forEach(tag -> byId.get(tag.getKey()).skills().add(tag.getValue()));
+        for (var candidate : titleCandidates(skills, today)) {
+            if (!byId.containsKey(candidate.id())) candidates.add(candidate);
+        }
         return candidates;
+    }
+
+    private List<LocalRecommendationEngine.Candidate> titleCandidates(Set<String> skills, LocalDate today) {
+        if (skills.isEmpty()) return List.of();
+        var terms = new TreeSet<String>();
+        for (String skill : skills) {
+            if (skill.length() < 2) continue;
+            terms.add(skill);
+            switch (skill) {
+                case "springboot" -> terms.add("spring boot");
+                case "nodejs" -> terms.add("node.js");
+                case "javascript" -> terms.add("js");
+                case "typescript" -> terms.add("ts");
+                default -> { }
+            }
+        }
+        if (terms.isEmpty()) return List.of();
+        String conditions = String.join(" OR ", Collections.nCopies(terms.size(), "REGEXP_LIKE(j.title, ?, 'i')"));
+        var args = new ArrayList<Object>(); args.add(today);
+        terms.forEach(term -> {
+            var literal = new StringBuilder();
+            for (char character : term.toCharArray()) {
+                if ("\\.^$|?*+()[]{}".indexOf(character) >= 0) literal.append('\\');
+                literal.append(character);
+            }
+            args.add("(^|[^[:alnum:]_+#])" + literal + "([^[:alnum:]_+#]|$)");
+        });
+        var vocabulary = new ArrayList<>(jdbc.queryForList("SELECT stack_name FROM tech_stacks", String.class));
+        vocabulary.addAll(terms);
+        var rows = jdbc.queryForList("SELECT j.id,j.title,j.job_category,j.experience,j.location,j.hire_type,DATE(j.created_at) created_date"
+                + " FROM job_posts j WHERE j.is_active=1 AND j.moderation_status='ACTIVE' AND j.end_date>=?"
+                + " AND NOT EXISTS (SELECT 1 FROM post_tags p WHERE p.job_post_id=j.id) AND (" + conditions + ")"
+                + " ORDER BY j.created_at DESC,j.id ASC LIMIT 100", args.toArray());
+        var result = new ArrayList<LocalRecommendationEngine.Candidate>();
+        for (var row : rows) {
+            var mentioned = SavedResumeAnalysisInput.findSkills(row.get("title").toString(), vocabulary);
+            if (Collections.disjoint(mentioned, skills)) continue;
+            result.add(new LocalRecommendationEngine.Candidate(((Number) row.get("id")).longValue(),
+                    Objects.toString(row.get("job_category"), ""), Objects.toString(row.get("experience"), ""),
+                    Objects.toString(row.get("location"), ""), Objects.toString(row.get("hire_type"), ""),
+                    row.get("created_date") == null ? null : ((java.sql.Date) row.get("created_date")).toLocalDate(),
+                    new ArrayList<>(mentioned), true));
+        }
+        return result;
     }
 
     private String json(Object value) {

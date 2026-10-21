@@ -1,4 +1,26 @@
 import { expect, test } from '@playwright/test';
+import { Buffer } from 'node:buffer';
+
+// One-page text PDF with byte-accurate xref; synthetic text only, no personal data.
+const syntheticPdf = () => {
+  const stream = 'BT /F1 18 Tf 40 700 Td (Java synthetic portfolio) Tj ET';
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+    `<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}\nendstream`,
+  ];
+  let text = '%PDF-1.4\n';
+  const offsets = [0];
+  objects.forEach((object, index) => {
+    offsets.push(Buffer.byteLength(text));
+    text += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  });
+  const xref = Buffer.byteLength(text);
+  text += `xref\n0 6\n0000000000 65535 f \n${offsets.slice(1).map(offset => `${String(offset).padStart(10, '0')} 00000 n \n`).join('')}trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  return Buffer.from(text);
+};
 
 test.use({ trace: 'off', screenshot: 'off' });
 
@@ -20,11 +42,15 @@ test('운영 합성 이력서 분석·동의·gpt-5-nano 근거 정리·삭제',
       headers,
       data: {
         title: `AI-E2E-${Date.now()}`,
-        content: { basicInfo: {}, techStack: [{ name: 'Java' }, { name: 'Spring Boot' }], projects: [], experience: [] },
+        content: { basicInfo: {}, techStack: [{ name: 'Spring Boot' }], projects: [], experience: [] },
       },
     });
     expect(created.status()).toBe(201);
     resumeId = (await created.json()).id;
+    const uploaded = await request.post(`${base}/members/me/resumes/${resumeId}/attachments`, {
+      headers, multipart: { file: { name: 'synthetic-portfolio.pdf', mimeType: 'application/pdf', buffer: syntheticPdf() } },
+    });
+    expect(uploaded.status()).toBe(201);
     await page.addInitScript((value) => localStorage.setItem('accessToken', value), token);
     const navigation = await page.goto(`/resume-analysis?resumeId=${resumeId}`);
     expect(navigation.status()).toBe(200);
@@ -39,6 +65,8 @@ test('운영 합성 이력서 분석·동의·gpt-5-nano 근거 정리·삭제',
     const analysis = await analyzed.json();
     analysisId = analysis.id;
     expect(analysis.inputMode).toBe('SAVED_RESUME');
+    expect(analysis.sources).toEqual([expect.objectContaining({ filename: 'synthetic-portfolio.pdf', status: 'READ' })]);
+    expect(analysis.detectedSkills).toContain('java');
     expect(analysis.recommendations.length).toBeGreaterThan(0);
     await page.getByLabel(/추천 근거 정리를 위해/).check();
     const explanationResponse = page.waitForResponse((response) =>

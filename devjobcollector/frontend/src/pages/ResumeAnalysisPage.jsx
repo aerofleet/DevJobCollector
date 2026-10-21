@@ -208,6 +208,7 @@ export default function ResumeAnalysisPage() {
               <h4><Link to={`/job/${job.jobId}`}>{job.title}</Link></h4>
               <p>{job.companyName} · {job.location || '지역 미기재'} · {job.experience || '경력 미기재'}</p>
               <p><strong>일치 기술:</strong> {job.matchPoints.join(', ') || '확인된 일치 기술 없음'}</p>
+              {job.skillEvidenceSource === 'JOB_TITLE' && <p className="analysis-note">기술 태그가 없어 공고 제목에서 확인한 기술을 사용했습니다. 전체 필수 기술은 공고 원문을 확인해 주세요.</p>}
               <p><strong>추가 확인할 기술:</strong> {job.missingPoints.join(', ') || '확인된 요구 기술 내 추가 항목 없음'}</p>
               {currentExplanation?.jobs?.find((item) => item.jobId === job.jobId)?.highlights?.length > 0 &&
                 <div><strong>AI가 선택한 추천 근거</strong><ul>{currentExplanation.jobs.find((item) => item.jobId === job.jobId).highlights.map((text) =>
