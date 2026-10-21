@@ -53,6 +53,13 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           DJC_OPENAI_LIVE_TEST: "true"
         run: ./gradlew test --tests '*ai.OpenAiEvidenceLiveTest' --no-daemon
+      - name: Preserve synthetic model contract results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-model-contract
+          path: devjobcollector/build/test-results/test/TEST-*OpenAiEvidenceLiveTest.xml
+          retention-days: 3
       - uses: actions/setup-node@v4
         with:
           node-version: "22"

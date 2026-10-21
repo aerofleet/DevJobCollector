@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import static org.assertj.core.api.Assertions.*;
 
-/** Explicit opt-in smoke test. Synthetic enum evidence only; one billable API request. */
+/** Explicit opt-in smoke tests. Synthetic data only; one billable API request per test. */
 @EnabledIfEnvironmentVariable(named="DJC_OPENAI_LIVE_TEST",matches="true")
 class OpenAiEvidenceLiveTest {
     @Test void nanoReviewsSyntheticResumeWithVerifiableQuotesAndJobRequirements() {
@@ -20,8 +20,8 @@ class OpenAiEvidenceLiveTest {
                 "jobs", java.util.List.of(java.util.Map.of("slot", 0, "text", requirements)));
         var output = client.review(payload);
         var validated = ResumeContentReviewRules.validate(output, sources, jobs, mapper);
-        assertThat(validated.path("findings").size()).isGreaterThan(0);
-        assertThat(validated.path("jobs").size()).isEqualTo(1);
+        assertThat(validated.path("findings").size()).as("Synthetic output: %s; validated: %s", output, validated).isGreaterThan(0);
+        assertThat(validated.path("jobs").size()).as("Synthetic output: %s; validated: %s", output, validated).isEqualTo(1);
         for (var finding : validated.path("findings")) assertThat(text).contains(finding.path("quote").asText());
     }
     @Test void nanoReturnsSupportedEvidenceForSyntheticJobs() throws Exception {
