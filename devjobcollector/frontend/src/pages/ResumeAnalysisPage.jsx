@@ -190,7 +190,7 @@ export default function ResumeAnalysisPage() {
             })} />
             {(capabilities.externalProcessing || currentExplanation?.status === 'COMPLETED') && <div className="analysis-explanation">
               <h3>AI 추천 근거 정리</h3>
-              <p className="analysis-note">OpenAI {capabilities.externalModel || 'gpt-5-nano'}가 확인된 근거 중 강조할 항목을 선택합니다.
+              <p className="analysis-note">AI가 확인된 근거 중 강조할 항목을 선택합니다.
                 문장은 검증된 안내 문구로 표시하며, 추천 순위는 바뀌지 않습니다. AI의 선택은 정답이나 채용 가능성을 보장하지 않습니다.</p>
               {(!currentExplanation || currentExplanation.status === 'NOT_REQUESTED') && <>
                 <label className="analysis-consent"><input type="checkbox" checked={externalConsent} disabled={busy}
