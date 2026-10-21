@@ -150,10 +150,11 @@ export default function AdminsPage() {
     <div className="dashboard-panel user-list">
       {!result ? <p role="status">관리자를 불러오는 중입니다.</p> : result.content.length === 0
         ? <p>조건에 맞는 관리자가 없습니다.</p> : <div className="table-scroll"><table>
-          <thead><tr><th>이름</th><th>이메일</th><th>역할</th><th>상태</th><th>MFA</th><th></th></tr></thead>
+          <thead><tr><th>이름</th><th>이메일</th><th>역할</th><th>상태</th><th>MFA</th><th>생성일</th><th></th></tr></thead>
           <tbody>{result.content.map((account) => <tr key={account.id}>
             <td>{account.name}</td><td>{account.email}</td><td>{roleText[account.role]}</td>
             <td>{statusText[account.status]}</td><td>{account.mfaConfigured ? '설정' : '미설정'}</td>
+            <td>{account.createdAt ? new Date(account.createdAt).toLocaleDateString('ko-KR') : '—'}</td>
             <td><button type="button" onClick={() => selectAdmin(account.id)}>상세</button></td>
           </tr>)}</tbody></table></div>}
       {result && <div className="user-pagination"><span>총 {result.totalElements}명 · {page + 1} / {Math.max(1, result.totalPages)} 페이지</span>
