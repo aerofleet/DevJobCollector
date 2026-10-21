@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { CheckCircle2, FilePlus2, FileText, Lightbulb, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { ArrowRight, CheckCircle2, FilePlus2, FileText, Lightbulb, MoreHorizontal, Pencil, Sparkles, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MemberSidebar from '../components/member/MemberSidebar';
 import { deleteResume, listResumes, updateResumeVisibility } from '../api/resumeApi';
@@ -154,7 +154,6 @@ const ResumesPage = () => {
                     </span>
                     <h2>{resume.title}</h2>
                     <p>{formatUpdatedAt(resume.updatedAt)}</p>
-                    {analysisAvailable && <Link to={`/resume-analysis?resumeId=${resume.id}`}>이력서 점검 · 맞춤 공고</Link>}
                     <div className="resume-visibility">
                       <button type="button" className="resume-visibility-switch" role="switch"
                         aria-label={`${resume.title} 공개 설정`}
@@ -205,6 +204,22 @@ const ResumesPage = () => {
                       </div>
                     )}
                   </div>
+                  {analysisAvailable && (
+                    <div className="resume-ai-panel">
+                      <div className="resume-ai-copy">
+                        <span className="resume-ai-badge"><Sparkles size={14} aria-hidden="true" /> AI 커리어 도우미</span>
+                        <h3>내 이력서에서 다음 기회를 찾아보세요</h3>
+                        <p>이력서를 점검하고 내 조건에 맞는 공고를 확인하세요.</p>
+                        <span className="resume-ai-note">AI 추천 이유 안내는 별도 동의 후 제공됩니다.</span>
+                      </div>
+                      <Link className="resume-ai-action" to={`/resume-analysis?resumeId=${resume.id}`}
+                        aria-label={`${resume.title} 이력서 점검 · 맞춤 공고 보기`}>
+                        <Sparkles size={18} aria-hidden="true" />
+                        <span>이력서 점검 · 맞춤 공고</span>
+                        <ArrowRight size={18} aria-hidden="true" />
+                      </Link>
+                    </div>
+                  )}
                 </section>
               ))}
             </div>
