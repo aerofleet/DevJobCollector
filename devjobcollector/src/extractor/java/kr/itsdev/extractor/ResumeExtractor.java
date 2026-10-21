@@ -63,7 +63,8 @@ public final class ResumeExtractor {
                     }
                     text = ocr(renderer.renderImageWithDPI(page, 120));
                 }
-                output.write(text + "\n");
+                if (page > 0) output.write("\f");
+                output.write(text.replace('\f', ' ' ) + "\n");
             }
             return output.toString();
         }
@@ -85,7 +86,7 @@ public final class ResumeExtractor {
                 if (width <= 0 || height <= 0 || (long) width * height > 10_000_000L) {
                     throw new IllegalArgumentException();
                 }
-                return ocr(reader.read(0));
+                return ocr(reader.read(0)).replace('\f', ' ');
             } finally {
                 reader.dispose();
             }

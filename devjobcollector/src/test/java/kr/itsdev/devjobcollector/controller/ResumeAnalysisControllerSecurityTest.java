@@ -42,6 +42,8 @@ class ResumeAnalysisControllerSecurityTest {
                 .andExpect(status().isUnauthorized());
         mvc.perform(post("/api/v1/ai/resume-analyses").contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isUnauthorized());
+        mvc.perform(put("/api/v1/ai/resume-analyses/1/findings/f1/feedback").contentType(MediaType.APPLICATION_JSON).content("{\"type\":\"APPLIED\"}"))
+                .andExpect(status().isUnauthorized());
         verifyNoInteractions(service);
         verifyNoInteractions(explanations);
     }
@@ -63,10 +65,21 @@ class ResumeAnalysisControllerSecurityTest {
     @Test void acceptsSavedResumeWithoutRepeatedPreferenceFields() throws Exception {
         mvc.perform(post("/api/v1/ai/resume-analyses").header("Authorization","Bearer valid")
                         .header("Idempotency-Key","test-key-12345678").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"resumeId\":1,\"consentVersion\":\"local-analysis-v2\"}"))
+                        .content("{\"resumeId\":1,\"consentVersion\":\"local-analysis-v3\"}"))
                 .andExpect(status().isOk());
         verify(savedInput).prepare("42", 1L);
-        verify(service).createSaved("42", 1L, "test-key-12345678", "local-analysis-v2", null);
+        verify(service).createSaved("42", 1L, "test-key-12345678", "local-analysis-v3", null);
+    }
+    @Test void findingFeedbackUsesAuthenticatedIdentityAndValidatesEnum() throws Exception {
+        mvc.perform(put("/api/v1/ai/resume-analyses/1/findings/f1/feedback").header("Authorization", "Bearer valid")
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"type\":\"APPLIED\"}"))
+                .andExpect(status().isNoContent()).andExpect(header().string("Cache-Control", "no-store"));
+        verify(service).findingFeedback("42", 1L, "f1", "APPLIED");
+        clearInvocations(service);
+        mvc.perform(put("/api/v1/ai/resume-analyses/1/findings/f1/feedback").header("Authorization", "Bearer valid")
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"type\":\"INVALID\"}"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(service);
     }
     @Test void obsoleteConsentDoesNotReadDocuments() throws Exception {
         mvc.perform(post("/api/v1/ai/resume-analyses").header("Authorization","Bearer valid")

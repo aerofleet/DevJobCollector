@@ -15,7 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 /** Extract saved documents outside the analysis transaction; revalidate the snapshot before saving. */
 @Service
 public class SavedResumeAnalysisInput {
-    public static final String VERSION = "saved-resume-v1";
+    public static final String VERSION = "saved-resume-v2";
     private final JdbcTemplate jdbc;
     private final CurrentMemberService members;
     private final ObjectMapper mapper;
@@ -40,6 +40,7 @@ public class SavedResumeAnalysisInput {
         append(content.path("projects"), text, 0);
         append(content.path("experience"), text, 0);
         var sources = new ArrayList<Map<String, Object>>();
+        var documents = ResumeEvidenceReview.savedDocuments(content);
         for (long id : attachmentIds) {
             var files = jdbc.queryForList("SELECT filename,content_type,content FROM resume_attachments WHERE id=? AND resume_id=?", id, resumeId);
             if (files.isEmpty()) throw ResumeTextExtractor.failure(HttpStatus.CONFLICT, "RESUME_CHANGED");
@@ -53,6 +54,11 @@ public class SavedResumeAnalysisInput {
                         : HttpStatus.UNPROCESSABLE_ENTITY);
             }
             add(text, extracted);
+            String[] pages = extracted.split("\\f", -1);
+            for (int page = 0; page < pages.length; page++) {
+                documents.add(new ResumeEvidenceReview.Document("attachment:" + id + ":" + (page + 1),
+                        file.get("filename").toString(), page + 1, "첨부파일", pages[page]));
+            }
             sources.add(Map.of("id", id, "filename", file.get("filename").toString(), "status", "READ"));
         }
         var skills = new TreeSet<>(engine.skills(content));
@@ -63,7 +69,7 @@ public class SavedResumeAnalysisInput {
         if (skills.size() > 50) throw ResumeTextExtractor.failure(HttpStatus.UNPROCESSABLE_ENTITY, "TOO_MANY_SKILLS");
         var preferences = new LocalRecommendationEngine.Preferences(careerYears(content), "", "", "");
         return new Prepared(ResumeAnalysisService.hash(rows.getFirst()), List.copyOf(attachmentIds),
-                Collections.unmodifiableSet(skills), preferences, List.copyOf(sources));
+                Collections.unmodifiableSet(skills), preferences, List.copyOf(sources), List.copyOf(documents));
     }
 
     static Set<String> findSkills(String text, List<String> vocabulary) {
@@ -113,7 +119,7 @@ public class SavedResumeAnalysisInput {
         target.append(text).append('\n');
     }
     public record Prepared(String contentHash, List<Long> attachmentIds, Set<String> skills,
-                           LocalRecommendationEngine.Preferences preferences, List<Map<String, Object>> attachments) {}
+                           LocalRecommendationEngine.Preferences preferences, List<Map<String, Object>> attachments, List<ResumeEvidenceReview.Document> documents) {}
     public static final class AttachmentReadFailure extends ResponseStatusException {
         private final long attachmentId;
         AttachmentReadFailure(long attachmentId, HttpStatus status) {

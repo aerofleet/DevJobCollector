@@ -29,6 +29,16 @@ class ResumeTextExtractorTest {
     }
 
     @Test
+    void preservesActualPdfPageBoundaries() throws Exception {
+        try (var pdf = document(3)) {
+            var output = new ByteArrayOutputStream();
+            pdf.save(output);
+            String text = extractor.extractStored("resume.pdf", "application/pdf", output.toByteArray());
+            assertThat(text.split("\\f", -1)).hasSize(3).allSatisfy(page -> assertThat(page).contains("Java Spring 1200ms"));
+        }
+    }
+
+    @Test
     void rejectsMimeExtensionAndMagicMismatches() {
         for (var file : java.util.List.of(
                 file("x.pdf", "image/png", "%PDF-1.4".getBytes()),

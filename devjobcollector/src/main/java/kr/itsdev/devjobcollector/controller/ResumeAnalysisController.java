@@ -77,6 +77,13 @@ public class ResumeAnalysisController {
         service.feedback(subject, id, request.jobId(), request.type());
         return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build();
     }
+    @PutMapping("/{id}/findings/{findingId}/feedback")
+    public ResponseEntity<Void> findingFeedback(@AuthenticationPrincipal String subject, @PathVariable long id,
+            @PathVariable String findingId, @Valid @RequestBody FindingFeedback request) {
+        service.findingFeedback(subject, id, findingId, request.type());
+        return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build();
+    }
+    public record FindingFeedback(@NotBlank @Pattern(regexp = "OPEN|APPLIED|NOT_APPLICABLE|INCORRECT") String type) {}
     private static <T> ResponseEntity<T> noStore(T body) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(body);
     }

@@ -63,6 +63,31 @@ class ResumeAnalysisIntegrationTest {
     long create(String key, LocalRecommendationEngine.Preferences p) {
         return service.create("owner",resume,key,ResumeAnalysisService.CONSENT_VERSION,p).path("id").asLong();
     }
+    @Test void verifiedReportPersistsFeedbackChecksOwnershipAndComparesReanalysis() {
+        jdbc.update("UPDATE resumes SET content_json=? WHERE id=?", "{\"projects\":[{\"description\":\"API 응답 속도를 개선했습니다.\"}]}", resume);
+        jdbc.update("INSERT INTO resume_attachments(resume_id,filename,content_type,byte_size,content) VALUES(?,'resume.pdf','application/pdf',5,?)", resume, "%PDF-".getBytes());
+        when(extractor.extractStored(anyString(), anyString(), any())).thenReturn("Java\fAPI 응답 속도를 개선했습니다.");
+        var report = service.createSaved("owner", resume, UUID.randomUUID().toString(), ResumeAnalysisService.CONSENT_VERSION, savedInput.prepare("owner", resume));
+        var findings = report.path("review").path("findings");
+        assertThat(findings.size()).isEqualTo(1);
+        assertThat(findings.get(0).path("locations").size()).isEqualTo(2);
+        assertThat(findings.get(0).path("locations").get(1).path("page").asInt()).isEqualTo(2);
+        long id = report.path("id").asLong();
+        String finding = findings.get(0).path("id").asText();
+        service.findingFeedback("owner", id, finding, "INCORRECT");
+        assertThat(service.get("owner", id).path("review").path("findings").get(0).path("feedback").asText()).isEqualTo("INCORRECT");
+        assertThatThrownBy(() -> service.findingFeedback("other", id, finding, "APPLIED")).isInstanceOf(ResponseStatusException.class);
+        assertThatThrownBy(() -> service.findingFeedback("owner", id, "unknown", "APPLIED")).isInstanceOf(ResponseStatusException.class);
+        assertThatThrownBy(() -> service.findingFeedback("owner", id, finding, "invalid")).isInstanceOf(ResponseStatusException.class);
+        service.findingFeedback("owner", id, finding, "OPEN");
+        assertThat(service.get("owner", id).path("review").path("findings").get(0).path("feedback").asText()).isEqualTo("OPEN");
+        jdbc.update("DELETE FROM resume_attachments WHERE resume_id=?", resume);
+        jdbc.update("UPDATE resumes SET content_json=? WHERE id=?", "{\"projects\":[{\"description\":\"API 응답 시간을 20ms로 단축했습니다.\"}]}", resume);
+        var changed = service.createSaved("owner", resume, UUID.randomUUID().toString(), ResumeAnalysisService.CONSENT_VERSION, savedInput.prepare("owner", resume));
+        assertThat(changed.path("comparison").path("notDetected").asInt()).isEqualTo(1);
+        assertThat(changed.path("comparison").path("newFindings").asInt()).isZero();
+        assertThat(changed.path("review").path("findings")).isEmpty();
+    }
     @Test void savedInputIncludesAttachmentAndInvalidatesCacheWhenRemoved() {
         jdbc.update("INSERT IGNORE INTO tech_stacks(stack_name) VALUES('Java')");
         jdbc.update("INSERT INTO resume_attachments(resume_id,filename,content_type,byte_size,content) VALUES(?,'resume.pdf','application/pdf',5,?)", resume, "%PDF-".getBytes());

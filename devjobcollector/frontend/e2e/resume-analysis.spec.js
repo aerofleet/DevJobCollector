@@ -7,6 +7,15 @@ test('분석 동의·재시도 키 유지·추천 피드백·결과 삭제', asy
   const result = {
     id: 8, resumeId: 11, mode: 'LOCAL', inputMode: 'SAVED_RESUME',
     sources: [{ id: 4, filename: 'portfolio.pdf', status: 'READ' }], detectedSkills: ['java'], derivedPreferences: { careerYears: 3 },
+    review: {
+      version: 'verified-quotes-v1', score: { status: 'NOT_SCORED', reason: '검증된 종합 평가 기준이 없어 점수를 산출하지 않습니다.' },
+      observations: { withMeasurement: 1, outcomeSentences: 3, basis: '측정 단위와 숫자를 확인합니다.' },
+      skillEvidence: { java: [{ sourceKey: 'attachment:4:2', label: 'portfolio.pdf', page: 2, section: '첨부파일' }] },
+      findings: [{ id: 'f1', dedupKey: 'metric:f1', source: 'RULE', quote: 'API 응답 속도를 개선했습니다.',
+        problem: '측정값과 단위를 확인해 주세요.', rewriteTemplate: '[측정 전 값·단위] → [측정 후 값·단위]', feedback: 'OPEN',
+        locations: [{ sourceKey: 'attachment:4:2', label: 'portfolio.pdf', page: 2, section: '첨부파일' }] }],
+    },
+    comparison: { retained: 0, newFindings: 1, notDetected: 2 },
     improvements: [{ sourcePath: '/projects', issueType: 'MISSING_PROJECT', feedback: '프로젝트 역할을 작성해 주세요.' }],
     recommendations: [{
       jobId: 17, rank: 1, matchScore: 80, title: '백엔드 개발자', companyName: '테스트 기업',
@@ -34,6 +43,10 @@ test('분석 동의·재시도 키 유지·추천 피드백·결과 삭제', asy
       if (keys.length === 1) return respond({}, 500);
       history = [{ id: 8, resumeTitle: '내 이력서', createdAt: '2026-10-20T12:00:00' }];
       return respond(result);
+    }
+    if (path.endsWith('/8/findings/f1/feedback')) {
+      result.review.findings[0].feedback = req.postDataJSON().type;
+      return route.fulfill({ status: 204 });
     }
     if (path.endsWith('/8/feedback')) {
       expect(req.postDataJSON()).toEqual({ jobId: 17, type: 'MATCHED' });
@@ -67,6 +80,18 @@ test('분석 동의·재시도 키 유지·추천 피드백·결과 삭제', asy
   await submit.click();
   await expect(page.getByRole('region', { name: '분석 결과' })).toBeVisible();
   await expect(page.getByText('portfolio.pdf · 읽기 완료')).toBeVisible();
+  await expect(page.getByText('API 응답 속도를 개선했습니다.', { exact: true })).toBeVisible();
+  await expect(page.getByText('portfolio.pdf · 2쪽', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/일치 점수/)).toHaveCount(0);
+  await page.getByRole('button', { name: '반영했어요', exact: true }).click();
+  await expect(page.getByRole('button', { name: '반영했어요', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByText('직접 반영 표시 1개')).toBeVisible();
+  await page.getByRole('button', { name: '이 지적이 틀렸어요', exact: true }).click();
+  await expect(page.getByRole('button', { name: '반영했어요', exact: true })).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByRole('button', { name: '이 지적이 틀렸어요', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: /내 이력서 · 2026-10-20/ }).click();
+  await expect(page.getByRole('button', { name: '이 지적이 틀렸어요', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByText('유지 0개 · 새 후보 1개 · 이번에 미검출 2개')).toBeVisible();
   expect(keys).toHaveLength(2);
   expect(keys[0]).toBe(keys[1]);
   await expect(page.getByRole('link', { name: '백엔드 개발자' })).toHaveAttribute('href', '/job/17');
@@ -118,4 +143,32 @@ test('첨부 읽기 실패는 파일명을 안내하고 결과를 만들지 않�
   await page.getByRole('button', { name: '분석하기', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('읽을수없는문서.pdf');
   await expect(page.getByRole('region', { name: '분석 결과' })).toHaveCount(0);
+});
+
+
+test('실제 응답을 기다리는 진행 상태와 추천 0건 안내', async ({ page }) => {
+  let complete;
+  const responseGate = new Promise(resolve => { complete = resolve; });
+  await page.addInitScript(() => localStorage.setItem('accessToken', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0IiwiZXhwIjo0MTAyNDQ0ODAwfQ.test'));
+  await page.route('**/api/v1/**', async route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('/members/me')) return route.fulfill({ json: { id: 42, name: '회원', role: 'USER', profileStatus: 'ACTIVE' } });
+    if (path.endsWith('/capabilities')) return route.fulfill({ json: { mode: 'LOCAL', consentVersion: 'local-analysis-v3', dailyLimit: 5 } });
+    if (path.endsWith('/resumes')) return route.fulfill({ json: [{ id: 11, title: '내 이력서' }] });
+    if (route.request().method() === 'POST') {
+      await responseGate;
+      return route.fulfill({ json: { id: 8, resumeId: 11, recommendations: [], improvements: [] } });
+    }
+    return route.fulfill({ json: [] });
+  });
+  await page.goto('/resume-analysis?resumeId=11');
+  await page.getByRole('checkbox').check();
+  await page.getByRole('button', { name: '분석하기', exact: true }).click();
+  await expect(page.getByText('자료를 분석하고 있습니다', { exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: '분석 결과' })).toHaveCount(0);
+  complete();
+  await expect(page.getByRole('region', { name: '분석 결과' })).toBeVisible();
+  await expect(page.getByText('자료를 분석하고 있습니다', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: '전체 공개 공고 둘러보기 →' })).toHaveAttribute('href', '/jobs');
+  await expect(page.getByText(/지원 가능한 공고가 전혀 없다는 뜻은 아닙니다/)).toBeVisible();
 });

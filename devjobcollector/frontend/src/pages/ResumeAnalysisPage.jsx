@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import MemberSidebar from '../components/member/MemberSidebar';
+import ResumeEvidenceReport, { JobEvidence } from '../components/member/ResumeEvidenceReport';
 import { listResumes } from '../api/resumeApi';
 import authenticatedApi from '../api/authenticatedApi';
 import {
   getAnalysisCapabilities, listAnalyses, getAnalysis, createAnalysis, deleteAnalysis, saveAnalysisFeedback,
-  getExplanation, requestExplanation,
+  getExplanation, requestExplanation, saveFindingFeedback,
 } from '../api/resumeAnalysisApi';
 import '../styles/MemberPages.css';
 import '../styles/ResumeAnalysis.css';
@@ -39,6 +40,7 @@ export default function ResumeAnalysisPage() {
   const [loading, setLoading] = useState(true);
   const [unavailable, setUnavailable] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState('');
   const [externalConsent, setExternalConsent] = useState(false);
   const [explanation, setExplanation] = useState(null);
@@ -106,8 +108,9 @@ export default function ResumeAnalysisPage() {
     if (retry.current?.fingerprint !== fingerprint) retry.current = { fingerprint, key: crypto.randomUUID() };
     perform(async () => {
       setResult(null);
-      const response = await createAnalysis(body, retry.current.key);
-      setResult(response);
+      setAnalyzing(true);
+      try { setResult(await createAnalysis(body, retry.current.key)); }
+      finally { setAnalyzing(false); }
       retry.current = null;
       setHistory(await listAnalyses());
     });
@@ -137,7 +140,7 @@ export default function ResumeAnalysisPage() {
         {!loading && capabilities && <>
           <section className="analysis-panel">
             <h2>분석할 이력서</h2>
-            <p>저장된 기술·프로젝트·경력과 첨부 PDF·이미지에서 읽은 기술 정보를 함께 활용합니다.</p>
+            <p>저장된 이력서와 첨부 PDF·이미지로 보완 후보와 공고 추천 근거를 확인하세요. AI 근거 정리는 결과에서 선택할 수 있습니다.</p>
             {!resumes.length ? <p>먼저 이력서를 작성해 주세요. <Link to="/resume">이력서 작성</Link></p> :
               <form onSubmit={analyze}>
                 <div className="analysis-fields">
@@ -156,7 +159,7 @@ export default function ResumeAnalysisPage() {
                 </div>
                 <label className="analysis-consent"><input type="checkbox" checked={consent} disabled={busy}
                   onChange={(e) => setConsent(e.target.checked)} />
-                  <span>[선택] 저장된 이력서와 첨부파일의 서비스 내부 분석 및 결과 저장에 동의합니다. 원문은 외부 AI에 전송하지 않으며, 결과는 본인만 조회하고 언제든 삭제할 수 있습니다.</span>
+                  <span>[선택] 저장된 이력서와 첨부파일의 서비스 내부 분석 및 원문 인용문을 포함한 결과 저장에 동의합니다. 원문은 외부 AI에 전송하지 않으며, 결과는 본인만 조회하고 언제든 삭제할 수 있습니다.</span>
                 </label>
                 <p className="analysis-note">새로운 분석은 하루 최대 {capabilities.dailyLimit}회입니다. 같은 자료의 유효한 결과는 재사용합니다. 첨부파일은 파일당 5MB, PDF는 10쪽까지 읽습니다. 스캔·이미지는 글자 인식 상태에 따라 읽지 못할 수 있습니다.</p>
                 <button className="primary-member-button" type="submit" disabled={!consent || busy || !resumeId}>
@@ -164,21 +167,31 @@ export default function ResumeAnalysisPage() {
                 </button>
               </form>}
           </section>
+          {analyzing && <section className="analysis-panel analysis-progress" role="status" aria-live="polite">
+            <span className="evidence-eyebrow">REVIEW IN PROGRESS</span><h2>자료를 분석하고 있습니다</h2>
+            <ol><li>선택한 이력서와 분석 동의 확인 완료</li><li aria-current="step">서버에서 자료 추출·규칙 검사·공고 조회 처리 중</li><li>결과 응답 대기</li></ol>
+            <p>응답을 받으면 확인된 근거를 표시합니다. 지금은 내부 단계별 진행률을 제공하지 않습니다.</p>
+          </section>}
           {result && <section className="analysis-panel" aria-label="분석 결과" aria-live="polite">
             <div className="analysis-heading"><h2>분석 결과</h2><button type="button" disabled={busy} onClick={() => remove(result.id)}>결과 삭제</button></div>
-            <p className="analysis-note">로컬 규칙 기반 결과입니다. 점수는 합격 확률이 아니며, 확인되지 않은 조건은 점수를 부여하지 않습니다. 임베딩 유사도는 아직 반영하지 않습니다.</p>
+            <p className="analysis-note">이력서 점검은 서비스 내부 규칙 검사입니다. AI는 별도 동의 후 추천 근거를 선택하며, 원문을 읽거나 사실 여부를 검증하지 않습니다.</p>
             {result.inputMode === 'SAVED_RESUME' && <div className="analysis-sources">
               <strong>이번 분석에 사용한 자료</strong>
               <p>저장된 이력서{result.sources?.length ? ` + 첨부파일 ${result.sources.length}개` : ''}</p>
               {!!result.sources?.length && <ul>{result.sources.map((file) => <li key={file.id}>{file.filename} · 읽기 완료</li>)}</ul>}
               <p>확인된 기술: {result.detectedSkills?.join(', ') || '확인되지 않음'}</p>
               <p>저장된 경력 기간: {result.derivedPreferences?.careerYears == null ? '확인되지 않음' : `${result.derivedPreferences.careerYears}년 (완료된 기간 기준)`}</p>
-              <p className="analysis-note">희망 지역·고용 형태는 추정하지 않습니다. 아래 보완 제안은 저장된 이력서 작성 항목을 기준으로 합니다.</p>
+              <p className="analysis-note">희망 지역·고용 형태는 추정하지 않습니다. 첨부파일 인용은 추출 텍스트 기준이므로 원본과 함께 확인해 주세요.</p>
             </div>}
+            <ResumeEvidenceReport result={result} busy={busy} onFeedback={(findingId, type) => perform(async () => {
+              await saveFindingFeedback(result.id, findingId, type);
+              setResult((current) => ({ ...current, review: { ...current.review, findings: current.review.findings.map((finding) =>
+                finding.id === findingId ? { ...finding, feedback: type } : finding) } }));
+            })} />
             {(capabilities.externalProcessing || currentExplanation?.status === 'COMPLETED') && <div className="analysis-explanation">
               <h3>AI 추천 근거 정리</h3>
               <p className="analysis-note">OpenAI {capabilities.externalModel || 'gpt-5-nano'}가 확인된 근거 중 강조할 항목을 선택합니다.
-                문장은 검증된 안내 문구로 표시하며, 추천 점수와 순위는 바뀌지 않습니다.</p>
+                문장은 검증된 안내 문구로 표시하며, 추천 순위는 바뀌지 않습니다. AI의 선택은 정답이나 채용 가능성을 보장하지 않습니다.</p>
               {(!currentExplanation || currentExplanation.status === 'NOT_REQUESTED') && <>
                 <label className="analysis-consent"><input type="checkbox" checked={externalConsent} disabled={busy}
                   onChange={(event) => setExternalConsent(event.target.checked)} />
@@ -197,21 +210,21 @@ export default function ResumeAnalysisPage() {
                 <p role="status">AI 근거 정리를 완료하지 못했습니다. 아래 로컬 분석 결과는 계속 사용할 수 있습니다. 중복 비용 방지를 위해 이 요청은 다시 호출하지 않습니다.</p>}
               {currentExplanation?.status === 'COMPLETED' && <p role="status">AI가 선택한 근거를 각 추천 공고에 표시했습니다.</p>}
             </div>}
-            <h3>이력서 보완 항목</h3>
-            {result.improvements.length ? <ul className="analysis-issues">{result.improvements.map((item) =>
+            <h3>저장된 작성 항목 확인 <span className="evidence-badge">규칙 검사</span></h3>
+            <p className="analysis-note">작성 양식의 누락 항목입니다. 첨부파일에 같은 내용이 있다면 반드시 다시 입력할 필요는 없습니다.</p>
+            {result.improvements.filter((item) => !result.review || item.issueType !== 'METRIC_NOT_DETECTED').length ? <ul className="analysis-issues">{result.improvements.filter((item) => !result.review || item.issueType !== 'METRIC_NOT_DETECTED').map((item) =>
               <li key={`${item.sourcePath}-${item.issueType}`}>{item.feedback} <Link to={`/resume?resumeId=${result.resumeId}`}>이력서 수정</Link></li>)}</ul> :
               <p>현재 점검 규칙에서 발견한 보완 항목이 없습니다. 이력서의 완성도를 보장하는 결과는 아닙니다.</p>}
             <h3>추천 공고</h3>
-            {!result.recommendations.length && <p>현재 조건에 맞는 공개 공고가 없습니다. 기술 스택이나 희망 직무를 확인해 주세요.</p>}
+            {!result.recommendations.length && <p>현재 자료와 연결할 수 있는 공개 공고를 찾지 못했습니다. 수집된 기술 정보가 부족하거나 공고가 마감되었을 수 있습니다. 지원 가능한 공고가 전혀 없다는 뜻은 아닙니다.</p>}
+            {!result.recommendations.length && <Link className="evidence-browse" to="/jobs">전체 공개 공고 둘러보기 →</Link>}
             <div className="analysis-jobs">{result.recommendations.map((job) => <article key={job.jobId} className="analysis-job">
-              <span className="analysis-score">{job.rank}순위 · 일치 점수 {job.matchScore}</span>
+              <span className="analysis-score">{job.rank}번째 추천 · 근거 확인</span>
               <h4><Link to={`/job/${job.jobId}`}>{job.title}</Link></h4>
               <p>{job.companyName} · {job.location || '지역 미기재'} · {job.experience || '경력 미기재'}</p>
-              <p><strong>일치 기술:</strong> {job.matchPoints.join(', ') || '확인된 일치 기술 없음'}</p>
-              {job.skillEvidenceSource === 'JOB_TITLE' && <p className="analysis-note">기술 태그가 없어 공고 제목에서 확인한 기술을 사용했습니다. 전체 필수 기술은 공고 원문을 확인해 주세요.</p>}
-              <p><strong>추가 확인할 기술:</strong> {job.missingPoints.join(', ') || '확인된 요구 기술 내 추가 항목 없음'}</p>
+              <JobEvidence job={job} review={result.review} />
               {currentExplanation?.jobs?.find((item) => item.jobId === job.jobId)?.highlights?.length > 0 &&
-                <div><strong>AI가 선택한 추천 근거</strong><ul>{currentExplanation.jobs.find((item) => item.jobId === job.jobId).highlights.map((text) =>
+                <div><strong><span className="evidence-badge evidence-badge-ai">AI 판단</span> AI가 선택한 추천 근거</strong><ul>{currentExplanation.jobs.find((item) => item.jobId === job.jobId).highlights.map((text) =>
                   <li key={text}>{text}</li>)}</ul></div>}
               <label>추천 피드백<select value={job.feedback || ''} disabled={busy} onChange={(e) => {
                 const type = e.target.value;

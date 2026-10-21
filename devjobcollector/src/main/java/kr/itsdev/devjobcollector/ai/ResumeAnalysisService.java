@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ResumeAnalysisService {
-    public static final String CONSENT_VERSION = "local-analysis-v2";
+    public static final String CONSENT_VERSION = "local-analysis-v3";
     private final JdbcTemplate jdbc;
     private final CurrentMemberService members;
     private final LocalRecommendationEngine engine;
@@ -85,7 +85,7 @@ public class ResumeAnalysisService {
         var skills = prepared == null ? engine.skills(content) : prepared.skills();
         var candidates = candidates(skills, preferences, today);
         String cacheKey = hash(json(List.of(resumeId, hash(resumes.getFirst()), preferences, candidates,
-                engine.algorithmVersion(), today.toString(), CONSENT_VERSION,
+                engine.algorithmVersion(), ResumeEvidenceReview.VERSION, today.toString(), CONSENT_VERSION,
                 prepared == null ? "MANUAL" : prepared)));
         var cached = jdbc.queryForList("SELECT id FROM ai_analysis_request WHERE user_id=? AND cache_key=? FOR UPDATE",
                 Long.class, user, cacheKey);
@@ -115,6 +115,22 @@ public class ResumeAnalysisService {
             result.set("sources", mapper.valueToTree(prepared.attachments()));
             result.set("detectedSkills", mapper.valueToTree(skills));
             result.set("derivedPreferences", mapper.valueToTree(preferences));
+        }
+        result.set("review", mapper.valueToTree(ResumeEvidenceReview.review(
+                prepared == null ? ResumeEvidenceReview.savedDocuments(content) : prepared.documents(), skills)));
+        var previousReports = jdbc.queryForList("SELECT id,result_json FROM ai_analysis_request WHERE user_id=? AND resume_id=? ORDER BY id DESC LIMIT 1", user, resumeId);
+        if (!previousReports.isEmpty()) {
+            var previous = previousReports.getFirst();
+            JsonNode oldReview = read(previous.get("result_json").toString()).path("review");
+            if (ResumeEvidenceReview.VERSION.equals(oldReview.path("version").asText())) {
+                var oldKeys = new HashSet<String>();
+                oldReview.path("findings").forEach(f -> oldKeys.add(f.path("dedupKey").asText()));
+                var newKeys = new HashSet<String>();
+                result.path("review").path("findings").forEach(f -> newKeys.add(f.path("dedupKey").asText()));
+                long retained = newKeys.stream().filter(oldKeys::contains).count();
+                result.set("comparison", mapper.valueToTree(Map.of("previousAnalysisId", previous.get("id"),
+                        "retained", retained, "newFindings", newKeys.size() - retained, "notDetected", oldKeys.size() - retained)));
+            }
         }
         var keys = new GeneratedKeyHolder();
         jdbc.update(connection -> {
@@ -178,6 +194,28 @@ public class ResumeAnalysisService {
                 INSERT INTO ai_recommendation_feedback(analysis_id,job_post_id,feedback_type) VALUES(?,?,?)
                 ON DUPLICATE KEY UPDATE feedback_type=VALUES(feedback_type)
                 """, id, jobId, type);
+    }
+
+    @Transactional
+    public void findingFeedback(String subject, long id, String findingId, String type) {
+        if (type == null || !Set.of("OPEN", "APPLIED", "NOT_APPLICABLE", "INCORRECT").contains(type)) {
+            throw failure(HttpStatus.BAD_REQUEST, "INVALID_FEEDBACK");
+        }
+        long user = members.requireCurrentMember(subject).getId();
+        if (jdbc.queryForList("SELECT id FROM users WHERE id=? FOR UPDATE", Long.class, user).isEmpty()) {
+            throw failure(HttpStatus.NOT_FOUND, "ANALYSIS_NOT_FOUND");
+        }
+        var rows = jdbc.queryForList("SELECT result_json FROM ai_analysis_request WHERE id=? AND user_id=? FOR UPDATE", String.class, id, user);
+        if (rows.isEmpty()) throw failure(HttpStatus.NOT_FOUND, "ANALYSIS_NOT_FOUND");
+        ObjectNode stored = (ObjectNode) read(rows.getFirst());
+        boolean found = false;
+        for (JsonNode finding : stored.path("review").path("findings")) {
+            if (finding.path("id").asText().equals(findingId)) {
+                ((ObjectNode) finding).put("feedback", type); found = true;
+            }
+        }
+        if (!found) throw failure(HttpStatus.NOT_FOUND, "FINDING_NOT_FOUND");
+        jdbc.update("UPDATE ai_analysis_request SET result_json=? WHERE id=? AND user_id=?", json(stored), id, user);
     }
 
     private ObjectNode getOwned(long user, long id) {

@@ -12,3 +12,5 @@ export const deleteAnalysis = async (id) => authenticatedApi.delete(`${base}/${i
 export const saveAnalysisFeedback = async (id, jobId, type) => authenticatedApi.put(`${base}/${id}/feedback`, { jobId, type });
 export const getExplanation = async (id) => (await authenticatedApi.get(`${base}/${id}/explanation`)).data;
 export const requestExplanation = async (id, consentVersion) => (await authenticatedApi.post(`${base}/${id}/explanation`, { consentVersion }, { timeout: 35000 })).data;
+
+export const saveFindingFeedback = async (id, findingId, type) => authenticatedApi.put(`${base}/${id}/findings/${findingId}/feedback`, { type });
