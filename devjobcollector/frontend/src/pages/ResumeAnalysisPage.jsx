@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import MemberSidebar from '../components/member/MemberSidebar';
 import { listResumes } from '../api/resumeApi';
+import authenticatedApi from '../api/authenticatedApi';
 import {
   getAnalysisCapabilities, listAnalyses, getAnalysis, createAnalysis, deleteAnalysis, saveAnalysisFeedback,
   getExplanation, requestExplanation,
@@ -9,17 +10,20 @@ import {
 import '../styles/MemberPages.css';
 import '../styles/ResumeAnalysis.css';
 
-const categories = ['백엔드', '프론트엔드', '풀스택', '데이터', '인공지능', '모바일', '보안', 'DevOps'];
-const locations = ['서울', '경기', '인천', '부산', '대구', '대전', '광주', '울산', '세종', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주', '원격'];
 const feedbackOptions = {
   MATCHED: '추천이 맞음', CAREER_MISMATCH: '경력 불일치', SKILL_MISMATCH: '기술 스택 불일치',
   LOCATION_MISMATCH: '지역 불일치', ALREADY_SEEN: '이미 본 공고', NOT_INTERESTED: '관심 없는 직무', INACCURATE_JOB: '공고 내용 부정확',
 };
-const explainError = (error) => {
+const explainError = (error, files = []) => {
   const status = error.response?.status;
+  if (error.response?.data?.code === 'ATTACHMENT_READ_FAILED') {
+    const file = files.find((item) => item.id === error.response.data.attachmentId);
+    return `${file ? `“${file.filename}”` : '첨부파일'}을 읽지 못했습니다. 파일 상태를 확인하거나 잠시 후 다시 시도해 주세요. 첨부파일을 제외한 결과는 만들지 않았습니다.`;
+  }
   if (status === 429) return '오늘의 분석 또는 요청 한도에 도달했습니다. 저장된 결과를 확인하거나 내일 다시 시도해 주세요.';
   if (status === 404) return '이력서 또는 분석 결과를 찾을 수 없습니다. 삭제 여부를 확인해 주세요.';
   if (status === 409) return '요청 내용이 변경되었습니다. 조건을 확인한 뒤 다시 시도해 주세요.';
+  if (status === 422) return '첨부파일을 읽지 못했거나 분석 가능한 분량을 초과했습니다. 이력서의 첨부파일을 확인해 주세요. 파일을 제외한 결과로 처리하지 않았습니다.';
   return '요청을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.';
 };
 
@@ -29,7 +33,7 @@ export default function ResumeAnalysisPage() {
   const [resumes, setResumes] = useState([]);
   const [history, setHistory] = useState([]);
   const [resumeId, setResumeId] = useState(params.get('resumeId') || '');
-  const [preferences, setPreferences] = useState({ careerYears: '0', category: '', location: '', employmentType: '' });
+  const [attachmentState, setAttachmentState] = useState({ resumeId: '', files: [], failed: false });
   const [consent, setConsent] = useState(false);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -40,6 +44,17 @@ export default function ResumeAnalysisPage() {
   const [explanation, setExplanation] = useState(null);
   const retry = useRef(null);
   const running = useRef(false);
+
+  useEffect(() => {
+    if (!resumeId) return;
+    let cancelled = false;
+    authenticatedApi.get(`/members/me/resumes/${resumeId}/attachments`).then(({ data }) => {
+      if (!cancelled) setAttachmentState({ resumeId, files: data, failed: false });
+    }).catch(() => {
+      if (!cancelled) setAttachmentState({ resumeId, files: [], failed: true });
+    });
+    return () => { cancelled = true; };
+  }, [resumeId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -79,17 +94,18 @@ export default function ResumeAnalysisPage() {
     running.current = true;
     setBusy(true); setError('');
     try { await operation(); }
-    catch (failure) { if (failure.response?.status !== 401) setError(explainError(failure)); }
+    catch (failure) { if (failure.response?.status !== 401) setError(explainError(failure, attachmentState.files)); }
     finally { running.current = false; setBusy(false); }
   };
 
   const analyze = (event) => {
     event.preventDefault();
     if (!consent || !resumeId || !capabilities) return;
-    const body = { resumeId: Number(resumeId), ...preferences, careerYears: Number(preferences.careerYears), consentVersion: capabilities.consentVersion };
+    const body = { resumeId: Number(resumeId), consentVersion: capabilities.consentVersion };
     const fingerprint = JSON.stringify(body);
     if (retry.current?.fingerprint !== fingerprint) retry.current = { fingerprint, key: crypto.randomUUID() };
     perform(async () => {
+      setResult(null);
       const response = await createAnalysis(body, retry.current.key);
       setResult(response);
       retry.current = null;
@@ -113,36 +129,36 @@ export default function ResumeAnalysisPage() {
         <header className="member-page-heading">
           <span className="member-eyebrow">RESUME REVIEW</span>
           <h1>이력서 점검 · 맞춤 공고</h1>
-          <p>작성한 이력서의 기술 스택과 희망 조건을 바탕으로 지원할 공고를 찾아보세요.</p>
+          <p>저장된 이력서와 첨부파일로 시작하세요. 같은 정보를 다시 입력할 필요 없어요.</p>
         </header>
         {loading && <p role="status">분석 화면을 불러오는 중입니다.</p>}
         {unavailable && <section className="analysis-panel"><h2>기능을 준비하고 있습니다.</h2><Link to="/resumes">이력서 관리로 돌아가기</Link></section>}
         {error && <p role="alert" className="analysis-error">{error}</p>}
         {!loading && capabilities && <>
           <section className="analysis-panel">
-            <h2>분석 조건</h2>
-            <p>현재는 서비스 내부에서 처리하는 로컬 분석입니다. 외부 AI에 이력서 내용을 전송하지 않습니다.</p>
+            <h2>분석할 이력서</h2>
+            <p>저장된 기술·프로젝트·경력과 첨부 PDF·이미지에서 읽은 기술 정보를 함께 활용합니다.</p>
             {!resumes.length ? <p>먼저 이력서를 작성해 주세요. <Link to="/resume">이력서 작성</Link></p> :
               <form onSubmit={analyze}>
                 <div className="analysis-fields">
-                  <label>이력서<select value={resumeId} onChange={(e) => setResumeId(e.target.value)} disabled={busy}>
+                  <label>이력서<select value={resumeId} onChange={(e) => { setResumeId(e.target.value); setResult(null); setConsent(false); setError(''); }} disabled={busy}>
                     {resumes.map((resume) => <option key={resume.id} value={resume.id}>{resume.title}</option>)}
                   </select></label>
-                  <label>경력 연수<input type="number" min="0" max="60" required value={preferences.careerYears} disabled={busy}
-                    onChange={(e) => setPreferences({ ...preferences, careerYears: e.target.value })} /></label>
-                  {[
-                    ['category', '희망 직무', categories], ['location', '희망 지역', locations],
-                    ['employmentType', '고용 형태', ['정규직', '계약직', '인턴', '프리랜서']],
-                  ].map(([field, label, options]) => <label key={field}>{label}<select value={preferences[field]} disabled={busy}
-                    onChange={(e) => setPreferences({ ...preferences, [field]: e.target.value })}>
-                    <option value="">선택 안 함</option>{options.map((option) => <option key={option}>{option}</option>)}
-                  </select></label>)}
+                </div>
+                <div className="analysis-sources">
+                  <strong>함께 분석하는 자료</strong>
+                  <p>저장된 이력서 · 기술 스택 · 프로젝트 · 경력</p>
+                  {attachmentState.resumeId !== resumeId ? <p role="status">첨부파일을 확인하는 중입니다.</p>
+                    : attachmentState.failed ? <p>첨부 목록을 표시하지 못했습니다. 분석할 때 서버에서 다시 확인합니다.</p>
+                    : attachmentState.files.length ? <ul>{attachmentState.files.map((file) => <li key={file.id}>{file.filename}</li>)}</ul>
+                    : <p>첨부파일 없음 · 저장된 이력서만으로 분석합니다.</p>}
+                  <Link to={`/resume?resumeId=${resumeId}`}>이력서·첨부파일 수정</Link>
                 </div>
                 <label className="analysis-consent"><input type="checkbox" checked={consent} disabled={busy}
                   onChange={(e) => setConsent(e.target.checked)} />
-                  <span>[선택] 이력서 점검·추천을 위한 서비스 내부 처리와 결과 저장에 동의합니다. 분석 결과는 본인만 조회하며 언제든 삭제할 수 있습니다.</span>
+                  <span>[선택] 저장된 이력서와 첨부파일의 서비스 내부 분석 및 결과 저장에 동의합니다. 원문은 외부 AI에 전송하지 않으며, 결과는 본인만 조회하고 언제든 삭제할 수 있습니다.</span>
                 </label>
-                <p className="analysis-note">새로운 분석은 하루 최대 {capabilities.dailyLimit}회입니다. 같은 조건의 유효한 결과는 재사용합니다. 첨부파일은 이 분석에 포함되지 않습니다.</p>
+                <p className="analysis-note">새로운 분석은 하루 최대 {capabilities.dailyLimit}회입니다. 같은 자료의 유효한 결과는 재사용합니다. 첨부파일은 파일당 5MB, PDF는 10쪽까지 읽습니다. 스캔·이미지는 글자 인식 상태에 따라 읽지 못할 수 있습니다.</p>
                 <button className="primary-member-button" type="submit" disabled={!consent || busy || !resumeId}>
                   {busy ? '처리 중…' : '분석하기'}
                 </button>
@@ -151,6 +167,14 @@ export default function ResumeAnalysisPage() {
           {result && <section className="analysis-panel" aria-label="분석 결과" aria-live="polite">
             <div className="analysis-heading"><h2>분석 결과</h2><button type="button" disabled={busy} onClick={() => remove(result.id)}>결과 삭제</button></div>
             <p className="analysis-note">로컬 규칙 기반 결과입니다. 점수는 합격 확률이 아니며, 확인되지 않은 조건은 점수를 부여하지 않습니다. 임베딩 유사도는 아직 반영하지 않습니다.</p>
+            {result.inputMode === 'SAVED_RESUME' && <div className="analysis-sources">
+              <strong>이번 분석에 사용한 자료</strong>
+              <p>저장된 이력서{result.sources?.length ? ` + 첨부파일 ${result.sources.length}개` : ''}</p>
+              {!!result.sources?.length && <ul>{result.sources.map((file) => <li key={file.id}>{file.filename} · 읽기 완료</li>)}</ul>}
+              <p>확인된 기술: {result.detectedSkills?.join(', ') || '확인되지 않음'}</p>
+              <p>저장된 경력 기간: {result.derivedPreferences?.careerYears == null ? '확인되지 않음' : `${result.derivedPreferences.careerYears}년 (완료된 기간 기준)`}</p>
+              <p className="analysis-note">희망 지역·고용 형태는 추정하지 않습니다. 아래 보완 제안은 저장된 이력서 작성 항목을 기준으로 합니다.</p>
+            </div>}
             {(capabilities.externalProcessing || currentExplanation?.status === 'COMPLETED') && <div className="analysis-explanation">
               <h3>AI 추천 근거 정리</h3>
               <p className="analysis-note">OpenAI {capabilities.externalModel || 'gpt-5-nano'}가 확인된 근거 중 강조할 항목을 선택합니다.

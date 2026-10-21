@@ -6,6 +6,7 @@ export const listAnalyses = async () => (await authenticatedApi.get(base)).data;
 export const getAnalysis = async (id) => (await authenticatedApi.get(`${base}/${id}`)).data;
 export const createAnalysis = async (body, key) => (await authenticatedApi.post(base, body, {
   headers: { 'Idempotency-Key': key },
+  timeout: 80000,
 })).data;
 export const deleteAnalysis = async (id) => authenticatedApi.delete(`${base}/${id}`);
 export const saveAnalysisFeedback = async (id, jobId, type) => authenticatedApi.put(`${base}/${id}/feedback`, { jobId, type });

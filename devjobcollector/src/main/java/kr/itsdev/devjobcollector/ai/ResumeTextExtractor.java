@@ -53,6 +53,22 @@ public class ResumeTextExtractor {
         }
     }
 
+    public String extractStored(String filename, String mime, byte[] bytes) {
+        if (workerJar == null || !java.nio.file.Files.isRegularFile(workerJar)) {
+            throw failure(HttpStatus.SERVICE_UNAVAILABLE, "EXTRACTOR_UNAVAILABLE");
+        }
+        String name = filename.toLowerCase(Locale.ROOT);
+        boolean supported = ("application/pdf".equals(mime) && name.endsWith(".pdf"))
+                || ("image/png".equals(mime) && name.endsWith(".png"))
+                || ("image/jpeg".equals(mime) && (name.endsWith(".jpg") || name.endsWith(".jpeg")));
+        if (!supported || bytes.length == 0 || bytes.length > MAX_BYTES || !hasMagic(bytes, mime)) {
+            throw failure(HttpStatus.BAD_REQUEST, "INVALID_DOCUMENT");
+        }
+        if (!capacity.tryAcquire()) throw failure(HttpStatus.TOO_MANY_REQUESTS, "EXTRACTOR_BUSY");
+        try { return run(bytes, mime); }
+        finally { capacity.release(); }
+    }
+
     private String run(byte[] bytes, String mime) {
         String executable = System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win") ? "java.exe" : "java";
         Process process;

@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ResumeAnalysisService {
-    public static final String CONSENT_VERSION = "local-analysis-v1";
+    public static final String CONSENT_VERSION = "local-analysis-v2";
     private final JdbcTemplate jdbc;
     private final CurrentMemberService members;
     private final LocalRecommendationEngine engine;
@@ -32,12 +32,33 @@ public class ResumeAnalysisService {
     @Transactional
     public ObjectNode create(String subject, long resumeId, String key, String consentVersion,
                              LocalRecommendationEngine.Preferences preferences) {
+        return createInternal(subject, resumeId, key, consentVersion, preferences, null);
+    }
+
+    @Transactional
+    public ObjectNode createSaved(String subject, long resumeId, String key, String consentVersion,
+                                  SavedResumeAnalysisInput.Prepared prepared) {
+        return createInternal(subject, resumeId, key, consentVersion, prepared.preferences(), prepared);
+    }
+
+    @Transactional(readOnly = true)
+    public ObjectNode savedRetry(String subject, long resumeId, String key, String consentVersion) {
+        long user = members.requireCurrentMember(subject).getId();
+        var rows = jdbc.queryForList("SELECT analysis_id,request_hash FROM ai_analysis_idempotency WHERE user_id=? AND idempotency_key=?", user, key);
+        if (rows.isEmpty()) return null;
+        String expected = hash(json(List.of(resumeId, SavedResumeAnalysisInput.VERSION, consentVersion)));
+        if (!expected.equals(rows.getFirst().get("request_hash"))) throw failure(HttpStatus.CONFLICT, "IDEMPOTENCY_CONFLICT");
+        return getOwned(user, ((Number) rows.getFirst().get("analysis_id")).longValue());
+    }
+
+    private ObjectNode createInternal(String subject, long resumeId, String key, String consentVersion,
+                                     LocalRecommendationEngine.Preferences preferences, SavedResumeAnalysisInput.Prepared prepared) {
         if (!CONSENT_VERSION.equals(consentVersion)) throw failure(HttpStatus.BAD_REQUEST, "CONSENT_REQUIRED");
         if (key == null || !key.matches("[A-Za-z0-9_-]{16,64}")) throw failure(HttpStatus.BAD_REQUEST, "INVALID_IDEMPOTENCY_KEY");
         long user = members.requireCurrentMember(subject).getId();
         // Serialize quota, cache and idempotency checks per member across all application instances.
         jdbc.queryForObject("SELECT id FROM users WHERE id=? FOR UPDATE", Long.class, user);
-        String requestHash = hash(json(List.of(resumeId, preferences, consentVersion)));
+        String requestHash = hash(json(List.of(resumeId, prepared == null ? preferences : SavedResumeAnalysisInput.VERSION, consentVersion)));
         var bindings = jdbc.queryForList(
                 "SELECT analysis_id, request_hash FROM ai_analysis_idempotency WHERE user_id=? AND idempotency_key=? FOR UPDATE",
                 user, key);
@@ -49,16 +70,23 @@ public class ResumeAnalysisService {
         var resumes = jdbc.queryForList("SELECT content_json FROM resumes WHERE id=? AND user_id=? FOR UPDATE", String.class, resumeId, user);
         if (resumes.isEmpty()) throw failure(HttpStatus.NOT_FOUND, "RESUME_NOT_FOUND");
         JsonNode content = read(resumes.getFirst());
+        if (prepared != null) {
+            var ids = jdbc.queryForList("SELECT id FROM resume_attachments WHERE resume_id=? ORDER BY id FOR SHARE", Long.class, resumeId);
+            if (!prepared.contentHash().equals(hash(resumes.getFirst())) || !prepared.attachmentIds().equals(ids)) {
+                throw failure(HttpStatus.CONFLICT, "RESUME_CHANGED");
+            }
+        }
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
         // Prevent unbounded idempotency aliases even when all requests hit the result cache.
         int bindingsToday = jdbc.queryForList(
                 "SELECT idempotency_key FROM ai_analysis_idempotency WHERE user_id=? AND created_at>=? FOR UPDATE",
                 String.class, user, today.atStartOfDay()).size();
         if (bindingsToday >= 100) throw failure(HttpStatus.TOO_MANY_REQUESTS, "REQUEST_LIMIT");
-        var skills = engine.skills(content);
+        var skills = prepared == null ? engine.skills(content) : prepared.skills();
         var candidates = candidates(skills, preferences, today);
         String cacheKey = hash(json(List.of(resumeId, hash(resumes.getFirst()), preferences, candidates,
-                engine.algorithmVersion(), today.toString(), CONSENT_VERSION)));
+                engine.algorithmVersion(), today.toString(), CONSENT_VERSION,
+                prepared == null ? "MANUAL" : prepared)));
         var cached = jdbc.queryForList("SELECT id FROM ai_analysis_request WHERE user_id=? AND cache_key=? FOR UPDATE",
                 Long.class, user, cacheKey);
         if (!cached.isEmpty()) {
@@ -82,6 +110,12 @@ public class ResumeAnalysisService {
         result.put("asOf", today.toString());
         result.set("recommendations", mapper.valueToTree(engine.rank(skills, preferences, candidates, today)));
         result.set("improvements", mapper.valueToTree(engine.review(content)));
+        if (prepared != null) {
+            result.put("inputMode", "SAVED_RESUME");
+            result.set("sources", mapper.valueToTree(prepared.attachments()));
+            result.set("detectedSkills", mapper.valueToTree(skills));
+            result.set("derivedPreferences", mapper.valueToTree(preferences));
+        }
         var keys = new GeneratedKeyHolder();
         jdbc.update(connection -> {
             var statement = connection.prepareStatement("""

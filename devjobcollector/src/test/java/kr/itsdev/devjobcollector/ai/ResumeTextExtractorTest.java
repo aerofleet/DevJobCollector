@@ -23,6 +23,8 @@ class ResumeTextExtractorTest {
             pdf.save(output);
             String text = extractor.extract(file("resume.pdf", "application/pdf", output.toByteArray()));
             assertThat(text).contains("Java Spring 1200ms").doesNotContain("Private Author");
+            assertThat(extractor.extractStored("resume.pdf", "application/pdf", output.toByteArray()))
+                    .contains("Java Spring 1200ms").doesNotContain("Private Author");
         }
     }
 
@@ -36,6 +38,8 @@ class ResumeTextExtractorTest {
                 file("x.pdf", "application/pdf", new byte[0]),
                 file("x.pdf", "application/pdf", new byte[ResumeTextExtractor.MAX_BYTES + 1]))) {
             assertThatThrownBy(() -> extractor.extract(file)).hasMessageContaining("400");
+            assertThatThrownBy(() -> extractor.extractStored(file.getOriginalFilename(), file.getContentType(), file.getBytes()))
+                    .hasMessageContaining("400");
         }
     }
 

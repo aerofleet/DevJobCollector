@@ -9,6 +9,11 @@
 .resume-analysis .analysis-consent { flex-direction: row; align-items: flex-start; gap: 10px; line-height: 1.7; }
 .analysis-consent input { margin-top: 5px; flex-shrink: 0; width: 18px; height: 18px; }
 .analysis-note { font-size: 13px; }
+.analysis-sources { margin: 16px 0; padding: 18px; border: 1px solid #e4ddf7; border-radius: 12px; background: #f8f6ff; overflow-wrap: anywhere; }
+.analysis-sources strong { color: #503590; }
+.analysis-sources p { margin: 8px 0; font-size: 14px; }
+.analysis-sources ul { margin: 10px 0; padding-left: 20px; color: #475569; font-size: 14px; line-height: 1.8; }
+.analysis-sources a { font-size: 13px; color: #5933b5; }
 .analysis-heading, .analysis-history li { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .analysis-heading button, .analysis-history button { border: 0; background: #eff3f8; border-radius: 7px; padding: 10px 14px; color: #243c62; text-align: left; }
 .analysis-history { list-style: none; padding: 0; display: grid; gap: 10px; }

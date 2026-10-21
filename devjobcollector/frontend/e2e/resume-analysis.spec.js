@@ -5,7 +5,8 @@ test('분석 동의·재시도 키 유지·추천 피드백·결과 삭제', asy
   let history = [];
   let explanation = { analysisId: 8, status: 'NOT_REQUESTED', jobs: [] };
   const result = {
-    id: 8, resumeId: 11, mode: 'LOCAL',
+    id: 8, resumeId: 11, mode: 'LOCAL', inputMode: 'SAVED_RESUME',
+    sources: [{ id: 4, filename: 'portfolio.pdf', status: 'READ' }], detectedSkills: ['java'], derivedPreferences: { careerYears: 3 },
     improvements: [{ sourcePath: '/projects', issueType: 'MISSING_PROJECT', feedback: '프로젝트 역할을 작성해 주세요.' }],
     recommendations: [{
       jobId: 17, rank: 1, matchScore: 80, title: '백엔드 개발자', companyName: '테스트 기업',
@@ -21,6 +22,7 @@ test('분석 동의·재시도 키 유지·추천 피드백·결과 삭제', asy
     const respond = (json, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(json) });
     if (path === '/api/v1/members/me') return respond({ id: 42, name: '회원', email: 'test@example.com', role: 'USER', profileStatus: 'ACTIVE' });
     if (path === '/api/v1/members/me/resumes') return respond([{ id: 11, title: '내 이력서' }]);
+    if (path.endsWith('/resumes/11/attachments')) return respond([{ id: 4, filename: 'portfolio.pdf' }]);
     if (path.endsWith('/capabilities')) return respond({
       mode: 'LOCAL', consentVersion: 'local-analysis-v1', dailyLimit: 5,
       externalProcessing: true, externalConsentVersion: 'openai-evidence-v1', externalModel: 'gpt-5-nano',
@@ -28,7 +30,7 @@ test('분석 동의·재시도 키 유지·추천 피드백·결과 삭제', asy
     if (path === '/api/v1/ai/resume-analyses') {
       if (req.method() === 'GET') return respond(history);
       keys.push(req.headers()['idempotency-key']);
-      expect(req.postDataJSON()).toMatchObject({ resumeId: 11, consentVersion: 'local-analysis-v1' });
+      expect(req.postDataJSON()).toEqual({ resumeId: 11, consentVersion: 'local-analysis-v1' });
       if (keys.length === 1) return respond({}, 500);
       history = [{ id: 8, resumeTitle: '내 이력서', createdAt: '2026-10-20T12:00:00' }];
       return respond(result);
@@ -56,11 +58,15 @@ test('분석 동의·재시도 키 유지·추천 피드백·결과 삭제', asy
   await page.goto('/resume-analysis?resumeId=11');
   const submit = page.getByRole('button', { name: '분석하기', exact: true });
   await expect(submit).toBeDisabled();
+  await expect(page.getByText('portfolio.pdf', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('경력 연수')).toHaveCount(0);
+  await expect(page.getByLabel('희망 지역')).toHaveCount(0);
   await page.getByRole('checkbox').check();
   await submit.click();
   await expect(page.getByRole('alert')).toBeVisible();
   await submit.click();
   await expect(page.getByRole('region', { name: '분석 결과' })).toBeVisible();
+  await expect(page.getByText('portfolio.pdf · 읽기 완료')).toBeVisible();
   expect(keys).toHaveLength(2);
   expect(keys[0]).toBe(keys[1]);
   await expect(page.getByRole('link', { name: '백엔드 개발자' })).toHaveAttribute('href', '/job/17');
@@ -93,4 +99,23 @@ test('비활성 기능은 분석 양식을 노출하지 않는다', async ({ pag
   await page.goto('/resume-analysis');
   await expect(page.getByText('기능을 준비하고 있습니다.')).toBeVisible();
   await expect(page.getByRole('button', { name: '분석하기' })).toHaveCount(0);
+});
+
+test('첨부 읽기 실패는 파일명을 안내하고 결과를 만들지 않는다', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('accessToken', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0IiwiZXhwIjo0MTAyNDQ0ODAwfQ.test'));
+  await page.route('**/api/v1/**', route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('/members/me')) return route.fulfill({ json: { id: 42, name: '회원', role: 'USER', profileStatus: 'ACTIVE' } });
+    if (path.endsWith('/capabilities')) return route.fulfill({ json: { mode: 'LOCAL', consentVersion: 'local-analysis-v2', dailyLimit: 5 } });
+    if (path.endsWith('/resumes')) return route.fulfill({ json: [{ id: 11, title: '내 이력서' }] });
+    if (path.endsWith('/attachments')) return route.fulfill({ json: [{ id: 4, filename: '읽을수없는문서.pdf' }] });
+    if (route.request().method() === 'POST') return route.fulfill({ status: 422, json: { code: 'ATTACHMENT_READ_FAILED', attachmentId: 4 } });
+    return route.fulfill({ json: [] });
+  });
+  await page.goto('/resume-analysis?resumeId=11');
+  await expect(page.getByText('읽을수없는문서.pdf', { exact: true })).toBeVisible();
+  await page.getByRole('checkbox').check();
+  await page.getByRole('button', { name: '분석하기', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('읽을수없는문서.pdf');
+  await expect(page.getByRole('region', { name: '분석 결과' })).toHaveCount(0);
 });

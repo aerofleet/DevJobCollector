@@ -22,7 +22,7 @@ import static org.mockito.Mockito.*;
 @JdbcTest(properties = {"spring.flyway.enabled=true","spring.flyway.baseline-on-migrate=false"})
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @EnabledIfEnvironmentVariable(named="DJC_MIGRATION_TEST_URL",matches=".+")
-@Import({ResumeAnalysisService.class,ResumeExplanationService.class,LocalRecommendationEngine.class,ResumeAnalysisIntegrationTest.JsonConfig.class})
+@Import({ResumeAnalysisService.class,ResumeExplanationService.class,LocalRecommendationEngine.class,SavedResumeAnalysisInput.class,ResumeAnalysisIntegrationTest.JsonConfig.class})
 @Transactional(propagation=Propagation.NOT_SUPPORTED)
 class ResumeAnalysisIntegrationTest {
     @TestConfiguration static class JsonConfig {
@@ -32,6 +32,8 @@ class ResumeAnalysisIntegrationTest {
     @Autowired ResumeAnalysisService service;
     @Autowired ResumeExplanationService explanations;
     @Autowired ObjectMapper mapper;
+    @Autowired SavedResumeAnalysisInput savedInput;
+    @MockitoBean ResumeTextExtractor extractor;
     @MockitoBean OpenAiEvidenceClient openai;
     @MockitoBean CurrentMemberService members;
     long user, resume;
@@ -60,6 +62,45 @@ class ResumeAnalysisIntegrationTest {
     @AfterEach void cleanup() { jdbc.update("DELETE FROM users WHERE id=?",user); }
     long create(String key, LocalRecommendationEngine.Preferences p) {
         return service.create("owner",resume,key,ResumeAnalysisService.CONSENT_VERSION,p).path("id").asLong();
+    }
+    @Test void savedInputIncludesAttachmentAndInvalidatesCacheWhenRemoved() {
+        jdbc.update("INSERT IGNORE INTO tech_stacks(stack_name) VALUES('Java')");
+        jdbc.update("INSERT INTO resume_attachments(resume_id,filename,content_type,byte_size,content) VALUES(?,'resume.pdf','application/pdf',5,?)", resume, "%PDF-".getBytes());
+        when(extractor.extractStored(anyString(), anyString(), any())).thenReturn("Java project delivered 20% improvement");
+        var prepared = savedInput.prepare("owner", resume);
+        var result = service.createSaved("owner", resume, UUID.randomUUID().toString(), ResumeAnalysisService.CONSENT_VERSION, prepared);
+        assertThat(result.path("sources").size()).isEqualTo(1);
+        assertThat(result.path("sources").get(0).path("filename").asText()).isEqualTo("resume.pdf");
+        assertThat(result.path("detectedSkills").toString()).contains("java");
+        assertThat(result.path("derivedPreferences").path("careerYears").isNull()).isTrue();
+        assertThat(result.toString()).doesNotContain("private@example.com", "delivered 20%");
+        long id = result.path("id").asLong();
+        assertThat(service.createSaved("owner", resume, UUID.randomUUID().toString(), ResumeAnalysisService.CONSENT_VERSION,
+                savedInput.prepare("owner", resume)).path("id").asLong()).isEqualTo(id);
+        jdbc.update("DELETE FROM resume_attachments WHERE resume_id=?", resume);
+        assertThatThrownBy(() -> service.createSaved("owner", resume, UUID.randomUUID().toString(), ResumeAnalysisService.CONSENT_VERSION, prepared))
+                .isInstanceOfSatisfying(ResponseStatusException.class, e -> assertThat(e.getStatusCode().value()).isEqualTo(409));
+        assertThat(service.createSaved("owner", resume, UUID.randomUUID().toString(), ResumeAnalysisService.CONSENT_VERSION,
+                savedInput.prepare("owner", resume)).path("id").asLong()).isNotEqualTo(id);
+    }
+    @Test void rejectsSavedContentChangedDuringExtractionAndReusesSuccessfulRetry() {
+        var prepared = savedInput.prepare("owner", resume);
+        jdbc.update("UPDATE resumes SET content_json=? WHERE id=?", "{\"techStack\":[\"Java\"]}", resume);
+        assertThatThrownBy(() -> service.createSaved("owner", resume, UUID.randomUUID().toString(), ResumeAnalysisService.CONSENT_VERSION, prepared))
+                .isInstanceOfSatisfying(ResponseStatusException.class, e -> assertThat(e.getStatusCode().value()).isEqualTo(409));
+        String key = UUID.randomUUID().toString();
+        var result = service.createSaved("owner", resume, key, ResumeAnalysisService.CONSENT_VERSION, savedInput.prepare("owner", resume));
+        assertThat(service.savedRetry("owner", resume, key, ResumeAnalysisService.CONSENT_VERSION).path("id")).isEqualTo(result.path("id"));
+        assertThat(service.savedRetry("other", resume, key, ResumeAnalysisService.CONSENT_VERSION)).isNull();
+    }
+    @Test void attachmentFailureAndOtherOwnerNeverProducePartialAnalysis() {
+        assertThatThrownBy(() -> savedInput.prepare("other", resume)).isInstanceOf(ResponseStatusException.class);
+        verifyNoInteractions(extractor);
+        jdbc.update("INSERT INTO resume_attachments(resume_id,filename,content_type,byte_size,content) VALUES(?,'broken.pdf','application/pdf',5,?)", resume, "%PDF-".getBytes());
+        when(extractor.extractStored(anyString(), anyString(), any())).thenThrow(ResumeTextExtractor.failure(org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY, "EXTRACTION_FAILED"));
+        assertThatThrownBy(() -> savedInput.prepare("owner", resume)).isInstanceOfSatisfying(ResponseStatusException.class,
+                e -> assertThat(e.getStatusCode().value()).isEqualTo(422));
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM ai_analysis_request WHERE user_id=?", Integer.class, user)).isZero();
     }
     @Test void cachesAndRejectsChangedRequestWithSameKey() {
         String key=UUID.randomUUID().toString();

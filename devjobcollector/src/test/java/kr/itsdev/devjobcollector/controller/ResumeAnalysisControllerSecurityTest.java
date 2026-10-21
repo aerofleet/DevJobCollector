@@ -21,6 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ResumeAnalysisControllerSecurityTest {
     @Autowired MockMvc mvc;
     @MockitoBean ResumeAnalysisService service;
+    @MockitoBean kr.itsdev.devjobcollector.ai.SavedResumeAnalysisInput savedInput;
     @MockitoBean kr.itsdev.devjobcollector.ai.ResumeExplanationService explanations;
     @MockitoBean kr.itsdev.devjobcollector.ai.OpenAiEvidenceClient openai;
     @MockitoBean JwtTokenVerifier verifier;
@@ -58,5 +59,20 @@ class ResumeAnalysisControllerSecurityTest {
                         .content("{\"resumeId\":1,\"consentVersion\":\"local-analysis-v1\",\"careerYears\":-1}"))
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(service);
+    }
+    @Test void acceptsSavedResumeWithoutRepeatedPreferenceFields() throws Exception {
+        mvc.perform(post("/api/v1/ai/resume-analyses").header("Authorization","Bearer valid")
+                        .header("Idempotency-Key","test-key-12345678").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"resumeId\":1,\"consentVersion\":\"local-analysis-v2\"}"))
+                .andExpect(status().isOk());
+        verify(savedInput).prepare("42", 1L);
+        verify(service).createSaved("42", 1L, "test-key-12345678", "local-analysis-v2", null);
+    }
+    @Test void obsoleteConsentDoesNotReadDocuments() throws Exception {
+        mvc.perform(post("/api/v1/ai/resume-analyses").header("Authorization","Bearer valid")
+                        .header("Idempotency-Key","test-key-12345678").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"resumeId\":1,\"consentVersion\":\"local-analysis-v1\"}"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(savedInput);
     }
 }

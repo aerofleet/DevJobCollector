@@ -29,7 +29,7 @@ test('운영 합성 이력서 분석·동의·gpt-5-nano 근거 정리·삭제',
     const navigation = await page.goto(`/resume-analysis?resumeId=${resumeId}`);
     expect(navigation.status()).toBe(200);
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,follow');
-    await page.getByLabel('희망 직무').selectOption('백엔드');
+    await expect(page.getByLabel('희망 직무')).toHaveCount(0);
     await page.getByRole('checkbox').check();
     const analysisResponse = page.waitForResponse((response) =>
       response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/v1/ai/resume-analyses');
@@ -38,6 +38,7 @@ test('운영 합성 이력서 분석·동의·gpt-5-nano 근거 정리·삭제',
     expect(analyzed.status()).toBe(200);
     const analysis = await analyzed.json();
     analysisId = analysis.id;
+    expect(analysis.inputMode).toBe('SAVED_RESUME');
     expect(analysis.recommendations.length).toBeGreaterThan(0);
     await page.getByLabel(/추천 근거 정리를 위해/).check();
     const explanationResponse = page.waitForResponse((response) =>
