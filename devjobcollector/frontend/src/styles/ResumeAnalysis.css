@@ -102,3 +102,15 @@
   .evidence-feedback button { flex: 1 1 auto; }
   .analysis-explanation { padding: 16px; }
 }
+
+.writing-suggestion { margin: 16px 0; padding: 20px; border: 1px solid #e1e5dc; border-radius: 12px; }
+.writing-suggestion h4 { margin: 12px 0; font-size: 17px; line-height: 1.6; }
+.writing-suggestion p, .writing-suggestion ol { font-size: 14px; line-height: 1.8; }
+.writing-suggestion > strong, .writing-targets > strong { font-size: 13px; }
+.writing-targets { background: #f6f7f3; padding: 12px 14px; border-radius: 8px; }
+.writing-targets ul { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 8px 0 0; list-style: none; }
+.writing-targets li { font-size: 13px; border: 1px solid #dce2d4; background: white; border-radius: 5px; padding: 5px 8px; }
+.writing-suggestion ol { padding-left: 22px; color: #475569; }
+.writing-suggestion ol li + li { margin-top: 8px; }
+.writing-suggestion > a { display: inline-block; margin-top: 16px; font-size: 13px; color: #4d6439; line-height: 1.7; }
+@media (max-width: 600px) { .writing-suggestion { padding: 16px; } }

@@ -172,3 +172,34 @@ test('실제 응답을 기다리는 진행 상태와 추천 0건 안내', async 
   await expect(page.getByRole('link', { name: '전체 공개 공고 둘러보기 →' })).toHaveAttribute('href', '/jobs');
   await expect(page.getByText(/지원 가능한 공고가 전혀 없다는 뜻은 아닙니다/)).toBeVisible();
 });
+
+
+test('기존 분석의 반복 제안을 묶고 대상 항목과 개선 절차를 안내한다', async ({ page }) => {
+  const metric = (index) => ({ sourcePath: `/projects/${index}/description`, issueType: 'METRIC_NOT_DETECTED', feedback: '검증 가능한 수치가 있다면 측정 조건과 함께 추가해 주세요.' });
+  await page.addInitScript(() => localStorage.setItem('accessToken', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0IiwiZXhwIjo0MTAyNDQ0ODAwfQ.test'));
+  await page.route('**/api/v1/**', route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('/members/me')) return route.fulfill({ json: { id: 42, name: '회원', role: 'USER', profileStatus: 'ACTIVE' } });
+    if (path.endsWith('/capabilities')) return route.fulfill({ json: { mode: 'LOCAL', consentVersion: 'local-analysis-v3', dailyLimit: 5 } });
+    if (path.endsWith('/resumes')) return route.fulfill({ json: [{ id: 11, title: '내 이력서' }] });
+    if (path.endsWith('/resume-analyses')) return route.fulfill({ json: [{ id: 8, resumeTitle: '이전 분석', createdAt: '2026-10-20' }] });
+    if (path.endsWith('/resume-analyses/8')) return route.fulfill({ json: { id: 8, resumeId: 11, recommendations: [], improvements: [metric(0), metric(1), metric(0),
+      { sourcePath: '/projects/2/description', issueType: 'MISSING_DESCRIPTION', feedback: '설명을 작성해 주세요.' }] } });
+    return route.fulfill({ json: [] });
+  });
+  await page.goto('/resume-analysis');
+  await page.getByRole('button', { name: /이전 분석 ·/ }).click();
+  const section = page.getByRole('region', { name: '작성 항목별 보완 제안' });
+  await expect(section.getByRole('article')).toHaveCount(2);
+  const metricCard = section.getByRole('article').filter({ has: page.getByRole('heading', { name: '성과를 확인할 근거를 보완해 주세요' }) });
+  await expect(metricCard.getByText('프로젝트 1 · 설명', { exact: true })).toHaveCount(1);
+  await expect(metricCard.getByText('프로젝트 2 · 설명', { exact: true })).toBeVisible();
+  await expect(metricCard.getByText('보완 검토', { exact: true })).toBeVisible();
+  await expect(metricCard.getByText(/측정값이 없다면 수행한 작업과 확인 방법/)).toBeVisible();
+  await metricCard.getByText('작성 예시 보기', { exact: true }).click();
+  await expect(metricCard.getByText(/측정 전 값·단위/)).toBeVisible();
+  await expect(section.getByText('프로젝트 3 · 설명', { exact: true })).toBeVisible();
+  await expect(section.getByRole('link', { name: '이력서에서 해당 항목 수정하기 →' }).first()).toHaveAttribute('href', '/resume?resumeId=11');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.screenshot({ path: `.codex/writing-suggestions-${test.info().project.name}.png`, fullPage: true });
+});

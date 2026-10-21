@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import MemberSidebar from '../components/member/MemberSidebar';
 import ResumeEvidenceReport, { JobEvidence } from '../components/member/ResumeEvidenceReport';
+import ResumeWritingSuggestions from '../components/member/ResumeWritingSuggestions';
 import { listResumes } from '../api/resumeApi';
 import authenticatedApi from '../api/authenticatedApi';
 import {
@@ -210,11 +211,7 @@ export default function ResumeAnalysisPage() {
                 <p role="status">AI 근거 정리를 완료하지 못했습니다. 아래 로컬 분석 결과는 계속 사용할 수 있습니다. 중복 비용 방지를 위해 이 요청은 다시 호출하지 않습니다.</p>}
               {currentExplanation?.status === 'COMPLETED' && <p role="status">AI가 선택한 근거를 각 추천 공고에 표시했습니다.</p>}
             </div>}
-            <h3>저장된 작성 항목 확인 <span className="evidence-badge">규칙 검사</span></h3>
-            <p className="analysis-note">작성 양식의 누락 항목입니다. 첨부파일에 같은 내용이 있다면 반드시 다시 입력할 필요는 없습니다.</p>
-            {result.improvements.filter((item) => !result.review || item.issueType !== 'METRIC_NOT_DETECTED').length ? <ul className="analysis-issues">{result.improvements.filter((item) => !result.review || item.issueType !== 'METRIC_NOT_DETECTED').map((item) =>
-              <li key={`${item.sourcePath}-${item.issueType}`}>{item.feedback} <Link to={`/resume?resumeId=${result.resumeId}`}>이력서 수정</Link></li>)}</ul> :
-              <p>현재 점검 규칙에서 발견한 보완 항목이 없습니다. 이력서의 완성도를 보장하는 결과는 아닙니다.</p>}
+            <ResumeWritingSuggestions result={result} />
             <h3>추천 공고</h3>
             {!result.recommendations.length && <p>현재 자료와 연결할 수 있는 공개 공고를 찾지 못했습니다. 수집된 기술 정보가 부족하거나 공고가 마감되었을 수 있습니다. 지원 가능한 공고가 전혀 없다는 뜻은 아닙니다.</p>}
             {!result.recommendations.length && <Link className="evidence-browse" to="/jobs">전체 공개 공고 둘러보기 →</Link>}
