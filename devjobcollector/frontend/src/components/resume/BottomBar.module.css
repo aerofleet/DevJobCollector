@@ -42,3 +42,6 @@
     bottom: 64px;
   }
 }
+
+.inner { gap: 10px; flex-wrap: wrap; }
+@media (max-width: 600px) { .rate { width: 100%; } .button { flex: 1; min-width: 0; } }

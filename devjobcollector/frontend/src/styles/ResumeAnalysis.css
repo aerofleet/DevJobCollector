@@ -114,3 +114,21 @@
 .writing-suggestion ol li + li { margin-top: 8px; }
 .writing-suggestion > a { display: inline-block; margin-top: 16px; font-size: 13px; color: #4d6439; line-height: 1.7; }
 @media (max-width: 600px) { .writing-suggestion { padding: 16px; } }
+
+.content-review { border: 1px solid #d8ccec; border-radius: 14px; padding: 24px; margin: 24px 0; background: #fcfbff; }
+.content-review h3 { margin-top: 14px; }
+.content-review button { min-height: 44px; padding: 10px 14px; border: 1px solid #c9b7e6; background: #ece4fa; color: #56347e; border-radius: 8px; cursor: pointer; }
+.content-review .content-review-refresh { background: transparent; border: 0; font-size: 12px; margin: 10px 0; }
+.content-review-preview { margin: 18px 0; }
+.content-review-preview > p, .content-review p, .content-review li { font-size: 14px; line-height: 1.8; }
+.content-review-preview details { margin: 16px 0; padding: 14px; background: #fff; border: 1px solid #e5dfee; border-radius: 10px; }
+.content-review-preview summary { cursor: pointer; font-size: 14px; font-weight: 650; }
+.content-review-preview label { margin: 14px 0; }
+.content-review-preview textarea { width: 100%; min-height: 110px; resize: vertical; border: 1px solid #ded6ea; border-radius: 6px; padding: 10px; font: inherit; font-size: 13px; line-height: 1.7; color: #45404e; background: #faf9fc; }
+.content-review .evidence-finding { background: #fff; }
+.content-review .evidence-finding > a { display: inline-block; margin-top: 15px; font-size: 13px; color: #654288; }
+.ai-job-review { margin: 16px 0; border: 1px solid #ded5eb; border-radius: 10px; padding: 16px; background: #faf7ff; }
+.ai-job-review > div { padding: 12px 0; border-top: 1px solid #e7e0ef; margin-top: 12px; }
+.ai-job-review small { display: block; color: #736580; font-size: 12px; }
+.ai-job-review span { font-size: 12px; }
+@media (max-width: 600px) { .content-review { padding: 16px; } }

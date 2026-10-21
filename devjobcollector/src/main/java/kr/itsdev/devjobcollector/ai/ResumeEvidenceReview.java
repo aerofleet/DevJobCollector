@@ -17,14 +17,14 @@ public final class ResumeEvidenceReview {
 
     public static List<Document> savedDocuments(JsonNode content) {
         var result = new ArrayList<Document>();
-        for (String field : List.of("projects", "experience", "techStack")) collect(content.path(field), "/" + field, field, result);
+        for (String field : List.of("careerProfile", "projects", "experience", "techStack")) collect(content.path(field), "/" + field, field, result);
         return result;
     }
 
     private static void collect(JsonNode node, String path, String section, List<Document> documents) {
         if (path.chars().filter(c -> c == '/').count() > 14) return;
         if (node.isTextual() && !node.asText().isBlank()) documents.add(new Document(path, "저장된 이력서", null, section, node.asText()));
-        else if (node.isArray()) { for (int i = 0; i < node.size(); i++) collect(node.get(i), path + "/" + i, section, documents); }
+        else if (node.isArray()) { for (int i = 0; i < node.size(); i++) collect(node.get(i), path + "/" + i, section.equals("projects") ? "프로젝트 " + (i + 1) : section.equals("experience") ? "경력 " + (i + 1) : section, documents); }
         else if (node.isObject()) node.fields().forEachRemaining(entry -> collect(entry.getValue(), path + "/" + entry.getKey(), section, documents));
     }
 

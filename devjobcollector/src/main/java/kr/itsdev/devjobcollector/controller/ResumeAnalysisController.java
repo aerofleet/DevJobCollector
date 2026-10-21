@@ -31,7 +31,7 @@ public class ResumeAnalysisController {
     @GetMapping("/capabilities")
     public ResponseEntity<?> capabilities() {
         return noStore(Map.of("mode", "LOCAL", "consentVersion", ResumeAnalysisService.CONSENT_VERSION,
-                "dailyLimit", 5, "externalProcessing", openai.available(),
+                "dailyLimit", 5, "externalProcessing", openai.available(), "contentReviewAvailable", openai.available(),
                 "externalConsentVersion", ResumeExplanationService.CONSENT_VERSION,
                 "externalModel", OpenAiEvidenceClient.MODEL, "externalPayload", "EVIDENCE_CODES_ONLY"));
     }

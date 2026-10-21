@@ -1,4 +1,5 @@
 import React from 'react';
+import { ExperienceEvidenceFields } from './AnalysisFields';
 import styles from './Experience.module.css';
 
 const emptyExperience = {
@@ -56,15 +57,18 @@ const Experience = ({ data, onChange }) => {
               className={styles.input}
               type="date"
               value={experience.endDate}
+              disabled={experience.isCurrent === true}
               onChange={(e) => updateExperience(index, 'endDate', e.target.value)}
             />
           </div>
+          <label><input type="checkbox" checked={experience.isCurrent === true} onChange={e => updateExperience(index, 'isCurrent', e.target.checked)} /> 현재 재직 중</label>
           <textarea
             className={styles.textarea}
             placeholder="담당 업무 및 성과"
             value={experience.description}
             onChange={(e) => updateExperience(index, 'description', e.target.value)}
           />
+          <ExperienceEvidenceFields data={experience} label={`경력 ${index + 1}`} onChange={(key, value) => updateExperience(index, key, value)} />
           <button type="button" className={styles.removeButton} onClick={() => removeExperience(index)}>
             삭제
           </button>

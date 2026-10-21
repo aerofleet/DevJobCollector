@@ -14,3 +14,7 @@ export const getExplanation = async (id) => (await authenticatedApi.get(`${base}
 export const requestExplanation = async (id, consentVersion) => (await authenticatedApi.post(`${base}/${id}/explanation`, { consentVersion }, { timeout: 35000 })).data;
 
 export const saveFindingFeedback = async (id, findingId, type) => authenticatedApi.put(`${base}/${id}/findings/${findingId}/feedback`, { type });
+
+export const previewContentReview = async (id) => (await authenticatedApi.post(`${base}/${id}/content-review/preview`, {}, { timeout: 80000 })).data;
+export const getContentReview = async (id) => (await authenticatedApi.get(`${base}/${id}/content-review`)).data;
+export const requestContentReview = async (id, consentVersion, previewHash) => (await authenticatedApi.post(`${base}/${id}/content-review`, { consentVersion, previewHash }, { timeout: 130000 })).data;

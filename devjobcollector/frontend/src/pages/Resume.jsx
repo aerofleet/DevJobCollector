@@ -4,6 +4,7 @@ import ResumeNav from '../components/resume/ResumeNav';
 import BasicInfo from '../components/resume/BasicInfo';
 import TechStack from '../components/resume/TechStack';
 import Projects from '../components/resume/Projects';
+import { CareerProfile } from '../components/resume/AnalysisFields';
 import Experience from '../components/resume/Experience';
 import Attachments from '../components/resume/Attachments';
 import BottomBar from '../components/resume/BottomBar';
@@ -12,6 +13,7 @@ import styles from '../styles/Resume.module.css';
 
 const INITIAL_RESUME = {
   basicInfo: {},
+  careerProfile: {},
   techStack: [],
   projects: [],
   experience: [],
@@ -77,7 +79,7 @@ const Resume = () => {
   }, [resumeId]);
 
   useEffect(() => {
-    const sectionIds = ['basicInfo', 'techStack', 'projects', 'experience', 'attachments'];
+    const sectionIds = ['basicInfo', 'careerProfile', 'techStack', 'projects', 'experience', 'attachments'];
     const handleScroll = () => {
       for (const id of sectionIds) {
         const element = document.getElementById(id);
@@ -97,7 +99,7 @@ const Resume = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleSave = async () => {
+  const handleSave = async (analyze = false) => {
     if (!resumeTitle.trim()) {
       window.alert('이력서 제목을 입력해 주세요.');
       return;
@@ -108,9 +110,10 @@ const Resume = () => {
       if (persistedId.current) {
         await updateResume(persistedId.current, request);
       } else {
-        await createResume(request);
+        const created = await createResume(request);
+        persistedId.current = String(created.id);
       }
-      navigate('/resumes');
+      navigate(analyze ? `/resume-analysis?resumeId=${persistedId.current}` : '/resumes');
     } catch (error) {
       console.error('이력서 저장 실패:', error);
       window.alert('저장에 실패했습니다.');
@@ -165,6 +168,7 @@ const Resume = () => {
               data={resumeData.basicInfo}
               onChange={(data) => setResumeData((prev) => ({ ...prev, basicInfo: data }))}
             />
+            <CareerProfile data={resumeData.careerProfile || {}} onChange={data => setResumeData(prev => ({ ...prev, careerProfile: data }))} />
             <TechStack
               data={resumeData.techStack}
               onChange={(data) => setResumeData((prev) => ({ ...prev, techStack: data }))}
@@ -181,7 +185,7 @@ const Resume = () => {
           </div>
         </main>
       </div>
-      <BottomBar onSave={handleSave} isSaving={isSaving || attachmentBusy} completionRate={completionRate} />
+      <BottomBar onSave={() => handleSave(false)} onAnalyze={() => handleSave(true)} isSaving={isSaving || attachmentBusy} completionRate={completionRate} />
     </div>
   );
 };

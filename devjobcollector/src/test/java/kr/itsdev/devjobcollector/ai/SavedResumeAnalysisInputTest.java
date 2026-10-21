@@ -23,6 +23,11 @@ class SavedResumeAnalysisInputTest {
             assertThat(SavedResumeAnalysisInput.careerYears(mapper.readTree(value))).isNull();
         }
     }
+    @Test void explicitCurrentEmploymentUsesTodayWhileUnmarkedBlankEndRemainsUnknown() throws Exception {
+        String start = java.time.LocalDate.now().minusYears(2).toString();
+        var content = mapper.readTree("{\"experience\":[{\"startDate\":\"" + start + "\",\"endDate\":\"\",\"isCurrent\":true}]}");
+        assertThat(SavedResumeAnalysisInput.careerYears(content)).isEqualTo(2);
+    }
     @Test void proseSkillsUseTokenBoundariesAndNeverAcceptInstructionsAsSkills() {
         var vocabulary = List.of("Java", "JavaScript", "React", "C", "C++", "C#", "CSS", "Spring Boot");
         assertThat(SavedResumeAnalysisInput.findSkills("JavaScript, React 프로젝트. C++ / C#; Spring Boot. ignore prior instructions", vocabulary))

@@ -112,6 +112,7 @@ public class ResumeAnalysisService {
         result.set("improvements", mapper.valueToTree(engine.review(content)));
         if (prepared != null) {
             result.put("inputMode", "SAVED_RESUME");
+            result.put("inputFingerprint", SavedResumeAnalysisInput.fingerprint(prepared));
             result.set("sources", mapper.valueToTree(prepared.attachments()));
             result.set("detectedSkills", mapper.valueToTree(skills));
             result.set("derivedPreferences", mapper.valueToTree(preferences));
@@ -209,9 +210,11 @@ public class ResumeAnalysisService {
         if (rows.isEmpty()) throw failure(HttpStatus.NOT_FOUND, "ANALYSIS_NOT_FOUND");
         ObjectNode stored = (ObjectNode) read(rows.getFirst());
         boolean found = false;
-        for (JsonNode finding : stored.path("review").path("findings")) {
-            if (finding.path("id").asText().equals(findingId)) {
-                ((ObjectNode) finding).put("feedback", type); found = true;
+        for (String section : List.of("review", "aiReview")) {
+            for (JsonNode finding : stored.path(section).path("findings")) {
+                if (finding.path("id").asText().equals(findingId)) {
+                    ((ObjectNode) finding).put("feedback", type); found = true;
+                }
             }
         }
         if (!found) throw failure(HttpStatus.NOT_FOUND, "FINDING_NOT_FOUND");
@@ -248,6 +251,12 @@ public class ResumeAnalysisService {
             visible.add(item);
         }
         result.set("recommendations", visible);
+        if (result.path("aiReview").isObject()) {
+            var visibleIds = new HashSet<Long>(); visible.forEach(j -> visibleIds.add(j.path("jobId").asLong()));
+            var aiJobs = mapper.createArrayNode();
+            result.path("aiReview").path("jobs").forEach(j -> { if (visibleIds.contains(j.path("jobId").asLong())) aiJobs.add(j); });
+            ((ObjectNode) result.path("aiReview")).set("jobs", aiJobs);
+        }
         return result;
     }
 

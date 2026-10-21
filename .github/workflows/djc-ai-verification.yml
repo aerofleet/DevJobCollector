@@ -47,7 +47,7 @@ jobs:
           DJC_MIGRATION_TEST_URL: jdbc:mysql://127.0.0.1:3306/devjob?allowPublicKeyRetrieval=true&useSSL=false
           DJC_MIGRATION_TEST_PASSWORD: djc-ai-ci-only
         run: ./gradlew test --tests '*ai.ResumeAnalysisIntegrationTest' --no-daemon
-      - name: Live gpt-5-nano contract with synthetic enum evidence
+      - name: Live model contracts with synthetic evidence and resume text
         working-directory: devjobcollector
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

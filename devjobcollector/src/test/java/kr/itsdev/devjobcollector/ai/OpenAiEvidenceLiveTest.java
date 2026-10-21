@@ -8,6 +8,22 @@ import static org.assertj.core.api.Assertions.*;
 /** Explicit opt-in smoke test. Synthetic enum evidence only; one billable API request. */
 @EnabledIfEnvironmentVariable(named="DJC_OPENAI_LIVE_TEST",matches="true")
 class OpenAiEvidenceLiveTest {
+    @Test void nanoReviewsSyntheticResumeWithVerifiableQuotesAndJobRequirements() {
+        var mapper = new ObjectMapper();
+        var client = new OpenAiEvidenceClient(mapper, System.getenv("OPENAI_API_KEY"), true);
+        String text = "팀 프로젝트에서 Java와 Spring Boot를 사용했습니다. 성능을 개선했습니다. 프로젝트에 참여했습니다.";
+        String requirements = "Java와 Spring Boot 기반 API 개발 경험. 본인이 수행한 API 설계와 테스트 경험을 설명할 수 있는 분.";
+        var document = new ResumeEvidenceReview.Document("/projects/0/description", "synthetic", null, "프로젝트 1", text);
+        var sources = java.util.List.of(new ResumeContentReviewRules.Source("S1", text, document));
+        var jobs = java.util.List.of(new ResumeContentReviewRules.Job(0, 1, requirements));
+        var payload = java.util.Map.<String, Object>of("sources", java.util.List.of(java.util.Map.of("sourceId", "S1", "kind", "SAVED_RESUME", "section", "프로젝트 1", "field", "description", "text", text)),
+                "jobs", java.util.List.of(java.util.Map.of("slot", 0, "text", requirements)));
+        var output = client.review(payload);
+        var validated = ResumeContentReviewRules.validate(output, sources, jobs, mapper);
+        assertThat(validated.path("findings").size()).isGreaterThan(0);
+        assertThat(validated.path("jobs").size()).isEqualTo(1);
+        for (var finding : validated.path("findings")) assertThat(text).contains(finding.path("quote").asText());
+    }
     @Test void nanoReturnsSupportedEvidenceForSyntheticJobs() throws Exception {
         var mapper=new ObjectMapper();
         var client=new OpenAiEvidenceClient(mapper,System.getenv("OPENAI_API_KEY"),true);

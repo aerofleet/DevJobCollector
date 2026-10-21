@@ -3,6 +3,7 @@ import styles from './ResumeNav.module.css';
 
 const sections = [
   { id: 'basicInfo', label: '기본정보' },
+  { id: 'careerProfile', label: '지원 방향' },
   { id: 'techStack', label: '기술스택' },
   { id: 'projects', label: '프로젝트' },
   { id: 'experience', label: '경력' },
@@ -38,7 +39,7 @@ const ResumeNav = ({ activeSection, completionRate, setActiveSection }) => {
         </ul>
       </section>
       <section className={styles.progress}>
-        <p className={styles.progressTitle}>이력서 완성도</p>
+        <p className={styles.progressTitle}>작성 항목 입력 현황</p>
         <div className={styles.progressBar}>
           <div className={styles.progressFill} style={{ width: `${completionRate}%` }} />
         </div>

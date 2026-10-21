@@ -22,7 +22,7 @@ import static org.mockito.Mockito.*;
 @JdbcTest(properties = {"spring.flyway.enabled=true","spring.flyway.baseline-on-migrate=false"})
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @EnabledIfEnvironmentVariable(named="DJC_MIGRATION_TEST_URL",matches=".+")
-@Import({ResumeAnalysisService.class,ResumeExplanationService.class,LocalRecommendationEngine.class,SavedResumeAnalysisInput.class,ResumeAnalysisIntegrationTest.JsonConfig.class})
+@Import({ResumeContentReviewService.class,ResumePiiGate.class,ResumeAnalysisService.class,ResumeExplanationService.class,LocalRecommendationEngine.class,SavedResumeAnalysisInput.class,ResumeAnalysisIntegrationTest.JsonConfig.class})
 @Transactional(propagation=Propagation.NOT_SUPPORTED)
 class ResumeAnalysisIntegrationTest {
     @TestConfiguration static class JsonConfig {
@@ -30,6 +30,7 @@ class ResumeAnalysisIntegrationTest {
     }
     @Autowired JdbcTemplate jdbc;
     @Autowired ResumeAnalysisService service;
+    @Autowired ResumeContentReviewService contentReviews;
     @Autowired ResumeExplanationService explanations;
     @Autowired ObjectMapper mapper;
     @Autowired SavedResumeAnalysisInput savedInput;
@@ -62,6 +63,67 @@ class ResumeAnalysisIntegrationTest {
     @AfterEach void cleanup() { jdbc.update("DELETE FROM users WHERE id=?",user); }
     long create(String key, LocalRecommendationEngine.Preferences p) {
         return service.create("owner",resume,key,ResumeAnalysisService.CONSENT_VERSION,p).path("id").asLong();
+    }
+    @Test void contentReviewRequiresExactPreviewAndConsentAndCallsModelOnlyOnce() throws Exception {
+        jdbc.update("UPDATE resumes SET content_json=? WHERE id=?", "{\"basicInfo\":{\"name\":\"홍길동\",\"email\":\"private@example.com\"},\"careerProfile\":{\"category\":\"백엔드\",\"location\":\"서울\"},\"projects\":[{\"description\":\"홍길동 Java API를 개발했습니다.\",\"actions\":\"테스트를 작성했습니다.\"}]}", resume);
+        when(openai.available()).thenReturn(true);
+        var analysis = service.createSaved("owner", resume, UUID.randomUUID().toString(), ResumeAnalysisService.CONSENT_VERSION, savedInput.prepare("owner", resume));
+        long id = analysis.path("id").asLong();
+        assertThat(analysis.path("derivedPreferences").path("category").asText()).isEqualTo("백엔드");
+        var preview = contentReviews.preview("owner", id);
+        String hash = preview.path("previewHash").asText();
+        assertThat(preview.path("payload").toString()).doesNotContain("홍길동", "private@example.com").contains("[익명]", "테스트를 작성했습니다.");
+        verify(openai, never()).review(anyMap());
+        assertThatThrownBy(() -> contentReviews.review("owner", id, "old", hash)).isInstanceOf(ResponseStatusException.class);
+        assertThatThrownBy(() -> contentReviews.review("owner", id, ResumeContentReviewService.CONSENT, "wrong")).isInstanceOf(ResponseStatusException.class);
+        verify(openai, never()).review(anyMap());
+        String sourceId = "";
+        for (var source : preview.path("payload").path("sources")) if (source.path("text").asText().contains("Java API")) sourceId=source.path("sourceId").asText();
+        var output = mapper.createObjectNode(); output.putArray("jobs");
+        var finding = output.putArray("findings").addObject(); finding.put("sourceId",sourceId); finding.put("quote","Java API를 개발했습니다.");
+        finding.put("issueType","ROLE"); finding.put("problem","담당 범위를 보완하세요."); finding.putArray("actions").add("구현한 기능을 적으세요."); finding.put("rewriteTemplate","[담당 기능]을 구현했습니다.");
+        when(openai.review(anyMap())).thenReturn(output);
+        var reviewed = contentReviews.review("owner", id, ResumeContentReviewService.CONSENT, hash);
+        assertThat(reviewed.path("status").asText()).isEqualTo("COMPLETED");
+        assertThat(reviewed.path("findings").size()).isEqualTo(1);
+        assertThat(reviewed.path("piiGatePassed").asBoolean()).isFalse();
+        service.findingFeedback("owner", id, reviewed.path("findings").get(0).path("id").asText(), "INCORRECT");
+        assertThat(contentReviews.get("owner", id).path("findings").get(0).path("feedback").asText()).isEqualTo("INCORRECT");
+        assertThat(contentReviews.review("owner", id, ResumeContentReviewService.CONSENT, hash).path("findings").size()).isEqualTo(1);
+        verify(openai, times(1)).review(anyMap());
+        assertThatThrownBy(() -> contentReviews.get("other", id)).isInstanceOf(ResponseStatusException.class);
+        service.delete("owner", id);
+        assertThatThrownBy(() -> contentReviews.get("owner", id)).isInstanceOf(ResponseStatusException.class);
+        assertThat(jdbc.queryForObject("SELECT attempt_count FROM ai_external_daily_usage WHERE user_id=?", Integer.class, user)).isEqualTo(1);
+    }
+    @Test void concurrentContentReviewKeepsOneAttemptAndDoesNotRetryFailure() throws Exception {
+        jdbc.update("UPDATE resumes SET content_json=? WHERE id=?", "{\"projects\":[{\"description\":\"Java API를 개발했습니다.\"}]}", resume);
+        when(openai.available()).thenReturn(true);
+        var analysis = service.createSaved("owner", resume, UUID.randomUUID().toString(), ResumeAnalysisService.CONSENT_VERSION, savedInput.prepare("owner", resume));
+        long id = analysis.path("id").asLong();
+        String hash = contentReviews.preview("owner", id).path("previewHash").asText();
+        var entered = new CountDownLatch(1); var release = new CountDownLatch(1);
+        when(openai.review(anyMap())).thenAnswer(invocation -> { entered.countDown(); release.await(10, TimeUnit.SECONDS); throw new IllegalStateException("synthetic failure"); });
+        try (var pool = Executors.newFixedThreadPool(2)) {
+            var first = pool.submit(() -> contentReviews.review("owner", id, ResumeContentReviewService.CONSENT, hash));
+            assertThat(entered.await(10, TimeUnit.SECONDS)).isTrue();
+            try { assertThat(contentReviews.review("owner", id, ResumeContentReviewService.CONSENT, hash).path("status").asText()).isEqualTo("PENDING"); }
+            finally { release.countDown(); }
+            assertThat(first.get(10, TimeUnit.SECONDS).path("status").asText()).isEqualTo("FAILED");
+        }
+        assertThat(contentReviews.review("owner", id, ResumeContentReviewService.CONSENT, hash).path("status").asText()).isEqualTo("FAILED");
+        verify(openai, times(1)).review(anyMap());
+    }
+    @Test void changedResumeInvalidatesContentPreviewBeforeProviderCall() {
+        jdbc.update("UPDATE resumes SET content_json=? WHERE id=?", "{\"projects\":[{\"description\":\"Java API를 개발했습니다.\"}]}", resume);
+        when(openai.available()).thenReturn(true);
+        var analysis = service.createSaved("owner", resume, UUID.randomUUID().toString(), ResumeAnalysisService.CONSENT_VERSION, savedInput.prepare("owner", resume));
+        long id = analysis.path("id").asLong();
+        var preview = contentReviews.preview("owner", id);
+        jdbc.update("UPDATE resumes SET content_json=? WHERE id=?", "{\"projects\":[{\"description\":\"변경된 내용\"}]}", resume);
+        assertThatThrownBy(() -> contentReviews.review("owner", id, ResumeContentReviewService.CONSENT, preview.path("previewHash").asText()))
+                .isInstanceOfSatisfying(ResponseStatusException.class, e -> assertThat(e.getStatusCode().value()).isEqualTo(409));
+        verify(openai, never()).review(anyMap());
     }
     @Test void verifiedReportPersistsFeedbackChecksOwnershipAndComparesReanalysis() {
         jdbc.update("UPDATE resumes SET content_json=? WHERE id=?", "{\"projects\":[{\"description\":\"API 응답 속도를 개선했습니다.\"}]}", resume);

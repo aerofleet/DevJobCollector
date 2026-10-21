@@ -1,4 +1,5 @@
 import React from 'react';
+import { ExperienceEvidenceFields } from './AnalysisFields';
 import styles from './Projects.module.css';
 
 const emptyProject = {
@@ -65,6 +66,7 @@ const Projects = ({ data, onChange }) => {
             value={project.description}
             onChange={(e) => updateProject(index, 'description', e.target.value)}
           />
+          <ExperienceEvidenceFields data={project} label={`프로젝트 ${index + 1}`} onChange={(key, value) => updateProject(index, key, value)} />
           <button type="button" className={styles.removeButton} onClick={() => removeProject(index)}>
             삭제
           </button>

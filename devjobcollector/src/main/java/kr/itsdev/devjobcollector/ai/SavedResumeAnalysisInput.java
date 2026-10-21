@@ -15,7 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 /** Extract saved documents outside the analysis transaction; revalidate the snapshot before saving. */
 @Service
 public class SavedResumeAnalysisInput {
-    public static final String VERSION = "saved-resume-v2";
+    public static final String VERSION = "saved-resume-v3";
     private final JdbcTemplate jdbc;
     private final CurrentMemberService members;
     private final ObjectMapper mapper;
@@ -37,6 +37,7 @@ public class SavedResumeAnalysisInput {
         var attachmentIds = jdbc.queryForList("SELECT id FROM resume_attachments WHERE resume_id=? ORDER BY id", Long.class, resumeId);
         if (attachmentIds.size() > 5) throw ResumeTextExtractor.failure(HttpStatus.BAD_REQUEST, "ATTACHMENT_LIMIT");
         var text = new StringBuilder();
+        append(content.path("careerProfile"), text, 0);
         append(content.path("projects"), text, 0);
         append(content.path("experience"), text, 0);
         var sources = new ArrayList<Map<String, Object>>();
@@ -67,10 +68,17 @@ public class SavedResumeAnalysisInput {
         vocabulary.addAll(List.of("Java", "Spring Boot", "React", "TypeScript", "MySQL", "Docker"));
         skills.addAll(findSkills(text.toString(), vocabulary));
         if (skills.size() > 50) throw ResumeTextExtractor.failure(HttpStatus.UNPROCESSABLE_ENTITY, "TOO_MANY_SKILLS");
-        var preferences = new LocalRecommendationEngine.Preferences(careerYears(content), "", "", "");
+        var profile = content.path("careerProfile");
+        var preferences = new LocalRecommendationEngine.Preferences(careerYears(content),
+                allowed(profile.path("category").asText(), "백엔드|프론트엔드|풀스택|데이터|인공지능|모바일|보안|DevOps"),
+                allowed(profile.path("location").asText(), "서울|경기|인천|부산|대구|대전|광주|울산|세종|강원|충북|충남|전북|전남|경북|경남|제주|원격"),
+                allowed(profile.path("employmentType").asText(), "정규직|계약직|인턴|프리랜서"));
         return new Prepared(ResumeAnalysisService.hash(rows.getFirst()), List.copyOf(attachmentIds),
                 Collections.unmodifiableSet(skills), preferences, List.copyOf(sources), List.copyOf(documents));
     }
+
+    private static String allowed(String value, String options) { return value.matches(options) ? value : ""; }
+    public static String fingerprint(Prepared input) { return ResumeAnalysisService.hash(input.contentHash() + ":" + input.attachmentIds()); }
 
     static Set<String> findSkills(String text, List<String> vocabulary) {
         var found = new TreeSet<String>();
@@ -90,7 +98,7 @@ public class SavedResumeAnalysisInput {
         for (JsonNode item : content.path("experience")) {
             try {
                 LocalDate start = LocalDate.parse(item.path("startDate").asText());
-                LocalDate end = LocalDate.parse(item.path("endDate").asText());
+                LocalDate end = item.path("isCurrent").asBoolean(false) ? LocalDate.now() : LocalDate.parse(item.path("endDate").asText());
                 if (end.isBefore(start) || end.isAfter(LocalDate.now()) || start.isBefore(LocalDate.now().minusYears(60))) return null;
                 intervals.add(new LocalDate[]{start, end});
             } catch (java.time.format.DateTimeParseException error) {

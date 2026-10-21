@@ -265,3 +265,32 @@ test('저장된 이력서를 확인 후 삭제하고 빈 목록을 표시한다'
   expect(state.lastDelete).toBe(existing.id);
   await expectNoHorizontalScroll(page);
 });
+
+
+test('지원 방향과 구체적 경험을 저장하고 분석 화면으로 이동한다', async ({ page }) => {
+  const state = await installApiMock(page, []);
+  await page.goto('/resume');
+  await page.getByLabel('희망 직무').selectOption('백엔드');
+  await page.getByLabel('희망 지역').selectOption('서울');
+  await page.getByLabel('경험 요약').fill('Java API 개발 경험');
+  await page.getByRole('button', { name: '프로젝트 추가', exact: true }).click();
+  await page.getByPlaceholder('프로젝트명', { exact: true }).fill('주문 서비스');
+  await page.getByPlaceholder('프로젝트 설명', { exact: true }).fill('기존에 작성한 설명');
+  await page.getByText('경험을 구체적으로 정리하기 · 선택', { exact: true }).click();
+  await page.getByLabel('프로젝트 1 내 역할과 담당 범위').fill('주문 API 구현');
+  await page.getByLabel('프로젝트 1 직접 수행한 작업').fill('Spring Boot로 트랜잭션을 처리했습니다.');
+  await page.getByRole('button', { name: '경력 추가', exact: true }).click();
+  await page.getByLabel('현재 재직 중').check();
+  await page.getByRole('button', { name: '저장하고 AI 분석', exact: true }).click();
+  await expect(page).toHaveURL(/resume-analysis\?resumeId=12/);
+  expect(state.lastCreate.content.careerProfile).toMatchObject({ category: '백엔드', location: '서울', summary: 'Java API 개발 경험' });
+  expect(state.lastCreate.content.projects[0]).toMatchObject({ title: '주문 서비스', description: '기존에 작성한 설명', role: '주문 API 구현', actions: 'Spring Boot로 트랜잭션을 처리했습니다.' });
+  expect(state.lastCreate.content.experience[0].isCurrent).toBe(true);
+  await page.goto('/resume?resumeId=12');
+  await expect(page.getByLabel('희망 직무')).toHaveValue('백엔드');
+  await page.getByText('경험을 구체적으로 정리하기 · 선택', { exact: true }).first().click();
+  await expect(page.getByLabel('프로젝트 1 내 역할과 담당 범위')).toHaveValue('주문 API 구현');
+  await expect(page.getByPlaceholder('프로젝트 설명', { exact: true })).toHaveValue('기존에 작성한 설명');
+  await expectNoHorizontalScroll(page);
+  await page.screenshot({ path: `.codex/resume-structured-${test.info().project.name}.png`, fullPage: true });
+});

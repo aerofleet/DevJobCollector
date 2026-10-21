@@ -135,7 +135,8 @@ public class LocalRecommendationEngine {
         int index = 0;
         for (JsonNode project : content.path("projects")) {
             String path = "/projects/" + index++ + "/description";
-            String description = project.path("description").asText("");
+            String description = java.util.stream.Stream.of("description", "problem", "role", "actions", "outcome", "evidence")
+                    .map(field -> project.path(field).asText("")).filter(value -> !value.isBlank()).collect(java.util.stream.Collectors.joining("\n"));
             if (description.isBlank()) {
                 issues.add(new Improvement(path, "MISSING_DESCRIPTION", "문제, 본인의 역할, 수행한 작업과 결과를 작성해 주세요."));
             } else if (!Pattern.compile("\\d").matcher(description).find()) {

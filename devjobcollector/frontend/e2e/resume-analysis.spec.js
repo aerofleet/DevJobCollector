@@ -203,3 +203,52 @@ test('기존 분석의 반복 제안을 묶고 대상 항목과 개선 절차를
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: `.codex/writing-suggestions-${test.info().project.name}.png`, fullPage: true });
 });
+
+
+test('AI 내용 분석은 전송 미리보기 동의 후 실행하고 수정안과 공고 근거를 표시한다', async ({ page }) => {
+  let aiCalls = 0;
+  let state = { status: 'NOT_REQUESTED' };
+  const result = { id: 8, resumeId: 11, inputFingerprint: 'snapshot', improvements: [], recommendations: [
+    { jobId: 17, title: 'Java 개발자', rank: 1, matchPoints: ['java'], missingPoints: [], companyName: '기업', skillEvidenceSource: 'TECH_TAGS' }] };
+  await page.addInitScript(() => localStorage.setItem('accessToken', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0IiwiZXhwIjo0MTAyNDQ0ODAwfQ.test'));
+  await page.route('**/api/v1/**', async route => {
+    const req = route.request(); const path = new URL(req.url()).pathname;
+    if (path.endsWith('/members/me')) return route.fulfill({ json: { id: 42, name: '회원', role: 'USER', profileStatus: 'ACTIVE' } });
+    if (path.endsWith('/capabilities')) return route.fulfill({ json: { contentReviewAvailable: true, externalProcessing: true, consentVersion: 'local-analysis-v3', dailyLimit: 5 } });
+    if (path.endsWith('/resumes')) return route.fulfill({ json: [{ id: 11, title: '내 이력서' }] });
+    if (path.endsWith('/resume-analyses')) return route.fulfill({ json: [{ id: 8, resumeTitle: '저장된 분석', createdAt: '2026-10-22' }] });
+    if (path.endsWith('/resume-analyses/8')) return route.fulfill({ json: { ...result, aiReview: state } });
+    if (path.endsWith('/content-review/preview')) return route.fulfill({ json: { consentVersion: 'openai-content-review-v1', previewHash: 'a'.repeat(64),
+      sources: [{ id: 'S1', label: '저장된 이력서', section: '프로젝트 1' }, { id: 'S2', label: 'portfolio.pdf', page: 2 }],
+      payload: { sources: [{ sourceId: 'S1', text: 'Java API를 개발했습니다.' }, { sourceId: 'S2', text: '테스트를 작성했습니다.' }], jobs: [{ slot: 0, text: 'Java API 개발' }] } } });
+    if (path.endsWith('/content-review')) {
+      if (req.method() === 'POST') {
+        aiCalls++;
+        expect(req.postDataJSON()).toEqual({ consentVersion: 'openai-content-review-v1', previewHash: 'a'.repeat(64) });
+        state = { status: 'COMPLETED', findings: [{ id: 'f1', feedback: 'OPEN', issueType: 'ROLE', quote: 'Java API를 개발했습니다.', label: '저장된 이력서', section: '프로젝트 1',
+          problem: '담당한 기능을 구분해 주세요.', actions: ['직접 구현한 기능을 적어 주세요.'], rewriteTemplate: '[담당 기능]을 구현했습니다.' }],
+          jobs: [{ jobId: 17, relevance: 'RELATED', criteria: [{ jobQuote: 'Java API 개발', resumeQuote: 'Java API를 개발했습니다.', assessment: 'SUPPORTED', explanation: 'API 개발 경험을 연결할 수 있습니다.' }] }] };
+      }
+      return route.fulfill({ json: state });
+    }
+    if (path.endsWith('/findings/f1/feedback')) { state.findings[0].feedback = req.postDataJSON().type; return route.fulfill({ status: 204 }); }
+    return route.fulfill({ json: [] });
+  });
+  await page.goto('/resume-analysis');
+  await page.getByRole('button', { name: /저장된 분석 ·/ }).click();
+  const panel = page.getByRole('region', { name: 'AI 내용 분석', exact: true });
+  await panel.getByRole('button', { name: 'AI에 전송할 내용 확인' }).click();
+  await expect(panel.getByLabel('S1 전송 내용')).toHaveValue('Java API를 개발했습니다.');
+  await expect(panel.getByLabel('S2 전송 내용')).toHaveValue('테스트를 작성했습니다.');
+  const submit = panel.getByRole('button', { name: '동의하고 AI 내용 분석' });
+  await expect(submit).toBeDisabled(); expect(aiCalls).toBe(0);
+  await panel.getByRole('checkbox').check(); await submit.click();
+  await expect(panel.getByText('담당한 기능을 구분해 주세요.', { exact: true })).toBeVisible();
+  await expect(page.getByText('API 개발 경험을 연결할 수 있습니다.', { exact: true })).toBeVisible();
+  await panel.getByRole('button', { name: '이 지적이 틀렸어요', exact: true }).click();
+  await expect(panel.getByRole('button', { name: '이 지적이 틀렸어요', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await panel.getByRole('button', { name: 'AI 처리 상태 확인' }).click(); expect(aiCalls).toBe(1);
+  await expect(panel.getByRole('button', { name: '동의하고 AI 내용 분석' })).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.screenshot({ path: `.codex/content-review-${test.info().project.name}.png`, fullPage: true });
+});

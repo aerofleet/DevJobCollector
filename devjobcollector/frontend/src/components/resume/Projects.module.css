@@ -73,3 +73,10 @@
     grid-template-columns: 1fr;
   }
 }
+
+.field { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; min-width: 0; font-size: 14px; font-weight: 600; }
+.guide { margin-top: 16px; padding: 16px; border: 1px solid #ddd8ec; border-radius: 10px; background: #faf9fd; }
+.guide summary { cursor: pointer; font-size: 14px; font-weight: 700; }
+.guide p, .hint { font-size: 13px; line-height: 1.7; color: #655f70; }
+.field .textarea { margin-top: 0; font: inherit; font-weight: 400; }
+.input { min-width: 0; width: 100%; }

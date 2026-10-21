@@ -24,10 +24,10 @@ const syntheticPdf = () => {
 
 test.use({ trace: 'off', screenshot: 'off' });
 
-test('운영 합성 이력서 분석·동의·gpt-5-nano 근거 정리·삭제', async ({ page, request }, testInfo) => {
+test('운영 합성 이력서·첨부 기반 AI 내용 분석·근거 검증·삭제', async ({ page, request }, testInfo) => {
   test.skip(globalThis.process?.env.DJC_E2E_AI_ENABLED !== 'true'
     || testInfo.project.name !== 'desktop-1440', '합성 AI 운영 평가는 명시적으로 선택한 경우에만 1회 실행합니다.');
-  test.setTimeout(90000);
+  test.setTimeout(180000);
   const token = globalThis.process?.env.DJC_E2E_ACCESS_TOKEN;
   expect(Boolean(token), 'Authenticated E2E token is required').toBe(true);
   const base = 'https://djc-api.itsdev.kr/api/v1';
@@ -42,7 +42,7 @@ test('운영 합성 이력서 분석·동의·gpt-5-nano 근거 정리·삭제',
       headers,
       data: {
         title: `AI-E2E-${Date.now()}`,
-        content: { basicInfo: {}, techStack: [{ name: 'Spring Boot' }], projects: [], experience: [] },
+        content: { basicInfo: {}, careerProfile: { category: '백엔드' }, techStack: [{ name: 'Spring Boot' }], projects: [{ title: '합성 주문 서비스', description: 'Java와 Spring Boot로 API를 개발했습니다. 성능을 개선했습니다. 팀 프로젝트에 참여했습니다.' }], experience: [] },
       },
     });
     expect(created.status()).toBe(201);
@@ -68,22 +68,29 @@ test('운영 합성 이력서 분석·동의·gpt-5-nano 근거 정리·삭제',
     expect(analysis.sources).toEqual([expect.objectContaining({ filename: 'synthetic-portfolio.pdf', status: 'READ' })]);
     expect(analysis.detectedSkills).toContain('java');
     expect(analysis.recommendations.length).toBeGreaterThan(0);
-    await page.getByLabel(/추천 근거 정리를 위해/).check();
-    const explanationResponse = page.waitForResponse((response) =>
-      response.request().method() === 'POST' && new URL(response.url()).pathname.endsWith(`/${analysisId}/explanation`),
-    { timeout: 40000 });
-    await page.getByRole('button', { name: 'AI로 추천 근거 정리', exact: true }).click();
-    const explained = await explanationResponse;
-    expect(explained.status()).toBe(200);
-    const explanation = await explained.json();
-    expect(explanation).toMatchObject({ status: 'COMPLETED', model: 'gpt-5-nano', externalAttemptCount: 1 });
-    expect(explanation.jobs.length).toBeGreaterThan(0);
-    await expect(page.getByText('AI가 선택한 근거를 각 추천 공고에 표시했습니다.')).toBeVisible();
-    const cached = await request.post(`${base}/ai/resume-analyses/${analysisId}/explanation`, {
-      headers, data: { consentVersion: 'openai-evidence-v1' },
+    const previewResponse = page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname.endsWith(`/${analysisId}/content-review/preview`));
+    await page.getByRole('button', { name: 'AI에 전송할 내용 확인', exact: true }).click();
+    const previewed = await previewResponse;
+    expect(previewed.status()).toBe(200);
+    const preview = await previewed.json();
+    expect(preview.payload.sources.some(source => source.kind === 'SAVED_RESUME')).toBe(true);
+    expect(preview.payload.sources.some(source => source.kind === 'ATTACHMENT')).toBe(true);
+    await page.getByLabel(/위 전송 내용을 확인했으며/).check();
+    const reviewResponse = page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname.endsWith(`/${analysisId}/content-review`), { timeout: 130000 });
+    await page.getByRole('button', { name: '동의하고 AI 내용 분석', exact: true }).click();
+    const reviewed = await reviewResponse;
+    expect(reviewed.status()).toBe(200);
+    const review = await reviewed.json();
+    expect(review).toMatchObject({ status: 'COMPLETED', externalAttemptCount: 1, piiGatePassed: false });
+    expect(review.findings.length).toBeGreaterThan(0);
+    for (const finding of review.findings) expect(preview.payload.sources.some(source => source.text.includes(finding.quote))).toBe(true);
+    for (const job of review.jobs) expect(analysis.recommendations.some(candidate => candidate.jobId === job.jobId)).toBe(true);
+    await expect(page.getByText('AI가 제안한 수정 방향', { exact: true })).toBeVisible();
+    const cached = await request.post(`${base}/ai/resume-analyses/${analysisId}/content-review`, {
+      headers, data: { consentVersion: preview.consentVersion, previewHash: preview.previewHash },
     });
     expect(cached.status()).toBe(200);
-    expect((await cached.json()).jobs).toEqual(explanation.jobs);
+    expect((await cached.json()).findings).toEqual(review.findings);
   } finally {
     if (resumeId) {
       const deleted = await request.delete(`${base}/members/me/resumes/${resumeId}`, { headers });

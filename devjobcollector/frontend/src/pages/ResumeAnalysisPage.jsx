@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import MemberSidebar from '../components/member/MemberSidebar';
 import ResumeEvidenceReport, { JobEvidence } from '../components/member/ResumeEvidenceReport';
 import ResumeWritingSuggestions from '../components/member/ResumeWritingSuggestions';
+import ResumeContentReview, { AiJobReview } from '../components/member/ResumeContentReview';
 import { listResumes } from '../api/resumeApi';
 import authenticatedApi from '../api/authenticatedApi';
 import {
@@ -90,6 +91,11 @@ export default function ResumeAnalysisPage() {
     return () => { cancelled = true; };
   }, [result?.id]);
 
+  const relevanceOrder = { RELATED: 0, REVIEW_NEEDED: 1, LOW_RELEVANCE: 3 };
+  const recommendedJobs = [...(result?.recommendations || [])].sort((a, b) => {
+    const order = job => relevanceOrder[result?.aiReview?.jobs?.find(item => item.jobId === job.jobId)?.relevance] ?? 2;
+    return order(a) - order(b);
+  });
   const currentExplanation = explanation?.analysisId === result?.id ? explanation : null;
 
   const perform = async (operation) => {
@@ -160,7 +166,7 @@ export default function ResumeAnalysisPage() {
                 </div>
                 <label className="analysis-consent"><input type="checkbox" checked={consent} disabled={busy}
                   onChange={(e) => setConsent(e.target.checked)} />
-                  <span>[선택] 저장된 이력서와 첨부파일의 서비스 내부 분석 및 원문 인용문을 포함한 결과 저장에 동의합니다. 원문은 외부 AI에 전송하지 않으며, 결과는 본인만 조회하고 언제든 삭제할 수 있습니다.</span>
+                  <span>[선택] 저장된 이력서와 첨부파일의 서비스 내부 분석 및 원문 인용문을 포함한 결과 저장에 동의합니다. 이 단계에서는 외부 AI에 전송하지 않습니다. AI 내용 분석은 별도 전송 동의 후 실행하며, 저장된 결과는 본인만 조회하고 언제든 삭제할 수 있습니다.</span>
                 </label>
                 <p className="analysis-note">새로운 분석은 하루 최대 {capabilities.dailyLimit}회입니다. 같은 자료의 유효한 결과는 재사용합니다. 첨부파일은 파일당 5MB, PDF는 10쪽까지 읽습니다. 스캔·이미지는 글자 인식 상태에 따라 읽지 못할 수 있습니다.</p>
                 <button className="primary-member-button" type="submit" disabled={!consent || busy || !resumeId}>
@@ -175,21 +181,23 @@ export default function ResumeAnalysisPage() {
           </section>}
           {result && <section className="analysis-panel" aria-label="분석 결과" aria-live="polite">
             <div className="analysis-heading"><h2>분석 결과</h2><button type="button" disabled={busy} onClick={() => remove(result.id)}>결과 삭제</button></div>
-            <p className="analysis-note">이력서 점검은 서비스 내부 규칙 검사입니다. AI는 별도 동의 후 추천 근거를 선택하며, 원문을 읽거나 사실 여부를 검증하지 않습니다.</p>
+            <p className="analysis-note">로컬 규칙 검사와 AI 내용 분석은 구분해 표시합니다. AI 내용 분석은 전송 자료 확인과 별도 동의 후 실행하며, 제안의 사실 여부는 직접 확인해 주세요.</p>
             {result.inputMode === 'SAVED_RESUME' && <div className="analysis-sources">
               <strong>이번 분석에 사용한 자료</strong>
               <p>저장된 이력서{result.sources?.length ? ` + 첨부파일 ${result.sources.length}개` : ''}</p>
               {!!result.sources?.length && <ul>{result.sources.map((file) => <li key={file.id}>{file.filename} · 읽기 완료</li>)}</ul>}
               <p>확인된 기술: {result.detectedSkills?.join(', ') || '확인되지 않음'}</p>
-              <p>저장된 경력 기간: {result.derivedPreferences?.careerYears == null ? '확인되지 않음' : `${result.derivedPreferences.careerYears}년 (완료된 기간 기준)`}</p>
-              <p className="analysis-note">희망 지역·고용 형태는 추정하지 않습니다. 첨부파일 인용은 추출 텍스트 기준이므로 원본과 함께 확인해 주세요.</p>
+              <p>저장된 경력 기간: {result.derivedPreferences?.careerYears == null ? '확인되지 않음' : `${result.derivedPreferences.careerYears}년 (저장된 기간·재직 중 표시 기준)`}</p>
+              <p className="analysis-note">저장한 지원 방향을 사용하며 입력하지 않은 조건은 추정하지 않습니다. 첨부파일 인용은 추출 텍스트 기준입니다.</p>
             </div>}
+            {(capabilities.contentReviewAvailable || result.aiReview) && <ResumeContentReview key={result.id} result={result} disabled={busy}
+              onResult={value => setResult(current => current?.id === result.id ? { ...current, aiReview: value } : current)} />}
             <ResumeEvidenceReport result={result} busy={busy} onFeedback={(findingId, type) => perform(async () => {
               await saveFindingFeedback(result.id, findingId, type);
               setResult((current) => ({ ...current, review: { ...current.review, findings: current.review.findings.map((finding) =>
                 finding.id === findingId ? { ...finding, feedback: type } : finding) } }));
             })} />
-            {(capabilities.externalProcessing || currentExplanation?.status === 'COMPLETED') && <div className="analysis-explanation">
+            {(!capabilities.contentReviewAvailable || currentExplanation?.status === 'COMPLETED') && (capabilities.externalProcessing || currentExplanation?.status === 'COMPLETED') && <div className="analysis-explanation">
               <h3>AI 추천 근거 정리</h3>
               <p className="analysis-note">AI가 확인된 근거 중 강조할 항목을 선택합니다.
                 문장은 검증된 안내 문구로 표시하며, 추천 순위는 바뀌지 않습니다. AI의 선택은 정답이나 채용 가능성을 보장하지 않습니다.</p>
@@ -215,10 +223,11 @@ export default function ResumeAnalysisPage() {
             <h3>추천 공고</h3>
             {!result.recommendations.length && <p>현재 자료와 연결할 수 있는 공개 공고를 찾지 못했습니다. 수집된 기술 정보가 부족하거나 공고가 마감되었을 수 있습니다. 지원 가능한 공고가 전혀 없다는 뜻은 아닙니다.</p>}
             {!result.recommendations.length && <Link className="evidence-browse" to="/jobs">전체 공개 공고 둘러보기 →</Link>}
-            <div className="analysis-jobs">{result.recommendations.map((job) => <article key={job.jobId} className="analysis-job">
-              <span className="analysis-score">{job.rank}번째 추천 · 근거 확인</span>
+            <div className="analysis-jobs">{recommendedJobs.map((job, jobIndex) => <article key={job.jobId} className="analysis-job">
+              <span className="analysis-score">{jobIndex + 1}번째 추천 · {result.aiReview?.status === 'COMPLETED' ? 'AI 관련성 검토 순서' : '근거 확인'}</span>
               <h4><Link to={`/job/${job.jobId}`}>{job.title}</Link></h4>
               <p>{job.companyName} · {job.location || '지역 미기재'} · {job.experience || '경력 미기재'}</p>
+              <AiJobReview review={result.aiReview?.jobs?.find(item => item.jobId === job.jobId)} />
               <JobEvidence job={job} review={result.review} />
               {currentExplanation?.jobs?.find((item) => item.jobId === job.jobId)?.highlights?.length > 0 &&
                 <div><strong><span className="evidence-badge evidence-badge-ai">AI 판단</span> AI가 선택한 추천 근거</strong><ul>{currentExplanation.jobs.find((item) => item.jobId === job.jobId).highlights.map((text) =>
