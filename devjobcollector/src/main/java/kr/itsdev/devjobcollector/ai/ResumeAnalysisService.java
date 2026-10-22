@@ -239,7 +239,7 @@ public class ResumeAnalysisService {
         for (JsonNode recommendation : result.path("recommendations")) {
             long jobId = recommendation.path("jobId").asLong();
             var jobs = jdbc.queryForList("""
-                    SELECT title,company_name,location,experience FROM job_posts
+                    SELECT title,company_name,location,experience,end_date FROM job_posts
                     WHERE id=? AND is_active=1 AND moderation_status='ACTIVE' AND end_date>=?
                     """, jobId, LocalDate.now(ZoneId.of("Asia/Seoul")));
             if (jobs.isEmpty()) continue;
@@ -249,6 +249,7 @@ public class ResumeAnalysisService {
             item.put("companyName", Objects.toString(job.get("company_name"), ""));
             item.put("location", Objects.toString(job.get("location"), ""));
             item.put("experience", Objects.toString(job.get("experience"), ""));
+            item.put("endDate", Objects.toString(job.get("end_date"), ""));
             var feedback = jdbc.queryForList("SELECT feedback_type FROM ai_recommendation_feedback WHERE analysis_id=? AND job_post_id=?",
                     String.class, id, jobId);
             if (!feedback.isEmpty()) {

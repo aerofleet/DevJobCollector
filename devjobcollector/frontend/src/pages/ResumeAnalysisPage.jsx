@@ -242,6 +242,7 @@ export default function ResumeAnalysisPage() {
               <span className="analysis-score">{jobIndex + 1}번째 추천 · {result.aiReview?.status === 'COMPLETED' ? 'AI 관련성 검토 순서' : '근거 확인'}</span>
               <h4><Link to={`/job/${job.jobId}`}>{job.title}</Link></h4>
               <p>{job.companyName} · 근무 지역: {job.location?.trim() || '공고 원문에서 확인'} · {job.experience || '경력 조건 확인'}</p>
+              {job.endDate && <p className="analysis-note">마감일 · {job.endDate.slice(0, 10)}</p>}
               <AiJobReview review={result.aiReview?.jobs?.find(item => item.jobId === job.jobId)} />
               <details><summary>기술 매칭 살펴보기</summary><JobEvidence job={job} review={result.review} /></details>
               {currentExplanation?.jobs?.find((item) => item.jobId === job.jobId)?.highlights?.length > 0 &&

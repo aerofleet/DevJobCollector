@@ -8,7 +8,10 @@ final class ResumeSkillVocabulary {
         return java.util.Set.of("테스트", "환경", "개발", "기술", "서버", "test", "testing", "environment", "backend", "frontend")
                 .contains(name.strip().toLowerCase(java.util.Locale.ROOT));
     }
-    static List<String> split(String name) { return java.util.Arrays.stream(name.split("[/,|]")).map(String::strip).filter(s -> !s.isBlank() && !isNoise(s)).toList(); }
+    static List<String> split(String name) {
+        if (name.strip().equalsIgnoreCase("CI/CD")) return List.of("CI/CD");
+        return java.util.Arrays.stream(name.split("[/,|]")).map(String::strip).filter(s -> !s.isBlank() && !isNoise(s)).toList();
+    }
     static boolean positiveMention(String text, int start, int end) {
         // Bound context at clauses so 'Kafka 대신 RabbitMQ 사용' keeps RabbitMQ only.
         int left = start, right = end;

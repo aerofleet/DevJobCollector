@@ -53,5 +53,6 @@ class ResumeCoachingRulesTest {
         assertThat(found).containsExactlyInAnyOrder("prometheus","grafana","rabbitmq","java");
         assertThat(SavedResumeAnalysisInput.findSkills("Kafka는 미사용. 이후 Kafka를 운영했습니다.",vocabulary)).contains("kafka");
         assertThat(SavedResumeAnalysisInput.findSkills("Kafka와 RabbitMQ를 비교했습니다. Kotlin vs Java",vocabulary)).isEmpty();
+        assertThat(ResumeSkillVocabulary.split("CI/CD")).containsExactly("CI/CD");
     }
 }

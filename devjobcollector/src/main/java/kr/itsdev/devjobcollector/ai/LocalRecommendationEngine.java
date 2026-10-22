@@ -63,7 +63,7 @@ public class LocalRecommendationEngine {
         var ranked = new ArrayList<Recommendation>();
         for (Candidate job : candidates) {
             var requirements = new TreeSet<String>();
-            job.skills().forEach(skill -> requirements.add(normalizeSkill(skill)));
+            job.skills().forEach(skill -> ResumeSkillVocabulary.split(skill).forEach(s -> requirements.add(normalizeSkill(s))));
             var matching = new TreeSet<>(requirements);
             matching.retainAll(resumeSkills);
             var missing = new TreeSet<>(requirements);
