@@ -3,6 +3,9 @@
 .gradle
 .idea
 .vscode
+.codex/**
+!.codex/deploy-image/
+!.codex/deploy-image/*.jar
 bin
 build
 frontend

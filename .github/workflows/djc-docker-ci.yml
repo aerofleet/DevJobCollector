@@ -1,22 +1,8 @@
 name: Validate DJC Docker image
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "devjobcollector/Dockerfile"
-      - "devjobcollector/compose.yaml"
-      - "devjobcollector/.dockerignore"
-      - "devjobcollector/.env.docker.example"
-      - "devjobcollector/src/**"
-      - "devjobcollector/auth-common/**"
-      - "devjobcollector/build.gradle"
-      - "devjobcollector/settings.gradle"
-      - "devjobcollector/gradle/**"
-      - "devjobcollector/gradlew"
-      - "devjobcollector/ops/db/**"
-      - ".github/workflows/djc-docker-ci.yml"
+  # Main already runs these gates and the multi-platform build before deployment.
+  # Keep independent validation for pull requests and explicit manual runs.
   pull_request:
     branches:
       - main

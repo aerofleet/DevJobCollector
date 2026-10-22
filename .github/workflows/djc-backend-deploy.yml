@@ -12,6 +12,8 @@ on:
       - "devjobcollector/gradle/**"
       - "devjobcollector/gradlew"
       - "devjobcollector/Dockerfile"
+      - "devjobcollector/.dockerignore"
+      - "devjobcollector/.env.docker.example"
       - "devjobcollector/compose.yaml"
       - "devjobcollector/ops/docker/**"
       - "devjobcollector/ops/db/**"
@@ -47,15 +49,36 @@ jobs:
           distribution: temurin
           cache: gradle
 
-      - name: Run backend tests
+      - name: Validate Compose configuration
+        working-directory: devjobcollector
+        env:
+          DJC_ENV_FILE: ${{ github.workspace }}/devjobcollector/.env.docker.example
+        run: docker compose -f compose.yaml config --quiet
+
+      - name: Run backend tests and build deployment JARs
         working-directory: ./devjobcollector
         run: |
           chmod +x gradlew
-          ./gradlew clean test --no-daemon
+          ./gradlew clean test bootJar resumeExtractorJar --no-daemon
 
       - name: Validate MySQL 26.7 clean and V2 upgrade migrations
         working-directory: ./devjobcollector
         run: bash ops/db/run-member-migration-tests.sh
+
+      - name: Prepare tested deployment JARs
+        working-directory: devjobcollector
+        run: |
+          set -euo pipefail
+          mkdir -p .codex/deploy-image
+          mapfile -t jars < <(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-plain.jar' ! -name 'resume-extractor.jar')
+          test "${#jars[@]}" -eq 1
+          cp "${jars[0]}" .codex/deploy-image/app.jar
+          cp build/libs/resume-extractor.jar .codex/deploy-image/resume-extractor.jar
+          jar tf .codex/deploy-image/app.jar > .codex/app-entries.txt
+          grep -q '^BOOT-INF/classes/' .codex/app-entries.txt
+          jar tf .codex/deploy-image/resume-extractor.jar > .codex/extractor-entries.txt
+          test -s .codex/extractor-entries.txt
+          sha256sum .codex/deploy-image/*.jar
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -77,6 +100,7 @@ jobs:
         with:
           context: ./devjobcollector
           file: ./devjobcollector/Dockerfile
+          target: prebuilt
           platforms: linux/amd64,linux/arm64
           push: true
           pull: true
