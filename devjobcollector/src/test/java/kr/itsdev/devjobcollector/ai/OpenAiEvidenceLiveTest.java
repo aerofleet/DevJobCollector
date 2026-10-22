@@ -23,8 +23,8 @@ class OpenAiEvidenceLiveTest {
         var output = client.review(payload);
         var validated = ResumeContentReviewRules.validate(output, sources, jobs, mapper);
         assertThat(output.has("rewrites")).isTrue();
-        assertThat(validated.path("positioning").asText()).isNotBlank();
-        assertThat(validated.path("strengths").size()).isGreaterThan(0);
+        assertThat(validated.path("positioning").asText()).as("Synthetic output: %s; validated: %s", output, validated).isNotBlank();
+        assertThat(validated.path("strengths").size()).as("Synthetic output: %s; validated: %s", output, validated).isGreaterThan(0);
         for (var finding : validated.path("findings")) assertThat(finding.path("suggestion").asText()).isNotBlank().doesNotContain("[", "]");
         assertThat(validated.path("findings").size()).as("Synthetic output: %s; validated: %s", output, validated).isGreaterThan(0);
         assertThat(validated.path("jobs").size()).as("Synthetic output: %s; validated: %s", output, validated).isEqualTo(1);
