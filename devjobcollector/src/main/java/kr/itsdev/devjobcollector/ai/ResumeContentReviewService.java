@@ -125,6 +125,7 @@ public class ResumeContentReviewService {
             ObjectNode claim = stored.putObject("aiReview"); claim.put("status", "PENDING"); claim.put("createdAt", Instant.now().toString());
             claim.put("consentVersion", CONSENT); claim.put("previewHash", previewHash); claim.put("policy", "USER_REVIEWED_MASKED_TEXT");
             claim.put("piiGatePassed", false); claim.put("externalAttemptCount", 1);
+            claim.put("model", OpenAiEvidenceClient.CONTENT_MODEL);
             jdbc.update("UPDATE ai_analysis_request SET result_json=? WHERE id=? AND user_id=?", json(stored), id, user);
             return true;
         });

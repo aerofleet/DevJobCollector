@@ -80,6 +80,7 @@ class ResumeContentReviewRulesTest {
         var client = new OpenAiEvidenceClient(mapper, "test", true);
         var payload = mapper.valueToTree(client.reviewPayload(Map.of("sources", List.of(), "jobs", List.of())));
         assertThat(payload.path("store").asBoolean()).isFalse();
+        assertThat(payload.path("model").asText()).isEqualTo(OpenAiEvidenceClient.CONTENT_MODEL);
         assertThat(payload.path("text").path("format").path("strict").asBoolean()).isTrue();
         assertThat(payload.has("tools")).isFalse();
         var properties = payload.path("text").path("format").path("schema").path("properties");

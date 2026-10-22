@@ -9,7 +9,7 @@ import static org.assertj.core.api.Assertions.*;
 @EnabledIfEnvironmentVariable(named="DJC_OPENAI_LIVE_TEST",matches="true")
 class OpenAiEvidenceLiveTest {
     @org.junit.jupiter.api.RepeatedTest(3)
-    void nanoReviewsSyntheticResumeWithVerifiableQuotesAndJobRequirements() {
+    void contentModelReviewsSyntheticResumeWithVerifiableQuotesAndJobRequirements() {
         var mapper = new ObjectMapper();
         var client = new OpenAiEvidenceClient(mapper, System.getenv("OPENAI_API_KEY"), true);
         String text = "팀 프로젝트에서 Java와 Spring Boot를 사용했습니다. 성능을 개선했습니다. 프로젝트에 참여했습니다.";

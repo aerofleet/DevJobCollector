@@ -66,6 +66,14 @@ class RecommendationEvidenceTest {
         assertThatThrownBy(()->new OpenAiEvidenceClient(mapper,"test",false).select(List.of()))
                 .hasMessage("EXPLANATION_UNAVAILABLE");
     }
+    @Test void acceptsBoundedCoachingResponseAndRejectsOversizedOutput() throws Exception {
+        var response=mapper.createObjectNode().put("status","completed");
+        var content=response.putArray("output").addObject().put("type","message").putArray("content").addObject().put("type","output_text");
+        content.put("text",mapper.writeValueAsString(java.util.Map.of("suggestion","가".repeat(20_000))));
+        assertThat(client.parse(response.toString()).path("suggestion").asText()).hasSize(20_000);
+        content.put("text","x".repeat(48_001));
+        assertThatThrownBy(() -> client.parse(response.toString())).isInstanceOf(IllegalArgumentException.class);
+    }
     @Test void titleEvidenceCannotBeRenderedAsVerifiedTags() throws Exception {
         var analysis = mapper.readTree("""
                 {"recommendations":[{"jobId":17,"skillEvidenceSource":"JOB_TITLE","components":{"skillExactMatch":30}}]}
