@@ -46,10 +46,22 @@ public class OpenAiEvidenceClient {
             var future = http.sendAsync(request, HttpResponse.BodyHandlers.ofString());
             try {
                 var response = future.get(seconds, TimeUnit.SECONDS);
-                if (response.statusCode() != 200 || response.body().length() > 200_000)
-                    throw new IllegalStateException("PROVIDER_FAILED");
+                if (response.statusCode() != 200) {
+                    String code = "unknown";
+                    if (response.body().length() <= 200_000) {
+                        try {
+                            String candidate = mapper.readTree(response.body()).path("error").path("code").asText();
+                            if (Set.of("model_not_found","invalid_api_key","invalid_request_error","unsupported_parameter",
+                                    "unsupported_value","insufficient_quota","rate_limit_exceeded","invalid_json_schema").contains(candidate)) code = candidate;
+                        } catch (Exception ignored) { /* No provider text is retained. */ }
+                    }
+                    throw new ProviderFailure("PROVIDER_HTTP_" + response.statusCode() + "_" + code);
+                }
+                if (response.body().length() > 200_000) throw new ProviderFailure("PROVIDER_OUTPUT_TOO_LARGE");
                 return parse(response.body());
             } finally { if (!future.isDone()) future.cancel(true); }
+        } catch (ProviderFailure error) {
+            throw error;
         } catch (InterruptedException error) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("PROVIDER_INTERRUPTED");
@@ -57,6 +69,9 @@ public class OpenAiEvidenceClient {
             // Do not log or propagate provider messages, Authorization, request/response bodies.
             throw new IllegalStateException("PROVIDER_FAILED");
         }
+    }
+    private static final class ProviderFailure extends IllegalStateException {
+        ProviderFailure(String code) { super(code); }
     }
 
     Map<String, Object> reviewPayload(Map<String, Object> input) {
