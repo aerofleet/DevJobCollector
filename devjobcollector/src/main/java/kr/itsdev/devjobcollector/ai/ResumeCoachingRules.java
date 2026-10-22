@@ -13,14 +13,19 @@ final class ResumeCoachingRules {
         return Map.of("type", "object", "additionalProperties", false, "required", new ArrayList<>(fields.keySet()), "properties", fields);
     }
     private static Map<String, Object> array(Object item, int max) { return Map.of("type", "array", "items", item, "maxItems", max); }
+    private static Map<String, Object> ordered(Object... pairs) {
+        var fields = new LinkedHashMap<String,Object>();
+        for (int i=0;i<pairs.length;i+=2) fields.put((String)pairs[i],pairs[i+1]);
+        return fields;
+    }
     static Map<String, Object> schema() {
-        var ref = object(Map.of("sourceId", TEXT, "quoteId", TEXT));
+        var ref = object(ordered("sourceId", TEXT, "quoteId", TEXT));
         var refs = array(ref, 5);
-        var option = object(Map.of("label", TEXT, "suggestion", TEXT));
-        var confirm = object(Map.of("question", TEXT, "options", array(option, 3)));
-        var rewrite = object(Map.of("sourceId", TEXT, "quoteId", TEXT, "evidence", refs,
+        var option = object(ordered("label", TEXT, "suggestion", TEXT));
+        var confirm = object(ordered("question", TEXT, "options", array(option, 3)));
+        var rewrite = object(ordered("sourceId", TEXT, "quoteId", TEXT, "evidence", refs,
                 "suggestion", TEXT, "reason", TEXT, "confirm", array(confirm, 1)));
-        var strength = object(Map.of("point", TEXT, "evidence", refs, "placement", TEXT));
+        var strength = object(ordered("point", TEXT, "evidence", refs, "placement", TEXT));
         var gap = object(Map.of("type", Map.of("type", "string", "enum", List.of("missing", "weak", "buried")),
                 "what", TEXT, "why_it_matters", TEXT, "evidence", refs));
         // Keep the previously verified per-job quote contract and add actionable appeal copy.
@@ -29,7 +34,7 @@ final class ResumeCoachingRules {
         var job = object(Map.of("slot", Map.of("type", "integer", "minimum", 0, "maximum", 4),
                 "relevance", Map.of("type", "string", "enum", List.of("RELATED", "REVIEW_NEEDED", "LOW_RELEVANCE")),
                 "lead_with", TEXT, "gap", TEXT, "criteria", array(criterion, 4)));
-        return object(Map.of("positioning", TEXT, "positioningEvidence", refs, "strengths", array(strength, 3),
+        return object(ordered("positioning", TEXT, "positioningEvidence", refs, "strengths", array(strength, 3),
                 "gaps", array(gap, 6), "rewrites", array(rewrite, 6), "job_fit", array(job, 5)));
     }
     private record Evidence(String text, ArrayNode quotes) {}
@@ -57,6 +62,14 @@ final class ResumeCoachingRules {
         var numbers = new HashSet<String>(); NUMBER.matcher(evidence).results().forEach(m -> numbers.add(m.group()));
         return NUMBER.matcher(value).results().allMatch(m -> numbers.contains(m.group()));
     }
+    private static boolean groundedClaim(String value, String evidence) {
+        if (!valid(value,evidence)) return false;
+        // Job requirements must never become the applicant's skills or responsibilities.
+        for (String claim : List.of("단독","주도","설계","테스트","리팩토링","수상","최우수"))
+            if (value.contains(claim) && !evidence.contains(claim)) return false;
+        return Pattern.compile("(?<![A-Za-z])[A-Z][A-Za-z0-9+#]*(?:\\.[A-Za-z]+)?")
+                .matcher(value).results().allMatch(m -> evidence.toLowerCase(Locale.ROOT).contains(m.group().toLowerCase(Locale.ROOT)));
+    }
     static ObjectNode validate(JsonNode output, List<ResumeContentReviewRules.Source> sources,
             List<ResumeContentReviewRules.Job> jobs, ObjectMapper mapper) {
         for (String field : List.of("strengths", "gaps", "rewrites", "job_fit"))
@@ -66,12 +79,12 @@ final class ResumeCoachingRules {
         var result = ResumeContentReviewRules.validateLegacy(legacy, sources, jobs, mapper);
         var positioning = evidence(output.path("positioningEvidence"), sources, mapper);
         String headline = text(output, "positioning");
-        result.put("positioning", !positioning.text().isBlank() && valid(headline, positioning.text()) ? headline : "");
+        result.put("positioning", !positioning.text().isBlank() && groundedClaim(headline, positioning.text()) ? headline : "");
         result.set("positioningEvidence", positioning.quotes());
         var strengths = result.putArray("strengths");
         for (var item : output.path("strengths")) {
             var e = evidence(item.path("evidence"), sources, mapper);
-            if (e.text().isBlank() || !valid(text(item,"point"), e.text()) || !valid(text(item,"placement"), e.text())) continue;
+            if (e.text().isBlank() || !groundedClaim(text(item,"point"), e.text()) || !valid(text(item,"placement"), e.text())) continue;
             var saved = strengths.addObject(); saved.put("point", text(item,"point")); saved.put("placement", text(item,"placement")); saved.set("evidence", e.quotes());
         }
         var gaps = result.putArray("gaps");
@@ -87,7 +100,7 @@ final class ResumeCoachingRules {
             var primary = mapper.createArrayNode(); primary.addObject().put("sourceId", text(item,"sourceId")).put("quoteId", text(item,"quoteId"));
             var original = evidence(primary, sources, mapper); var e = evidence(item.path("evidence"), sources, mapper);
             String facts = original.text() + e.text(), suggestion = text(item,"suggestion"), reason = text(item,"reason");
-            if (original.text().isBlank() || !valid(suggestion,facts) || !valid(reason,facts)
+            if (original.text().isBlank() || !groundedClaim(suggestion,facts) || !valid(reason,facts)
                     || !item.path("confirm").isArray() || item.path("confirm").size() > 1) { discarded++; continue; }
             String key = "ai:rewrite:" + ResumeAnalysisService.hash(original.text()); if (!seen.add(key)) continue;
             var saved = findings.addObject(); saved.setAll((ObjectNode) original.quotes().get(0));
@@ -101,7 +114,7 @@ final class ResumeCoachingRules {
                 var options = mapper.createArrayNode(); var labels = new HashSet<String>();
                 for (var option : c.path("options")) {
                     String label = text(option,"label"), variant = text(option,"suggestion");
-                    if (label.length() > 100 || !valid(label, facts) || !valid(variant, facts) || !labels.add(label)) continue;
+                    if (label.length() > 100 || !valid(label, facts) || !groundedClaim(variant, facts + " " + label) || !labels.add(label)) continue;
                     options.addObject().put("label",label).put("suggestion",variant);
                 }
                 if (options.size() != c.path("options").size()) continue;
@@ -112,12 +125,13 @@ final class ResumeCoachingRules {
             var job = jobs.stream().filter(j -> j.jobId()==saved.path("jobId").asLong()).findFirst().orElseThrow();
             var item = java.util.stream.StreamSupport.stream(output.path("job_fit").spliterator(),false)
                     .filter(j -> j.path("slot").asInt(-1)==job.slot()).findFirst().orElseThrow();
-            StringBuilder facts = new StringBuilder();
-            saved.path("criteria").forEach(c -> facts.append(c.path("resumeQuote").asText()).append(' ').append(c.path("jobQuote").asText()));
+            StringBuilder facts = new StringBuilder(), resumeFacts = new StringBuilder();
+            saved.path("criteria").forEach(c -> { facts.append(c.path("resumeQuote").asText()).append(' ').append(c.path("jobQuote").asText()); resumeFacts.append(c.path("resumeQuote").asText()).append(' '); });
             boolean supported = java.util.stream.StreamSupport.stream(saved.path("criteria").spliterator(),false)
                     .anyMatch(c -> c.path("assessment").asText().equals("SUPPORTED"));
             for (String field : List.of("lead_with","gap")) {
-                String value = text(item,field); ((ObjectNode)saved).put(field,valid(value,facts.toString()) && (!field.equals("lead_with") || supported) ? value : "");
+                String value = text(item,field); ((ObjectNode)saved).put(field, field.equals("lead_with")
+                        ? (supported && groundedClaim(value,resumeFacts.toString()) ? value : "") : (valid(value,facts.toString()) ? value : ""));
             }
         }
         result.put("discardedFindings",discarded); return result;

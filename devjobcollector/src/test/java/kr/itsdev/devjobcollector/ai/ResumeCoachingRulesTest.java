@@ -38,7 +38,7 @@ class ResumeCoachingRulesTest {
         assertThatThrownBy(() -> ResumeCoachingRules.answer(result,"other",0)).isInstanceOf(IllegalArgumentException.class);
     }
     @Test void rejectsPlaceholdersInventedNumbersAndForgedEvidence() throws Exception {
-        for (String suggestion : List.of("[역할]을 담당했습니다.","실패율을 99% 낮췄습니다.")) {
+        for (String suggestion : List.of("[역할]을 담당했습니다.","실패율을 99% 낮췄습니다.","API 설계와 테스트를 주도했습니다.","Kubernetes로 API를 운영했습니다.")) {
             var out=output(); ((ObjectNode)out.path("rewrites").get(0)).put("suggestion",suggestion);
             assertThat(ResumeContentReviewRules.validate(out,sources,List.of(),mapper).path("findings").size()).isZero();
         }
