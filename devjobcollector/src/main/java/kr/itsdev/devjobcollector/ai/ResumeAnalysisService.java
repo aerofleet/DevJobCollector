@@ -280,16 +280,18 @@ public class ResumeAnalysisService {
         var tagIds = jdbc.query("SELECT id,stack_name FROM tech_stacks",
                 (row, index) -> Map.entry(row.getInt("id"), LocalRecommendationEngine.normalizeSkill(row.getString("stack_name"))))
                 .stream().filter(entry -> skills.contains(entry.getValue())).map(Map.Entry::getKey).toList();
-        String category = preferences.category() == null ? "" : preferences.category();
-        if (tagIds.isEmpty() && category.isBlank()) return titleCandidates(skills, today);
+        var categories = preferences.category();
+        if (tagIds.isEmpty() && categories.isEmpty()) return titleCandidates(skills, today);
         String placeholders = tagIds.isEmpty() ? "NULL" : String.join(",", Collections.nCopies(tagIds.size(), "?"));
         String match = "(SELECT COUNT(*) FROM post_tags p WHERE p.job_post_id=j.id AND p.tech_stack_id IN (" + placeholders + "))";
         String sql = "SELECT j.id,j.job_category,j.experience,j.location,j.hire_type,DATE(j.created_at) created_date,"
                 + match + " skill_hits FROM job_posts j WHERE j.is_active=1 AND j.moderation_status='ACTIVE' AND j.end_date>=?"
-                + " HAVING skill_hits>0 OR (?<>'' AND job_category LIKE ?)"
+                + " HAVING skill_hits>0 OR (" + (categories.isEmpty() ? "FALSE"
+                    : String.join(" OR ", Collections.nCopies(categories.size(), "job_category LIKE ?"))) + ")"
                 + " ORDER BY skill_hits DESC,j.created_at DESC,j.id ASC LIMIT 100";
         var args = new ArrayList<Object>(tagIds);
-        args.add(today); args.add(category); args.add("%" + category.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%");
+        args.add(today);
+        categories.forEach(category -> args.add("%" + category.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"));
         var candidates = jdbc.query(sql, (row, index) -> new LocalRecommendationEngine.Candidate(row.getLong("id"),
                 row.getString("job_category"), row.getString("experience"), row.getString("location"), row.getString("hire_type"),
                 row.getDate("created_date") == null ? null : row.getDate("created_date").toLocalDate(), new ArrayList<>()), args.toArray());

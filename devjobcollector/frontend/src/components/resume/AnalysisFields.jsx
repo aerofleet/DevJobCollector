@@ -18,18 +18,31 @@ export function ExperienceEvidenceFields({ data, onChange, label }) {
 
 export function CareerProfile({ data = {}, onChange }) {
   const update = (key, value) => onChange({ ...data, [key]: value });
+  const groups = [
+    { key: 'category', label: '희망 직무', empty: '아직 정하지 않음', options: ['백엔드','프론트엔드','풀스택','데이터','인공지능','모바일','보안','DevOps'] },
+    { key: 'location', label: '희망 지역', empty: '지역 제한 없음', options: ['서울','경기','인천','부산','대구','대전','광주','울산','세종','강원','충북','충남','전북','전남','경북','경남','제주','원격'] },
+    { key: 'employmentType', label: '고용 형태', empty: '형태 제한 없음', options: ['정규직','계약직','인턴','프리랜서'] },
+  ];
   return <section id="careerProfile" className={styles.section} aria-label="지원 방향">
-    <h2 className={styles.title}>지원 방향</h2><p className={styles.hint}>한 번 저장하면 분석과 공고 추천에 함께 사용합니다. 정하지 않은 조건은 비워 두세요.</p>
+    <h2 className={styles.title}>지원 방향</h2><p className={styles.hint}>한 번 저장하면 분석과 공고 추천에 함께 사용합니다. 여러 조건을 선택할 수 있으며, 정하지 않은 조건은 비워 두세요.</p>
     <div className={styles.grid}>
-      <label className={styles.field}>희망 직무<select className={styles.input} value={data.category || ''} onChange={e => update('category', e.target.value)}>
-        <option value="">아직 정하지 않음</option>{['백엔드','프론트엔드','풀스택','데이터','인공지능','모바일','보안','DevOps'].map(v => <option key={v}>{v}</option>)}
-      </select></label>
-      <label className={styles.field}>희망 지역<select className={styles.input} value={data.location || ''} onChange={e => update('location', e.target.value)}>
-        <option value="">지역 제한 없음</option>{['서울','경기','인천','부산','대구','대전','광주','울산','세종','강원','충북','충남','전북','전남','경북','경남','제주','원격'].map(v => <option key={v}>{v}</option>)}
-      </select></label>
-      <label className={styles.field}>고용 형태<select className={styles.input} value={data.employmentType || ''} onChange={e => update('employmentType', e.target.value)}>
-        <option value="">형태 제한 없음</option>{['정규직','계약직','인턴','프리랜서'].map(v => <option key={v}>{v}</option>)}
-      </select></label>
+      {groups.map(({ key, label, empty, options }) => {
+        const values = Array.isArray(data[key]) ? data[key] : data[key] ? [data[key]] : [];
+        const selected = options.filter(value => values.includes(value));
+        return <fieldset key={key} className={styles.preferenceGroup}>
+          <legend>{label}</legend>
+          <div className={styles.preferenceActions}>
+            <button type="button" disabled={selected.length === options.length} onClick={() => update(key, [...options])}>전체 선택</button>
+            <button type="button" disabled={!selected.length} onClick={() => update(key, [])}>전체 해제</button>
+            <span>{selected.length ? `${selected.length}개 선택` : empty}</span>
+          </div>
+          <div className={styles.preferenceOptions}>{options.map(value => <label key={value}>
+            <input type="checkbox" checked={selected.includes(value)} onChange={event => update(key,
+              options.filter(option => option === value ? event.target.checked : selected.includes(option)))} />
+            {value}
+          </label>)}</div>
+        </fieldset>;
+      })}
     </div>
     <label className={styles.field}>경험 요약<textarea className={styles.textarea} value={data.summary || ''} maxLength={4000}
       onChange={e => update('summary', e.target.value)} placeholder="주로 다룬 기술, 해결한 문제, 앞으로 하고 싶은 일을 적어 주세요." /></label>

@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class LocalRecommendationEngine {
-    public static final String VERSION = "local-tags-title-v2";
+    public static final String VERSION = "local-tags-title-v3";
     private final double skillWeight, careerWeight, categoryWeight, locationWeight, employmentWeight, freshnessWeight;
 
     public LocalRecommendationEngine(
@@ -99,9 +99,9 @@ public class LocalRecommendationEngine {
         return List.copyOf(result);
     }
 
-    private static boolean matches(String actual, String preferred) {
-        return actual != null && preferred != null && !preferred.isBlank()
-                && actual.toLowerCase(Locale.ROOT).contains(preferred.toLowerCase(Locale.ROOT));
+    private static boolean matches(String actual, List<String> preferred) {
+        return actual != null && preferred.stream().anyMatch(value ->
+                actual.toLowerCase(Locale.ROOT).contains(value.toLowerCase(Locale.ROOT)));
     }
 
     static Double careerFit(String text, Integer years) {
@@ -147,7 +147,19 @@ public class LocalRecommendationEngine {
         return List.copyOf(issues);
     }
 
-    public record Preferences(Integer careerYears, String category, String location, String employmentType) {}
+    public record Preferences(Integer careerYears, List<String> category, List<String> location, List<String> employmentType) {
+        public Preferences {
+            category = normalize(category); location = normalize(location); employmentType = normalize(employmentType);
+        }
+        public Preferences(Integer careerYears, String category, String location, String employmentType) {
+            this(careerYears, single(category), single(location), single(employmentType));
+        }
+        private static List<String> single(String value) { return value == null ? List.of() : List.of(value); }
+        private static List<String> normalize(List<String> values) {
+            return values == null ? List.of() : values.stream().filter(Objects::nonNull).map(String::trim)
+                    .filter(value -> !value.isEmpty()).distinct().sorted().toList();
+        }
+    }
     public record Candidate(long id, String category, String experience, String location, String employmentType,
                             LocalDate createdDate, List<String> skills, boolean titleEvidence) {
         public Candidate(long id, String category, String experience, String location, String employmentType,

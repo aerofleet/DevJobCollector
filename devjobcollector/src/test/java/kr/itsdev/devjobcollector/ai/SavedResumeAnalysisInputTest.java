@@ -7,6 +7,14 @@ import static org.assertj.core.api.Assertions.*;
 
 class SavedResumeAnalysisInputTest {
     private final ObjectMapper mapper = new ObjectMapper();
+    @Test void acceptsLegacyAndMultipleSelectionsWithoutUnknownOrDuplicateValues() throws Exception {
+        assertThat(SavedResumeAnalysisInput.allowed(mapper.readTree("\"서울\""), "서울|경기")).containsExactly("서울");
+        assertThat(SavedResumeAnalysisInput.allowed(mapper.readTree("[\"경기\",\"서울\",\"경기\",\"invalid\",null,1]"), "서울|경기"))
+                .containsExactly("서울", "경기");
+        for (String json : List.of("[]", "null", "{}", "\"\"", "\"invalid\"")) {
+            assertThat(SavedResumeAnalysisInput.allowed(mapper.readTree(json), "서울|경기")).isEmpty();
+        }
+    }
     @Test void combinesOverlappingEmploymentWithoutDoubleCounting() throws Exception {
         var content = mapper.readTree("""
                 {"experience":[

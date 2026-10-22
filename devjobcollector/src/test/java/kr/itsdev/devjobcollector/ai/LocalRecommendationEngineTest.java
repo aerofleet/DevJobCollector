@@ -13,6 +13,17 @@ class LocalRecommendationEngineTest {
     final LocalRecommendationEngine.Preferences preferences =
             new LocalRecommendationEngine.Preferences(3,"백엔드","서울","정규직");
 
+    @Test void matchesAnySelectedConditionWithoutMultiplyingItsWeight() {
+        var multi = new LocalRecommendationEngine.Preferences(3, List.of("백엔드", "프론트엔드"),
+                List.of("서울", "경기"), List.of("정규직", "인턴"));
+        var second = new LocalRecommendationEngine.Candidate(2, "프론트엔드", "3년 이상", "경기", "인턴", today, List.of("Java"));
+        var both = new LocalRecommendationEngine.Candidate(3, "백엔드 프론트엔드", "3년 이상", "서울 경기", "정규직 인턴", today, List.of("Java"));
+        var result = engine.rank(Set.of("java"), multi, List.of(job(1, "Java"), second, both), today);
+        assertThat(result).hasSize(3).allSatisfy(item -> assertThat(item.matchScore()).isEqualTo(100));
+        assertThat(engine.rank(Set.of(), multi, List.of(second), today)).hasSize(1);
+        assertThat(engine.rank(Set.of(), new LocalRecommendationEngine.Preferences(null, List.of(), List.of(), List.of()), List.of(second), today)).isEmpty();
+    }
+
     @Test void ranksExactFitAndKeepsDeterministicTies() {
         var result = engine.rank(Set.of("java"), preferences, List.of(job(2,"Java"), job(1,"Java"), job(3,"Python")), today);
         assertThat(result).extracting(LocalRecommendationEngine.Recommendation::jobId).containsExactly(1L,2L,3L);

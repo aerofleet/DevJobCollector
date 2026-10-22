@@ -69,7 +69,8 @@ class ResumeAnalysisIntegrationTest {
         when(openai.available()).thenReturn(true);
         var analysis = service.createSaved("owner", resume, UUID.randomUUID().toString(), ResumeAnalysisService.CONSENT_VERSION, savedInput.prepare("owner", resume));
         long id = analysis.path("id").asLong();
-        assertThat(analysis.path("derivedPreferences").path("category").asText()).isEqualTo("백엔드");
+        assertThat(analysis.path("derivedPreferences").path("category")).hasSize(1);
+        assertThat(analysis.path("derivedPreferences").path("category").get(0).asText()).isEqualTo("백엔드");
         var preview = contentReviews.preview("owner", id);
         String hash = preview.path("previewHash").asText();
         assertThat(preview.path("payload").toString()).doesNotContain("홍길동", "private@example.com").contains("[익명]", "테스트를 작성했습니다.");
@@ -254,6 +255,29 @@ class ResumeAnalysisIntegrationTest {
             assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM ai_analysis_request WHERE id=?",Integer.class,id)).isZero();
             assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM ai_recommendation_feedback WHERE analysis_id=?",Integer.class,id)).isZero();
         } finally { jdbc.update("DELETE FROM job_posts WHERE id=?",job); }
+    }
+
+    @Test void savedMultipleCategoriesReachCandidateQueryAndRanking() throws Exception {
+        long backend = seedJob(), frontend = seedJob();
+        try {
+            jdbc.update("UPDATE job_posts SET job_category='프론트엔드',location='경기',hire_type='인턴' WHERE id=?", frontend);
+            jdbc.update("UPDATE resumes SET content_json=? WHERE id=?", """
+                    {"careerProfile":{"category":["백엔드","프론트엔드"],"location":["서울","경기"],"employmentType":["정규직","인턴"]},
+                    "techStack":[],"projects":[],"experience":[]}
+                    """, resume);
+            var prepared = savedInput.prepare("owner", resume);
+            assertThat(prepared.preferences().category()).containsExactlyInAnyOrder("백엔드", "프론트엔드");
+            var result = service.createSaved("owner", resume, UUID.randomUUID().toString(), ResumeAnalysisService.CONSENT_VERSION, prepared);
+            var ids = new java.util.ArrayList<Long>();
+            result.path("recommendations").forEach(item -> ids.add(item.path("jobId").asLong()));
+            assertThat(ids).contains(backend, frontend);
+            var second = java.util.stream.StreamSupport.stream(result.path("recommendations").spliterator(), false)
+                    .filter(item -> item.path("jobId").asLong() == frontend).findFirst().orElseThrow();
+            assertThat(second.path("components").path("locationFit").asDouble()).isPositive();
+            assertThat(second.path("components").path("employmentType").asDouble()).isPositive();
+        } finally {
+            jdbc.update("DELETE FROM job_posts WHERE id IN (?,?)", backend, frontend);
+        }
     }
 
     long seedJob() {

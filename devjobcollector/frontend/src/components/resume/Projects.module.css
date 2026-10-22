@@ -80,3 +80,11 @@
 .guide p, .hint { font-size: 13px; line-height: 1.7; color: #655f70; }
 .field .textarea { margin-top: 0; font: inherit; font-weight: 400; }
 .input { min-width: 0; width: 100%; }
+.preferenceGroup { min-width: 0; margin: 0; padding: 12px; border: 1px solid #d8d8d8; border-radius: 8px; }
+.preferenceGroup legend { float: none; width: auto; padding: 0 4px; margin: 0; font-size: 14px; font-weight: 600; }
+.preferenceActions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 12px; color: #655f70; }
+.preferenceActions button { min-height: 36px; padding: 6px 10px; border: 1px solid #d8d8d8; border-radius: 6px; background: white; cursor: pointer; }
+.preferenceActions button:disabled { opacity: .5; cursor: default; }
+.preferenceOptions { display: flex; flex-wrap: wrap; gap: 6px 12px; }
+.preferenceOptions label { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; font-size: 14px; cursor: pointer; }
+.preferenceOptions input { width: 16px; height: 16px; accent-color: #008a50; }

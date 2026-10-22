@@ -270,8 +270,20 @@ test('저장된 이력서를 확인 후 삭제하고 빈 목록을 표시한다'
 test('지원 방향과 구체적 경험을 저장하고 분석 화면으로 이동한다', async ({ page }) => {
   const state = await installApiMock(page, []);
   await page.goto('/resume');
-  await page.getByLabel('희망 직무').selectOption('백엔드');
-  await page.getByLabel('희망 지역').selectOption('서울');
+  const roles = page.getByRole('group', { name: '희망 직무', exact: true });
+  const locations = page.getByRole('group', { name: '희망 지역', exact: true });
+  const employment = page.getByRole('group', { name: '고용 형태', exact: true });
+  for (const group of [roles, locations, employment]) {
+    await group.getByRole('button', { name: '전체 선택', exact: true }).click();
+    expect(await group.getByRole('checkbox', { checked: true }).count()).toBe(await group.getByRole('checkbox').count());
+    await group.getByRole('button', { name: '전체 해제', exact: true }).click();
+    await expect(group.getByRole('checkbox', { checked: true })).toHaveCount(0);
+  }
+  await roles.getByLabel('백엔드', { exact: true }).check();
+  await roles.getByLabel('프론트엔드', { exact: true }).check();
+  await locations.getByLabel('서울', { exact: true }).check();
+  await locations.getByLabel('경기', { exact: true }).check();
+  await employment.getByRole('button', { name: '전체 선택', exact: true }).click();
   await page.getByLabel('경험 요약').fill('Java API 개발 경험');
   await page.getByRole('button', { name: '프로젝트 추가', exact: true }).click();
   await page.getByPlaceholder('프로젝트명', { exact: true }).fill('주문 서비스');
@@ -283,14 +295,43 @@ test('지원 방향과 구체적 경험을 저장하고 분석 화면으로 이�
   await page.getByLabel('현재 재직 중').check();
   await page.getByRole('button', { name: '저장하고 AI 분석', exact: true }).click();
   await expect(page).toHaveURL(/resume-analysis\?resumeId=12/);
-  expect(state.lastCreate.content.careerProfile).toMatchObject({ category: '백엔드', location: '서울', summary: 'Java API 개발 경험' });
+  expect(state.lastCreate.content.careerProfile).toMatchObject({ category: ['백엔드', '프론트엔드'], location: ['서울', '경기'],
+    employmentType: ['정규직', '계약직', '인턴', '프리랜서'], summary: 'Java API 개발 경험' });
   expect(state.lastCreate.content.projects[0]).toMatchObject({ title: '주문 서비스', description: '기존에 작성한 설명', role: '주문 API 구현', actions: 'Spring Boot로 트랜잭션을 처리했습니다.' });
   expect(state.lastCreate.content.experience[0].isCurrent).toBe(true);
   await page.goto('/resume?resumeId=12');
-  await expect(page.getByLabel('희망 직무')).toHaveValue('백엔드');
+  await expect(roles.getByLabel('백엔드', { exact: true })).toBeChecked();
+  await expect(roles.getByLabel('프론트엔드', { exact: true })).toBeChecked();
+  await expect(locations.getByRole('checkbox', { checked: true })).toHaveCount(2);
+  await expect(employment.getByRole('checkbox', { checked: true })).toHaveCount(4);
   await page.getByText('경험을 구체적으로 정리하기 · 선택', { exact: true }).first().click();
   await expect(page.getByLabel('프로젝트 1 내 역할과 담당 범위')).toHaveValue('주문 API 구현');
   await expect(page.getByPlaceholder('프로젝트 설명', { exact: true })).toHaveValue('기존에 작성한 설명');
   await expectNoHorizontalScroll(page);
   await page.screenshot({ path: `.codex/resume-structured-${test.info().project.name}.png`, fullPage: true });
+});
+
+test('기존 단일 지원 방향을 불러와 복수 선택과 전체 해제를 저장한다', async ({ page }) => {
+  const state = await installApiMock(page, [{ id: 11, title: '기존 이력서', status: 'DRAFT', updatedAt: timestamp }]);
+  state.details.get(11).content.careerProfile = { category: '백엔드', location: '서울', employmentType: '정규직' };
+  await page.goto('/resume?resumeId=11');
+  const roles = page.getByRole('group', { name: '희망 직무', exact: true });
+  const locations = page.getByRole('group', { name: '희망 지역', exact: true });
+  const employment = page.getByRole('group', { name: '고용 형태', exact: true });
+  await expect(roles.getByLabel('백엔드', { exact: true })).toBeChecked();
+  await expect(locations.getByLabel('서울', { exact: true })).toBeChecked();
+  await expect(employment.getByLabel('정규직', { exact: true })).toBeChecked();
+  await roles.getByRole('button', { name: '전체 선택', exact: true }).click();
+  await roles.getByLabel('보안', { exact: true }).uncheck();
+  await locations.getByRole('button', { name: '전체 해제', exact: true }).click();
+  await employment.getByLabel('인턴', { exact: true }).check();
+  await page.getByRole('button', { name: '저장하고 AI 분석', exact: true }).click();
+  await expect(page).toHaveURL(/resume-analysis\?resumeId=11/);
+  await page.goto('/resume?resumeId=11');
+  await expect(roles.getByRole('checkbox', { checked: true })).toHaveCount(7);
+  await expect(roles.getByLabel('보안', { exact: true })).not.toBeChecked();
+  await expect(locations.getByRole('checkbox', { checked: true })).toHaveCount(0);
+  await expect(locations.getByText('지역 제한 없음')).toBeVisible();
+  await expect(employment.getByRole('checkbox', { checked: true })).toHaveCount(2);
+  await expectNoHorizontalScroll(page);
 });
