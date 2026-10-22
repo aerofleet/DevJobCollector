@@ -1,3 +1,4 @@
+import ResumeCoachingSummary from '../components/member/ResumeCoachingSummary';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import MemberSidebar from '../components/member/MemberSidebar';
@@ -39,6 +40,7 @@ export default function ResumeAnalysisPage() {
   const [attachmentState, setAttachmentState] = useState({ resumeId: '', files: [], failed: false });
   const [consent, setConsent] = useState(false);
   const [result, setResult] = useState(null);
+  const [showInput, setShowInput] = useState(false);
   const [loading, setLoading] = useState(true);
   const [unavailable, setUnavailable] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -117,7 +119,7 @@ export default function ResumeAnalysisPage() {
     perform(async () => {
       setResult(null);
       setAnalyzing(true);
-      try { setResult(await createAnalysis(body, retry.current.key)); }
+      try { setResult(await createAnalysis(body, retry.current.key)); setShowInput(false); }
       finally { setAnalyzing(false); }
       retry.current = null;
       setHistory(await listAnalyses());
@@ -167,7 +169,9 @@ export default function ResumeAnalysisPage() {
         {unavailable && <section className="analysis-panel"><h2>기능을 준비하고 있습니다.</h2><Link to="/resumes">이력서 관리로 돌아가기</Link></section>}
         {error && <p role="alert" className="analysis-error">{error}</p>}
         {!loading && capabilities && <>
-          <section className="analysis-panel">
+          {result && <div className="coaching-input-summary"><span>분석한 자료 · {resumes.find(r => r.id === result.resumeId)?.title || '저장된 이력서'} · 첨부 {result.sources?.length || 0}개</span>
+            <button type="button" onClick={() => setShowInput(!showInput)} aria-expanded={showInput}>{showInput ? '접기' : '다시 분석'}</button></div>}
+          {(!result || showInput) && <section className="analysis-panel">
             <h2>분석할 이력서</h2>
             <p>저장된 이력서와 첨부 PDF·이미지로 보완 후보와 공고 추천 근거를 확인하세요. AI 근거 정리는 결과에서 선택할 수 있습니다.</p>
             {!resumes.length ? <p>먼저 이력서를 작성해 주세요. <Link to="/resume">이력서 작성</Link></p> :
@@ -195,7 +199,7 @@ export default function ResumeAnalysisPage() {
                   {busy ? '처리 중…' : '분석하기'}
                 </button>
               </form>}
-          </section>
+          </section>}
           {analyzing && <section className="analysis-panel analysis-progress" role="status" aria-live="polite">
             <span className="evidence-eyebrow">REVIEW IN PROGRESS</span><h2>자료를 분석하고 있습니다</h2>
             <ol><li>선택한 이력서와 분석 동의 확인 완료</li><li aria-current="step">서버에서 자료 추출·규칙 검사·공고 조회 처리 중</li><li>결과 응답 대기</li></ol>
@@ -203,26 +207,12 @@ export default function ResumeAnalysisPage() {
           </section>}
           {result && <section className="analysis-panel" aria-label="분석 결과" aria-live="polite">
             <div className="analysis-heading"><h2>분석 결과</h2><button type="button" disabled={busy} onClick={() => remove(result.id)}>결과 삭제</button></div>
-            <p className="analysis-note">로컬 규칙 검사와 AI 내용 분석은 구분해 표시합니다. AI 내용 분석은 전송 자료 확인과 별도 동의 후 실행하며, 제안의 사실 여부는 직접 확인해 주세요.</p>
-            {result.inputMode === 'SAVED_RESUME' && <div className="analysis-sources">
-              <strong>이번 분석에 사용한 자료</strong>
-              <p>저장된 이력서{result.sources?.length ? ` + 첨부파일 ${result.sources.length}개` : ''}</p>
-              {!!result.sources?.length && <ul>{result.sources.map((file) => <li key={file.id}>{file.filename} · 읽기 완료</li>)}</ul>}
-              <p>확인된 기술: {result.detectedSkills?.join(', ') || '확인되지 않음'}</p>
-              <p>저장된 경력 기간: {result.derivedPreferences?.careerYears == null ? '확인되지 않음' : `${result.derivedPreferences.careerYears}년 (저장된 기간·재직 중 표시 기준)`}</p>
-              <p className="analysis-note">저장한 지원 방향을 사용하며 입력하지 않은 조건은 추정하지 않습니다. 첨부파일 인용은 추출 텍스트 기준입니다.</p>
-            </div>}
+            <ResumeCoachingSummary result={result} />
             {(capabilities.contentReviewAvailable || result.aiReview) && <ResumeContentReview key={result.id} result={result} disabled={busy}
               onResult={value => setResult(current => current?.id === result.id ? { ...current, aiReview: value } : current)} />}
-            <ResumeEvidenceReport result={result} busy={busy} onFeedback={(findingId, type) => perform(async () => {
-              await saveFindingFeedback(result.id, findingId, type);
-              setResult((current) => ({ ...current, review: { ...current.review, findings: current.review.findings.map((finding) =>
-                finding.id === findingId ? { ...finding, feedback: type } : finding) } }));
-            })} />
             {(!capabilities.contentReviewAvailable || currentExplanation?.status === 'COMPLETED') && (capabilities.externalProcessing || currentExplanation?.status === 'COMPLETED') && <div className="analysis-explanation">
               <h3>AI 추천 근거 정리</h3>
-              <p className="analysis-note">AI가 확인된 근거 중 강조할 항목을 선택합니다.
-                문장은 검증된 안내 문구로 표시하며, 추천 순위는 바뀌지 않습니다. AI의 선택은 정답이나 채용 가능성을 보장하지 않습니다.</p>
+              <p className="analysis-note">AI가 선택한 근거로 공고에서 강조할 경험을 확인해보세요.</p>
               {(!currentExplanation || currentExplanation.status === 'NOT_REQUESTED') && <>
                 <label className="analysis-consent"><input type="checkbox" checked={externalConsent} disabled={busy}
                   onChange={(event) => setExternalConsent(event.target.checked)} />
@@ -241,20 +231,19 @@ export default function ResumeAnalysisPage() {
                 <p role="status">AI 근거 정리를 완료하지 못했습니다. 아래 로컬 분석 결과는 계속 사용할 수 있습니다. 중복 비용 방지를 위해 이 요청은 다시 호출하지 않습니다.</p>}
               {currentExplanation?.status === 'COMPLETED' && <p role="status">AI가 선택한 근거를 각 추천 공고에 표시했습니다.</p>}
             </div>}
-            <ResumeWritingSuggestions result={result} />
-            <h3>추천 공고</h3>
+            <h3>맞춤 공고 + 공고별 어필법</h3>
             <p className="analysis-note">‘추천이 맞음’은 노출을 유지하고, 다른 피드백은 이 분석의 추천 목록에서 제외합니다. 제외한 공고는 아래에서 다시 노출할 수 있습니다.</p>
             {feedbackNotice?.analysisId === result.id && <p role="status">{feedbackNotice.text}</p>}
             {!result.recommendations.length && <p>{result.excludedRecommendations?.length
               ? '피드백에 따라 모든 추천 공고를 제외했습니다. 제외한 공고에서 다시 노출할 수 있습니다.'
-              : '현재 자료와 연결할 수 있는 공개 공고를 찾지 못했습니다. 수집된 기술 정보가 부족하거나 공고가 마감되었을 수 있습니다. 지원 가능한 공고가 전혀 없다는 뜻은 아닙니다.'}</p>}
+              : '경험과 기술 스택을 보완해 다시 분석하거나, 전체 공고에서 지원할 기회를 찾아보세요.'}</p>}
             {!result.recommendations.length && <Link className="evidence-browse" to="/jobs">전체 공개 공고 둘러보기 →</Link>}
             <div className="analysis-jobs">{recommendedJobs.map((job, jobIndex) => <article key={job.jobId} className="analysis-job">
               <span className="analysis-score">{jobIndex + 1}번째 추천 · {result.aiReview?.status === 'COMPLETED' ? 'AI 관련성 검토 순서' : '근거 확인'}</span>
               <h4><Link to={`/job/${job.jobId}`}>{job.title}</Link></h4>
-              <p>{job.companyName} · {job.location || '지역 미기재'} · {job.experience || '경력 미기재'}</p>
+              <p>{job.companyName} · 근무 지역: {job.location?.trim() || '공고 원문에서 확인'} · {job.experience || '경력 조건 확인'}</p>
               <AiJobReview review={result.aiReview?.jobs?.find(item => item.jobId === job.jobId)} />
-              <JobEvidence job={job} review={result.review} />
+              <details><summary>기술 매칭 살펴보기</summary><JobEvidence job={job} review={result.review} /></details>
               {currentExplanation?.jobs?.find((item) => item.jobId === job.jobId)?.highlights?.length > 0 &&
                 <div><strong><span className="evidence-badge evidence-badge-ai">AI 판단</span> AI가 선택한 추천 근거</strong><ul>{currentExplanation.jobs.find((item) => item.jobId === job.jobId).highlights.map((text) =>
                   <li key={text}>{text}</li>)}</ul></div>}
@@ -270,6 +259,18 @@ export default function ResumeAnalysisPage() {
                   onClick={() => updateRecommendationFeedback(job, 'MATCHED')}>다시 노출</button>
               </li>)}</ul>
             </details>}
+            <footer className="coaching-method"><p>AI 제안은 초안이에요. 실제 경험과 맞는지 확인 후 반영하세요.</p>
+              <details><summary>검사 기준 보기</summary>
+                <p>기술은 자료의 언급을 바탕으로 정리하며 숙련도나 합격 확률을 뜻하지 않습니다. 원문 인용과 수치는 서버에서 대조하며 제안의 의미와 사실관계는 직접 확인하세요.</p>
+                {result.sources?.map(file => <p key={file.id}>{file.filename} · 읽기 완료</p>)}
+            <ResumeEvidenceReport result={result} busy={busy} onFeedback={(findingId, type) => perform(async () => {
+              await saveFindingFeedback(result.id, findingId, type);
+              setResult((current) => ({ ...current, review: { ...current.review, findings: current.review.findings.map((finding) =>
+                finding.id === findingId ? { ...finding, feedback: type } : finding) } }));
+            })} />
+                <ResumeWritingSuggestions result={result} />
+              </details>
+            </footer>
           </section>}
           <section className="analysis-panel">
             <h2>최근 분석 기록</h2>

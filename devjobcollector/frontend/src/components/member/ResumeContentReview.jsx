@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { previewContentReview, getContentReview, requestContentReview, saveFindingFeedback } from '../../api/resumeAnalysisApi';
+import { confirmContentReview, previewContentReview, getContentReview, requestContentReview, saveFindingFeedback } from '../../api/resumeAnalysisApi';
 
-const issueNames = { CLARITY: '설명 구체화', ROLE: '담당 역할', EVIDENCE: '성과 근거', RELEVANCE: '지원 방향' };
 const sectionNames = { projects: '프로젝트', experience: '경력', careerProfile: '지원 방향', techStack: '기술 스택' };
 const location = item => `${item.label || '저장된 자료'} · ${item.page ? `${item.page}쪽` : sectionNames[item.section] || item.section || '위치 미확인'}`;
 const errorMessage = error => {
@@ -11,7 +10,7 @@ const errorMessage = error => {
   if (code === 'CONTENT_REVIEW_TOO_LARGE') return '분석할 텍스트가 허용 분량을 초과했습니다. 필요한 경험과 첨부파일을 정리한 뒤 다시 분석해 주세요.';
   if (code === 'NO_RESUME_CONTENT') return '분석할 경험 내용이 없습니다. 프로젝트·경력 설명이나 첨부파일을 추가해 주세요.';
   if (error.response?.status === 429) return '오늘의 AI 요청 한도에 도달했습니다. 저장된 분석 결과를 확인해 주세요.';
-  return '요청을 완료하지 못했습니다. 처리 상태를 확인해 주세요. 전송이 시작된 요청은 자동으로 다시 실행하지 않습니다.';
+  return '요청 처리 상태를 확인해 주세요. 저장된 결과에서 이어서 진행할 수 있어요.';
 };
 
 export default function ResumeContentReview({ result, disabled, onResult }) {
@@ -20,9 +19,11 @@ export default function ResumeContentReview({ result, disabled, onResult }) {
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const onResultRef = useRef(onResult);
+  useEffect(() => { onResultRef.current = onResult; }, [onResult]);
   useEffect(() => {
     let active = true;
-    getContentReview(result.id).then(value => { if (active) setReview(value); }).catch(() => {});
+    getContentReview(result.id).then(value => { if (active) { setReview(value); onResultRef.current(value); } }).catch(() => {});
     return () => { active = false; };
   }, [result.id]);
   const run = async operation => {
@@ -31,20 +32,18 @@ export default function ResumeContentReview({ result, disabled, onResult }) {
     try { await operation(); } catch (failure) { setError(errorMessage(failure)); }
     finally { setBusy(false); }
   };
-  const sync = value => { setReview(value); onResult(value); };
+  const sync = value => { setReview(value); onResultRef.current(value); };
   const state = review?.status || 'NOT_REQUESTED';
   return <section className="content-review" aria-label="AI 내용 분석">
-    <span className="evidence-badge evidence-badge-ai">AI 내용 분석</span>
-    <h3>경험을 읽고, 수정 방향을 제안합니다</h3>
-    <p>저장된 지원 방향·프로젝트·경력과 첨부 자료를 함께 검토합니다. 개선할 이유와 수정 예시, 추천 공고의 요건과 연결되는 경험을 확인하세요.</p>
-    <p className="analysis-note">AI 제안은 검토용 초안입니다. 인용문 일치를 확인해도 해석이나 수정안이 틀릴 수 있으므로 실제 경험과 대조하세요. 이력서는 자동 수정하지 않습니다.</p>
+    <h3>이렇게 고쳐보세요</h3>
+    {state !== 'COMPLETED' && <p>내 자료로 채운 완성 문장과 공고별 어필법을 받아보세요.</p>}
     {error && <p role="alert" className="analysis-error">{error}</p>}
     {!result.inputFingerprint ? <p>이전 분석 기록입니다. 현재 자료로 새 분석을 만들면 AI 내용 분석을 사용할 수 있습니다.</p> : state === 'NOT_REQUESTED' && <>
       {!preview && <button type="button" disabled={disabled || busy} onClick={() => run(async () => { setConsent(false); setPreview(await previewContentReview(result.id)); })}>
         {busy ? '전송할 자료 준비 중…' : 'AI에 전송할 내용 확인'}</button>}
       {preview && <div className="content-review-preview">
         <h4>전송 내용 미리보기</h4>
-        <p>아래 텍스트와 공고 정보가 OpenAI로 전송됩니다. 기본정보 필드는 제외하고 알려진 이름·연락처 등을 마스킹했지만, 본문에 남은 개인정보까지 완전히 제거됐다고 보장하지 않습니다. 남아 있는 민감한 정보는 이력서에서 수정한 뒤 다시 분석해 주세요.</p>
+        <p>아래 텍스트와 공고 정보가 OpenAI로 전송됩니다. 이름·연락처는 자동 마스킹했어요. 전송 전에 본문에 남은 개인정보를 확인하고, 필요한 부분은 이력서에서 수정해 주세요.</p>
         <details open><summary>이력서·첨부 자료 {preview.payload.sources.length}개 구간</summary>
           {preview.payload.sources.map(source => { const ref = preview.sources.find(item => item.id === source.sourceId); return <label key={source.sourceId}>
             {location(ref || {})}<textarea readOnly value={source.text} aria-label={`${source.sourceId} 전송 내용`} /></label>; })}
@@ -60,18 +59,25 @@ export default function ResumeContentReview({ result, disabled, onResult }) {
         <p className="analysis-note">AI 요청은 근거 정리와 합산해 하루 최대 5회, 분석 결과당 내용 분석 1회입니다. 실패한 요청도 포함되며 자동 재시도하지 않습니다.</p>
       </div>}
     </>}
-    {['PENDING', 'INTERRUPTED', 'FAILED'].includes(state) && <p role="status">{state === 'PENDING' ? 'AI가 분석 중입니다.' : 'AI 내용 분석을 완료하지 못했습니다. 로컬 점검과 공고 후보는 계속 확인할 수 있습니다.'} 중복 비용 방지를 위해 같은 분석은 다시 전송하지 않습니다.</p>}
+    {['PENDING', 'INTERRUPTED', 'FAILED'].includes(state) && <p role="status">{state === 'PENDING' ? 'AI가 분석 중입니다.' : 'AI 내용 분석을 완료하지 못했습니다. 로컬 점검과 공고 후보는 계속 확인할 수 있습니다.'} 저장된 결과를 확인하거나 새 분석에서 이어가세요.</p>}
     <button className="content-review-refresh" type="button" disabled={busy || disabled} onClick={() => run(async () => sync(await getContentReview(result.id)))}>AI 처리 상태 확인</button>
     {state === 'COMPLETED' && <div>
-      <h4>AI가 제안한 수정 방향</h4>
-      {!review.findings?.length && <p>원문 근거 검증을 통과한 수정 제안이 없습니다. 이력서에 개선할 점이 전혀 없다는 의미는 아닙니다.</p>}
+      {!review.findings?.length && <p>경험의 역할·과정·결과를 조금 더 적고 다시 분석해보세요. 구체적인 자료가 있으면 완성 문장으로 제안해드려요.</p>}
       {review.findings?.map(finding => <article className="evidence-finding" key={finding.id}>
-        <span className="evidence-badge evidence-badge-ai">AI 판단 · {issueNames[finding.issueType] || '보완 제안'}</span>
+        <span className="evidence-badge evidence-badge-ai">AI 수정 제안</span>
         <p className="analysis-note">{location(finding)}</p>
-        <blockquote><span>원문에서 확인한 인용</span><p><mark>{finding.quote}</mark></p></blockquote>
-        <h4>왜 보완하면 좋을까요?</h4><p>{finding.problem}</p>
-        <h4>이렇게 수정해 보세요</h4><ol>{finding.actions.map((action, index) => <li key={index}>{action}</li>)}</ol>
-        <div className="evidence-template"><strong>수정 초안 · 사실 확인 필요</strong><p>{finding.rewriteTemplate}</p></div>
+        <blockquote><span>원문</span><p><mark>{finding.quote}</mark></p></blockquote>
+        <div className="evidence-template"><strong>이렇게 바꿔보세요</strong>
+          <p>{finding.suggestion || (finding.rewriteTemplate?.includes('[') ? '이전 결과예요. 현재 자료로 다시 분석하면 완성 문장을 받을 수 있어요.' : finding.rewriteTemplate)}</p>
+        </div>
+        <h4>왜 효과적인가요?</h4><p>{finding.problem}</p>
+        {finding.confirm?.map((confirm, index) => <div className="coaching-confirm" key={index} role="group" aria-label={confirm.question}>
+          <strong>확인해 주세요</strong><p>{confirm.question}</p>
+          {confirm.options.map((option, optionIndex) => <button type="button" key={optionIndex} disabled={busy || disabled}
+            aria-pressed={finding.selectedOption === optionIndex} onClick={() => run(async () => sync(await confirmContentReview(result.id, finding.id, optionIndex)))}>{option.label}</button>)}
+          {finding.selectedOption >= 0 && <button type="button" disabled={busy || disabled} onClick={() => run(async () => sync(await confirmContentReview(result.id, finding.id, -1)))}>답변 취소</button>}
+          {finding.selectedOption >= 0 && <p role="status">답변을 수정안에 반영했어요.</p>}
+        </div>)}
         <div className="evidence-feedback" role="group" aria-label="AI 제안 피드백">
           {Object.entries({ APPLIED: '반영했어요', NOT_APPLICABLE: '해당 없음', INCORRECT: '이 지적이 틀렸어요' }).map(([type, label]) => <button key={type} type="button" aria-pressed={finding.feedback === type} disabled={busy || disabled}
             onClick={() => run(async () => { const next = finding.feedback === type ? 'OPEN' : type;
@@ -80,7 +86,6 @@ export default function ResumeContentReview({ result, disabled, onResult }) {
         </div>
         <Link to={`/resume?resumeId=${result.resumeId}`}>이력서에서 확인하고 수정하기 →</Link>
       </article>)}
-      <p className="analysis-note">공고별 AI 검토 근거는 아래 추천 공고에 표시합니다. 수집된 공고 일부만 검토하며 전체 지원 자격이나 채용 가능성을 보장하지 않습니다.</p>
     </div>}
   </section>;
 }
@@ -89,10 +94,12 @@ export function AiJobReview({ review }) {
   if (!review) return null;
   const names = { RELATED: '연결되는 경험 있음', REVIEW_NEEDED: '추가 확인 필요', LOW_RELEVANCE: '관련성 낮음' };
   return <div className="ai-job-review"><strong><span className="evidence-badge evidence-badge-ai">AI 판단</span> {names[review.relevance]}</strong>
+    <div className="coaching-job-fit"><div><h4>앞세울 경험</h4><p>{review.lead_with || '아래 인용된 경험을 공고 요건과 연결해보세요.'}</p></div><div><h4>보완할 요건</h4><p>{review.gap || '공고 원문의 지원 요건을 확인해보세요.'}</p></div></div>
+    <details><summary>공고와 경험의 근거 보기</summary>
     {review.criteria.map((criterion, index) => <div key={index}>
       <p><strong>공고 근거</strong> “{criterion.jobQuote}”</p>
-      {criterion.resumeQuote ? <p><strong>이력서 근거</strong> “{criterion.resumeQuote}”<small>{location(criterion)}</small></p> : <p>자료에서 대응하는 근거 미확인</p>}
-      <p>{criterion.explanation}</p><span>{criterion.assessment === 'SUPPORTED' ? '문장 근거 확인 · 자격 충족 보증 아님' : '지원 전 확인할 항목'}</span>
-    </div>)}
+      {criterion.resumeQuote ? <p><strong>이력서 근거</strong> “{criterion.resumeQuote}”<small>{location(criterion)}</small></p> : <p>관련 경험을 이력서에 추가해보세요</p>}
+      <p>{criterion.explanation}</p><span>{criterion.assessment === 'SUPPORTED' ? '연결되는 경험' : '지원 전 확인할 항목'}</span>
+    </div>)}</details>
   </div>;
 }

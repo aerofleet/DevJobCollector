@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
 
 /** Validate grounding independently from the model's structured-output promise. */
 public final class ResumeContentReviewRules {
-    public static final String VERSION = "content-review-v2-passages";
+    public static final String VERSION = "content-review-v3-coaching";
     public record Source(String id, String text, ResumeEvidenceReview.Document original) {}
     public record Job(int slot, long jobId, String text) {}
     public record Passage(String id, String text) {}
@@ -43,6 +43,9 @@ public final class ResumeContentReviewRules {
     }
 
     public static Map<String, Object> schema() {
+        return ResumeCoachingRules.schema();
+    }
+    static Map<String, Object> legacySchema() {
         var text = Map.of("type", "string");
         var finding = object(Map.of("sourceId", text, "quoteId", text,
                 "issueType", Map.of("type", "string", "enum", List.of("CLARITY", "ROLE", "EVIDENCE", "RELEVANCE")),
@@ -60,6 +63,10 @@ public final class ResumeContentReviewRules {
     private static Map<String, Object> array(Object item, int max) { return Map.of("type", "array", "maxItems", max, "items", item); }
 
     public static ObjectNode validate(JsonNode output, List<Source> sources, List<Job> jobs, ObjectMapper mapper) {
+        if (output.has("rewrites")) return ResumeCoachingRules.validate(output, sources, jobs, mapper);
+        return validateLegacy(output, sources, jobs, mapper);
+    }
+    static ObjectNode validateLegacy(JsonNode output, List<Source> sources, List<Job> jobs, ObjectMapper mapper) {
         if (!output.path("findings").isArray() || output.path("findings").size() > 6
                 || !output.path("jobs").isArray() || output.path("jobs").size() > 5) throw new IllegalArgumentException("Invalid review");
         var bySource = new HashMap<String, Source>(); sources.forEach(s -> bySource.put(s.id(), s));

@@ -22,6 +22,10 @@ class OpenAiEvidenceLiveTest {
                 "jobs", java.util.List.of(java.util.Map.of("slot", 0, "text", requirements, "passages", ResumeContentReviewRules.passages("J0", requirements))));
         var output = client.review(payload);
         var validated = ResumeContentReviewRules.validate(output, sources, jobs, mapper);
+        assertThat(output.has("rewrites")).isTrue();
+        assertThat(validated.path("positioning").asText()).isNotBlank();
+        assertThat(validated.path("strengths").size()).isGreaterThan(0);
+        for (var finding : validated.path("findings")) assertThat(finding.path("suggestion").asText()).isNotBlank().doesNotContain("[", "]");
         assertThat(validated.path("findings").size()).as("Synthetic output: %s; validated: %s", output, validated).isGreaterThan(0);
         assertThat(validated.path("jobs").size()).as("Synthetic output: %s; validated: %s", output, validated).isEqualTo(1);
         for (var finding : validated.path("findings")) assertThat(text).contains(finding.path("quote").asText());

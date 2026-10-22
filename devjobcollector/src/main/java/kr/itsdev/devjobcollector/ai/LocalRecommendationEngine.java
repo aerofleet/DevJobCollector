@@ -37,7 +37,7 @@ public class LocalRecommendationEngine {
         var skills = new TreeSet<String>();
         for (JsonNode item : content.path("techStack")) {
             String name = item.isTextual() ? item.asText() : item.path("name").asText("");
-            if (!name.isBlank() && name.length() <= 50) skills.add(normalizeSkill(name));
+            if (!name.isBlank() && name.length() <= 50) ResumeSkillVocabulary.split(name).forEach(s -> skills.add(normalizeSkill(s)));
             if (skills.size() > 50) throw ResumeTextExtractor.failure(org.springframework.http.HttpStatus.BAD_REQUEST, "TOO_MANY_SKILLS");
         }
         return Collections.unmodifiableSet(skills);

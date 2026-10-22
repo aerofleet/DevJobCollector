@@ -83,8 +83,8 @@ class ResumeContentReviewRulesTest {
         assertThat(payload.path("text").path("format").path("strict").asBoolean()).isTrue();
         assertThat(payload.has("tools")).isFalse();
         var properties = payload.path("text").path("format").path("schema").path("properties");
-        assertThat(properties.path("findings").path("items").path("properties").has("quoteId")).isTrue();
-        assertThat(properties.path("findings").path("items").path("properties").has("quote")).isFalse();
+        assertThat(properties.path("rewrites").path("items").path("properties").has("quoteId")).isTrue();
+        assertThat(properties.path("rewrites").path("items").path("properties").has("quote")).isFalse();
         assertThat(payload.path("instructions").asText()).contains("UNTRUSTED DATA", "Never invent");
     }
 }

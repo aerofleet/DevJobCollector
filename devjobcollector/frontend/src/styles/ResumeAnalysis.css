@@ -1,4 +1,38 @@
 .resume-analysis { min-width: 0; }
+.coaching-input-summary { display:flex; justify-content:space-between; gap:16px; align-items:center; padding:16px 20px; margin-bottom:20px; border:1px solid #e6eaf1; border-radius:16px; background:#fff; font-size:14px; }
+.coaching-input-summary button, .coaching-confirm button { border:1px solid #dcd5ff; border-radius:8px; padding:9px 14px; background:#f6f3ff; color:#5a3fe0; cursor:pointer; font:inherit; }
+.coaching-hero { background:linear-gradient(125deg,#f4f0ff,#fcfbff); border:1px solid #e5ddff; padding:28px; border-radius:16px; margin:16px 0 30px; }
+.resume-analysis .coaching-hero h3 { font-size:clamp(23px,3vw,32px); letter-spacing:-.04em; line-height:1.45; margin:12px 0; }
+.coaching-hero .evidence-eyebrow { color:#6c4dff; }
+.coaching-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; border-top:1px solid #e4ddf7; padding-top:20px; margin-top:22px; }
+.coaching-metrics div { display:flex; flex-direction:column; gap:6px; }
+.coaching-metrics strong { font-size:30px; color:#6c4dff; }
+.coaching-metrics small { font-size:16px; color:#8a7eab; }
+.coaching-metrics span { font-size:12px; color:#647084; }
+.coaching-section { margin:30px 0; }
+.coaching-strengths { display:grid; gap:12px; }
+.coaching-strengths article { padding:20px; border:1px solid #e6eaf1; border-radius:16px; }
+.coaching-strengths h4 { margin:8px 0 12px; font-size:17px; }
+.coaching-number { color:#6c4dff; font-weight:800; font-size:13px; }
+.coaching-strengths blockquote { margin:10px 0; padding:12px 16px; background:#f8f9fc; border-left:3px solid #d9d0ff; font-size:14px; line-height:1.7; }
+.coaching-strengths cite { display:block; font-size:12px; color:#647084; margin-top:8px; font-style:normal; }
+.coaching-placement { color:#5a3fe0 !important; font-weight:600; }
+.coaching-gap { display:flex; align-items:flex-start; gap:14px; padding:18px 0; border-bottom:1px solid #e6eaf1; }
+.coaching-gap > span { padding:5px 9px; background:#fff3e3; color:#96551d; border-radius:6px; white-space:nowrap; font-size:12px; }
+.coaching-gap > div { flex:1; min-width:0; }
+.coaching-gap h4 { font-size:15px; margin:0; }
+.coaching-gap a { white-space:nowrap; font-size:13px; }
+.coaching-skills { margin-top:18px; }
+.coaching-skills summary,.coaching-method summary { cursor:pointer; font-weight:600; }
+.coaching-confirm { padding:16px; background:#f5f2ff; border-radius:12px; margin:16px 0; }
+.coaching-confirm button { margin:0 8px 8px 0; background:white; }
+.coaching-confirm button[aria-pressed=true] { color:white; background:#6c4dff; border-color:#6c4dff; }
+.coaching-job-fit { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:14px 0; }
+.coaching-job-fit > div { background:#f8f6ff; border-radius:12px; padding:14px; }
+.coaching-job-fit > div + div { background:#fff8ee; }
+.coaching-job-fit h4 { font-size:14px; color:#5a3fe0; margin:0; }
+.coaching-method { margin-top:28px; border-top:1px solid #e6eaf1; padding-top:20px; font-size:13px; }
+@media(max-width:600px) { .coaching-hero { padding:20px; } .coaching-gap { flex-wrap:wrap; } .coaching-gap > div { min-width:65%; } .coaching-job-fit { grid-template-columns:1fr; } .coaching-input-summary { align-items:flex-start; } .coaching-input-summary button { flex-shrink:0; } }
 .analysis-panel { padding: 24px; margin-bottom: 24px; border: 1px solid #dce3ed; border-radius: 16px; background: #fff; }
 .analysis-panel h2 { font-size: 21px; margin: 0 0 14px; }
 .analysis-panel h3 { font-size: 18px; margin: 24px 0 12px; }

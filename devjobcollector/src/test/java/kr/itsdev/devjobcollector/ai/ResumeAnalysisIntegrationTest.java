@@ -116,6 +116,26 @@ class ResumeAnalysisIntegrationTest {
         assertThat(contentReviews.review("owner", id, ResumeContentReviewService.CONSENT, hash).path("status").asText()).isEqualTo("FAILED");
         verify(openai, times(1)).review(anyMap());
     }
+    @Test void confirmationPersistsAndRejectsOtherOwnersWithoutCallingModelOrChangingResume() throws Exception {
+        long id = create(UUID.randomUUID().toString(),prefs);
+        String original = jdbc.queryForObject("SELECT content_json FROM resumes WHERE id=?",String.class,resume);
+        var result = (com.fasterxml.jackson.databind.node.ObjectNode) mapper.readTree(jdbc.queryForObject("SELECT result_json FROM ai_analysis_request WHERE id=?",String.class,id));
+        result.set("aiReview",mapper.readTree("""
+            {"status":"COMPLETED","findings":[{"id":"rewrite","baseSuggestion":"API를 개발했습니다.","suggestion":"API를 개발했습니다.",
+            "confirm":[{"question":"단독 담당인가요?","options":[{"label":"단독","suggestion":"API를 단독 개발했습니다."},{"label":"공동","suggestion":"API를 공동 개발했습니다."}]}]}]}
+            """));
+        jdbc.update("UPDATE ai_analysis_request SET result_json=? WHERE id=?",mapper.writeValueAsString(result),id);
+        assertThatThrownBy(() -> contentReviews.confirm("other",id,"rewrite",0)).isInstanceOf(ResponseStatusException.class);
+        contentReviews.confirm("owner",id,"rewrite",0);
+        assertThat(contentReviews.get("owner",id).path("findings").get(0).path("suggestion").asText()).contains("단독");
+        contentReviews.confirm("owner",id,"rewrite",1);
+        assertThat(contentReviews.get("owner",id).path("findings").get(0).path("suggestion").asText()).contains("공동");
+        contentReviews.confirm("owner",id,"rewrite",-1);
+        assertThat(contentReviews.get("owner",id).path("findings").get(0).path("suggestion").asText()).isEqualTo("API를 개발했습니다.");
+        assertThatThrownBy(() -> contentReviews.confirm("owner",id,"rewrite",2)).isInstanceOf(ResponseStatusException.class);
+        assertThat(jdbc.queryForObject("SELECT content_json FROM resumes WHERE id=?",String.class,resume)).isEqualTo(original);
+        verifyNoInteractions(openai);
+    }
     @Test void changedResumeInvalidatesContentPreviewBeforeProviderCall() {
         jdbc.update("UPDATE resumes SET content_json=? WHERE id=?", "{\"projects\":[{\"description\":\"Java API를 개발했습니다.\"}]}", resume);
         when(openai.available()).thenReturn(true);

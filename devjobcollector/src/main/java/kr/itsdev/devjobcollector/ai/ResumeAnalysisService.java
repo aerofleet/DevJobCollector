@@ -85,7 +85,7 @@ public class ResumeAnalysisService {
         var skills = prepared == null ? engine.skills(content) : prepared.skills();
         var candidates = candidates(skills, preferences, today);
         String cacheKey = hash(json(List.of(resumeId, hash(resumes.getFirst()), preferences, candidates,
-                engine.algorithmVersion(), ResumeEvidenceReview.VERSION, today.toString(), CONSENT_VERSION,
+                engine.algorithmVersion(), ResumeEvidenceReview.VERSION, ResumeContentReviewRules.VERSION, SavedResumeAnalysisInput.VERSION, today.toString(), CONSENT_VERSION,
                 prepared == null ? "MANUAL" : prepared)));
         var cached = jdbc.queryForList("SELECT id FROM ai_analysis_request WHERE user_id=? AND cache_key=? FOR UPDATE",
                 Long.class, user, cacheKey);

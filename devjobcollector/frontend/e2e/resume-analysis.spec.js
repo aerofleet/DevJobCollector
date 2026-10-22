@@ -1,5 +1,60 @@
 import { expect, test } from '@playwright/test';
 
+test('코칭 결과 순서·지역 표시·확인 답변 저장과 취소', async ({ page }) => {
+  const base = 'API를 개발해 실패율을 65%에서 0%로 낮췄습니다.';
+  const finding = { id: 'rewrite', quote: 'API를 개발했습니다.', label: '경험.pdf', page: 1, problem: '역할과 성과를 함께 보여주세요.',
+    suggestion: base, baseSuggestion: base, feedback: 'OPEN', confirm: [{ question: 'API를 단독 담당했나요?', options: [
+      { label: '단독 담당', suggestion: 'API를 단독 개발해 실패율을 65%에서 0%로 낮췄습니다.' },
+      { label: '공동 담당', suggestion: 'API를 공동 개발해 실패율을 65%에서 0%로 낮췄습니다.' }] }] };
+  const ai = { status: 'COMPLETED', positioning: '장애를 수치로 진단하는 백엔드 개발자',
+    strengths: [{ point: '실패율 개선 경험', evidence: [{ quote: base, label: '경험.pdf', page: 1 }], placement: '프로젝트 첫 줄에 두세요.' }],
+    gaps: [{ type: 'buried', what: '성과를 첫 문장으로 옮겨보세요.', why_it_matters: '기여를 바로 읽을 수 있어요.' }], findings: [finding],
+    jobs: [{ jobId: 17, relevance: 'RELATED', lead_with: '실패율을 낮춘 API 경험을 앞세우세요.', gap: '운영 범위를 설명해보세요.', criteria: [] }] };
+  const result = { id: 8, resumeId: 11, inputFingerprint: 'snapshot', inputMode: 'SAVED_RESUME', detectedSkills: ['java', 'redis'], derivedPreferences: {},
+    review: { version: 'verified-quotes-v2', findings: [], observations: { withMeasurement: 1, outcomeSentences: 2 }, score: {} }, improvements: [], aiReview: ai,
+    recommendations: [{ jobId: 17, title: 'API 엔지니어', companyName: '기업', location: '서울 강남구', rank: 1, matchPoints: ['java'], missingPoints: [] }] };
+  let fail = true;
+  await page.addInitScript(() => localStorage.setItem('accessToken', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0IiwiZXhwIjo0MTAyNDQ0ODAwfQ.test'));
+  await page.route('**/api/v1/**', route => {
+    const req = route.request(); const path = new URL(req.url()).pathname;
+    if (path.endsWith('/members/me')) return route.fulfill({ json: { id: 42, name: '회원', role: 'USER', profileStatus: 'ACTIVE' } });
+    if (path.endsWith('/capabilities')) return route.fulfill({ json: { contentReviewAvailable: true, consentVersion: 'local-analysis-v3', dailyLimit: 5 } });
+    if (path.endsWith('/resumes')) return route.fulfill({ json: [{ id: 11, title: '내 이력서' }] });
+    if (path.endsWith('/resume-analyses')) return route.fulfill({ json: [{ id: 8, resumeTitle: '코칭 분석', createdAt: '2026-10-23' }] });
+    if (path.endsWith('/resume-analyses/8')) return route.fulfill({ json: result });
+    if (path.endsWith('/content-review/confirm')) {
+      if (fail) { fail = false; return route.fulfill({ status: 500, json: {} }); }
+      const { findingId, option } = req.postDataJSON(); expect(findingId).toBe('rewrite');
+      finding.selectedOption = option; finding.suggestion = option === -1 ? base : finding.confirm[0].options[option].suggestion;
+      return route.fulfill({ json: ai });
+    }
+    if (path.endsWith('/content-review')) return route.fulfill({ json: ai });
+    return route.fulfill({ json: [] });
+  });
+  await page.goto('/resume-analysis');
+  const open = () => page.getByRole('button', { name: /코칭 분석 ·/ }).click(); await open();
+  await expect(page.getByRole('heading', { name: ai.positioning })).toBeVisible();
+  await expect(page.getByText('근무 지역: 서울 강남구', { exact: false })).toBeVisible();
+  await expect(page.getByText(ai.jobs[0].lead_with)).toBeVisible();
+  await expect(page.getByRole('button', { name: '분석하기', exact: true })).toHaveCount(0);
+  const panel = page.getByRole('region', { name: 'AI 내용 분석', exact: true });
+  await panel.getByRole('button', { name: '단독 담당', exact: true }).click();
+  await expect(panel.getByRole('alert')).toBeVisible();
+  await expect(panel.getByText(base, { exact: true })).toBeVisible();
+  await panel.getByRole('button', { name: '공동 담당', exact: true }).click();
+  await expect(panel.getByText(finding.confirm[0].options[1].suggestion, { exact: true })).toBeVisible();
+  await page.reload(); await open();
+  await expect(panel.getByRole('button', { name: '공동 담당' })).toHaveAttribute('aria-pressed','true');
+  await panel.getByRole('button', { name: '답변 취소' }).click();
+  await expect(panel.getByText(base, { exact: true })).toBeVisible();
+  const headings = await page.locator('[aria-label="분석 결과"] h3').allTextContents();
+  expect(headings.indexOf('이건 꼭 앞세우세요')).toBeLessThan(headings.indexOf('놓치고 있는 부분'));
+  expect(headings.indexOf('놓치고 있는 부분')).toBeLessThan(headings.indexOf('이렇게 고쳐보세요'));
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: `.codex/coaching-${test.info().project.name}.png`, fullPage: true });
+});
+
 test('추천 피드백 저장 실패·제외·새로고침·다시 노출', async ({ page }) => {
   let feedback = '';
   let failNext = true;
@@ -127,10 +182,12 @@ test('분석 동의·재시도 키 유지·추천 피드백·결과 삭제', asy
   await expect(page.getByRole('alert')).toBeVisible();
   await submit.click();
   await expect(page.getByRole('region', { name: '분석 결과' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '분석하기', exact: true })).toHaveCount(0);
+  await page.getByText('검사 기준 보기', { exact: true }).click();
   await expect(page.getByText('이 결과는 이전 검사 규칙으로 저장됐습니다.', { exact: false })).toBeVisible();
   await expect(page.getByText('portfolio.pdf · 읽기 완료')).toBeVisible();
   await expect(page.getByText('API 응답 속도를 개선했습니다.', { exact: true })).toBeVisible();
-  await expect(page.getByText('portfolio.pdf · 2쪽', { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('region', { name: '근거가 있는 보완 후보' }).getByText('portfolio.pdf · 2쪽', { exact: true })).toBeVisible();
   await expect(page.getByText(/일치 점수/)).toHaveCount(0);
   await page.getByRole('button', { name: '반영했어요', exact: true }).click();
   await expect(page.getByRole('button', { name: '반영했어요', exact: true })).toHaveAttribute('aria-pressed', 'true');
@@ -219,7 +276,7 @@ test('실제 응답을 기다리는 진행 상태와 추천 0건 안내', async 
   await expect(page.getByRole('region', { name: '분석 결과' })).toBeVisible();
   await expect(page.getByText('자료를 분석하고 있습니다', { exact: true })).toHaveCount(0);
   await expect(page.getByRole('link', { name: '전체 공개 공고 둘러보기 →' })).toHaveAttribute('href', '/jobs');
-  await expect(page.getByText(/지원 가능한 공고가 전혀 없다는 뜻은 아닙니다/)).toBeVisible();
+  await expect(page.getByText(/전체 공고에서 지원할 기회를 찾아보세요/)).toBeVisible();
 });
 
 
@@ -238,6 +295,7 @@ test('기존 분석의 반복 제안을 묶고 대상 항목과 개선 절차를
   });
   await page.goto('/resume-analysis');
   await page.getByRole('button', { name: /이전 분석 ·/ }).click();
+  await page.getByText('검사 기준 보기', { exact: true }).click();
   const section = page.getByRole('region', { name: '작성 항목별 보완 제안' });
   await expect(section.getByRole('article')).toHaveCount(2);
   const metricCard = section.getByRole('article').filter({ has: page.getByRole('heading', { name: '성과를 확인할 근거를 보완해 주세요' }) });
@@ -293,6 +351,7 @@ test('AI 내용 분석은 전송 미리보기 동의 후 실행하고 수정안�
   await expect(submit).toBeDisabled(); expect(aiCalls).toBe(0);
   await panel.getByRole('checkbox').check(); await submit.click();
   await expect(panel.getByText('담당한 기능을 구분해 주세요.', { exact: true })).toBeVisible();
+  await page.getByText('공고와 경험의 근거 보기', { exact: true }).click();
   await expect(page.getByText('API 개발 경험을 연결할 수 있습니다.', { exact: true })).toBeVisible();
   await panel.getByRole('button', { name: '이 지적이 틀렸어요', exact: true }).click();
   await expect(panel.getByRole('button', { name: '이 지적이 틀렸어요', exact: true })).toHaveAttribute('aria-pressed', 'true');

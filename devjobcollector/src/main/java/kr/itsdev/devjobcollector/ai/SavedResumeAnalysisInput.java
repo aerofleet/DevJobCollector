@@ -15,7 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 /** Extract saved documents outside the analysis transaction; revalidate the snapshot before saving. */
 @Service
 public class SavedResumeAnalysisInput {
-    public static final String VERSION = "saved-resume-v5";
+    public static final String VERSION = "saved-resume-v6-context-skills";
     private final JdbcTemplate jdbc;
     private final CurrentMemberService members;
     private final ObjectMapper mapper;
@@ -87,7 +87,7 @@ public class SavedResumeAnalysisInput {
 
     static Set<String> findSkills(String text, List<String> vocabulary) {
         var found = new TreeSet<String>();
-        for (String skill : vocabulary) {
+        for (String skill : vocabulary.stream().filter(Objects::nonNull).flatMap(s -> ResumeSkillVocabulary.split(s).stream()).distinct().toList()) {
             if (skill == null || skill.isBlank() || skill.length() > 50) continue;
             // Boundaries prevent Java matching JavaScript and C matching CSS. Single-letter skills are ambiguous in prose.
             if (skill.length() < 2) continue;
@@ -96,7 +96,11 @@ public class SavedResumeAnalysisInput {
             var matcher = Pattern.compile("(?<![\\p{L}\\p{N}_+#])" + name
                     + "(?:(?![\\p{L}\\p{N}_+#])|(?=(?:으로|에서|와|과|을|를|이|가|은|는|로|도|만|의)(?:\\s|[,.!?;:/)\\]}]|$)))",
                     Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE).matcher(text);
-            if (matcher.find()) found.add(LocalRecommendationEngine.normalizeSkill(skill));
+            while (matcher.find()) {
+                if (ResumeSkillVocabulary.positiveMention(text, matcher.start(), matcher.end())) {
+                    found.add(LocalRecommendationEngine.normalizeSkill(skill)); break;
+                }
+            }
         }
         return found;
     }

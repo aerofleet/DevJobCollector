@@ -158,6 +158,17 @@ public class ResumeContentReviewService {
         }
         return result;
     }
+    public ObjectNode confirm(String subject, long id, String findingId, int option) {
+        long user = members.requireCurrentMember(subject).getId();
+        tx.executeWithoutResult(status -> {
+            ObjectNode stored = ownedRaw(user,id);
+            if (!stored.path("aiReview").path("status").asText().equals("COMPLETED")) throw fail(HttpStatus.CONFLICT,"REVIEW_NOT_READY");
+            try { ResumeCoachingRules.answer((ObjectNode) stored.path("aiReview"),findingId,option); }
+            catch (IllegalArgumentException error) { throw fail(HttpStatus.BAD_REQUEST,"INVALID_CONFIRMATION"); }
+            jdbc.update("UPDATE ai_analysis_request SET result_json=? WHERE id=? AND user_id=?",json(stored),id,user);
+        });
+        return get(subject,id);
+    }
     private ObjectNode ownedRaw(long user, long id) {
         var rows = jdbc.queryForList("SELECT result_json FROM ai_analysis_request WHERE id=? AND user_id=? FOR UPDATE",String.class,id,user);
         if (rows.isEmpty()) throw fail(HttpStatus.NOT_FOUND,"ANALYSIS_NOT_FOUND");

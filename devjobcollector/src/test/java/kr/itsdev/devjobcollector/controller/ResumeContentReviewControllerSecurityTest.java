@@ -28,10 +28,23 @@ class ResumeContentReviewControllerSecurityTest {
         when(jwt.getClaim("role")).thenReturn(role); when(role.asString()).thenReturn("USER");
     }
     @Test void protectsPreviewAndResultsAndTransmission() throws Exception {
+        mvc.perform(put("/api/v1/ai/resume-analyses/1/content-review/confirm").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isUnauthorized());
         mvc.perform(post("/api/v1/ai/resume-analyses/1/content-review/preview")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/v1/ai/resume-analyses/1/content-review")).andExpect(status().isUnauthorized());
         mvc.perform(post("/api/v1/ai/resume-analyses/1/content-review").contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isUnauthorized());
+        verifyNoInteractions(service);
+    }
+    @Test void confirmationUsesOwnerAndValidatesOption() throws Exception {
+        mvc.perform(put("/api/v1/ai/resume-analyses/1/content-review/confirm").header("Authorization","Bearer valid")
+                .contentType(MediaType.APPLICATION_JSON).content("{\"findingId\":\"rewrite\",\"option\":1}"))
+                .andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store"));
+        verify(service).confirm("42",1L,"rewrite",1);
+        clearInvocations(service);
+        mvc.perform(put("/api/v1/ai/resume-analyses/1/content-review/confirm").header("Authorization","Bearer valid")
+                .contentType(MediaType.APPLICATION_JSON).content("{\"findingId\":\"rewrite\",\"option\":9}"))
+                .andExpect(status().isBadRequest());
         verifyNoInteractions(service);
     }
     @Test void usesAuthenticatedOwnerAndDoesNotCachePreview() throws Exception {

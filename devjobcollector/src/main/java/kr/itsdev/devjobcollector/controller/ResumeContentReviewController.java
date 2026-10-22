@@ -20,6 +20,10 @@ public class ResumeContentReviewController {
         return noStore(service.review(subject,id,request.consentVersion(),request.previewHash()));
     }
     public record Request(@NotBlank @Size(max=50) String consentVersion, @NotBlank @Pattern(regexp="[a-f0-9]{64}") String previewHash) {}
+    @PutMapping("/confirm") public ResponseEntity<?> confirm(@AuthenticationPrincipal String subject, @PathVariable long id, @Valid @RequestBody Confirmation request) {
+        return noStore(service.confirm(subject,id,request.findingId(),request.option()));
+    }
+    public record Confirmation(@NotBlank @Size(max=64) String findingId, @NotNull @Min(-1) @Max(2) Integer option) {}
     private ResponseEntity<?> noStore(Object body) { return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(body); }
     @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
     public ResponseEntity<?> error(org.springframework.web.server.ResponseStatusException error) {

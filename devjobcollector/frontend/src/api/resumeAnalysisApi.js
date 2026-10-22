@@ -17,4 +17,5 @@ export const saveFindingFeedback = async (id, findingId, type) => authenticatedA
 
 export const previewContentReview = async (id) => (await authenticatedApi.post(`${base}/${id}/content-review/preview`, {}, { timeout: 80000 })).data;
 export const getContentReview = async (id) => (await authenticatedApi.get(`${base}/${id}/content-review`)).data;
+export const confirmContentReview = async (id, findingId, option) => (await authenticatedApi.put(`${base}/${id}/content-review/confirm`, { findingId, option })).data;
 export const requestContentReview = async (id, consentVersion, previewHash) => (await authenticatedApi.post(`${base}/${id}/content-review`, { consentVersion, previewHash }, { timeout: 130000 })).data;
