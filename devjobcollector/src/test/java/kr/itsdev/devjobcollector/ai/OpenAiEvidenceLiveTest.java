@@ -8,7 +8,8 @@ import static org.assertj.core.api.Assertions.*;
 /** Explicit opt-in smoke tests. Synthetic data only; one billable API request per test. */
 @EnabledIfEnvironmentVariable(named="DJC_OPENAI_LIVE_TEST",matches="true")
 class OpenAiEvidenceLiveTest {
-    @Test void nanoReviewsSyntheticResumeWithVerifiableQuotesAndJobRequirements() {
+    @org.junit.jupiter.api.RepeatedTest(3)
+    void nanoReviewsSyntheticResumeWithVerifiableQuotesAndJobRequirements() {
         var mapper = new ObjectMapper();
         var client = new OpenAiEvidenceClient(mapper, System.getenv("OPENAI_API_KEY"), true);
         String text = "팀 프로젝트에서 Java와 Spring Boot를 사용했습니다. 성능을 개선했습니다. 프로젝트에 참여했습니다.";
@@ -16,13 +17,18 @@ class OpenAiEvidenceLiveTest {
         var document = new ResumeEvidenceReview.Document("/projects/0/description", "synthetic", null, "프로젝트 1", text);
         var sources = java.util.List.of(new ResumeContentReviewRules.Source("S1", text, document));
         var jobs = java.util.List.of(new ResumeContentReviewRules.Job(0, 1, requirements));
-        var payload = java.util.Map.<String, Object>of("sources", java.util.List.of(java.util.Map.of("sourceId", "S1", "kind", "SAVED_RESUME", "section", "프로젝트 1", "field", "description", "text", text)),
-                "jobs", java.util.List.of(java.util.Map.of("slot", 0, "text", requirements)));
+        var payload = java.util.Map.<String, Object>of("sources", java.util.List.of(java.util.Map.of("sourceId", "S1", "kind", "SAVED_RESUME", "section", "프로젝트 1", "field", "description", "text", text,
+                        "passages", ResumeContentReviewRules.passages("S1", text))),
+                "jobs", java.util.List.of(java.util.Map.of("slot", 0, "text", requirements, "passages", ResumeContentReviewRules.passages("J0", requirements))));
         var output = client.review(payload);
         var validated = ResumeContentReviewRules.validate(output, sources, jobs, mapper);
         assertThat(validated.path("findings").size()).as("Synthetic output: %s; validated: %s", output, validated).isGreaterThan(0);
         assertThat(validated.path("jobs").size()).as("Synthetic output: %s; validated: %s", output, validated).isEqualTo(1);
         for (var finding : validated.path("findings")) assertThat(text).contains(finding.path("quote").asText());
+        for (var criterion : validated.path("jobs").get(0).path("criteria")) {
+            assertThat(requirements).contains(criterion.path("jobQuote").asText());
+            if (!criterion.path("resumeQuote").asText().isEmpty()) assertThat(text).contains(criterion.path("resumeQuote").asText());
+        }
     }
     @Test void nanoReturnsSupportedEvidenceForSyntheticJobs() throws Exception {
         var mapper=new ObjectMapper();

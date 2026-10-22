@@ -70,7 +70,8 @@ public class ResumeContentReviewService {
             sources.add(new ResumeContentReviewRules.Source(sourceId, masked, document));
             // Filename and internal IDs never enter the external payload.
             sourcePayload.add(Map.of("sourceId", sourceId, "kind", document.key().startsWith("attachment:") ? "ATTACHMENT" : "SAVED_RESUME",
-                    "section", document.section(), "field", document.key().startsWith("attachment:") ? "document" : document.key().substring(document.key().lastIndexOf('/') + 1), "text", masked));
+                    "section", document.section(), "field", document.key().startsWith("attachment:") ? "document" : document.key().substring(document.key().lastIndexOf('/') + 1), "text", masked,
+                    "passages", ResumeContentReviewRules.passages(sourceId, masked)));
         }
         if (sources.isEmpty()) throw fail(HttpStatus.UNPROCESSABLE_ENTITY, "NO_RESUME_CONTENT");
         var jobs = new ArrayList<ResumeContentReviewRules.Job>();
@@ -86,10 +87,10 @@ public class ResumeContentReviewService {
                     + "\n기술명(필수 요건 분류 아님): " + recommendation.path("matchPoints") + " " + recommendation.path("missingPoints");
             text = pii.mask(text.replaceAll("<[^>]*>", " "), known).maskedText();
             int slot = jobs.size(); jobs.add(new ResumeContentReviewRules.Job(slot, jobId, text));
-            jobPayload.add(Map.of("slot", slot, "text", text));
+            jobPayload.add(Map.of("slot", slot, "text", text, "passages", ResumeContentReviewRules.passages("J" + slot, text)));
         }
         Map<String, Object> payload = Map.of("sources", sourcePayload, "jobs", jobPayload);
-        String hash = ResumeAnalysisService.hash(id + ":" + CONSENT + ":" + SavedResumeAnalysisInput.fingerprint(input) + ":" + json(payload));
+        String hash = ResumeAnalysisService.hash(id + ":" + CONSENT + ":" + ResumeContentReviewRules.VERSION + ":" + SavedResumeAnalysisInput.fingerprint(input) + ":" + json(payload));
         return new Prepared(resumeId, input, List.copyOf(sources), List.copyOf(jobs), payload, hash);
     }
 

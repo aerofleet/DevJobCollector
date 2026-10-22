@@ -81,12 +81,13 @@ class ResumeAnalysisIntegrationTest {
         String sourceId = "";
         for (var source : preview.path("payload").path("sources")) if (source.path("text").asText().contains("Java API")) sourceId=source.path("sourceId").asText();
         var output = mapper.createObjectNode(); output.putArray("jobs");
-        var finding = output.putArray("findings").addObject(); finding.put("sourceId",sourceId); finding.put("quote","Java API를 개발했습니다.");
+        var finding = output.putArray("findings").addObject(); finding.put("sourceId",sourceId); finding.put("quoteId",sourceId + "-P1");
         finding.put("issueType","ROLE"); finding.put("problem","담당 범위를 보완하세요."); finding.putArray("actions").add("구현한 기능을 적으세요."); finding.put("rewriteTemplate","[담당 기능]을 구현했습니다.");
         when(openai.review(anyMap())).thenReturn(output);
         var reviewed = contentReviews.review("owner", id, ResumeContentReviewService.CONSENT, hash);
         assertThat(reviewed.path("status").asText()).isEqualTo("COMPLETED");
         assertThat(reviewed.path("findings").size()).isEqualTo(1);
+        assertThat(reviewed.path("findings").get(0).path("quote").asText()).isEqualTo("Java API를 개발했습니다.");
         assertThat(reviewed.path("piiGatePassed").asBoolean()).isFalse();
         service.findingFeedback("owner", id, reviewed.path("findings").get(0).path("id").asText(), "INCORRECT");
         assertThat(contentReviews.get("owner", id).path("findings").get(0).path("feedback").asText()).isEqualTo("INCORRECT");

@@ -8,17 +8,46 @@ import java.util.regex.Pattern;
 
 /** Validate grounding independently from the model's structured-output promise. */
 public final class ResumeContentReviewRules {
-    public static final String VERSION = "content-review-v1";
+    public static final String VERSION = "content-review-v2-passages";
     public record Source(String id, String text, ResumeEvidenceReview.Document original) {}
     public record Job(int slot, long jobId, String text) {}
+    public record Passage(String id, String text) {}
     private static final Pattern NUMBER = Pattern.compile("[0-9]+(?:[.,][0-9]+)?");
+
+    public static List<Passage> passages(String owner, String text) {
+        var result = new ArrayList<Passage>();
+        var sentences = Arrays.stream(text.split(Pattern.quote("[익명]")))
+                .flatMap(part -> ResumeEvidenceReview.sentences(part).stream()).toList();
+        for (String sentence : sentences) {
+            int start = 0;
+            while (start < sentence.length()) {
+                int end = Math.min(start + 600, sentence.length());
+                if (end < sentence.length()) {
+                    int space = sentence.lastIndexOf(' ', end);
+                    if (space > start) end = space;
+                    else if (Character.isHighSurrogate(sentence.charAt(end - 1))) end--;
+                }
+                String quote = sentence.substring(start, end).strip();
+                if (!quote.isEmpty()) result.add(new Passage(owner + "-P" + (result.size() + 1), quote));
+                start = end;
+                while (start < sentence.length() && Character.isWhitespace(sentence.charAt(start))) start++;
+            }
+        }
+        return List.copyOf(result);
+    }
+
+    private static Map<String, String> passageIndex(String owner, String text) {
+        var result = new HashMap<String, String>();
+        passages(owner, text).forEach(p -> result.put(p.id(), p.text()));
+        return result;
+    }
 
     public static Map<String, Object> schema() {
         var text = Map.of("type", "string");
-        var finding = object(Map.of("sourceId", text, "quote", text,
+        var finding = object(Map.of("sourceId", text, "quoteId", text,
                 "issueType", Map.of("type", "string", "enum", List.of("CLARITY", "ROLE", "EVIDENCE", "RELEVANCE")),
                 "problem", text, "actions", array(text, 3), "rewriteTemplate", text));
-        var criterion = object(Map.of("jobQuote", text, "sourceId", text, "resumeQuote", text,
+        var criterion = object(Map.of("jobQuoteId", text, "sourceId", text, "resumeQuoteId", text,
                 "assessment", Map.of("type", "string", "enum", List.of("SUPPORTED", "CHECK")), "explanation", text));
         var job = object(Map.of("slot", Map.of("type", "integer", "minimum", 0, "maximum", 4),
                 "relevance", Map.of("type", "string", "enum", List.of("RELATED", "REVIEW_NEEDED", "LOW_RELEVANCE")),
@@ -34,12 +63,16 @@ public final class ResumeContentReviewRules {
         if (!output.path("findings").isArray() || output.path("findings").size() > 6
                 || !output.path("jobs").isArray() || output.path("jobs").size() > 5) throw new IllegalArgumentException("Invalid review");
         var bySource = new HashMap<String, Source>(); sources.forEach(s -> bySource.put(s.id(), s));
+        var sourcePassages = new HashMap<String, Map<String, String>>();
+        sources.forEach(s -> sourcePassages.put(s.id(), passageIndex(s.id(), s.text())));
         var result = mapper.createObjectNode(); result.put("version", VERSION);
         var findings = result.putArray("findings"); var dedup = new HashSet<String>();
         int discarded = 0;
         for (var item : output.path("findings")) {
             Source source = bySource.get(item.path("sourceId").asText());
-            String quote = bounded(item, "quote", 600), type = item.path("issueType").asText();
+            String quote = sourcePassages.getOrDefault(item.path("sourceId").asText(), Map.of())
+                    .getOrDefault(bounded(item, "quoteId", 80), "");
+            String type = item.path("issueType").asText();
             String problem = bounded(item, "problem", 600), rewrite = bounded(item, "rewriteTemplate", 1000);
             if (!grounded(source, quote) || !Set.of("CLARITY", "ROLE", "EVIDENCE", "RELEVANCE").contains(type)
                     || problem.isBlank() || rewrite.isBlank() || !item.path("actions").isArray() || item.path("actions").isEmpty() || item.path("actions").size() > 3) { discarded++; continue; }
@@ -63,12 +96,18 @@ public final class ResumeContentReviewRules {
             int slot = item.path("slot").asInt();
             Job job = jobs.stream().filter(j -> j.slot() == slot).findFirst().orElse(null);
             if (job == null || !seen.add(slot) || !Set.of("RELATED", "REVIEW_NEEDED", "LOW_RELEVANCE").contains(item.path("relevance").asText())) continue;
+            var jobPassages = passageIndex("J" + slot, job.text());
             var criteria = mapper.createArrayNode();
             if (!item.path("criteria").isArray() || item.path("criteria").size() > 4) continue;
             for (var criterion : item.path("criteria")) {
-                String jobQuote = bounded(criterion, "jobQuote", 600), quote = bounded(criterion, "resumeQuote", 600);
+                String jobQuote = jobPassages.getOrDefault(bounded(criterion, "jobQuoteId", 80), "");
+                String quoteId = bounded(criterion, "resumeQuoteId", 80);
+                String sourceId = bounded(criterion, "sourceId", 80);
+                String quote = sourcePassages.getOrDefault(sourceId, Map.of()).getOrDefault(quoteId, "");
                 String explanation = bounded(criterion, "explanation", 600), assessment = criterion.path("assessment").asText();
                 Source source = bySource.get(criterion.path("sourceId").asText());
+                // Missing evidence is explicit; forged IDs must not turn into an empty CHECK.
+                if (quoteId.isBlank() != sourceId.isBlank() || (!quoteId.isBlank() && quote.isBlank())) continue;
                 if (jobQuote.isBlank() || !job.text().contains(jobQuote) || explanation.isBlank()) continue;
                 if (!Set.of("SUPPORTED", "CHECK").contains(assessment)) continue;
                 if (assessment.equals("SUPPORTED") && !grounded(source, quote)) continue;
