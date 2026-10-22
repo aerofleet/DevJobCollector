@@ -179,7 +179,7 @@ public class ResumeAnalysisService {
 
     @Transactional
     public void feedback(String subject, long id, long jobId, String type) {
-        if (!Set.of("MATCHED", "CAREER_MISMATCH", "SKILL_MISMATCH", "LOCATION_MISMATCH",
+        if (type == null || !Set.of("MATCHED", "CAREER_MISMATCH", "SKILL_MISMATCH", "LOCATION_MISMATCH",
                 "ALREADY_SEEN", "NOT_INTERESTED", "INACCURATE_JOB").contains(type)) {
             throw failure(HttpStatus.BAD_REQUEST, "INVALID_FEEDBACK");
         }
@@ -188,6 +188,9 @@ public class ResumeAnalysisService {
         ObjectNode result = getOwned(user, id);
         boolean found = false;
         for (JsonNode recommendation : result.path("recommendations")) {
+            if (recommendation.path("jobId").asLong() == jobId) found = true;
+        }
+        for (JsonNode recommendation : result.path("excludedRecommendations")) {
             if (recommendation.path("jobId").asLong() == jobId) found = true;
         }
         if (!found) throw failure(HttpStatus.NOT_FOUND, "RECOMMENDATION_NOT_FOUND");
@@ -231,6 +234,7 @@ public class ResumeAnalysisService {
         result.put("status", row.get("status").toString());
         result.put("createdAt", row.get("created_at").toString());
         var visible = mapper.createArrayNode();
+        var excluded = mapper.createArrayNode();
         // Recheck live visibility on every read, including cached and idempotent responses.
         for (JsonNode recommendation : result.path("recommendations")) {
             long jobId = recommendation.path("jobId").asLong();
@@ -247,10 +251,17 @@ public class ResumeAnalysisService {
             item.put("experience", Objects.toString(job.get("experience"), ""));
             var feedback = jdbc.queryForList("SELECT feedback_type FROM ai_recommendation_feedback WHERE analysis_id=? AND job_post_id=?",
                     String.class, id, jobId);
-            if (!feedback.isEmpty()) item.put("feedback", feedback.getFirst());
+            if (!feedback.isEmpty()) {
+                item.put("feedback", feedback.getFirst());
+                if (!"MATCHED".equals(feedback.getFirst())) {
+                    excluded.add(item);
+                    continue;
+                }
+            }
             visible.add(item);
         }
         result.set("recommendations", visible);
+        result.set("excludedRecommendations", excluded);
         if (result.path("aiReview").isObject()) {
             var visibleIds = new HashSet<Long>(); visible.forEach(j -> visibleIds.add(j.path("jobId").asLong()));
             var aiJobs = mapper.createArrayNode();

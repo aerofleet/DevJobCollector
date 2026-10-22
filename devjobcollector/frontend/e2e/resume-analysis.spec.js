@@ -1,5 +1,53 @@
 import { expect, test } from '@playwright/test';
 
+test('추천 피드백 저장 실패·제외·새로고침·다시 노출', async ({ page }) => {
+  let feedback = '';
+  let failNext = true;
+  const job = { jobId: 17, rank: 1, title: '피드백 테스트 공고', companyName: '기업', matchPoints: [], missingPoints: [] };
+  await page.addInitScript(() => localStorage.setItem('accessToken', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0IiwiZXhwIjo0MTAyNDQ0ODAwfQ.test'));
+  await page.route('**/api/v1/**', route => {
+    const req = route.request(); const path = new URL(req.url()).pathname;
+    if (path.endsWith('/members/me')) return route.fulfill({ json: { id: 42, name: '회원', role: 'USER', profileStatus: 'ACTIVE' } });
+    if (path.endsWith('/capabilities')) return route.fulfill({ json: { consentVersion: 'local-analysis-v3', dailyLimit: 5 } });
+    if (path.endsWith('/resumes')) return route.fulfill({ json: [{ id: 11, title: '내 이력서' }] });
+    if (path.endsWith('/resume-analyses')) return route.fulfill({ json: [{ id: 8, resumeTitle: '피드백 분석', createdAt: '2026-10-22' }] });
+    if (path.endsWith('/8/feedback')) {
+      expect(req.postDataJSON().jobId).toBe(17);
+      if (failNext) { failNext = false; return route.fulfill({ status: 500, json: {} }); }
+      feedback = req.postDataJSON().type;
+      return route.fulfill({ status: 204 });
+    }
+    if (path.endsWith('/resume-analyses/8')) {
+      const excluded = feedback && feedback !== 'MATCHED';
+      return route.fulfill({ json: { id: 8, resumeId: 11, improvements: [],
+        recommendations: excluded ? [] : [{ ...job, feedback }], excludedRecommendations: excluded ? [{ ...job, feedback }] : [] } });
+    }
+    return route.fulfill({ json: [] });
+  });
+  await page.goto('/resume-analysis?resumeId=11');
+  const open = () => page.getByRole('button', { name: /피드백 분석 ·/ }).click();
+  const link = page.getByRole('link', { name: job.title, exact: true });
+  await open();
+  await page.getByLabel('추천 피드백').selectOption('CAREER_MISMATCH');
+  await expect(page.getByRole('alert')).toBeVisible();
+  await expect(link).toBeVisible();
+  await expect(page.getByLabel('추천 피드백')).toHaveValue('');
+  for (const type of ['CAREER_MISMATCH', 'SKILL_MISMATCH', 'LOCATION_MISMATCH', 'ALREADY_SEEN', 'NOT_INTERESTED', 'INACCURATE_JOB']) {
+    await page.getByLabel('추천 피드백').selectOption(type);
+    await expect(link).toHaveCount(0);
+    await expect(page.getByText('피드백에 따라 모든 추천 공고를 제외했습니다.', { exact: false })).toBeVisible();
+    await page.reload(); await open();
+    await expect(link).toHaveCount(0);
+    await page.getByText('제외한 공고 1개', { exact: true }).click();
+    await page.getByRole('button', { name: `${job.title} 다시 노출` }).click();
+    await expect(link).toBeVisible();
+    await expect(page.getByLabel('추천 피드백')).toHaveValue('MATCHED');
+    await page.reload(); await open();
+    await expect(link).toBeVisible();
+    await expect(page.getByLabel('추천 피드백')).toHaveValue('MATCHED');
+  }
+});
+
 test('분석 동의·재시도 키 유지·추천 피드백·결과 삭제', async ({ page }) => {
   const keys = [];
   let history = [];

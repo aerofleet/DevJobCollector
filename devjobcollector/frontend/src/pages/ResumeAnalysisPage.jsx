@@ -44,6 +44,7 @@ export default function ResumeAnalysisPage() {
   const [busy, setBusy] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState('');
+  const [feedbackNotice, setFeedbackNotice] = useState(null);
   const [externalConsent, setExternalConsent] = useState(false);
   const [explanation, setExplanation] = useState(null);
   const retry = useRef(null);
@@ -120,6 +121,27 @@ export default function ResumeAnalysisPage() {
       finally { setAnalyzing(false); }
       retry.current = null;
       setHistory(await listAnalyses());
+    });
+  };
+
+  const updateRecommendationFeedback = (job, type) => {
+    if (!type) return;
+    const analysisId = result.id;
+    perform(async () => {
+      setFeedbackNotice(null);
+      await saveAnalysisFeedback(analysisId, job.jobId, type);
+      setResult((current) => {
+        if (current?.id !== analysisId) return current;
+        const updated = { ...job, feedback: type };
+        const recommendations = current.recommendations.filter(item => item.jobId !== job.jobId);
+        const excludedRecommendations = (current.excludedRecommendations || []).filter(item => item.jobId !== job.jobId);
+        (type === 'MATCHED' ? recommendations : excludedRecommendations).push(updated);
+        recommendations.sort((a, b) => a.rank - b.rank);
+        return { ...current, recommendations, excludedRecommendations };
+      });
+      setFeedbackNotice({ analysisId, text: type === 'MATCHED'
+        ? '추천이 맞는 공고로 저장하여 추천 목록에 노출합니다.'
+        : '피드백을 저장하고 이 분석의 추천 목록에서 제외했습니다.' });
     });
   };
 
@@ -221,7 +243,11 @@ export default function ResumeAnalysisPage() {
             </div>}
             <ResumeWritingSuggestions result={result} />
             <h3>추천 공고</h3>
-            {!result.recommendations.length && <p>현재 자료와 연결할 수 있는 공개 공고를 찾지 못했습니다. 수집된 기술 정보가 부족하거나 공고가 마감되었을 수 있습니다. 지원 가능한 공고가 전혀 없다는 뜻은 아닙니다.</p>}
+            <p className="analysis-note">‘추천이 맞음’은 노출을 유지하고, 다른 피드백은 이 분석의 추천 목록에서 제외합니다. 제외한 공고는 아래에서 다시 노출할 수 있습니다.</p>
+            {feedbackNotice?.analysisId === result.id && <p role="status">{feedbackNotice.text}</p>}
+            {!result.recommendations.length && <p>{result.excludedRecommendations?.length
+              ? '피드백에 따라 모든 추천 공고를 제외했습니다. 제외한 공고에서 다시 노출할 수 있습니다.'
+              : '현재 자료와 연결할 수 있는 공개 공고를 찾지 못했습니다. 수집된 기술 정보가 부족하거나 공고가 마감되었을 수 있습니다. 지원 가능한 공고가 전혀 없다는 뜻은 아닙니다.'}</p>}
             {!result.recommendations.length && <Link className="evidence-browse" to="/jobs">전체 공개 공고 둘러보기 →</Link>}
             <div className="analysis-jobs">{recommendedJobs.map((job, jobIndex) => <article key={job.jobId} className="analysis-job">
               <span className="analysis-score">{jobIndex + 1}번째 추천 · {result.aiReview?.status === 'COMPLETED' ? 'AI 관련성 검토 순서' : '근거 확인'}</span>
@@ -232,17 +258,18 @@ export default function ResumeAnalysisPage() {
               {currentExplanation?.jobs?.find((item) => item.jobId === job.jobId)?.highlights?.length > 0 &&
                 <div><strong><span className="evidence-badge evidence-badge-ai">AI 판단</span> AI가 선택한 추천 근거</strong><ul>{currentExplanation.jobs.find((item) => item.jobId === job.jobId).highlights.map((text) =>
                   <li key={text}>{text}</li>)}</ul></div>}
-              <label>추천 피드백<select value={job.feedback || ''} disabled={busy} onChange={(e) => {
-                const type = e.target.value;
-                if (!type) return;
-                perform(async () => {
-                  await saveAnalysisFeedback(result.id, job.jobId, type);
-                  setResult((current) => ({ ...current, recommendations: current.recommendations.map((item) =>
-                    item.jobId === job.jobId ? { ...item, feedback: type } : item) }));
-                });
-              }}><option value="">선택해 주세요</option>{Object.entries(feedbackOptions).map(([value, label]) =>
+              <label>추천 피드백<select value={job.feedback || ''} disabled={busy}
+                onChange={(e) => updateRecommendationFeedback(job, e.target.value)}><option value="">선택해 주세요</option>{Object.entries(feedbackOptions).map(([value, label]) =>
                 <option key={value} value={value}>{label}</option>)}</select></label>
             </article>)}</div>
+            {!!result.excludedRecommendations?.length && <details className="analysis-panel">
+              <summary>제외한 공고 {result.excludedRecommendations.length}개</summary>
+              <ul>{result.excludedRecommendations.map(job => <li key={job.jobId}>
+                <span>{job.title} · {feedbackOptions[job.feedback]}</span>{' '}
+                <button type="button" disabled={busy} aria-label={`${job.title} 다시 노출`}
+                  onClick={() => updateRecommendationFeedback(job, 'MATCHED')}>다시 노출</button>
+              </li>)}</ul>
+            </details>}
           </section>}
           <section className="analysis-panel">
             <h2>최근 분석 기록</h2>

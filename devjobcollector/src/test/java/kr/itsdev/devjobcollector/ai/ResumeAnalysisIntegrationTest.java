@@ -238,6 +238,15 @@ class ResumeAnalysisIntegrationTest {
             assertThat(service.get("owner",id).path("recommendations")).hasSize(1);
             service.feedback("owner",id,job,"MATCHED");
             assertThat(service.get("owner",id).path("recommendations").get(0).path("feedback").asText()).isEqualTo("MATCHED");
+            for (String type : java.util.List.of("CAREER_MISMATCH", "SKILL_MISMATCH", "LOCATION_MISMATCH",
+                    "ALREADY_SEEN", "NOT_INTERESTED", "INACCURATE_JOB")) {
+                service.feedback("owner", id, job, type);
+                assertThat(service.get("owner", id).path("recommendations")).isEmpty();
+                assertThat(service.get("owner", id).path("excludedRecommendations").get(0).path("feedback").asText()).isEqualTo(type);
+                service.feedback("owner", id, job, "MATCHED");
+                assertThat(service.get("owner", id).path("recommendations")).hasSize(1);
+                assertThat(service.get("owner", id).path("excludedRecommendations")).isEmpty();
+            }
             assertThatThrownBy(()->service.feedback("owner",id,-1,"MATCHED")).isInstanceOf(ResponseStatusException.class);
             jdbc.update("UPDATE job_posts SET moderation_status='HIDDEN' WHERE id=?",job);
             assertThat(service.get("owner",id).path("recommendations")).isEmpty();
