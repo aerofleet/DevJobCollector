@@ -127,6 +127,7 @@ test('분석 동의·재시도 키 유지·추천 피드백·결과 삭제', asy
   await expect(page.getByRole('alert')).toBeVisible();
   await submit.click();
   await expect(page.getByRole('region', { name: '분석 결과' })).toBeVisible();
+  await expect(page.getByText('이 결과는 이전 검사 규칙으로 저장됐습니다.', { exact: false })).toBeVisible();
   await expect(page.getByText('portfolio.pdf · 읽기 완료')).toBeVisible();
   await expect(page.getByText('API 응답 속도를 개선했습니다.', { exact: true })).toBeVisible();
   await expect(page.getByText('portfolio.pdf · 2쪽', { exact: true }).first()).toBeVisible();

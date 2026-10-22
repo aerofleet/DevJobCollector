@@ -7,6 +7,58 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.*;
 
 class ResumeEvidenceReviewTest {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            "서비스 성능을 개선하는 개발자가 되고 싶습니다.", "응답 속도를 개선하겠습니다.",
+            "처리 속도를 개선할 계획입니다.", "I want to improve API latency.",
+            "ms 단위의 최적화를 고민하는 개발자", "성능 개선과 최적화", "API 성능 개선" })
+    void aspirationsAndHeadingsAreNotMissingMeasurementFindings(String text) {
+        var review = review(text);
+        assertThat(review.path("findings")).isEmpty();
+        assertThat(review.path("observations").path("outcomeSentences").asInt()).isZero();
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            "성능 개선을 위해 active=10, pending=10, max=10으로 풀 포화를 진단했습니다.",
+            "p95=9.9로 응답 시간을 단축했습니다.", "응답 시간을 67s→9.9s로 단축했습니다.",
+            "오류율을 65%→0%로 감소시켰습니다.", "API 응답 시간을 20ms로 단축했습니다.",
+            "처리량을 120RPS로 개선했습니다." })
+    void recognizesMetricAssignmentsAndTimeUnits(String text) {
+        var review = review(text);
+        assertThat(review.path("findings")).isEmpty();
+        assertThat(review.path("observations").path("outcomeSentences").asInt()).isEqualTo(1);
+        assertThat(review.path("observations").path("withMeasurement").asInt()).isEqualTo(1);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            "API 성능을 개선했습니다.", "2025년 API 성능을 개선했습니다.",
+            "p95 지표를 개선했습니다.", "ms 단위로 응답 시간을 단축했습니다.",
+            "issue_id=42의 성능을 개선했습니다." })
+    void retainsActualUnmeasuredClaimsWithoutCountingYearMetricNamesOrIdentifiers(String text) {
+        var review = review(text);
+        assertThat(review.path("findings")).hasSize(1);
+        assertThat(review.path("findings").get(0).path("quote").asText()).isEqualTo(text);
+        assertThat(review.path("observations").path("withMeasurement").asInt()).isZero();
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"\n- ", "\r\n• ", " • ", " - ", "\n1. "})
+    void countsBulletOutcomesWithoutSplittingDecimals(String separator) {
+        String text = String.join(separator, "오류율 65%→0%", "p95 67s→9.9s", "처리량 10RPS→20RPS", "응답 시간을 20ms로 단축했습니다.");
+        var review = review(text);
+        assertThat(review.path("observations").path("outcomeSentences").asInt()).isEqualTo(4);
+        assertThat(review.path("observations").path("withMeasurement").asInt()).isEqualTo(4);
+        assertThat(review.path("findings")).isEmpty();
+        assertThat(ResumeEvidenceReview.sentences(text)).hasSize(4).allSatisfy(quote -> assertThat(text).contains(quote));
+    }
+
+    private com.fasterxml.jackson.databind.JsonNode review(String text) {
+        return new ObjectMapper().valueToTree(ResumeEvidenceReview.review(List.of(
+                new ResumeEvidenceReview.Document("/careerProfile/summary", "저장된 이력서", null, "careerProfile", text)), Set.of()));
+    }
+
     @Test void rejectsInventedQuotesAndUntrustedSourcesAndMergesExactDuplicates() {
         var a = new ResumeEvidenceReview.Document("a", "resume.pdf", 2, "첨부파일", "API 응답 속도를 개선했습니다.");
         var b = new ResumeEvidenceReview.Document("b", "저장된 이력서", null, "projects", a.text());

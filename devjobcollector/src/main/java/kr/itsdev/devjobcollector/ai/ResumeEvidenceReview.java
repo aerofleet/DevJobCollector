@@ -6,9 +6,19 @@ import java.util.regex.Pattern;
 
 /** Local observations, not a hiring score. Full source documents are transient. */
 public final class ResumeEvidenceReview {
-    public static final String VERSION = "verified-quotes-v1";
+    public static final String VERSION = "verified-quotes-v2";
     private static final Pattern OUTCOME = Pattern.compile("개선|최적화|단축|향상|감소|증가|improv|optimi|reduc", Pattern.CASE_INSENSITIVE);
-    private static final Pattern MEASUREMENT = Pattern.compile("\\d+(?:[.,]\\d+)?\\s*(?:%|ms\\b|초|분|시간|건|명|배|MB\\b|GB\\b|TPS\\b|RPS\\b)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern MEASUREMENT = Pattern.compile(
+            "(?<![\\p{L}\\p{N}_])[-+]?\\d+(?:[.,]\\d+)?\\s*(?:%|ms(?![a-z])|s(?![a-z])|초|분|시간|건|명|배|MB(?![a-z])|GB(?![a-z])|TPS(?![a-z])|RPS(?![a-z]))"
+            + "|\\b(?:active|pending|max|min|avg|mean|count|total|pool_size|connections|threads|errors|latency|duration|throughput|cpu|memory|p\\d{2}|qps|tps|rps)\\s*[=:]\\s*[-+]?\\d+(?:[.,]\\d+)?",
+            Pattern.CASE_INSENSITIVE);
+    private static final Pattern INTENT = Pattern.compile(
+            "고\\s*싶|겠(?:습니다|다|어요)|(?:할|하고자 하는)\\s*(?:계획|예정|목표)|(?:목표|계획)입니다"
+            + "|\\b(?:want to|hope to|plan to|aim to|will|would like to)\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern COMPLETED = Pattern.compile(
+            "(?:습니다|했다|하였다|되었다|했음|하였음|됐음|했어요|됐어요|함|됨)[.!?。]?$"
+            + "|\\b(?:improved|optimized|optimised|reduced|decreased|increased|shortened)\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern CHANGE = Pattern.compile("(?:→|->|⇒)");
     public record Document(String key, String label, Integer page, String section, String text) {}
     public record Location(String sourceKey, String label, Integer page, String section) {}
     public record Proposal(String rule, String quote, String problem, String rewriteTemplate, Document document) {}
@@ -32,11 +42,16 @@ public final class ResumeEvidenceReview {
         var proposals = new ArrayList<Proposal>();
         int outcomes = 0, measured = 0;
         for (Document document : documents) {
-            for (String line : document.text().split("(?<=[.!?。])\\s+|[\\r\\n]+")) {
-                String quote = line.strip();
-                if (!OUTCOME.matcher(quote).find()) continue;
+            // Structured titles and preference labels are not accomplishment prose.
+            if (document.key().matches(".*/(?:title|name|category|location|employmentType)(?:/\\d+)?$")) continue;
+            for (String quote : sentences(document.text())) {
+                if (INTENT.matcher(quote).find()) continue;
+                boolean hasMeasurement = MEASUREMENT.matcher(quote).find();
+                boolean outcome = OUTCOME.matcher(quote).find();
+                if (!(outcome && (COMPLETED.matcher(quote).find() || hasMeasurement)
+                        || hasMeasurement && CHANGE.matcher(quote).find())) continue;
                 outcomes++;
-                if (MEASUREMENT.matcher(quote).find()) { measured++; continue; }
+                if (hasMeasurement) { measured++; continue; }
                 // Do not truncate a sentence into a misleading quotation.
                 if (quote.length() < 6 || quote.length() > 600) continue;
                 proposals.add(new Proposal("measurement_not_detected", quote,
@@ -46,7 +61,7 @@ public final class ResumeEvidenceReview {
         }
         var evidence = new TreeMap<String, List<Location>>();
         var vocabulary = new ArrayList<>(skills);
-        vocabulary.addAll(List.of("Spring Boot", "스프링부트", "Node.js", "React.js", "JS", "TS", "Postgres"));
+        vocabulary.addAll(ResumeSkillVocabulary.NAMES);
         for (Document document : documents) {
             for (String skill : SavedResumeAnalysisInput.findSkills(document.text(), vocabulary)) {
                 if (skills.contains(skill)) evidence.computeIfAbsent(skill, ignored -> new ArrayList<>()).add(location(document));
@@ -56,7 +71,13 @@ public final class ResumeEvidenceReview {
         return Map.of("version", VERSION, "findings", validate(proposals, documents), "skillEvidence", evidence,
                 "score", Map.of("status", "NOT_SCORED", "reason", "검증된 종합 평가 기준이 없어 점수를 산출하지 않습니다."),
                 "observations", Map.of("outcomeSentences", outcomes, "withMeasurement", measured,
-                        "basis", "개선·최적화 등 성과 표현이 포함된 추출 문장 중 숫자와 단위가 함께 있는 문장을 셉니다. 중복 자료도 포함되며, 수치의 진위나 성과의 우수성을 평가하지 않습니다."));
+                        "basis", "줄바꿈·불릿·문장 종결을 기준으로 나눈 성과 표현을 셉니다. 목표·희망 문장과 제목은 제외하며, 숫자·단위 또는 active=10, p95=9.9 같은 지표값과 수치 전후 변화도 인식합니다. 중복 자료는 포함되며 수치의 진위나 성과의 우수성을 평가하지 않습니다."));
+    }
+
+    static List<String> sentences(String text) {
+        return Arrays.stream(text.split("\\s+(?:[-*]|\\d+[.)])\\s+(?=[\\p{L}])|(?<=[.!?。])(?<!\\d\\.)\\s+|[\\r\\n]+|\\s*[•●▪]\\s*"))
+                .map(String::strip).map(line -> line.replaceFirst("^(?:[-*•●▪]|\\d+[.)])\\s+", ""))
+                .filter(line -> !line.isBlank()).toList();
     }
 
     /** Reject unknown sources and non-verbatim quotes before persisting any finding. */

@@ -15,7 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 /** Extract saved documents outside the analysis transaction; revalidate the snapshot before saving. */
 @Service
 public class SavedResumeAnalysisInput {
-    public static final String VERSION = "saved-resume-v4";
+    public static final String VERSION = "saved-resume-v5";
     private final JdbcTemplate jdbc;
     private final CurrentMemberService members;
     private final ObjectMapper mapper;
@@ -65,7 +65,7 @@ public class SavedResumeAnalysisInput {
         var skills = new TreeSet<>(engine.skills(content));
         var vocabulary = new ArrayList<>(jdbc.queryForList("SELECT stack_name FROM tech_stacks ORDER BY id", String.class));
         // Keep the resume editor's preset skills usable even before collected jobs have populated tag data.
-        vocabulary.addAll(List.of("Java", "Spring Boot", "React", "TypeScript", "MySQL", "Docker"));
+        vocabulary.addAll(ResumeSkillVocabulary.NAMES);
         skills.addAll(findSkills(text.toString(), vocabulary));
         if (skills.size() > 50) throw ResumeTextExtractor.failure(HttpStatus.UNPROCESSABLE_ENTITY, "TOO_MANY_SKILLS");
         var profile = content.path("careerProfile");
@@ -91,8 +91,11 @@ public class SavedResumeAnalysisInput {
             if (skill == null || skill.isBlank() || skill.length() > 50) continue;
             // Boundaries prevent Java matching JavaScript and C matching CSS. Single-letter skills are ambiguous in prose.
             if (skill.length() < 2) continue;
-            var matcher = Pattern.compile("(?<![\\p{L}\\p{N}_+#])" + Pattern.quote(skill)
-                    + "(?![\\p{L}\\p{N}_+#])", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE).matcher(text);
+            String name = Arrays.stream(skill.split("\\s+")).map(Pattern::quote)
+                    .collect(java.util.stream.Collectors.joining("\\s*"));
+            var matcher = Pattern.compile("(?<![\\p{L}\\p{N}_+#])" + name
+                    + "(?:(?![\\p{L}\\p{N}_+#])|(?=(?:으로|에서|와|과|을|를|이|가|은|는|로|도|만|의)(?:\\s|[,.!?;:/)\\]}]|$)))",
+                    Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE).matcher(text);
             if (matcher.find()) found.add(LocalRecommendationEngine.normalizeSkill(skill));
         }
         return found;

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 
 const statuses = { APPLIED: '반영했어요', NOT_APPLICABLE: '해당 없음', INCORRECT: '이 지적이 틀렸어요' };
-const sections = { projects: '프로젝트', experience: '경력', techStack: '기술 스택' };
+const sections = { careerProfile: '지원 방향', projects: '프로젝트', experience: '경력', techStack: '기술 스택' };
 const evidenceLocation = (location) => `${location.label} · ${location.page ? `${location.page}쪽` : sections[location.section] || location.section}`;
 
 export default function ResumeEvidenceReport({ result, busy, onFeedback }) {
@@ -15,9 +15,10 @@ export default function ResumeEvidenceReport({ result, busy, onFeedback }) {
       <span className="evidence-eyebrow">EVIDENCE FIRST</span>
       <h3>근거를 보고, 직접 판단하세요.</h3>
       <p>규칙으로 찾은 보완 후보입니다. 인용문은 분석 당시 추출한 텍스트와 대조했습니다. 문맥과 OCR 오류까지 검증한 것은 아닙니다.</p>
+      {review.version !== 'verified-quotes-v2' && <p role="status" className="analysis-note">이 결과는 이전 검사 규칙으로 저장됐습니다. 최신 규칙을 적용하려면 이력서를 다시 분석해 주세요.</p>}
       <div className="evidence-metrics">
         <div><strong>{findings.length}<small>개</small></strong><span>원문이 있는 보완 후보 · 최대 20개</span></div>
-        <div><strong>{review.observations.withMeasurement}<small> / {review.observations.outcomeSentences}문장</small></strong><span>성과 표현 중 숫자·단위 포함</span></div>
+        <div><strong>{review.observations.withMeasurement}<small> / {review.observations.outcomeSentences}문장</small></strong><span>성과 표현 중 측정값 포함</span></div>
         <div><strong>{result.detectedSkills?.length ?? Object.keys(review.skillEvidence || {}).length}<small>개</small></strong><span>자료에서 확인한 기술</span></div>
       </div>
       <p className="analysis-note">종합 점수 미산출 · 검증된 평가 기준이 없어 점수로 환산하지 않습니다.</p>

@@ -52,6 +52,7 @@ public class LocalRecommendationEngine {
             case "node.js", "nodejs" -> "nodejs";
             case "react.js", "reactjs", "react" -> "react";
             case "postgres", "postgresql" -> "postgresql";
+            case "oraclecloudinfrastructure", "oci" -> "oci";
             default -> text;
         };
     }

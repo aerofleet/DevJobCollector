@@ -151,6 +151,21 @@ class ResumeAnalysisIntegrationTest {
         assertThat(changed.path("comparison").path("newFindings").asInt()).isZero();
         assertThat(changed.path("review").path("findings")).isEmpty();
     }
+    @Test void summaryAndPdfInfrastructureSkillsHaveSourceEvidence() {
+        jdbc.update("UPDATE resumes SET content_json=? WHERE id=?", """
+                {"careerProfile":{"summary":"OCI에서 Cloudflare Tunnel을 연결하고 Nginx와 GitHub Actions로 배포했습니다."},"techStack":[]}
+                """, resume);
+        jdbc.update("INSERT INTO resume_attachments(resume_id,filename,content_type,byte_size,content) VALUES(?,'resume.pdf','application/pdf',5,?)", resume, "%PDF-".getBytes());
+        when(extractor.extractStored(anyString(), anyString(), any())).thenReturn("Redis와 RabbitMQ가 메시지를 처리합니다. Prometheus/Grafana로 관측했습니다.");
+        var prepared = savedInput.prepare("owner", resume);
+        assertThat(prepared.skills()).contains("redis", "rabbitmq", "oci", "cloudflaretunnel", "nginx", "githubactions", "prometheus", "grafana");
+        var result = service.createSaved("owner", resume, UUID.randomUUID().toString(), ResumeAnalysisService.CONSENT_VERSION, prepared);
+        var evidence = result.path("review").path("skillEvidence");
+        assertThat(evidence.path("redis").get(0).path("page").asInt()).isEqualTo(1);
+        assertThat(evidence.path("githubactions").get(0).path("sourceKey").asText()).isEqualTo("/careerProfile/summary");
+        assertThat(result.path("review").path("version").asText()).isEqualTo("verified-quotes-v2");
+    }
+
     @Test void savedInputIncludesAttachmentAndInvalidatesCacheWhenRemoved() {
         jdbc.update("INSERT IGNORE INTO tech_stacks(stack_name) VALUES('Java')");
         jdbc.update("INSERT INTO resume_attachments(resume_id,filename,content_type,byte_size,content) VALUES(?,'resume.pdf','application/pdf',5,?)", resume, "%PDF-".getBytes());

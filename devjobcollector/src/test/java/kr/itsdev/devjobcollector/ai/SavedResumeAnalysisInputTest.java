@@ -7,6 +7,14 @@ import static org.assertj.core.api.Assertions.*;
 
 class SavedResumeAnalysisInputTest {
     private final ObjectMapper mapper = new ObjectMapper();
+    @Test void infrastructureNamesAliasesAndKoreanParticlesDoNotDependOnJobTags() {
+        assertThat(SavedResumeAnalysisInput.findSkills(
+                "Redis와 RabbitMQ가 사용됩니다. OCI에서 Cloudflare Tunnel을 연결하고 Nginx로 라우팅합니다. GitHub Actions와 Prometheus/Grafana를 사용합니다.",
+                ResumeSkillVocabulary.NAMES)).contains("redis", "rabbitmq", "oci", "cloudflaretunnel", "nginx", "githubactions", "prometheus", "grafana");
+        assertThat(SavedResumeAnalysisInput.findSkills("Oracle Cloud Infrastructure / GitHubActions / SpringBoot", ResumeSkillVocabulary.NAMES))
+                .contains("oci", "githubactions", "springboot");
+        assertThat(SavedResumeAnalysisInput.findSkills("Rediscovery ReactNative JavaScript", List.of("Redis", "React", "Java"))).isEmpty();
+    }
     @Test void acceptsLegacyAndMultipleSelectionsWithoutUnknownOrDuplicateValues() throws Exception {
         assertThat(SavedResumeAnalysisInput.allowed(mapper.readTree("\"서울\""), "서울|경기")).containsExactly("서울");
         assertThat(SavedResumeAnalysisInput.allowed(mapper.readTree("[\"경기\",\"서울\",\"경기\",\"invalid\",null,1]"), "서울|경기"))
