@@ -25,7 +25,7 @@ final class ResumeCoachingRules {
         var confirm = object(ordered("question", TEXT, "options", array(option, 3)));
         var rewrite = object(ordered("sourceId", TEXT, "quoteId", TEXT, "evidence", refs,
                 "suggestion", TEXT, "reason", TEXT, "confirm", array(confirm, 1)));
-        var strength = object(ordered("point", TEXT, "evidence", refs, "placement", TEXT));
+        var strength = object(ordered("evidence", refs, "point", TEXT, "placement", TEXT));
         var gap = object(Map.of("type", Map.of("type", "string", "enum", List.of("missing", "weak", "buried")),
                 "what", TEXT, "why_it_matters", TEXT, "evidence", refs));
         // Keep the previously verified per-job quote contract and add actionable appeal copy.
@@ -34,7 +34,7 @@ final class ResumeCoachingRules {
         var job = object(Map.of("slot", Map.of("type", "integer", "minimum", 0, "maximum", 4),
                 "relevance", Map.of("type", "string", "enum", List.of("RELATED", "REVIEW_NEEDED", "LOW_RELEVANCE")),
                 "lead_with", TEXT, "gap", TEXT, "criteria", array(criterion, 4)));
-        return object(ordered("positioning", TEXT, "positioningEvidence", refs, "strengths", array(strength, 3),
+        return object(ordered("positioningEvidence", refs, "positioning", TEXT, "strengths", array(strength, 3),
                 "gaps", array(gap, 6), "rewrites", array(rewrite, 6), "job_fit", array(job, 5)));
     }
     private record Evidence(String text, ArrayNode quotes) {}

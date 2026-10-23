@@ -22,6 +22,12 @@ class OpenAiEvidenceLiveTest {
                 "jobs", java.util.List.of(java.util.Map.of("slot", 0, "text", requirements, "passages", ResumeContentReviewRules.passages("J0", requirements))));
         var output = client.review(payload);
         var validated = ResumeContentReviewRules.validate(output, sources, jobs, mapper);
+        // Reject invented applicant facts even if a different valid item survives filtering.
+        assertThat(output.path("positioning").asText()).doesNotContain("API", "설계", "테스트", "주도");
+        for (var strength : output.path("strengths"))
+            assertThat(strength.path("point").asText()).doesNotContain("API", "설계", "테스트", "주도");
+        for (var rewrite : output.path("rewrites"))
+            assertThat(rewrite.path("suggestion").asText()).doesNotContain("API", "설계", "테스트", "주도");
         assertThat(output.has("rewrites")).isTrue();
         assertThat(validated.path("positioning").asText()).as("Synthetic output: %s; validated: %s", output, validated).isNotBlank();
         assertThat(validated.path("strengths").size()).as("Synthetic output: %s; validated: %s", output, validated).isGreaterThan(0);
@@ -31,6 +37,8 @@ class OpenAiEvidenceLiveTest {
         for (var finding : validated.path("findings")) assertThat(text).contains(finding.path("quote").asText());
         for (var criterion : validated.path("jobs").get(0).path("criteria")) {
             assertThat(requirements).contains(criterion.path("jobQuote").asText());
+            // Both supplied job passages require activities absent from this sparse resume.
+            assertThat(criterion.path("assessment").asText()).isEqualTo("CHECK");
             if (!criterion.path("resumeQuote").asText().isEmpty()) assertThat(text).contains(criterion.path("resumeQuote").asText());
         }
     }
