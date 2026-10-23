@@ -85,7 +85,7 @@ test('운영 합성 이력서·첨부 기반 AI 내용 분석·근거 검증·�
     expect(review.findings.length).toBeGreaterThan(0);
     for (const finding of review.findings) expect(preview.payload.sources.some(source => source.text.includes(finding.quote))).toBe(true);
     for (const job of review.jobs) expect(analysis.recommendations.some(candidate => candidate.jobId === job.jobId)).toBe(true);
-    await expect(page.getByText('AI가 제안한 수정 방향', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '이렇게 고쳐보세요', exact: true })).toBeVisible();
     const cached = await request.post(`${base}/ai/resume-analyses/${analysisId}/content-review`, {
       headers, data: { consentVersion: preview.consentVersion, previewHash: preview.previewHash },
     });
