@@ -4,6 +4,11 @@ on:
   push:
     branches: [codex/djc-ai-evidence]
   workflow_dispatch:
+    inputs:
+      model_access_only:
+        description: Check model visibility without generating content
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -13,7 +18,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  model-access:
+    if: ${{ inputs.model_access_only == true }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check model visibility without exposing credentials or response bodies
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        shell: python
+        run: |
+          import json, os, urllib.request, urllib.error
+          key = os.environ.get("OPENAI_API_KEY", "")
+          if not key:
+              raise SystemExit("OPENAI_API_KEY is not configured")
+          request = urllib.request.Request(
+              "https://api.openai.com/v1/models",
+              headers={"Authorization": "Bearer " + key})
+          try:
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  data = json.load(response)
+          except urllib.error.HTTPError as error:
+              raise SystemExit("Model inventory HTTP " + str(error.code)) from None
+          except Exception:
+              raise SystemExit("Model inventory request failed") from None
+          available = {entry.get("id") for entry in data.get("data", [])}
+          for candidate in ("gpt-5-nano", "gpt-5-mini", "gpt-5.4-mini", "gpt-5.4-mini-2026-03-17"):
+              print(candidate + ": " + ("visible" if candidate in available else "not listed"))
+          print("Visibility does not verify Responses permission or coaching quality.")
   verify:
+    if: ${{ inputs.model_access_only != true }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
