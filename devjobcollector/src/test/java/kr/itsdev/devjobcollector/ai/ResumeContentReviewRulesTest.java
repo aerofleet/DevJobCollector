@@ -88,4 +88,20 @@ class ResumeContentReviewRulesTest {
         assertThat(properties.path("rewrites").path("items").path("properties").has("quote")).isFalse();
         assertThat(payload.path("instructions").asText()).contains("UNTRUSTED DATA", "Never invent");
     }
+    @Test void partialTechnologyMatchDoesNotSupportMissingActivitiesOrOtherRequirements() throws Exception {
+        var response = mapper.readTree("""
+            {"findings":[],"jobs":[{"slot":0,"relevance":"RELATED","criteria":[
+            {"jobQuoteId":"J0-P1","sourceId":"S1","resumeQuoteId":"S1-P1","assessment":"SUPPORTED","explanation":"요건을 충족합니다."}]}]}
+            """);
+        for (String requirement : List.of("Java API 설계와 테스트 경험", "Java API 개발 5년", "Java API 및 Kubernetes 개발")) {
+            var result = ResumeContentReviewRules.validate(response, sources, List.of(new ResumeContentReviewRules.Job(0,17,requirement)), mapper);
+            assertThat(result.path("jobs").get(0).path("relevance").asText()).isEqualTo("REVIEW_NEEDED");
+            var criterion = result.path("jobs").get(0).path("criteria").get(0);
+            assertThat(criterion.path("assessment").asText()).isEqualTo("CHECK");
+            assertThat(criterion.path("explanation").asText()).doesNotContain("충족합니다");
+            assertThat(criterion.path("resumeQuote").asText()).isEqualTo(quote);
+        }
+        var positive = ResumeContentReviewRules.validate(response, sources, List.of(new ResumeContentReviewRules.Job(0,17,"Java API 개발 경험")), mapper);
+        assertThat(positive.path("jobs").get(0).path("criteria").get(0).path("assessment").asText()).isEqualTo("SUPPORTED");
+    }
 }

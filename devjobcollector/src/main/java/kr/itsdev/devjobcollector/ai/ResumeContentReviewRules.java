@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
 
 /** Validate grounding independently from the model's structured-output promise. */
 public final class ResumeContentReviewRules {
-    public static final String VERSION = "content-review-v3-coaching";
+    public static final String VERSION = "content-review-v4-coaching";
     public record Source(String id, String text, ResumeEvidenceReview.Document original) {}
     public record Job(int slot, long jobId, String text) {}
     public record Passage(String id, String text) {}
@@ -120,6 +120,10 @@ public final class ResumeContentReviewRules {
                 if (assessment.equals("SUPPORTED") && !grounded(source, quote)) continue;
                 if (!quote.isBlank() && !grounded(source, quote)) continue;
                 if (introducesNumbers(explanation, job.text() + (source == null ? "" : source.text()))) continue;
+                if (assessment.equals("SUPPORTED") && missingExplicitRequirement(jobQuote, quote)) {
+                    assessment = "CHECK";
+                    explanation = "인용된 경험만으로는 이 공고 요건 전체를 확인하기 어려워 추가 확인이 필요합니다.";
+                }
                 var saved = criteria.addObject(); saved.put("jobQuote", jobQuote); saved.put("resumeQuote", quote);
                 saved.put("assessment", assessment); saved.put("explanation", explanation);
                 if (source != null && !quote.isBlank()) {
@@ -141,6 +145,20 @@ public final class ResumeContentReviewRules {
     private static boolean grounded(Source source, String quote) {
         return source != null && !quote.isBlank() && !quote.contains("[익명]")
                 && source.text().contains(quote) && source.original().text().contains(quote);
+    }
+    private static boolean missingExplicitRequirement(String requirement, String evidence) {
+        // Conservative lexical guard, not a semantic proof of eligibility. Match the cited
+        // passage only: a technology elsewhere in the resume cannot support this criterion.
+        if (introducesNumbers(requirement, evidence)) return true;
+        var terms = Pattern.compile("[A-Za-z][A-Za-z0-9+#]*(?:[./-][A-Za-z0-9+#]+)*").matcher(requirement);
+        while (terms.find()) {
+            String term = terms.group();
+            if (!Pattern.compile("(?<![A-Za-z0-9])" + Pattern.quote(term) + "(?![A-Za-z0-9])", Pattern.CASE_INSENSITIVE)
+                    .matcher(evidence).find()) return true;
+        }
+        for (String activity : List.of("개발", "설계", "구현", "테스트", "운영", "배포", "분석", "최적화", "리팩토링", "주도", "관리"))
+            if (requirement.contains(activity) && !evidence.contains(activity)) return true;
+        return false;
     }
     private static String bounded(JsonNode item, String key, int max) {
         var value = item.path(key); return value.isTextual() && value.asText().length() <= max ? value.asText().strip() : "";
