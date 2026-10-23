@@ -55,4 +55,15 @@ class ResumeCoachingRulesTest {
         assertThat(SavedResumeAnalysisInput.findSkills("Kafka와 RabbitMQ를 비교했습니다. Kotlin vs Java",vocabulary)).isEmpty();
         assertThat(ResumeSkillVocabulary.split("CI/CD")).containsExactly("CI/CD");
     }
+    @Test void rendersKnownReasonReferencesWithoutAcceptingInventedNumbersOrUnknownReferences() throws Exception {
+        var out = output();
+        ((ObjectNode)out.path("rewrites").get(0)).put("reason", "S1-P1과 S1-P2의 내용을 함께 보여주세요.");
+        var result = ResumeContentReviewRules.validate(out,sources,List.of(),mapper);
+        assertThat(result.path("findings").size()).isEqualTo(1);
+        assertThat(result.path("findings").get(0).path("problem").asText()).isEqualTo("원문과 원문의 내용을 함께 보여주세요.");
+        for (String reason : List.of("S1-P1에서 99% 개선했습니다.", "S6의 내용을 보여주세요.", "S1-P999의 내용을 보여주세요.")) {
+            ((ObjectNode)out.path("rewrites").get(0)).put("reason", reason);
+            assertThat(ResumeContentReviewRules.validate(out,sources,List.of(),mapper).path("findings").size()).isZero();
+        }
+    }
 }

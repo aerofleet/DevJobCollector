@@ -70,6 +70,19 @@ final class ResumeCoachingRules {
         return Pattern.compile("(?<![A-Za-z])[A-Z][A-Za-z0-9+#]*(?:\\.[A-Za-z]+)?")
                 .matcher(value).results().allMatch(m -> evidence.toLowerCase(Locale.ROOT).contains(m.group().toLowerCase(Locale.ROOT)));
     }
+    private static String readableReason(String value, JsonNode refs) {
+        // Normalize only references already checked against the applicant's source passages.
+        var identifiers = new TreeSet<String>(Comparator.comparingInt(String::length).reversed().thenComparing(Comparator.naturalOrder()));
+        for (var ref : refs) {
+            identifiers.add(ref.path("sourceId").asText());
+            identifiers.add(ref.path("quoteId").asText());
+        }
+        for (String id : identifiers) {
+            if (!id.isBlank()) value = value.replaceAll("(?<![A-Za-z0-9_-])" + Pattern.quote(id) + "(?![A-Za-z0-9_-])", "원문");
+        }
+        // Unknown references must not become ordinary prose or evade the numeric check.
+        return Pattern.compile("[SJ][0-9]+(?:-P[0-9]+)?").matcher(value).find() ? "" : value;
+    }
     static ObjectNode validate(JsonNode output, List<ResumeContentReviewRules.Source> sources,
             List<ResumeContentReviewRules.Job> jobs, ObjectMapper mapper) {
         for (String field : List.of("strengths", "gaps", "rewrites", "job_fit"))
@@ -100,6 +113,10 @@ final class ResumeCoachingRules {
             var primary = mapper.createArrayNode(); primary.addObject().put("sourceId", text(item,"sourceId")).put("quoteId", text(item,"quoteId"));
             var original = evidence(primary, sources, mapper); var e = evidence(item.path("evidence"), sources, mapper);
             String facts = original.text() + e.text(), suggestion = text(item,"suggestion"), reason = text(item,"reason");
+            var checkedRefs = mapper.createArrayNode();
+            if (!original.text().isBlank()) checkedRefs.addAll(primary);
+            if (!e.text().isBlank()) checkedRefs.addAll((ArrayNode)item.path("evidence"));
+            reason = readableReason(reason, checkedRefs);
             if (original.text().isBlank() || !groundedClaim(suggestion,facts) || !valid(reason,facts)
                     || !item.path("confirm").isArray() || item.path("confirm").size() > 1) { discarded++; continue; }
             String key = "ai:rewrite:" + ResumeAnalysisService.hash(original.text()); if (!seen.add(key)) continue;
