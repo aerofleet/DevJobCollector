@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 
 const statuses = { APPLIED: '반영했어요', NOT_APPLICABLE: '해당 없음', INCORRECT: '이 지적이 틀렸어요' };
-const sections = { careerProfile: '지원 방향', projects: '프로젝트', experience: '경력', techStack: '기술 스택' };
+const sections = { careerProfile: '지원 방향', projects: '프로젝트', experience: '경력', techStack: '기술 스택', introduction: '간단소개', education: '학력', training: '교육이력', activities: '기타사항', coverLetter: '자기소개서' };
 const evidenceLocation = (location) => `${location.label} · ${location.page ? `${location.page}쪽` : sections[location.section] || location.section}`;
 
 export default function ResumeEvidenceReport({ result, busy, onFeedback }) {

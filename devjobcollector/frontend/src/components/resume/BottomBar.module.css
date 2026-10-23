@@ -27,7 +27,7 @@
   height: 44px;
   border: 0;
   border-radius: 8px;
-  background: #00dd6d;
+  background: #6c4dff;
   color: #fff;
   font-size: 14px;
   font-weight: 700;
@@ -44,4 +44,5 @@
 }
 
 .inner { gap: 10px; flex-wrap: wrap; }
+.preview { min-height: 44px; padding: 10px 18px; border: 1px solid #d6cde4; border-radius: 8px; background: white; color: #6040db; font-weight: 600; cursor: pointer; }
 @media (max-width: 600px) { .rate { width: 100%; } .button { flex: 1; min-width: 0; } }

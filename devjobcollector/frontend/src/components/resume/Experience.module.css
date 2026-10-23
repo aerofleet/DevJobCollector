@@ -1,6 +1,7 @@
 .section {
   padding: 36px 0 12px;
 }
+.field { display: grid; gap: 8px; margin-top: 12px; font-size: 13px; color: #655a75; }
 
 .header {
   display: flex;

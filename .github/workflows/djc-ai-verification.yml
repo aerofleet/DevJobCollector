@@ -80,7 +80,7 @@ jobs:
         env:
           DJC_MIGRATION_TEST_URL: jdbc:mysql://127.0.0.1:3306/devjob?allowPublicKeyRetrieval=true&useSSL=false
           DJC_MIGRATION_TEST_PASSWORD: djc-ai-ci-only
-        run: ./gradlew test --tests '*ai.ResumeAnalysisIntegrationTest' --no-daemon
+        run: ./gradlew test --tests '*ai.ResumeAnalysisIntegrationTest' --tests '*career.ResumeServiceIntegrationTest' --no-daemon
       - name: Live model contracts with synthetic evidence and resume text
         working-directory: devjobcollector
         env:

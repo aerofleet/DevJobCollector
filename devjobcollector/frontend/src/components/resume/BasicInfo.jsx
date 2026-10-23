@@ -39,12 +39,15 @@ const BasicInfo = ({ data, onChange }) => {
           />
         </label>
         <label className={styles.field}>
-          <span className={styles.label}>생년월일</span>
+          <span className={styles.label}>출생연도 · 선택</span>
           <input
             className={styles.input}
-            type="date"
-            value={data.birthDate || ''}
-            onChange={(e) => handleChange('birthDate', e.target.value)}
+            type="text"
+            inputMode="numeric"
+            maxLength={4}
+            placeholder="YYYY"
+            value={data.birthYear || (data.birthDate || '').slice(0, 4)}
+            onChange={(e) => onChange({ ...data, birthYear: e.target.value.replace(/\D/g, ''), birthDate: '' })}
           />
         </label>
       </div>

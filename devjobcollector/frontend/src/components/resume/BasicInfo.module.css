@@ -37,7 +37,7 @@
 
 .input:focus {
   outline: none;
-  border-color: #00c471;
+  border-color: #6c4dff;
 }
 
 @media (max-width: 680px) {

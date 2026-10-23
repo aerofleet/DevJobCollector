@@ -15,7 +15,14 @@
 
 .content {
   flex: 1;
+  min-width: 0;
 }
+.editorIntro { margin-bottom: 28px; }.editorIntro > span { color: #7c63ba; font-size: 11px; letter-spacing: 2px; font-weight: 700; }.editorIntro h1 { margin: 10px 0; color: #272131; font-size: 28px; font-weight: 750; }.editorIntro p { color: #81758d; font-size: 13px; line-height: 1.8; }
+.card section { scroll-margin-top: 110px; }
+.card input, .card textarea, .card select { min-width: 0; max-width: 100%; }
+.card textarea { line-height: 1.8; }
+.card button { cursor: pointer; }
+.card :is(input,textarea,select,button):focus-visible { outline: 3px solid #e1d7fc; outline-offset: 2px; }
 
 .card {
   background: #fff;

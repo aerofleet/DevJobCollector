@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styles from './TechStack.module.css';
 
-const presetTechs = ['Java', 'Spring Boot', 'React', 'TypeScript', 'MySQL', 'Docker'];
+const presetTechs = ['Java', 'Spring Boot', 'React', 'TypeScript', 'MySQL', 'Docker', 'Redis', 'Next.js', 'NGINX', 'PHP', 'Laravel'];
 
 const TechStack = ({ data, onChange }) => {
   const [inputValue, setInputValue] = useState('');
@@ -49,8 +49,8 @@ const TechStack = ({ data, onChange }) => {
         {data.map((tech) => (
           <span key={tech.name} className={styles.selectedTag}>
             {tech.name}
-            <button type="button" onClick={() => removeTech(tech.name)}>
-              x
+            <button type="button" aria-label={`${tech.name} 기술 삭제`} onClick={() => removeTech(tech.name)}>
+              ×
             </button>
           </span>
         ))}

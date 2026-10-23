@@ -57,12 +57,12 @@ public class ResumeContentReviewService {
         if (contentRows.isEmpty() || !ResumeAnalysisService.hash(contentRows.getFirst()).equals(input.contentHash())) throw fail(HttpStatus.CONFLICT, "ANALYSIS_INPUT_CHANGED");
         var basic = read(contentRows.getFirst()).path("basicInfo");
         var known = new ArrayList<String>();
-        for (String field : List.of("name", "email", "phone", "birthDate", "address")) known.add(basic.path(field).asText());
+        for (String field : List.of("name", "email", "phone", "birthDate", "birthYear", "address")) known.add(basic.path(field).asText());
         var sources = new ArrayList<ResumeContentReviewRules.Source>();
         var sourcePayload = new ArrayList<Map<String, Object>>();
         int length = 0;
         for (var document : input.documents()) {
-            if (document.text().isBlank() || document.key().matches(".*/(startDate|endDate|link|company)$")) continue;
+            if (document.text().isBlank() || document.key().matches(".*/(startDate|endDate|link|repository|company|workType)$")) continue;
             String masked = pii.mask(document.text(), known).maskedText();
             length += masked.length();
             if (length > 40000 || sources.size() >= 120) throw fail(HttpStatus.UNPROCESSABLE_ENTITY, "CONTENT_REVIEW_TOO_LARGE");

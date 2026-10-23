@@ -112,6 +112,30 @@ class ResumeServiceIntegrationTest {
         assertThat(preserved.getStatus()).isEqualTo(ResumeStatus.DRAFT);
     }
 
+    @Test
+    void extendedEditorFieldsSurviveDatabaseReloadAndUpdate() throws Exception {
+        var content = objectMapper.readTree("""
+            {"basicInfo":{"name":"테스트","birthYear":"1995","photo":"data:image/jpeg;base64,synthetic"},
+             "introduction":"백엔드 개발 경험", "links":[{"label":"포트폴리오","url":"https://example.com"}],
+             "education":[{"school":"테스트대학교","status":"졸업","gpa":"3.8","gpaScale":"4.5"}],
+             "training":[{"title":"서버 과정"}],"activities":[{"title":"해커톤"}],"coverLetter":"지원 동기",
+             "experience":[{"workType":"NON_DEVELOPMENT","company":"이전 직장"}],
+             "projects":[{"title":"서비스","isCurrent":true,"endDate":"","repository":"https://example.com/code"}]}
+            """);
+        var created = service.create("owner", new ResumeUpsertRequest("확장 이력서", content));
+        entityManager.flush(); entityManager.clear();
+        var loaded = service.get("owner", created.id()).content();
+        for (String field : java.util.List.of("basicInfo", "introduction", "links", "education", "training", "activities", "coverLetter", "experience", "projects"))
+            assertThat(loaded.path(field)).isEqualTo(content.path(field));
+        ((com.fasterxml.jackson.databind.node.ObjectNode)loaded.path("basicInfo")).put("photo", "");
+        service.update("owner", created.id(), new ResumeUpsertRequest("수정 이력서", loaded));
+        entityManager.flush(); entityManager.clear();
+        var updated = service.get("owner", created.id()).content();
+        assertThat(updated.path("basicInfo").path("photo").asText()).isEmpty();
+        assertThat(updated.path("education")).isEqualTo(content.path("education"));
+        assertNotFound(() -> service.get("other", created.id()));
+    }
+
     private void assertNotFound(ThrowingOperation operation) {
         assertThatThrownBy(operation::run)
                 .isInstanceOf(ResponseStatusException.class)

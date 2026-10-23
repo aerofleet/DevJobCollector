@@ -15,7 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 /** Extract saved documents outside the analysis transaction; revalidate the snapshot before saving. */
 @Service
 public class SavedResumeAnalysisInput {
-    public static final String VERSION = "saved-resume-v6-context-skills";
+    public static final String VERSION = "saved-resume-v7-editor-sections";
     private final JdbcTemplate jdbc;
     private final CurrentMemberService members;
     private final ObjectMapper mapper;
@@ -40,6 +40,7 @@ public class SavedResumeAnalysisInput {
         append(content.path("careerProfile"), text, 0);
         append(content.path("projects"), text, 0);
         append(content.path("experience"), text, 0);
+        for (String field : List.of("introduction", "education", "training", "activities", "coverLetter")) append(content.path(field), text, 0);
         var sources = new ArrayList<Map<String, Object>>();
         var documents = ResumeEvidenceReview.savedDocuments(content);
         for (long id : attachmentIds) {
@@ -108,6 +109,7 @@ public class SavedResumeAnalysisInput {
     static Integer careerYears(JsonNode content) {
         var intervals = new ArrayList<LocalDate[]>();
         for (JsonNode item : content.path("experience")) {
+            if ("NON_DEVELOPMENT".equals(item.path("workType").asText())) continue;
             try {
                 LocalDate start = LocalDate.parse(item.path("startDate").asText());
                 LocalDate end = item.path("isCurrent").asBoolean(false) ? LocalDate.now() : LocalDate.parse(item.path("endDate").asText());

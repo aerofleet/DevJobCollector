@@ -27,7 +27,7 @@ public final class ResumeEvidenceReview {
 
     public static List<Document> savedDocuments(JsonNode content) {
         var result = new ArrayList<Document>();
-        for (String field : List.of("careerProfile", "projects", "experience", "techStack")) collect(content.path(field), "/" + field, field, result);
+        for (String field : List.of("careerProfile", "projects", "experience", "techStack", "introduction", "education", "training", "activities", "coverLetter")) collect(content.path(field), "/" + field, field, result);
         return result;
     }
 

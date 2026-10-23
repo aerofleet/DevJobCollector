@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { confirmContentReview, previewContentReview, getContentReview, requestContentReview, saveFindingFeedback } from '../../api/resumeAnalysisApi';
 
-const sectionNames = { projects: '프로젝트', experience: '경력', careerProfile: '지원 방향', techStack: '기술 스택' };
+const sectionNames = { projects: '프로젝트', experience: '경력', careerProfile: '지원 방향', techStack: '기술 스택', introduction: '간단소개', education: '학력', training: '교육이력', activities: '기타사항', coverLetter: '자기소개서' };
 const location = item => `${item.label || '저장된 자료'} · ${item.page ? `${item.page}쪽` : sectionNames[item.section] || item.section || '위치 미확인'}`;
 const errorMessage = error => {
   const code = error.response?.data?.code;

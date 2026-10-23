@@ -1,8 +1,11 @@
 .nav {
   width: 240px;
+  flex-shrink: 0;
   position: sticky;
-  top: 84px;
+  top: 100px;
   height: fit-content;
+  max-height: calc(100dvh - 200px);
+  overflow-y: auto;
 }
 
 .section {
@@ -38,7 +41,7 @@
 
 .item:hover,
 .active {
-  color: #00c471;
+  color: #6c4dff;
   font-weight: 700;
 }
 
@@ -66,7 +69,7 @@
 
 .progressFill {
   height: 100%;
-  background: #00dd6d;
+  background: #6c4dff;
   transition: width 0.2s ease;
 }
 
@@ -75,12 +78,25 @@
   text-align: right;
   font-size: 13px;
   font-weight: 700;
-  color: #00c471;
+  color: #6c4dff;
 }
+.list li { display: flex; align-items: center; gap: 8px; }
+.list input { flex-shrink: 0; width: 17px; height: 17px; accent-color: #6c4dff; }
+.item { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 40px; }
+.item small { font-size: 10px; font-weight: 500; color: #84798e; }
+.item:disabled { color: #a29aa9; cursor: default; }
+.legend { font-size: 11px; line-height: 1.7; color: #82788e; margin: 8px 0; }
+.checklist { margin: 14px 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 12px; color: #655a75; }
+.checklist span { color: #6c4dff; }
 
 @media (max-width: 1080px) {
   .nav {
     width: 100%;
     position: static;
+    max-height: none;
+    overflow: visible;
   }
+  .list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 16px; }
+  .progress { display: none; }
 }
+@media(max-width: 600px) { .list { grid-template-columns: repeat(2, minmax(0, 1fr)); }.item { font-size: 13px; } }

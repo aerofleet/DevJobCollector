@@ -19,7 +19,7 @@ const Experience = ({ data, onChange }) => {
 
   const updateExperience = (index, field, value) => {
     const updated = [...data];
-    updated[index] = { ...updated[index], [field]: value };
+    updated[index] = { ...updated[index], [field]: value, ...(field === 'isCurrent' && value ? { endDate: '' } : {}) };
     onChange(updated);
   };
 
@@ -50,18 +50,25 @@ const Experience = ({ data, onChange }) => {
             <input
               className={styles.input}
               type="date"
+              aria-label={`경력 ${index + 1} 시작일`}
               value={experience.startDate}
               onChange={(e) => updateExperience(index, 'startDate', e.target.value)}
             />
             <input
               className={styles.input}
               type="date"
+              aria-label={`경력 ${index + 1} 종료일`}
               value={experience.endDate}
               disabled={experience.isCurrent === true}
               onChange={(e) => updateExperience(index, 'endDate', e.target.value)}
             />
           </div>
           <label><input type="checkbox" checked={experience.isCurrent === true} onChange={e => updateExperience(index, 'isCurrent', e.target.checked)} /> 현재 재직 중</label>
+          <div className={styles.grid}>
+            <label className={styles.field}>경력 구분<select className={styles.input} value={experience.workType || 'DEVELOPMENT'} onChange={event => updateExperience(index, 'workType', event.target.value)}><option value="DEVELOPMENT">개발 경력</option><option value="NON_DEVELOPMENT">비개발 경력</option></select></label>
+            <label className={styles.field}>사용 기술<input className={styles.input} value={experience.techStack || ''} maxLength={500} onChange={event => updateExperience(index, 'techStack', event.target.value)} placeholder="업무에 사용한 도구·기술" /></label>
+          </div>
+          <label className={styles.field}>회사 소개<input className={styles.input} value={experience.companyDescription || ''} maxLength={500} onChange={event => updateExperience(index, 'companyDescription', event.target.value)} /></label>
           <textarea
             className={styles.textarea}
             placeholder="담당 업무 및 성과"

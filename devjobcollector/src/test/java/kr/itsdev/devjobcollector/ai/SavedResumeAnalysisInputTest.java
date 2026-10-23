@@ -50,4 +50,22 @@ class SavedResumeAnalysisInputTest {
                 .containsExactlyInAnyOrder("javascript", "react", "c++", "c#", "springboot");
         assertThat(SavedResumeAnalysisInput.findSkills("ReactNative JavaScript CSS", List.of("Java", "React", "C"))).isEmpty();
     }
+    @Test void nonDevelopmentEmploymentDoesNotInflateDeveloperYears() throws Exception {
+        var content = mapper.readTree("""
+            {"experience":[{"workType":"NON_DEVELOPMENT","startDate":"2000-01-01","endDate":"2017-01-01"},
+            {"workType":"DEVELOPMENT","startDate":"2024-01-01","endDate":"2025-01-01"}]}
+            """);
+        assertThat(SavedResumeAnalysisInput.careerYears(content)).isEqualTo(1);
+    }
+    @Test void addedResumeSectionsHaveEvidenceWithoutContactPhotoOrLinks() throws Exception {
+        var content = mapper.readTree("""
+            {"basicInfo":{"name":"private name","photo":"private photo"},"links":[{"url":"https://private.example"}],
+             "introduction":"Java 프로젝트 경험", "education":[{"school":"학교","major":"컴퓨터공학"}],
+             "training":[{"description":"Spring Boot API 구현"}],"activities":[{"description":"해커톤 수상"}],"coverLetter":"프로젝트에서 성능을 개선했습니다."}
+            """);
+        var documents = ResumeEvidenceReview.savedDocuments(content);
+        assertThat(documents).extracting(ResumeEvidenceReview.Document::text)
+            .contains("Java 프로젝트 경험", "Spring Boot API 구현", "해커톤 수상", "프로젝트에서 성능을 개선했습니다.")
+            .doesNotContain("private name", "private photo", "https://private.example");
+    }
 }
