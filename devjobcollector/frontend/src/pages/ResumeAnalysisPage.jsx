@@ -33,6 +33,7 @@ const explainError = (error, files = []) => {
 
 export default function ResumeAnalysisPage() {
   const [params] = useSearchParams();
+  const requestedAnalysisId = params.get('analysisId');
   const [capabilities, setCapabilities] = useState(null);
   const [resumes, setResumes] = useState([]);
   const [history, setHistory] = useState([]);
@@ -66,6 +67,7 @@ export default function ResumeAnalysisPage() {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
+      setLoading(true); setResult(null); setError(''); setUnavailable(false);
       try {
         const caps = await getAnalysisCapabilities();
         const [resumeList, analysisList] = await Promise.all([listResumes(), listAnalyses()]);
@@ -74,6 +76,14 @@ export default function ResumeAnalysisPage() {
         setResumes(resumeList);
         setHistory(analysisList);
         setResumeId((current) => resumeList.some((resume) => String(resume.id) === current) ? current : String(resumeList[0]?.id || ''));
+        if (requestedAnalysisId) {
+          try {
+            const saved = await getAnalysis(requestedAnalysisId);
+            if (!cancelled) { setResult(saved); setResumeId(String(saved.resumeId)); }
+          } catch (failure) {
+            if (!cancelled && failure.response?.status !== 401) setError(explainError(failure));
+          }
+        }
       } catch (failure) {
         if (cancelled) return;
         if (failure.response?.status === 404) setUnavailable(true);
@@ -82,7 +92,7 @@ export default function ResumeAnalysisPage() {
     };
     load();
     return () => { cancelled = true; };
-  }, []);
+  }, [requestedAnalysisId]);
 
   useEffect(() => {
     let cancelled = false;

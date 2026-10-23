@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowRight, Bookmark, BriefcaseBusiness, Building2, FileText, Search, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MemberSidebar from '../components/member/MemberSidebar';
+import HomeRecommendations from '../components/member/HomeRecommendations';
 import '../styles/MemberPages.css';
 
 const MemberHomePage = () => (
@@ -52,6 +53,7 @@ const MemberHomePage = () => (
           </Link>
         </section>
 
+        <HomeRecommendations />
         <section className="member-guide-card">
           <div>
             <span className="member-eyebrow">NEXT STEP</span>

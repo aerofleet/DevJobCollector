@@ -4,11 +4,20 @@ import { ArrowRight, BriefcaseBusiness, Code2, Search, Sparkles } from 'lucide-r
 import { fetchRandomDeveloperJobs } from '../api/jobApi';
 import JobCard from '../components/job/JobCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import HomeRecommendations from '../components/member/HomeRecommendations';
+import { useMemberSession } from '../contexts/memberSession';
 import '../styles/MainPage.css';
 
 const QUICK_SEARCHES = ['Java', 'Spring', 'React', 'Python', '신입'];
 
 const DISCOVERY_THEMES = [
+  {
+    eyebrow: 'DEVOPS & INFRA',
+    title: '배포부터 운영까지\nDevOps · 인프라 채용',
+    keyword: 'DevOps',
+    className: 'backend',
+    icon: BriefcaseBusiness,
+  },
   {
     eyebrow: 'THE ROOKIE',
     title: '첫 커리어를 시작하는\n신입 개발자 채용',
@@ -30,9 +39,24 @@ const DISCOVERY_THEMES = [
     className: 'frontend',
     icon: Sparkles,
   },
+  {
+    eyebrow: 'DATA & AI',
+    title: '데이터로 가치를 만드는\nAI · 데이터 포지션',
+    keyword: '데이터',
+    className: 'rookie',
+    icon: Sparkles,
+  },
+  {
+    eyebrow: 'MOBILE DEVELOPERS',
+    title: '손안의 경험을 만드는\n모바일 앱 개발',
+    keyword: '모바일',
+    className: 'frontend',
+    icon: Code2,
+  },
 ];
 
 const MainPage = ({ onSearch }) => {
+  const { token } = useMemberSession();
   const [jobs, setJobs] = useState([]);
   const [candidateCount, setCandidateCount] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
@@ -119,6 +143,10 @@ const MainPage = ({ onSearch }) => {
         </div>
       </section>
 
+      <aside className="career-shortcuts" aria-label="내 커리어 바로가기">
+        <strong>{token ? '다음 커리어를 준비해볼까요?' : '내 경험에서 다음 기회를 찾아보세요.'}</strong>
+        <nav><Link to="/resumes">이력서 관리</Link><Link to="/my-devjobs">저장·지원 현황</Link><Link to="/resume-analysis">AI 커리어 코칭</Link></nav>
+      </aside>
       <section className="discovery-section" aria-labelledby="discovery-title">
         <div className="section-heading" data-motion-reveal="">
           <div>
@@ -146,6 +174,7 @@ const MainPage = ({ onSearch }) => {
         </div>
       </section>
 
+      <HomeRecommendations />
       <section className="positions-section" id="positions" aria-labelledby="positions-title">
         <div className="section-heading positions-heading" data-motion-reveal="">
           <div>
@@ -171,9 +200,9 @@ const MainPage = ({ onSearch }) => {
         <div>
           <span className="section-eyebrow">YOUR NEXT MOVE</span>
           <h2>마음에 드는 공고를 놓치지 마세요.</h2>
-          <p>로그인하고 데브잡스에서 나만의 커리어 탐색을 시작하세요.</p>
+          <p>{token ? '저장한 공고와 지원 현황을 한곳에서 이어서 확인하세요.' : '로그인하고 데브잡스에서 나만의 커리어 탐색을 시작하세요.'}</p>
         </div>
-        <a href="/login">로그인하고 시작하기 <ArrowRight size={18} /></a>
+        <Link to={token ? '/my-devjobs' : '/login'}>{token ? '내 채용 활동 보기' : '로그인하고 시작하기'} <ArrowRight size={18} /></Link>
       </section>
 
       <footer className="landing-footer">
