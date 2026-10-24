@@ -84,16 +84,8 @@ test.describe('홈 공고 로딩 최적화', () => {
   });
 });
 
-test.describe('홈 글꼴 최적화', () => {
-  test('홈에서 woff/woff2 글꼴 추가 요청 없음', async ({ page }) => {
-    const fontRequests = [];
-    page.on('request', (req) => {
-      const url = req.url();
-      if (/\.woff2?(\?|$)/i.test(url)) {
-        fontRequests.push(url);
-      }
-    });
-
+test.describe('홈 글꼴 일관성', () => {
+  test('홈과 공고 카드에 Pretendard Variable 적용 및 로드', async ({ page }) => {
     await page.route('**/api/v1/jobs/search**', (route) =>
       route.fulfill({
         json: {
@@ -107,7 +99,14 @@ test.describe('홈 글꼴 최적화', () => {
     await page.goto('/');
     await expect(page.locator('.job-card')).toHaveCount(8);
 
-    const pretendardRequests = fontRequests.filter((url) => /pretendard/i.test(url));
-    expect(pretendardRequests).toEqual([]);
+    for (const target of [page.locator('body'), page.locator('.job-card').first()]) {
+      await expect(target).toHaveCSS('font-family', /^"?Pretendard Variable"?,/);
+    }
+    const loadedFonts = await page.evaluate(async () => {
+      const faces = await document.fonts.load('16px "Pretendard Variable"', '소프트웨어 엔지니어');
+      return faces.map((face) => ({ family: face.family, status: face.status }));
+    });
+    expect(loadedFonts.length).toBeGreaterThan(0);
+    expect(loadedFonts.every((face) => face.family === 'Pretendard Variable' && face.status === 'loaded')).toBe(true);
   });
 });
