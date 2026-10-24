@@ -23,7 +23,7 @@ class OpenAiEvidenceLiveTest {
                 "jobs", jobs.stream().map(j -> java.util.Map.of("slot", j.slot(), "text", j.text(), "passages", ResumeContentReviewRules.passages("J" + j.slot(), j.text()))).toList());
         var output = client.review(payload);
         var validated = ResumeContentReviewRules.validate(output, sources, jobs, mapper);
-        assertThat(validated.path("jobs")).hasSize(3);
+        assertThat(validated.path("jobs")).as("Synthetic raw: %s", output).hasSize(3);
         var decisions = new java.util.HashMap<Long,String>();
         validated.path("jobs").forEach(j -> decisions.put(j.path("jobId").asLong(), j.path("decision").asText()));
         assertThat(decisions.get(1L)).as("Synthetic fit: %s", validated.path("jobs")).isEqualTo("NOT_RECOMMENDED");

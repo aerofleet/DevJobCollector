@@ -19,6 +19,13 @@ class ResumeCoachingRulesTest {
         assertThat(ResumeContentReviewRules.validate(out, sources, jobs, mapper).path("jobs").get(0).path("decision").asText()).isEqualTo("INSUFFICIENT_INFORMATION");
         job.put("decision", "NOT_RECOMMENDED"); criterion.put("sourceId", "").put("resumeQuoteId", "");
         assertThat(ResumeContentReviewRules.validate(out, sources, jobs, mapper).path("jobs").get(0).path("decision").asText()).isEqualTo("INSUFFICIENT_INFORMATION");
+        job.put("decision", "RECOMMENDED"); criterion.put("sourceId", "S1").put("resumeQuoteId", "S1-P1").put("assessment", "SUPPORTED");
+        String absent = "API 개발 경험은 없습니다.";
+        var negative = List.of(new ResumeContentReviewRules.Source("S1", absent,
+                new ResumeEvidenceReview.Document("/experience/0/description", "이력서", null, "경력 1", absent)));
+        assertThat(ResumeContentReviewRules.validate(out, negative, jobs, mapper).path("jobs").get(0).path("decision").asText()).isEqualTo("INSUFFICIENT_INFORMATION");
+        job.put("decision", "INSUFFICIENT_INFORMATION").putArray("criteria");
+        assertThat(ResumeContentReviewRules.validate(out, sources, jobs, mapper).path("jobs").get(0).path("decision").asText()).isEqualTo("INSUFFICIENT_INFORMATION");
     }
     final ObjectMapper mapper = new ObjectMapper();
     final String source = "6인 팀에서 API를 개발했습니다. 실패율을 65%에서 0%로 낮췄습니다.";

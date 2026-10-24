@@ -166,6 +166,15 @@ final class ResumeCoachingRules {
                         ? (supported && groundedClaim(value,resumeFacts.toString()) ? value : "") : (valid(value,facts.toString()) ? value : ""));
             }
         }
+        boolean hasDecisions = java.util.stream.StreamSupport.stream(output.path("job_fit").spliterator(), false).anyMatch(j -> j.has("decision"));
+        if (hasDecisions) {
+            var included = new HashSet<Long>(); result.path("jobs").forEach(j -> included.add(j.path("jobId").asLong()));
+            for (var job : jobs) if (!included.contains(job.jobId())) {
+                ((ArrayNode)result.path("jobs")).addObject().put("jobId", job.jobId()).put("relevance", "REVIEW_NEEDED")
+                        .put("decision", "INSUFFICIENT_INFORMATION").put("decisionReason", "AI가 충분한 비교 근거를 제시하지 않아 추천을 보류했습니다.")
+                        .putArray("criteria");
+            }
+        }
         result.put("discardedFindings",discarded); return result;
     }
     static void answer(ObjectNode review, String findingId, int option) {
