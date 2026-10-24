@@ -70,12 +70,13 @@ class AdminCompanyControllerSecurityTest {
         verifyNoInteractions(reviewService);
 
         var detail = org.mockito.Mockito.mock(AdminCompanyService.CompanyDetail.class);
-        when(reviewService.review(eq(7L), eq(9L), eq(true), eq(null), any(), any(), any(),
+        when(reviewService.review(eq(7L), eq(9L), eq(true), eq(null), eq("550e8400-e29b-41d4-a716-446655440000"), any(), any(), any(),
                 org.mockito.ArgumentMatchers.nullable(String.class)))
                 .thenReturn(detail);
         mockMvc.perform(post("/api/v1/admin/companies/7/verification-requests/9/approve")
                         .cookie(new Cookie("DJC_ADMIN_SESSION", "admin-token"))
                         .header("Origin", "https://djc-admin.itsdev.kr")
+                        .header("Idempotency-Key", "550e8400-e29b-41d4-a716-446655440000")
                         .header("X-CSRF-TOKEN", "csrf-token"))
                 .andExpect(status().isOk());
     }

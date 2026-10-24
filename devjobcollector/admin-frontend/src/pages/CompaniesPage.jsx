@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { adminApi } from '../api/adminApi';
 import DetailModal from '../components/DetailModal';
 
@@ -22,6 +22,7 @@ export default function CompaniesPage() {
   const [reviewAction, setReviewAction] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [reviewing, setReviewing] = useState(false);
+  const reviewKey = useRef('');
   const selectedCompanyId = selected?.company.id;
   const latestRequestId = selected?.latestRequest?.id;
   const latestEvidenceContentType = selected?.latestRequest?.evidenceContentType;
@@ -62,6 +63,7 @@ export default function CompaniesPage() {
     setNotice('');
     setExpanded(false);
     setReviewAction('');
+    reviewKey.current = '';
     try { setSelected((await adminApi.company(id)).data); }
     catch (cause) { setError(cause.message); }
   };
@@ -90,13 +92,16 @@ export default function CompaniesPage() {
     }
     setReviewing(true);
     setError('');
+    if (!reviewKey.current) reviewKey.current = crypto.randomUUID();
     try {
       const result = reviewAction === 'approve'
-        ? await adminApi.approveCompany(selected.company.id, selected.latestRequest.id)
-        : await adminApi.rejectCompany(selected.company.id, selected.latestRequest.id, rejectionReason.trim());
+        ? await adminApi.approveCompany(selected.company.id, selected.latestRequest.id, reviewKey.current)
+        : await adminApi.rejectCompany(selected.company.id, selected.latestRequest.id,
+          rejectionReason.trim(), reviewKey.current);
       setSelected(result.data);
       setNotice(reviewAction === 'approve' ? '기업 인증을 승인했습니다.' : '기업 인증을 반려했습니다.');
       setReviewAction('');
+      reviewKey.current = '';
       setRejectionReason('');
       await load();
     } catch (cause) {
@@ -107,9 +112,11 @@ export default function CompaniesPage() {
   };
 
   const closeDetail = () => {
+    if (reviewing) return;
     if (expanded) { setExpanded(false); return; }
     setSelected(null);
     setReviewAction('');
+    reviewKey.current = '';
     setNotice('');
   };
 
@@ -170,20 +177,21 @@ export default function CompaniesPage() {
       {selected.company.status === 'PENDING_VERIFICATION'
         && selected.latestRequest?.status === 'PENDING'
         && selected.latestRequest.evidenceAvailable && <div className="company-review-actions">
-          <button type="button" onClick={() => { setReviewAction('approve'); setError(''); }}>승인</button>
-          <button type="button" onClick={() => { setReviewAction('reject'); setError(''); }}>반려</button>
+          <button type="button" disabled={reviewing} onClick={() => { setReviewAction('approve'); reviewKey.current = ''; setError(''); }}>승인</button>
+          <button type="button" disabled={reviewing} onClick={() => { setReviewAction('reject'); reviewKey.current = ''; setError(''); }}>반려</button>
         </div>}
       {reviewAction && <div className="company-review-confirm">
         <p>{reviewAction === 'approve' ? '첨부된 사업자등록증을 확인했나요? 승인하면 기업 기능을 사용할 수 있습니다.'
           : '반려 사유를 입력해주세요. 기업 담당자에게 결과가 표시됩니다.'}</p>
         {reviewAction === 'reject' && <label>반려 사유
-          <textarea value={rejectionReason} onChange={(event) => setRejectionReason(event.target.value)}
-            maxLength={500} rows={3} required />
+          <textarea value={rejectionReason} onChange={(event) => {
+            setRejectionReason(event.target.value); reviewKey.current = '';
+          }} disabled={reviewing} maxLength={500} rows={3} required />
         </label>}
         <div>
           <button type="button" className="primary-button" disabled={reviewing}
             onClick={submitReview}>{reviewing ? '처리 중...' : reviewAction === 'approve' ? '승인 확정' : '반려 확정'}</button>
-          <button type="button" disabled={reviewing} onClick={() => setReviewAction('')}>취소</button>
+          <button type="button" disabled={reviewing} onClick={() => { setReviewAction(''); reviewKey.current = ''; }}>취소</button>
         </div>
       </div>}
       </>}
