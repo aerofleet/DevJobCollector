@@ -247,7 +247,9 @@ public class ResumeAnalysisService {
             throw failure(HttpStatus.BAD_REQUEST, "INVALID_FEEDBACK");
         }
         long user = members.requireCurrentMember(subject).getId();
-        jdbc.queryForObject("SELECT id FROM users WHERE id=? FOR UPDATE", Long.class, user);
+        if (jdbc.queryForList("SELECT id FROM users WHERE id=? FOR UPDATE", Long.class, user).isEmpty()) {
+            throw failure(HttpStatus.NOT_FOUND, "ANALYSIS_NOT_FOUND");
+        }
         ObjectNode result = currentRecommendationsOwned(user, id);
         boolean found = false;
         for (String field : List.of("recommendations", "excludedRecommendations")) {
