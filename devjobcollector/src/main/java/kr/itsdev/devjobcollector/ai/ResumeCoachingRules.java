@@ -153,11 +153,8 @@ final class ResumeCoachingRules {
             if (Set.of("RECOMMENDED", "STRETCH", "NOT_RECOMMENDED", "INSUFFICIENT_INFORMATION").contains(decision)) {
                 boolean hasApplicantEvidence = java.util.stream.StreamSupport.stream(saved.path("criteria").spliterator(), false)
                         .anyMatch(c -> !c.path("resumeQuote").asText().isBlank());
-                boolean hasUnchecked = java.util.stream.StreamSupport.stream(saved.path("criteria").spliterator(), false)
-                        .anyMatch(c -> "CHECK".equals(c.path("assessment").asText()));
                 if (!completeEvidence || !valid(decisionReason, facts.toString())
                         || ((decision.equals("RECOMMENDED") || decision.equals("STRETCH")) && !supported)
-                        || (decision.equals("RECOMMENDED") && hasUnchecked)
                         || (decision.equals("NOT_RECOMMENDED") && !hasApplicantEvidence)) {
                     decision = "INSUFFICIENT_INFORMATION";
                     decisionReason = "판정 근거를 충분히 확인하지 못해 추가 검토가 필요합니다.";

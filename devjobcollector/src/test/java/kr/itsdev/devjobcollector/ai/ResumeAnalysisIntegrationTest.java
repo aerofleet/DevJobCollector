@@ -185,7 +185,8 @@ class ResumeAnalysisIntegrationTest {
             }
             jdbc.update("UPDATE ai_analysis_request SET result_json=? WHERE id=?", mapper.writeValueAsString(stored), id);
             var first = service.currentRecommendations("owner", id);
-            assertThat(first.path("recommendations").findValuesAsText("jobId")).containsExactly(Long.toString(approved));
+            assertThat(first.path("recommendations")).as("%s", first).hasSize(1);
+            assertThat(first.path("recommendations").get(0).path("jobId").asLong()).isEqualTo(approved);
             assertThat(first.path("aiExcludedRecommendations")).hasSize(2);
             assertThat(first.path("recommendationStatus").path("aiPendingCount").asInt()).isEqualTo(1);
             service.feedback("owner", id, rejected, "MATCHED");
