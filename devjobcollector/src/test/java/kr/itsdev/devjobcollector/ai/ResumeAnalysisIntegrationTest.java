@@ -64,24 +64,24 @@ class ResumeAnalysisIntegrationTest {
     @Test void liveRecommendationsRefillBeyondOriginalFiveWithoutChangingAnalysisOrCallingAi() {
         var ids = new java.util.ArrayList<Long>();
         try {
-            for (int i = 0; i < 7; i++) {
+            for (int i = 0; i < 10; i++) {
                 long job = seedJob(); ids.add(job);
                 jdbc.update("UPDATE job_posts SET title='Back-end Engineer',job_category='기타' WHERE id=?", job);
             }
             long id = create(UUID.randomUUID().toString(), prefs);
             String original = jdbc.queryForObject("SELECT result_json FROM ai_analysis_request WHERE id=?", String.class, id);
             var first = service.currentRecommendations("owner", id);
-            assertThat(first.path("recommendations")).hasSize(5);
+            assertThat(first.path("recommendations")).hasSize(8);
             long closed = first.path("recommendations").get(0).path("jobId").asLong();
             jdbc.update("UPDATE job_posts SET end_date=DATE_SUB(CURRENT_DATE,INTERVAL 1 DAY) WHERE id=?", closed);
             var refreshed = service.currentRecommendations("owner", id);
-            assertThat(refreshed.path("recommendations")).hasSize(5);
+            assertThat(refreshed.path("recommendations")).hasSize(8);
             assertThat(refreshed.path("recommendations").findValuesAsText("jobId")).doesNotContain(Long.toString(closed));
             assertThat(refreshed.path("recommendations").findValuesAsText("supplemented")).contains("true");
             long hidden = refreshed.path("recommendations").get(0).path("jobId").asLong();
             service.currentRecommendationFeedback("owner", id, hidden, "NOT_INTERESTED");
             var replaced = service.currentRecommendations("owner", id);
-            assertThat(replaced.path("recommendations")).hasSize(5);
+            assertThat(replaced.path("recommendations")).hasSize(8);
             assertThat(replaced.path("excludedRecommendations")).hasSize(1);
             assertThat(replaced.path("recommendations").findValuesAsText("jobId")).doesNotContain(Long.toString(hidden));
             service.currentRecommendationFeedback("owner", id, hidden, "MATCHED");
@@ -124,6 +124,31 @@ class ResumeAnalysisIntegrationTest {
         assertThat(savedInput.prepare("owner", resume).preferences().category()).containsExactly("백엔드");
         jdbc.update("UPDATE resumes SET content_json=? WHERE id=?", "{\"careerProfile\":{\"category\":[\"프론트엔드\"]}}", resume);
         assertThat(savedInput.prepare("owner", resume).preferences().category()).containsExactly("프론트엔드");
+    }
+
+    @Test void homeImmediatelyUsesSavedResumeWithoutCreatingAnAnalysisOrCallingAi() {
+        long job = seedJob();
+        try {
+            jdbc.update("UPDATE resumes SET title='백엔드 지원',content_json=? WHERE id=?", "{\"careerProfile\":{\"category\":[\"백엔드\"]},\"techStack\":[\"Java\"]}", resume);
+            var result = service.homeRecommendations("owner");
+            assertThat(result.path("inputMode").asText()).isEqualTo("HOME_RESUME");
+            assertThat(result.path("resumeId").asLong()).isEqualTo(resume);
+            assertThat(result.path("recommendations")).hasSize(1);
+            assertThat(result.has("id")).isFalse();
+            assertThat(result.has("aiReview")).isFalse();
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM ai_analysis_request WHERE user_id=?", Integer.class, user)).isZero();
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM ai_analysis_daily_usage WHERE user_id=?", Integer.class, user)).isZero();
+            assertThat(service.homeRecommendations("other").path("recommendationStatus").path("reason").asText()).isEqualTo("NO_RESUME");
+            long id = create(UUID.randomUUID().toString(), prefs);
+            assertThat(service.homeRecommendations("owner").path("id").asLong()).isEqualTo(id);
+            service.currentRecommendationFeedback("owner", id, job, "NOT_INTERESTED");
+            jdbc.update("UPDATE resumes SET content_json=?,updated_at=DATE_ADD(NOW(6),INTERVAL 1 SECOND) WHERE id=?", "{\"careerProfile\":{\"category\":[\"백엔드\"]}}", resume);
+            var changed = service.homeRecommendations("owner");
+            assertThat(changed.path("inputMode").asText()).isEqualTo("HOME_RESUME");
+            assertThat(changed.path("recommendations")).isEmpty();
+            assertThat(changed.path("excludedRecommendations")).hasSize(1);
+            verifyNoInteractions(openai);
+        } finally { jdbc.update("DELETE FROM job_posts WHERE id=?", job); }
     }
     long create(String key, LocalRecommendationEngine.Preferences p) {
         return service.create("owner",resume,key,ResumeAnalysisService.CONSENT_VERSION,p).path("id").asLong();

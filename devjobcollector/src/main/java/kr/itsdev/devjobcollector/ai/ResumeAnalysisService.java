@@ -161,8 +161,49 @@ public class ResumeAnalysisService {
         return currentRecommendationsOwned(members.requireCurrentMember(subject).getId(), id);
     }
 
+    /** Read-only home discovery: never creates analyses or consumes external AI quota. */
+    @Transactional(readOnly = true)
+    public ObjectNode homeRecommendations(String subject) {
+        long user = members.requireCurrentMember(subject).getId();
+        var resumes = jdbc.queryForList("SELECT id,title,content_json,updated_at FROM resumes WHERE user_id=? ORDER BY updated_at DESC,id DESC LIMIT 1", user);
+        if (resumes.isEmpty()) {
+            var empty = mapper.createObjectNode();
+            empty.putArray("recommendations");
+            empty.putObject("recommendationStatus").put("reason", "NO_RESUME");
+            return empty;
+        }
+        var resume = resumes.getFirst();
+        long resumeId = ((Number) resume.get("id")).longValue();
+        // Reuse AI evidence only when the resume has not changed since that analysis.
+        var analyses = jdbc.queryForList("SELECT id FROM ai_analysis_request WHERE user_id=? AND resume_id=? AND status='COMPLETED_LOCAL' AND created_at>=? ORDER BY id DESC LIMIT 1",
+                Long.class, user, resumeId, resume.get("updated_at"));
+        if (!analyses.isEmpty()) return currentRecommendationsOwned(user, analyses.getFirst());
+        JsonNode content = read(resume.get("content_json").toString());
+        var skills = new TreeSet<>(engine.skills(content));
+        var documents = ResumeEvidenceReview.savedDocuments(content);
+        var vocabulary = new ArrayList<>(jdbc.queryForList("SELECT stack_name FROM tech_stacks", String.class));
+        vocabulary.addAll(ResumeSkillVocabulary.NAMES);
+        for (var document : documents) skills.addAll(SavedResumeAnalysisInput.findSkills(document.text(), vocabulary));
+        var profile = content.path("careerProfile");
+        var categories = SavedResumeAnalysisInput.allowed(profile.path("category"), "백엔드|프론트엔드|풀스택|데이터|인공지능|모바일|보안|DevOps");
+        var preferences = new LocalRecommendationEngine.Preferences(SavedResumeAnalysisInput.careerYears(content), categories,
+                SavedResumeAnalysisInput.allowed(profile.path("location"), "서울|경기|인천|부산|대구|대전|광주|울산|세종|강원|충북|충남|전북|전남|경북|경남|제주|원격"),
+                SavedResumeAnalysisInput.allowed(profile.path("employmentType"), "정규직|계약직|인턴|프리랜서"));
+        var result = mapper.createObjectNode();
+        result.put("resumeId", resumeId);
+        result.put("inputMode", "HOME_RESUME");
+        result.set("detectedSkills", mapper.valueToTree(skills));
+        result.set("derivedPreferences", mapper.valueToTree(preferences));
+        result.putArray("recommendations");
+        return currentRecommendationsForInput(user, null, result);
+    }
+
     private ObjectNode currentRecommendationsOwned(long user, long id) {
         ObjectNode result = getOwned(user, id); // Verify ownership before any resume or job lookup.
+        return currentRecommendationsForInput(user, id, result);
+    }
+
+    private ObjectNode currentRecommendationsForInput(long user, Long id, ObjectNode result) {
         var today = LocalDate.now(ZoneId.of("Asia/Seoul"));
         var skills = new TreeSet<String>();
         result.path("detectedSkills").forEach(s -> skills.add(LocalRecommendationEngine.normalizeSkill(s.asText())));
@@ -183,7 +224,14 @@ public class ResumeAnalysisService {
         var pool = candidates(skills, preferences, today);
         var ranked = engine.rank(skills, preferences, pool, today, pool.size());
         var feedback = new HashMap<Long, String>();
-        jdbc.queryForList("SELECT job_post_id,feedback_type FROM ai_recommendation_feedback WHERE analysis_id=?", id)
+        // A preview inherits exclusions; an explicit analysis keeps its own feedback contract.
+        var feedbackRows = id == null ? jdbc.queryForList("""
+                SELECT f.job_post_id,f.feedback_type FROM ai_recommendation_feedback f
+                JOIN ai_analysis_request a ON a.id=f.analysis_id
+                WHERE a.user_id=? AND a.resume_id=? ORDER BY a.id
+                """, user, result.path("resumeId").asLong())
+                : jdbc.queryForList("SELECT job_post_id,feedback_type FROM ai_recommendation_feedback WHERE analysis_id=?", id);
+        feedbackRows
                 .forEach(row -> feedback.put(((Number) row.get("job_post_id")).longValue(), row.get("feedback_type").toString()));
         var originalIds = new HashSet<Long>();
         result.path("recommendations").forEach(j -> originalIds.add(j.path("jobId").asLong()));
@@ -213,7 +261,7 @@ public class ResumeAnalysisService {
             String value = feedback.get(recommendation.jobId());
             if (value != null) item.put("feedback", value);
             if (value != null && !"MATCHED".equals(value)) excluded.add(item);
-            else if (visible.size() < 5) { item.put("rank", visible.size() + 1); visible.add(item); }
+            else if (visible.size() < 8) { item.put("rank", visible.size() + 1); visible.add(item); }
         }
         result.set("recommendations", visible);
         result.set("excludedRecommendations", excluded);

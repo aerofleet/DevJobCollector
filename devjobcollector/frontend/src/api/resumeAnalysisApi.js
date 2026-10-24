@@ -5,6 +5,7 @@ export const getAnalysisCapabilities = async () => (await authenticatedApi.get(`
 export const listAnalyses = async () => (await authenticatedApi.get(base)).data;
 export const getAnalysis = async (id) => (await authenticatedApi.get(`${base}/${id}`)).data;
 export const getCurrentRecommendations = async (id) => (await authenticatedApi.get(`${base}/${id}/recommendations`)).data;
+export const getHomeRecommendations = async () => (await authenticatedApi.get(`${base}/home-recommendations`)).data;
 export const saveCurrentRecommendationFeedback = async (id, jobId, type) => authenticatedApi.put(`${base}/${id}/recommendations/feedback`, { jobId, type });
 export const createAnalysis = async (body, key) => (await authenticatedApi.post(base, body, {
   headers: { 'Idempotency-Key': key },

@@ -10,6 +10,16 @@
 .recommendation-controls label { display: grid; gap: 8px; min-width: 0; max-width: 100%; font-weight: 600; }
 .recommendation-controls select { padding: 10px; border: 1px solid #cfc5e5; border-radius: 8px; background: white; max-width: 100%; }
 .recommendation-caption { font-size: 13px; }
+.recommendation-settings { margin: 8px 0; font-size: 13px; }
+.recommendation-settings summary { cursor: pointer; color: #625b70; }
+.home-recommendations-member { padding: 0; background: transparent; border: 0; border-radius: 0; }
+.home-recommendations-member h2 { font-size: 24px; line-height: 1.4; }
+.home-recommendations-member .personal-job-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.home-recommendations-member .personal-job-grid article { padding: 16px; border-radius: 12px; }
+.home-recommendations-member .personal-job-grid h3 { font-size: 17px; }
+.personal-job-visual { display: grid; place-items: center; aspect-ratio: 16 / 9; margin: -16px -16px 14px; border-radius: 12px 12px 0 0; background: linear-gradient(135deg, #eeeaff, #e1f3f0); }
+.personal-job-visual span { font-size: 36px; font-weight: 750; color: #604683; }
+.personal-job-visual:hover { filter: brightness(.97); }
 .recommendation-excluded { margin: 16px 0; }
 .recommendation-excluded summary { cursor: pointer; }
 .recommendation-excluded ul { padding: 0; list-style: none; }
@@ -35,8 +45,10 @@
 .career-shortcuts nav { display: flex; flex-wrap: wrap; gap: 18px; }
 .career-shortcuts a { color: #6036b5; text-decoration: none; font-weight: 600; }
 @media (max-width: 1000px) { .personal-job-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1000px) { .home-recommendations-member .personal-job-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 768px) { .main-page > .home-recommendations, .career-shortcuts { margin-block: 12px; } }
 @media (max-width: 600px) { .main-page > .home-recommendations, .career-shortcuts { width: calc(100% - 32px); padding: 20px; } .home-recommendations { padding: 20px; } .personal-job-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 600px) { .main-page > .home-recommendations-member { padding: 0; } .home-recommendations-member .personal-job-grid { grid-template-columns: minmax(0, 1fr); } }
 
 .main-page > .home-recommendations-guest { padding: 0; background: transparent; border: 0; border-radius: 0; }
 .home-recommendations-guest h2 { margin: 0 0 20px; color: #222; font-size: 22px; font-weight: 700; line-height: 1.4; }

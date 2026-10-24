@@ -37,6 +37,7 @@ class ResumeAnalysisControllerSecurityTest {
         mvc.perform(get("/api/v1/ai/resume-analyses")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/v1/ai/resume-analyses/1")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/v1/ai/resume-analyses/1/recommendations")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/ai/resume-analyses/home-recommendations")).andExpect(status().isUnauthorized());
         mvc.perform(put("/api/v1/ai/resume-analyses/1/recommendations/feedback").contentType(MediaType.APPLICATION_JSON).content("{\"jobId\":17,\"type\":\"NOT_INTERESTED\"}"))
                 .andExpect(status().isUnauthorized());
         mvc.perform(delete("/api/v1/ai/resume-analyses/1")).andExpect(status().isUnauthorized());

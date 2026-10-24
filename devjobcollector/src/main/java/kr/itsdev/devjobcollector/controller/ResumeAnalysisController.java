@@ -58,6 +58,10 @@ public class ResumeAnalysisController {
     public ResponseEntity<ObjectNode> get(@AuthenticationPrincipal String subject, @PathVariable long id) {
         return noStore(service.get(subject, id));
     }
+    @GetMapping("/home-recommendations")
+    public ResponseEntity<ObjectNode> homeRecommendations(@AuthenticationPrincipal String subject) {
+        return noStore(service.homeRecommendations(subject));
+    }
     @GetMapping("/{id}/explanation")
     public ResponseEntity<ObjectNode> explanation(@AuthenticationPrincipal String subject, @PathVariable long id) {
         return noStore(explanations.get(subject, id));

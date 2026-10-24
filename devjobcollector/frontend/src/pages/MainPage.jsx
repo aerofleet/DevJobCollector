@@ -147,6 +147,7 @@ const MainPage = ({ onSearch }) => {
         <strong>{token ? '다음 커리어를 준비해볼까요?' : '내 경험에서 다음 기회를 찾아보세요.'}</strong>
         <nav><Link to="/resumes">이력서 관리</Link><Link to="/my-devjobs">저장·지원 현황</Link><Link to="/resume-analysis">AI 커리어 코칭</Link></nav>
       </aside>
+      {token && <HomeRecommendations />}
       <section className="discovery-section" aria-labelledby="discovery-title">
         <div className="section-heading" data-motion-reveal="">
           <div>
@@ -174,7 +175,7 @@ const MainPage = ({ onSearch }) => {
         </div>
       </section>
 
-      <HomeRecommendations />
+      {!token && <HomeRecommendations />}
       <section className="positions-section" id="positions" aria-labelledby="positions-title">
         <div className="section-heading positions-heading" data-motion-reveal="">
           <div>

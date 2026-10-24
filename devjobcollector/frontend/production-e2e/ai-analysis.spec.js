@@ -93,6 +93,7 @@ test('운영 합성 이력서·첨부 기반 AI 내용 분석·근거 검증·�
     expect((await cached.json()).findings).toEqual(review.findings);
     await page.goto('/');
     const recommendations = page.getByRole('region', { name: '내 이력서로 찾는 추천 포지션' });
+    await recommendations.getByText('추천 기준 변경', { exact: true }).click();
     await recommendations.getByLabel('추천 기준 이력서').selectOption(String(analysisId));
     await expect(recommendations.locator('.personal-job-grid article').first()).toBeVisible();
     await expect(recommendations.getByRole('link', { name: '저장된 분석과 AI 코칭 확인' }))

@@ -7,7 +7,7 @@ const result = id => ({ id, resumeId: 11, createdAt: '2026-10-24', detectedSkill
   review: { findings: [], observations: {}, score: {} },
   aiReview: id === 8 ? { status: 'COMPLETED', findings: [], strengths: [], gaps: [], jobs: [{ jobId: 17, relevance: 'RELATED', lead_with: 'API 운영 경험을 앞세우세요.', gap: '담당 범위를 확인하세요.', criteria: [] }] } : null });
 
-async function mock(page, { loggedIn = true, empty = false, fail = false, reason = null, supplemented = false } = {}) {
+async function mock(page, { loggedIn = true, empty = false, fail = false, reason = null, supplemented = false, preview = false } = {}) {
   if (loggedIn) await page.addInitScript(value => localStorage.setItem('accessToken', value), token);
   const state = { hidden: false, fail, privateCalls: 0, writes: 0 };
   await page.route('**/api/v1/**', route => {
@@ -18,16 +18,19 @@ async function mock(page, { loggedIn = true, empty = false, fail = false, reason
     if (path.endsWith('/capabilities')) return route.fulfill({ json: { contentReviewAvailable: true, consentVersion: 'local-analysis-v3', dailyLimit: 5 } });
     if (path.endsWith('/resume-analyses')) {
       if (state.fail) return route.fulfill({ status: 500, json: {} });
-      return route.fulfill({ json: empty ? [] : history });
+      return route.fulfill({ json: empty || preview ? [] : history });
     }
     if (/\/resume-analyses\/\d+$/.test(path)) return route.fulfill({ json: { ...result(Number(path.split('/').pop())), recommendations: state.hidden ? [] : [job] } });
-    if (path.endsWith('/recommendations')) return route.fulfill({ json: {
-      ...result(Number(path.split('/').at(-2))),
-      recommendations: state.hidden || reason ? [] : [{ ...job, supplemented }],
+    if (path.endsWith('/recommendations') || path.endsWith('/home-recommendations')) {
+      if (empty) return route.fulfill({ json: { recommendations: [], recommendationStatus: { reason: 'NO_RESUME' } } });
+      const analysisId = path.endsWith('/home-recommendations') ? 8 : Number(path.split('/').at(-2));
+      return route.fulfill({ json: {
+      ...result(analysisId), ...(preview ? { id: undefined, inputMode: 'HOME_RESUME' } : {}),
+      recommendations: state.hidden || reason ? [] : preview ? Array.from({ length: 8 }, (_, index) => ({ ...job, jobId: 17 + index, supplemented: true })) : [{ ...job, supplemented }],
       excludedRecommendations: state.hidden ? [job] : [],
-      aiReview: supplemented ? null : result(Number(path.split('/').at(-2))).aiReview,
+      aiReview: supplemented || preview ? null : result(analysisId).aiReview,
       recommendationStatus: { reason: reason || (state.hidden ? 'ALL_EXCLUDED' : 'AVAILABLE'), roleSource: 'RESUME_TITLE', categories: ['백엔드'] },
-    } });
+    } }); }
     if (path.endsWith('/recommendations/feedback')) {
       expect(req.postDataJSON().jobId).toBe(17);
       state.hidden = req.postDataJSON().type !== 'MATCHED';
@@ -57,6 +60,7 @@ test('추천 근거·이력서 전환·제외 저장·모바일 배치', async (
   expect(state.writes).toBe(0);
   await expect(section.getByText('마감 2026-12-31')).toBeVisible();
   await expect(section.getByRole('link', { name: '추천 근거 보기' })).toHaveAttribute('href', '/resume-analysis?analysisId=8');
+  await section.getByText('추천 기준 변경', { exact: true }).click();
   await section.getByLabel('추천 기준 이력서').selectOption('7');
   await expect(section.getByText('기술·경력 기반', { exact: true })).toBeVisible();
   await expect(section.getByText('AI 검토', { exact: true })).toHaveCount(0);
@@ -98,8 +102,24 @@ test('조회 오류 재시도와 분석 없는 회원 안내', async ({ page }) 
   await expect(page.getByRole('alert')).toContainText('추천을 불러오지 못했어요');
   state.fail = false;
   await page.getByRole('button', { name: '다시 시도', exact: true }).click();
-  await expect(page.getByRole('link', { name: '이력서 선택하고 추천받기' })).toBeVisible();
+  await expect(page.getByRole('link', { name: '이력서 작성하고 추천받기' })).toBeVisible();
   expect(state.writes).toBe(0);
+});
+
+test('로그인 후 분석 없이 이름과 저장 이력서 추천이 테마보다 먼저 표시된다', async ({ page }) => {
+  const state = await mock(page, { preview: true, supplemented: true });
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: '테스트님을 위한 맞춤 추천!' })).toBeVisible();
+  const section = page.getByRole('region', { name: '내 이력서로 찾는 추천 포지션' });
+  await expect(section.getByRole('link', { name: '공고 자세히 보기' }).first()).toBeVisible();
+  await expect(section.locator('.personal-job-grid article')).toHaveCount(8);
+  await expect(section.getByRole('link', { name: '이 이력서로 AI 코칭 받기' })).toHaveAttribute('href', '/resume-analysis?resumeId=11');
+  await expect(section.getByText('AI 검토', { exact: true })).toHaveCount(0);
+  await expect(section.getByRole('button', { name: /추천 제외/ })).toHaveCount(0);
+  expect(await section.evaluate(node => Boolean(node.compareDocumentPosition(document.querySelector('.discovery-section')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+  expect(state.writes).toBe(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: `.codex/home-immediate-${test.info().project.name}.png`, fullPage: true });
 });
 
 test('추천 링크는 선택한 저장 분석을 직접 연다', async ({ page }) => {
