@@ -224,13 +224,12 @@ public class ResumeAnalysisService {
         var pool = candidates(skills, preferences, today);
         var ranked = engine.rank(skills, preferences, pool, today, pool.size());
         var feedback = new HashMap<Long, String>();
-        // A preview inherits exclusions; an explicit analysis keeps its own feedback contract.
-        var feedbackRows = id == null ? jdbc.queryForList("""
+        // The latest feedback for this member/resume wins, including feedback on older analyses.
+        var feedbackRows = jdbc.queryForList("""
                 SELECT f.job_post_id,f.feedback_type FROM ai_recommendation_feedback f
                 JOIN ai_analysis_request a ON a.id=f.analysis_id
-                WHERE a.user_id=? AND a.resume_id=? ORDER BY a.id
-                """, user, result.path("resumeId").asLong())
-                : jdbc.queryForList("SELECT job_post_id,feedback_type FROM ai_recommendation_feedback WHERE analysis_id=?", id);
+                WHERE a.user_id=? AND a.resume_id=? ORDER BY f.updated_at,a.id
+                """, user, result.path("resumeId").asLong());
         feedbackRows
                 .forEach(row -> feedback.put(((Number) row.get("job_post_id")).longValue(), row.get("feedback_type").toString()));
         var originalIds = new HashSet<Long>();
@@ -239,14 +238,19 @@ public class ResumeAnalysisService {
         var excluded = mapper.createArrayNode();
         // Read metadata in one query, independent of candidate count.
         var metadata = new HashMap<Long, Map<String, Object>>();
+        var stacks = new HashMap<Long, List<Map<String, Object>>>();
         if (!ranked.isEmpty()) {
             var ids = ranked.stream().map(LocalRecommendationEngine.Recommendation::jobId).toList();
             var args = new ArrayList<Object>(ids);
             args.add(today);
-            jdbc.queryForList("SELECT id,title,company_name,location,experience,end_date FROM job_posts WHERE id IN ("
+            jdbc.queryForList("SELECT id,title,company_name,location,experience,end_date,hire_type,source_platform FROM job_posts WHERE id IN ("
                     + String.join(",", Collections.nCopies(ids.size(), "?"))
                     + ") AND is_active=1 AND moderation_status='ACTIVE' AND (end_date IS NULL OR end_date>=?)", args.toArray())
                     .forEach(row -> metadata.put(((Number) row.get("id")).longValue(), row));
+            jdbc.queryForList("SELECT p.job_post_id,t.id,t.stack_name FROM post_tags p JOIN tech_stacks t ON t.id=p.tech_stack_id WHERE p.job_post_id IN ("
+                    + String.join(",", Collections.nCopies(ids.size(), "?")) + ") ORDER BY t.stack_name", ids.toArray())
+                    .forEach(row -> stacks.computeIfAbsent(((Number) row.get("job_post_id")).longValue(), key -> new ArrayList<>())
+                            .add(Map.of("id", row.get("id"), "stackName", row.get("stack_name"))));
         }
         for (var recommendation : ranked) {
             var job = metadata.get(recommendation.jobId());
@@ -257,6 +261,9 @@ public class ResumeAnalysisService {
             item.put("location", Objects.toString(job.get("location"), ""));
             item.put("experience", Objects.toString(job.get("experience"), ""));
             item.put("endDate", Objects.toString(job.get("end_date"), ""));
+            item.put("hireType", Objects.toString(job.get("hire_type"), ""));
+            item.put("sourcePlatform", Objects.toString(job.get("source_platform"), ""));
+            item.set("techStacks", mapper.valueToTree(stacks.getOrDefault(recommendation.jobId(), List.of())));
             item.put("supplemented", !originalIds.contains(recommendation.jobId()));
             String value = feedback.get(recommendation.jobId());
             if (value != null) item.put("feedback", value);
@@ -306,7 +313,7 @@ public class ResumeAnalysisService {
         if (!found) throw failure(HttpStatus.NOT_FOUND, "RECOMMENDATION_NOT_FOUND");
         jdbc.update("""
                 INSERT INTO ai_recommendation_feedback(analysis_id,job_post_id,feedback_type) VALUES(?,?,?)
-                ON DUPLICATE KEY UPDATE feedback_type=VALUES(feedback_type)
+                ON DUPLICATE KEY UPDATE feedback_type=VALUES(feedback_type),updated_at=CURRENT_TIMESTAMP(6)
                 """, id, jobId, type);
     }
 
@@ -351,7 +358,7 @@ public class ResumeAnalysisService {
         if (!found) throw failure(HttpStatus.NOT_FOUND, "RECOMMENDATION_NOT_FOUND");
         jdbc.update("""
                 INSERT INTO ai_recommendation_feedback(analysis_id,job_post_id,feedback_type) VALUES(?,?,?)
-                ON DUPLICATE KEY UPDATE feedback_type=VALUES(feedback_type)
+                ON DUPLICATE KEY UPDATE feedback_type=VALUES(feedback_type),updated_at=CURRENT_TIMESTAMP(6)
                 """, id, jobId, type);
     }
 

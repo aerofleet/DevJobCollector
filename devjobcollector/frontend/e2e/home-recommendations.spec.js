@@ -56,15 +56,20 @@ test('추천 근거·이력서 전환·제외 저장·모바일 배치', async (
   const state = await mock(page);
   await page.goto('/');
   const section = page.getByRole('region', { name: '내 이력서로 찾는 추천 포지션' });
+  await section.getByText('추천 근거 보기', { exact: true }).click();
   await expect(section.getByText('API 운영 경험을 앞세우세요.')).toBeVisible();
   expect(state.writes).toBe(0);
-  await expect(section.getByText('마감 2026-12-31')).toBeVisible();
-  await expect(section.getByRole('link', { name: '추천 근거 보기' })).toHaveAttribute('href', '/resume-analysis?analysisId=8');
+  await expect(section.getByText('마감일: 2026.12.31')).toBeVisible();
+  await expect(section.locator('.job-card')).toHaveAttribute('href', '/job/17');
+  await expect(section.getByRole('link', { name: '이력서 분석 · AI 코칭' })).toHaveCount(0);
+  await expect(section.getByRole('link', { name: '현재 이력서로 새로 분석 →' })).toHaveCount(0);
   await section.getByText('추천 기준 변경', { exact: true }).click();
   await section.getByLabel('추천 기준 이력서').selectOption('7');
+  await section.getByText('추천 근거 보기', { exact: true }).click();
   await expect(section.getByText('기술·경력 기반', { exact: true })).toBeVisible();
   await expect(section.getByText('AI 검토', { exact: true })).toHaveCount(0);
   await section.getByLabel('추천 기준 이력서').selectOption('8');
+  await section.getByText('추천 근거 보기', { exact: true }).click();
   await expect(section.getByText('API 운영 경험을 앞세우세요.')).toBeVisible();
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: `.codex/recommendations-${test.info().project.name}.png`, fullPage: true });
@@ -83,7 +88,9 @@ test('보충 공고는 AI 검토로 표시하지 않고 공고로 직접 연결�
   await mock(page, { supplemented: true });
   await page.goto('/');
   const section = page.getByRole('region', { name: '내 이력서로 찾는 추천 포지션' });
-  await expect(section.getByRole('link', { name: '공고 자세히 보기' })).toHaveAttribute('href', '/job/17');
+  await expect(section.locator('.job-card')).toHaveAttribute('href', '/job/17');
+  await section.getByText('추천 근거 보기', { exact: true }).click();
+  await expect(section.getByText('일치 조건: Java, Spring Boot')).toBeVisible();
   await expect(section.getByText('AI 검토', { exact: true })).toHaveCount(0);
   await expect(section.getByRole('link', { name: '추천 기준 이력서 확인' })).toHaveAttribute('href', '/resume?resumeId=11');
 });
@@ -111,7 +118,7 @@ test('로그인 후 분석 없이 이름과 저장 이력서 추천이 테마보
   await page.goto('/');
   await expect(page.getByRole('heading', { name: '테스트님을 위한 맞춤 추천!' })).toBeVisible();
   const section = page.getByRole('region', { name: '내 이력서로 찾는 추천 포지션' });
-  await expect(section.getByRole('link', { name: '공고 자세히 보기' }).first()).toBeVisible();
+  await expect(section.locator('.job-card').first()).toBeVisible();
   await expect(section.locator('.personal-job-grid article')).toHaveCount(8);
   await expect(section.getByRole('link', { name: '이 이력서로 AI 코칭 받기' })).toHaveAttribute('href', '/resume-analysis?resumeId=11');
   await expect(section.getByText('AI 검토', { exact: true })).toHaveCount(0);
@@ -128,4 +135,14 @@ test('추천 링크는 선택한 저장 분석을 직접 연다', async ({ page 
   await expect(page.getByRole('heading', { name: '맞춤 공고 + 공고별 어필법' })).toBeVisible();
   await expect(page.getByRole('link', { name: '백엔드 엔지니어', exact: true })).toBeVisible();
   expect(state.writes).toBe(0);
+});
+
+test('상시채용 마감일은 공통 카드 형식으로 표시한다', async ({ page }) => {
+  await mock(page);
+  await page.route('**/home-recommendations', route => route.fulfill({ json: { ...result(8), recommendations: [{ ...job, endDate: '9999-12-31' }] } }));
+  await page.goto('/');
+  const card = page.locator('.personal-job-grid .job-card');
+  await expect(card.getByText('채용시마감', { exact: true })).toBeVisible();
+  await expect(card.getByText('마감일: 채용 시 마감', { exact: true })).toBeVisible();
+  await expect(card).not.toContainText('9999');
 });

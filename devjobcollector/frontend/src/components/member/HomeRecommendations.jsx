@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { useMemberSession } from '../../contexts/memberSession';
 import { getHomeRecommendations, getCurrentRecommendations, listAnalyses, saveCurrentRecommendationFeedback } from '../../api/resumeAnalysisApi';
-import { getCompanyInitials } from '../../utils/companyLogo';
+import JobCard from '../job/JobCard';
 import './HomeRecommendations.css';
 
 export default function HomeRecommendations() {
@@ -17,8 +17,7 @@ export default function HomeRecommendations() {
     </Link>
   </section>;
   return <section className="home-recommendations home-recommendations-member" aria-label="내 이력서로 찾는 추천 포지션">
-    <header><h2 id="personal-positions-title">{member?.name || '회원'}님을 위한 맞춤 추천!</h2>
-      <Link to="/resume-analysis">이력서 분석 · AI 코칭 <ArrowRight size={16} /></Link></header>
+    <header><h2 id="personal-positions-title">{member?.name || '회원'}님을 위한 맞춤 추천!</h2></header>
     <SavedRecommendations key={token} />
   </section>;
 }
@@ -79,7 +78,7 @@ function SavedRecommendations() {
       <select value={selected} disabled={loading || pending !== null} onChange={event => setSelected(event.target.value)}>
         <option value="">자동 추천 · 최근 저장 이력서</option>
         {history.map(item => <option key={item.id} value={String(item.id)}>{item.resumeTitle} · {item.createdAt?.slice(0, 10)}</option>)}
-      </select></label><Link to="/resume-analysis">현재 이력서로 새로 분석 →</Link></div></details>}
+      </select></label></div></details>}
     {loading ? <p role="status">이력서 추천을 불러오는 중이에요.</p> : error ? <div role="alert"><p>{error}</p>
       <button onClick={() => setAttempt(value => value + 1)}>다시 시도</button> <Link to="/resume-analysis">이력서 분석 열기</Link></div>
       : !result || result.recommendationStatus?.reason === 'NO_RESUME' ? <div className="recommendation-empty"><h3>첫 추천을 받아보세요.</h3><p>이력서에 희망 직무와 기술을 저장하면 맞춤 공고가 바로 표시돼요.</p>
@@ -90,15 +89,16 @@ function SavedRecommendations() {
             {' '}<Link to={`/resume?resumeId=${result.resumeId}`}>추천 기준 이력서 확인</Link></p>
           {jobs.length ? <div className="personal-job-grid">{jobs.map(job => {
             const review = reviews.find(item => item.jobId === job.jobId);
-            return <article key={job.jobId}>
-              <Link className="personal-job-visual" to={`/job/${job.jobId}`} aria-label={`${job.companyName} ${job.title} 공고 보기`}><span aria-hidden="true">{getCompanyInitials(job.companyName)}</span></Link>
-              <div className="personal-job-top"><span>{review ? 'AI 검토' : '기술·경력 기반'}</span><small>{job.endDate ? `마감 ${job.endDate.slice(0, 10)}` : '마감일 확인'}</small></div>
-              <p>{job.companyName}</p><h3><Link to={`/job/${job.jobId}`}>{job.title}</Link></h3>
-              <p>{job.location || '지역 확인'} · {job.experience || '경력 조건 확인'}</p>
-              <div className="personal-job-tags">{(job.matchPoints || []).slice(0, 3).map((point, index) => <span key={index}>{point}</span>)}</div>
-              {review && <div className="personal-job-reason"><strong>{({ RELATED: '연결되는 경험 있음', REVIEW_NEEDED: '지원 전 추가 확인', LOW_RELEVANCE: '관련성 낮음' })[review.relevance] || '공고 요건 확인'}</strong>
-                {review.lead_with && <p>{review.lead_with}</p>}{review.gap && <p>확인할 점: {review.gap}</p>}</div>}
-              <footer><Link to={job.supplemented ? `/job/${job.jobId}` : analysisLink}>{job.supplemented ? '공고 자세히 보기' : '추천 근거 보기'}</Link>{result.id && <button disabled={pending !== null} onClick={() => feedback(job, 'NOT_INTERESTED')} aria-label={`${job.title} 추천 제외`}>{pending === job.jobId ? '처리 중…' : '관심 없음'}</button>}</footer>
+            return <article key={job.jobId} className="recommended-job">
+              <JobCard job={{ ...job, id: job.jobId }} />
+              <details className="personal-job-reason"><summary>추천 근거 보기</summary>
+                <strong>{review ? 'AI 검토' : '기술·경력 기반'}</strong>
+                <p>{job.matchPoints?.length ? `일치 조건: ${job.matchPoints.join(', ')}` : '이력서의 희망 직무와 연결되는 공고예요.'}</p>
+                {job.missingPoints?.length > 0 && <p>추가 확인: {job.missingPoints.join(', ')}</p>}
+                {review && <><strong>{({ RELATED: '연결되는 경험 있음', REVIEW_NEEDED: '지원 전 추가 확인', LOW_RELEVANCE: '관련성 낮음' })[review.relevance] || '공고 요건 확인'}</strong>
+                  {review.lead_with && <p>{review.lead_with}</p>}{review.gap && <p>확인할 점: {review.gap}</p>}</>}
+              </details>
+              {result.id && <footer><button disabled={pending !== null} onClick={() => feedback(job, 'NOT_INTERESTED')} aria-label={`${job.title} 추천 제외`}>{pending === job.jobId ? '처리 중…' : '관심 없음'}</button></footer>}
             </article>;
           })}</div> : <div className="recommendation-empty"><h3>현재 표시할 추천 공고가 없어요.</h3><p>{emptyMessage}</p><Link to="/jobs">전체 채용공고 보기 →</Link></div>}
           {result.id && result.excludedRecommendations?.length > 0 && <details className="recommendation-excluded"><summary>제외한 공고 {result.excludedRecommendations.length}개</summary>

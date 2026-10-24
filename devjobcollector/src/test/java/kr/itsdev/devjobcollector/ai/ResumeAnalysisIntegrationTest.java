@@ -150,6 +150,23 @@ class ResumeAnalysisIntegrationTest {
             verifyNoInteractions(openai);
         } finally { jdbc.update("DELETE FROM job_posts WHERE id=?", job); }
     }
+    @Test void latestFeedbackFollowsResumeAcrossAnalysesAndOlderAnalysisCanRestoreIt() {
+        long job = seedJob();
+        try {
+            long first = create(UUID.randomUUID().toString(), prefs);
+            service.currentRecommendationFeedback("owner", first, job, "NOT_INTERESTED");
+            long second = create(UUID.randomUUID().toString(), prefs);
+            assertThat(service.currentRecommendations("owner", second).path("recommendations")).isEmpty();
+            service.currentRecommendationFeedback("owner", second, job, "MATCHED");
+            assertThat(service.currentRecommendations("owner", first).path("recommendations")).hasSize(1);
+            service.feedback("owner", first, job, "SKILL_MISMATCH");
+            assertThat(service.currentRecommendations("owner", second).path("recommendations")).isEmpty();
+            service.currentRecommendationFeedback("owner", first, job, "MATCHED");
+            assertThat(service.currentRecommendations("owner", second).path("recommendations")).hasSize(1);
+            verifyNoInteractions(openai);
+        } finally { jdbc.update("DELETE FROM job_posts WHERE id=?", job); }
+    }
+
     long create(String key, LocalRecommendationEngine.Preferences p) {
         return service.create("owner",resume,key,ResumeAnalysisService.CONSENT_VERSION,p).path("id").asLong();
     }

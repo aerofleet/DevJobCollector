@@ -2,10 +2,10 @@
 .main-page > .home-recommendations { width: min(1180px, calc(100% - 64px)); margin: 16px auto; box-sizing: border-box; }
 .home-recommendations header, .recommendation-controls, .personal-job-top, .personal-job-grid footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
 .home-recommendations h2 { font-size: clamp(22px, 3vw, 30px); margin: 10px 0; }
-.home-recommendations a { color: #6036b5; font-weight: 650; text-decoration: none; }
-.home-recommendations a:hover { text-decoration: underline; }
+.home-recommendations a:not(.job-card) { color: #6036b5; font-weight: 650; text-decoration: none; }
+.home-recommendations a:not(.job-card):hover { text-decoration: underline; }
 .home-recommendations header > a, .recommendation-all { display: inline-flex; gap: 8px; align-items: center; }
-.home-recommendations p { color: #625b70; line-height: 1.65; overflow-wrap: anywhere; }
+.home-recommendations p:not([class^="job-"]) { color: #625b70; line-height: 1.65; overflow-wrap: anywhere; }
 .recommendation-controls { margin: 24px 0 12px; }
 .recommendation-controls label { display: grid; gap: 8px; min-width: 0; max-width: 100%; font-weight: 600; }
 .recommendation-controls select { padding: 10px; border: 1px solid #cfc5e5; border-radius: 8px; background: white; max-width: 100%; }
@@ -15,11 +15,6 @@
 .home-recommendations-member { padding: 0; background: transparent; border: 0; border-radius: 0; }
 .home-recommendations-member h2 { font-size: 24px; line-height: 1.4; }
 .home-recommendations-member .personal-job-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.home-recommendations-member .personal-job-grid article { padding: 16px; border-radius: 12px; }
-.home-recommendations-member .personal-job-grid h3 { font-size: 17px; }
-.personal-job-visual { display: grid; place-items: center; aspect-ratio: 16 / 9; margin: -16px -16px 14px; border-radius: 12px 12px 0 0; background: linear-gradient(135deg, #eeeaff, #e1f3f0); }
-.personal-job-visual span { font-size: 36px; font-weight: 750; color: #604683; }
-.personal-job-visual:hover { filter: brightness(.97); }
 .recommendation-excluded { margin: 16px 0; }
 .recommendation-excluded summary { cursor: pointer; }
 .recommendation-excluded ul { padding: 0; list-style: none; }
@@ -27,13 +22,7 @@
 .recommendation-excluded li a { min-width: 0; overflow-wrap: anywhere; }
 .recommendation-excluded button { flex-shrink: 0; }
 .personal-job-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 20px 0; }
-.personal-job-grid article { background: white; padding: 22px; border: 1px solid #e4dfed; border-radius: 16px; display: flex; flex-direction: column; min-width: 0; }
-.personal-job-grid h3 { font-size: 19px; margin: 8px 0; overflow-wrap: anywhere; }
-.personal-job-grid h3 a { color: #272032; }
-.personal-job-grid p { font-size: 14px; margin: 8px 0; }
 .personal-job-top { font-size: 12px; color: #6e4da8; }
-.personal-job-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
-.personal-job-tags span { border-radius: 6px; padding: 4px 7px; background: #f2eef9; color: #604683; font-size: 12px; overflow-wrap: anywhere; }
 .personal-job-reason { border-top: 1px solid #eee9f4; padding-top: 12px; margin: 10px 0; font-size: 14px; }
 .personal-job-grid footer { margin-top: auto; padding-top: 16px; font-size: 13px; }
 .home-recommendations button { border: 1px solid #d7cde7; background: white; color: #5b427c; padding: 9px 12px; border-radius: 8px; cursor: pointer; }
@@ -63,3 +52,8 @@
   .recommendation-login-message { gap: 12px; font-size: 15px; }
   .recommendation-login-action { align-self: flex-end; }
 }
+
+.personal-job-grid .recommended-job { display: flex; flex-direction: column; min-width: 0; }
+.personal-job-grid .job-card { flex: 1; height: auto; color: inherit; text-decoration: none; }
+.personal-job-reason summary { cursor: pointer; color: #6036b5; font-weight: 650; }
+.personal-job-grid footer { padding-top: 8px; }
