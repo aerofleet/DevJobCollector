@@ -4,12 +4,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 import java.util.Set;
 import kr.itsdev.devjobcollector.admin.AdminAuditLogRepository;
+import kr.itsdev.devjobcollector.admin.AdminIdempotencyKey;
+import kr.itsdev.devjobcollector.admin.AdminIdempotencyKeyRepository;
 import kr.itsdev.devjobcollector.admin.AdminRole;
 import kr.itsdev.devjobcollector.admin.auth.AdminPrincipal;
 import kr.itsdev.devjobcollector.company.Company;
@@ -28,10 +31,12 @@ import org.springframework.web.server.ResponseStatusException;
 
 @ExtendWith(MockitoExtension.class)
 class AdminCompanyReviewServiceTest {
+    private static final String KEY = "550e8400-e29b-41d4-a716-446655440000";
     @Mock CompanyRepository companies;
     @Mock CompanyVerificationRequestRepository requests;
     @Mock AdminCompanyService views;
     @Mock AdminAuditLogRepository audit;
+    @Mock AdminIdempotencyKeyRepository idempotencyKeys;
     @Mock CompanyEvidenceService evidenceService;
     @Mock Company company;
     @Mock CompanyVerificationRequest request;
@@ -39,7 +44,8 @@ class AdminCompanyReviewServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new AdminCompanyReviewService(companies, requests, views, audit, evidenceService);
+        service = new AdminCompanyReviewService(companies, requests, views, audit,
+                idempotencyKeys, evidenceService);
     }
 
     @Test
@@ -48,11 +54,12 @@ class AdminCompanyReviewServiceTest {
         when(evidenceService.readForAdminCompany(7L, 9L))
                 .thenReturn(new CompanyEvidenceService.Evidence("image/png", new byte[] {1}));
 
-        service.review(7L, 9L, true, null, admin(), "request-id", "127.0.0.1", "test");
+        service.review(7L, 9L, true, null, KEY, admin(), "request-id", "127.0.0.1", "test");
 
         verify(request).approveByAdmin(eq(1L), any());
         verify(company).changeStatus(CompanyStatus.VERIFIED);
         verify(audit).save(any());
+        verify(idempotencyKeys).save(any());
     }
 
     @Test
@@ -61,7 +68,7 @@ class AdminCompanyReviewServiceTest {
         when(evidenceService.readForAdminCompany(7L, 9L))
                 .thenThrow(new ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND));
 
-        assertThatThrownBy(() -> service.review(7L, 9L, true, null,
+        assertThatThrownBy(() -> service.review(7L, 9L, true, null, KEY,
                 admin(), "request-id", "127.0.0.1", "test"))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("VERIFICATION_EVIDENCE_MISSING");
@@ -71,7 +78,7 @@ class AdminCompanyReviewServiceTest {
 
     @Test
     void rejectionRequiresReason() {
-        assertThatThrownBy(() -> service.review(7L, 9L, false, " ",
+        assertThatThrownBy(() -> service.review(7L, 9L, false, " ", KEY,
                 admin(), "request-id", "127.0.0.1", "test"))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("INVALID_REJECTION_REASON");
@@ -83,11 +90,47 @@ class AdminCompanyReviewServiceTest {
         when(requests.findByIdForUpdate(9L)).thenReturn(Optional.of(request));
         when(request.getCompany()).thenReturn(company);
         when(company.getId()).thenReturn(8L);
-        assertThatThrownBy(() -> service.review(7L, 9L, true, null,
+        assertThatThrownBy(() -> service.review(7L, 9L, true, null, KEY,
                 admin(), "request-id", "127.0.0.1", "test"))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("VERIFICATION_REQUEST_NOT_FOUND");
         verify(audit, never()).save(any());
+    }
+
+    @Test
+    void returnsExistingResultForSameReviewRetryWithoutDuplicatingWrites() {
+        when(companies.findByIdForUpdate(7L)).thenReturn(Optional.of(company));
+        when(requests.findByIdForUpdate(9L)).thenReturn(Optional.of(request));
+        when(request.getCompany()).thenReturn(company);
+        when(company.getId()).thenReturn(7L);
+        AdminIdempotencyKey previous = org.mockito.Mockito.mock(AdminIdempotencyKey.class);
+        when(idempotencyKeys.findForUpdate(1L, KEY)).thenReturn(Optional.of(previous));
+        when(previous.matches(any())).thenReturn(true);
+
+        service.review(7L, 9L, true, null, KEY, admin(),
+                "retry-request", "127.0.0.1", "test");
+
+        verify(views).detail(7L);
+        verify(request, never()).approveByAdmin(any(), any());
+        verify(company, never()).changeStatus(any());
+        verify(audit, never()).save(any());
+    }
+
+    @Test
+    void rejectsReusingReviewKeyForDifferentOutcome() {
+        when(companies.findByIdForUpdate(7L)).thenReturn(Optional.of(company));
+        when(requests.findByIdForUpdate(9L)).thenReturn(Optional.of(request));
+        when(request.getCompany()).thenReturn(company);
+        when(company.getId()).thenReturn(7L);
+        AdminIdempotencyKey previous = org.mockito.Mockito.mock(AdminIdempotencyKey.class);
+        when(idempotencyKeys.findForUpdate(1L, KEY)).thenReturn(Optional.of(previous));
+        when(previous.matches(any())).thenReturn(false);
+
+        assertThatThrownBy(() -> service.review(7L, 9L, false, "다른 결과", KEY,
+                admin(), "request-id", "127.0.0.1", "test"))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("IDEMPOTENCY_KEY_REUSED");
+        verify(audit, times(0)).save(any());
     }
 
     private void pendingFixture() {

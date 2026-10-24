@@ -65,6 +65,7 @@ SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=0 \
     --tests kr.itsdev.devjobcollector.admin.jobs.AdminJobIntegrationTest \
     --tests kr.itsdev.devjobcollector.admin.AdminReadIntegrationTest \
     --tests kr.itsdev.devjobcollector.admin.accounts.AdminAccountManagementIntegrationTest \
+    --tests kr.itsdev.devjobcollector.admin.companies.AdminCompanyReviewIntegrationTest \
     --tests kr.itsdev.devjobcollector.migration.MemberV3AuditTest \
     --tests kr.itsdev.devjobcollector.security.account.MemberFoundationRepositoryTest \
     --tests kr.itsdev.devjobcollector.security.signup.PersonalSignupTransactionIntegrationTest \

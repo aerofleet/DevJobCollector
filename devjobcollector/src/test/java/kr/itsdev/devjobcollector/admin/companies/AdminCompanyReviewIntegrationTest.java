@@ -1,6 +1,7 @@
 package kr.itsdev.devjobcollector.admin.companies;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Set;
 import kr.itsdev.devjobcollector.admin.AdminRole;
@@ -9,6 +10,7 @@ import kr.itsdev.devjobcollector.company.CompanyEvidenceService;
 import kr.itsdev.devjobcollector.company.CompanyVerificationService;
 import kr.itsdev.devjobcollector.config.QuerydslConfig;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +21,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 @DataJpaTest(properties = {"spring.jpa.hibernate.ddl-auto=validate", "spring.flyway.enabled=true"})
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
@@ -26,6 +30,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 @Import({QuerydslConfig.class, AdminCompanyService.class, AdminCompanyReviewService.class,
         CompanyEvidenceService.class})
 class AdminCompanyReviewIntegrationTest {
+    private static final String KEY = "550e8400-e29b-41d4-a716-446655440000";
     @Autowired JdbcTemplate jdbc;
     @Autowired AdminCompanyReviewService service;
     @MockitoBean CompanyVerificationService verificationService;
@@ -59,17 +64,50 @@ class AdminCompanyReviewIntegrationTest {
                 "%PDF-1.4\n%%EOF".getBytes(java.nio.charset.StandardCharsets.US_ASCII));
     }
 
+    @AfterEach
+    void cleanup() {
+        jdbc.update("DELETE FROM admin_idempotency_keys WHERE admin_id = 9944");
+        jdbc.update("DELETE FROM admin_audit_logs WHERE actor_admin_id = 9944");
+        jdbc.update("DELETE FROM company_verification_evidence WHERE request_id = 9944");
+        jdbc.update("DELETE FROM company_verification_requests WHERE id = 9944");
+        jdbc.update("DELETE FROM companies WHERE id = 9944");
+        jdbc.update("DELETE FROM admin_accounts WHERE id = 9944");
+        jdbc.update("DELETE FROM users WHERE id = 9944");
+    }
+
     @Test
     void approvalPersistsReviewerAndAuditAtomically() {
-        var detail = service.review(9944L, 9944L, true, null, principal(),
+        var detail = service.review(9944L, 9944L, true, null, KEY, principal(),
                 "review-request", "127.0.0.1", "integration-test");
+        var retried = service.review(9944L, 9944L, true, null, KEY, principal(),
+                "review-retry", "127.0.0.1", "integration-test");
         assertThat(detail.company().status()).isEqualTo("VERIFIED");
+        assertThat(retried.company().status()).isEqualTo("VERIFIED");
         assertThat(detail.latestRequest().status()).isEqualTo("APPROVED");
         assertThat(jdbc.queryForObject("SELECT reviewed_by_admin FROM company_verification_requests WHERE id = 9944",
                 Long.class)).isEqualTo(9944L);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM admin_audit_logs "
                 + "WHERE action = 'COMPANY_VERIFICATION_APPROVED' AND target_id = '9944'", Long.class))
                 .isEqualTo(1L);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM admin_idempotency_keys "
+                + "WHERE admin_id = 9944 AND idempotency_key = ?", Long.class, KEY)).isEqualTo(1L);
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void auditFailureRollsBackReviewAndIdempotencyRecord() {
+        assertThatThrownBy(() -> service.review(9944L, 9944L, true, null, KEY, principal(),
+                null, "127.0.0.1", "integration-test"))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        assertThat(jdbc.queryForObject("SELECT status FROM companies WHERE id = 9944", String.class))
+                .isEqualTo("PENDING_VERIFICATION");
+        assertThat(jdbc.queryForObject("SELECT status FROM company_verification_requests WHERE id = 9944",
+                String.class)).isEqualTo("PENDING");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM admin_audit_logs WHERE actor_admin_id = 9944",
+                Long.class)).isZero();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM admin_idempotency_keys WHERE admin_id = 9944",
+                Long.class)).isZero();
     }
 
     private AdminPrincipal principal() {

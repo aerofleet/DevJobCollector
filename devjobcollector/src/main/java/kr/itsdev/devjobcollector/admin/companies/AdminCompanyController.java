@@ -16,6 +16,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -73,9 +74,10 @@ public class AdminCompanyController {
 
     @PostMapping("/{id}/verification-requests/{requestId}/approve")
     public Map<String, Object> approve(@PathVariable Long id, @PathVariable Long requestId,
+                                       @RequestHeader("Idempotency-Key") String idempotencyKey,
                                        @AuthenticationPrincipal AdminPrincipal principal,
                                        HttpServletRequest request) {
-        return Map.of("data", reviewService.review(id, requestId, true, null, principal,
+        return Map.of("data", reviewService.review(id, requestId, true, null, idempotencyKey, principal,
                 requestId(request), request.getRemoteAddr(), request.getHeader("User-Agent")),
                 "requestId", requestId(request));
     }
@@ -83,9 +85,10 @@ public class AdminCompanyController {
     @PostMapping("/{id}/verification-requests/{requestId}/reject")
     public Map<String, Object> reject(@PathVariable Long id, @PathVariable Long requestId,
                                       @Valid @RequestBody RejectionRequest body,
+                                      @RequestHeader("Idempotency-Key") String idempotencyKey,
                                       @AuthenticationPrincipal AdminPrincipal principal,
                                       HttpServletRequest request) {
-        return Map.of("data", reviewService.review(id, requestId, false, body.reason(), principal,
+        return Map.of("data", reviewService.review(id, requestId, false, body.reason(), idempotencyKey, principal,
                 requestId(request), request.getRemoteAddr(), request.getHeader("User-Agent")),
                 "requestId", requestId(request));
     }

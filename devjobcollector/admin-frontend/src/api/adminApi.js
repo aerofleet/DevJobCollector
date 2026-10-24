@@ -96,12 +96,13 @@ export const adminApi = {
   companies: (params) => adminPageRequest(`/companies?${new URLSearchParams(params)}`),
   company: (id) => adminRequest(`/companies/${id}`),
   companyEvidence: downloadCompanyEvidence,
-  approveCompany: (companyId, requestId) => adminRequest(
-    `/companies/${companyId}/verification-requests/${requestId}/approve`, { method: 'POST' },
+  approveCompany: (companyId, requestId, idempotencyKey) => adminRequest(
+    `/companies/${companyId}/verification-requests/${requestId}/approve`,
+    { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey } },
   ),
-  rejectCompany: (companyId, requestId, reason) => adminRequest(
+  rejectCompany: (companyId, requestId, reason, idempotencyKey) => adminRequest(
     `/companies/${companyId}/verification-requests/${requestId}/reject`,
-    { method: 'POST', body: JSON.stringify({ reason }) },
+    { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey }, body: JSON.stringify({ reason }) },
   ),
   audit: (params) => adminPageRequest(`/audit?${new URLSearchParams(params)}`),
   admins: (params) => adminPageRequest(`/admins?${new URLSearchParams(params)}`),

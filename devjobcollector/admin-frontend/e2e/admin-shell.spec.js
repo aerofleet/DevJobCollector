@@ -239,7 +239,12 @@ test('기업 상세에서 첨부 이미지를 확대하고 인증 요청을 승�
   await page.route('**/api/v1/admin/companies/4/verification-requests/8/evidence', (route) => route.fulfill({
     status: 200, contentType: 'image/png', body: png,
   }));
+  const reviewKeys = [];
   await page.route('**/api/v1/admin/companies/4/verification-requests/8/approve', (route) => {
+    reviewKeys.push(route.request().headers()['idempotency-key']);
+    if (reviewKeys.length === 1) {
+      return fulfillJson(route, 503, { message: '응답을 확인하지 못했습니다.' });
+    }
     status = 'VERIFIED';
     reviewStatus = 'APPROVED';
     return fulfillJson(route, 200, { data: detail() });
@@ -254,7 +259,11 @@ test('기업 상세에서 첨부 이미지를 확대하고 인증 요청을 승�
   await page.getByRole('button', { name: '기업 상세로 돌아가기' }).click();
   await page.getByRole('button', { name: '승인', exact: true }).click();
   await page.getByRole('button', { name: '승인 확정' }).click();
+  await expect(page.getByRole('dialog').getByRole('alert')).toContainText('응답을 확인하지 못했습니다.');
+  await page.getByRole('button', { name: '승인 확정' }).click();
   await expect(page.getByRole('status')).toContainText('기업 인증을 승인했습니다.');
+  expect(reviewKeys[0]).toMatch(/^[0-9a-f-]{36}$/);
+  expect(reviewKeys[1]).toBe(reviewKeys[0]);
   await expect(page.getByRole('button', { name: '승인', exact: true })).toHaveCount(0);
 });
 
