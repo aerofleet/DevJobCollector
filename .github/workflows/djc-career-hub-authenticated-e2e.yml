@@ -6,7 +6,7 @@ on:
       suite:
         description: Authenticated production journey
         type: choice
-        options: [career, ai]
+        options: [career, ai, home]
         default: career
 
 permissions:
@@ -51,7 +51,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run authenticated Career Hub journey
-        if: inputs.suite != 'ai'
+        if: inputs.suite == 'career'
         run: npm run e2e:production:authenticated
 
       - name: Run synthetic AI analysis and explanation journey
@@ -59,3 +59,9 @@ jobs:
         env:
           DJC_E2E_AI_ENABLED: "true"
         run: npx playwright test --config playwright.production.config.js --project=desktop-1440 production-e2e/ai-analysis.spec.js
+
+      - name: Verify immediate home recommendations without an AI request
+        if: inputs.suite == 'home'
+        env:
+          DJC_E2E_HOME_ENABLED: "true"
+        run: npx playwright test --config playwright.production.config.js --project=desktop-1440 production-e2e/home-recommendations.spec.js
