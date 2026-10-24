@@ -3,6 +3,34 @@ import { expect, test } from '@playwright/test';
 const accessToken = globalThis.process?.env.DJC_E2E_ACCESS_TOKEN;
 
 test.use({ trace: 'off' });
+test.describe.configure({ mode: 'serial' });
+
+test('인증 사용자는 커리어 홈에 도달하고 활성 회원 정보를 확인한다', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', '인증 운영 평가는 단일 viewport에서만 실행합니다.');
+  test.skip(!accessToken, 'DJC_E2E_ACCESS_TOKEN이 설정되어야 합니다.');
+
+  await page.addInitScript((token) => {
+    localStorage.setItem('accessToken', token);
+  }, accessToken);
+
+  const memberResponsePromise = page.waitForResponse((response) => (
+    response.request().method() === 'GET'
+    && new URL(response.url()).pathname.endsWith('/api/v1/members/me')
+  ));
+
+  await page.goto('/member');
+  const memberResponse = await memberResponsePromise;
+  expect(memberResponse.status()).toBe(200);
+
+  const member = await memberResponse.json();
+  expect(member.profileStatus).toBe('ACTIVE');
+  expect(member.role).toBe('USER');
+
+  await expect(page).toHaveURL(/\/member$/);
+  await expect(page.getByRole('heading', { name: /내 커리어를 한곳에서/ })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: '내 커리어 메뉴' })).toBeVisible();
+  await expect(page.getByRole('link', { name: '커리어 홈' })).toHaveAttribute('aria-current', 'page');
+});
 
 test('인증 사용자는 이력서를 생성·수정·재조회하고 테스트 데이터를 정리한다', async ({ page, request }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', '인증 운영 쓰기 평가는 단일 viewport에서만 실행합니다.');
