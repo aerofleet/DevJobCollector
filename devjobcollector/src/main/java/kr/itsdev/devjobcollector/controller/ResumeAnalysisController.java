@@ -62,6 +62,16 @@ public class ResumeAnalysisController {
     public ResponseEntity<ObjectNode> explanation(@AuthenticationPrincipal String subject, @PathVariable long id) {
         return noStore(explanations.get(subject, id));
     }
+    @GetMapping("/{id}/recommendations")
+    public ResponseEntity<ObjectNode> currentRecommendations(@AuthenticationPrincipal String subject, @PathVariable long id) {
+        return noStore(service.currentRecommendations(subject, id));
+    }
+    @PutMapping("/{id}/recommendations/feedback")
+    public ResponseEntity<Void> currentRecommendationFeedback(@AuthenticationPrincipal String subject, @PathVariable long id,
+            @Valid @RequestBody Feedback request) {
+        service.currentRecommendationFeedback(subject, id, request.jobId(), request.type());
+        return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build();
+    }
     @PostMapping("/{id}/explanation")
     public ResponseEntity<ObjectNode> explain(@AuthenticationPrincipal String subject, @PathVariable long id,
                                             @Valid @RequestBody ExplanationRequest request) {

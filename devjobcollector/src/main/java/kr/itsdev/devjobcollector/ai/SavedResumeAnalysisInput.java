@@ -15,7 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 /** Extract saved documents outside the analysis transaction; revalidate the snapshot before saving. */
 @Service
 public class SavedResumeAnalysisInput {
-    public static final String VERSION = "saved-resume-v7-editor-sections";
+    public static final String VERSION = "saved-resume-v8-role-title";
     private final JdbcTemplate jdbc;
     private final CurrentMemberService members;
     private final ObjectMapper mapper;
@@ -70,8 +70,12 @@ public class SavedResumeAnalysisInput {
         skills.addAll(findSkills(text.toString(), vocabulary));
         if (skills.size() > 50) throw ResumeTextExtractor.failure(HttpStatus.UNPROCESSABLE_ENTITY, "TOO_MANY_SKILLS");
         var profile = content.path("careerProfile");
-        var preferences = new LocalRecommendationEngine.Preferences(careerYears(content),
-                allowed(profile.path("category"), "백엔드|프론트엔드|풀스택|데이터|인공지능|모바일|보안|DevOps"),
+        var categories = allowed(profile.path("category"), "백엔드|프론트엔드|풀스택|데이터|인공지능|모바일|보안|DevOps");
+        if (categories.isEmpty()) {
+            String title = jdbc.queryForObject("SELECT title FROM resumes WHERE id=? AND user_id=?", String.class, resumeId, user);
+            categories = RecommendationRoles.detect(title);
+        }
+        var preferences = new LocalRecommendationEngine.Preferences(careerYears(content), categories,
                 allowed(profile.path("location"), "서울|경기|인천|부산|대구|대전|광주|울산|세종|강원|충북|충남|전북|전남|경북|경남|제주|원격"),
                 allowed(profile.path("employmentType"), "정규직|계약직|인턴|프리랜서"));
         return new Prepared(ResumeAnalysisService.hash(rows.getFirst()), List.copyOf(attachmentIds),

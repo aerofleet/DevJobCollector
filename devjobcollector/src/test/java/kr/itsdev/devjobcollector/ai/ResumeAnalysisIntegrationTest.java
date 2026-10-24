@@ -61,6 +61,66 @@ class ResumeAnalysisIntegrationTest {
         resume=jdbc.queryForObject("SELECT id FROM resumes WHERE user_id=?",Long.class,user);
     }
     @AfterEach void cleanup() { jdbc.update("DELETE FROM users WHERE id=?",user); }
+    @Test void liveRecommendationsRefillBeyondOriginalFiveWithoutChangingAnalysisOrCallingAi() {
+        var ids = new java.util.ArrayList<Long>();
+        try {
+            for (int i = 0; i < 7; i++) {
+                long job = seedJob(); ids.add(job);
+                jdbc.update("UPDATE job_posts SET title='Back-end Engineer',job_category='기타' WHERE id=?", job);
+            }
+            long id = create(UUID.randomUUID().toString(), prefs);
+            String original = jdbc.queryForObject("SELECT result_json FROM ai_analysis_request WHERE id=?", String.class, id);
+            var first = service.currentRecommendations("owner", id);
+            assertThat(first.path("recommendations")).hasSize(5);
+            long closed = first.path("recommendations").get(0).path("jobId").asLong();
+            jdbc.update("UPDATE job_posts SET end_date=DATE_SUB(CURRENT_DATE,INTERVAL 1 DAY) WHERE id=?", closed);
+            var refreshed = service.currentRecommendations("owner", id);
+            assertThat(refreshed.path("recommendations")).hasSize(5);
+            assertThat(refreshed.path("recommendations").findValuesAsText("jobId")).doesNotContain(Long.toString(closed));
+            assertThat(refreshed.path("recommendations").findValuesAsText("supplemented")).contains("true");
+            long hidden = refreshed.path("recommendations").get(0).path("jobId").asLong();
+            service.currentRecommendationFeedback("owner", id, hidden, "NOT_INTERESTED");
+            var replaced = service.currentRecommendations("owner", id);
+            assertThat(replaced.path("recommendations")).hasSize(5);
+            assertThat(replaced.path("excludedRecommendations")).hasSize(1);
+            assertThat(replaced.path("recommendations").findValuesAsText("jobId")).doesNotContain(Long.toString(hidden));
+            service.currentRecommendationFeedback("owner", id, hidden, "MATCHED");
+            assertThat(service.currentRecommendations("owner", id).path("excludedRecommendations")).isEmpty();
+            assertThat(jdbc.queryForObject("SELECT result_json FROM ai_analysis_request WHERE id=?", String.class, id)).isEqualTo(original);
+            assertThat(jdbc.queryForObject("SELECT request_count FROM ai_analysis_daily_usage WHERE user_id=?", Integer.class, user)).isEqualTo(1);
+            verifyNoInteractions(openai);
+        } finally { for (long job : ids) jdbc.update("DELETE FROM job_posts WHERE id=?", job); }
+    }
+
+    @Test void legacyEmptyAnalysisUsesResumeTitleAndExplainsNoResultsAndChecksOwnership() {
+        long job = seedJob();
+        try {
+            jdbc.update("UPDATE job_posts SET title='서버 개발자',job_category='기타' WHERE id=?", job);
+            var noPrefs = new LocalRecommendationEngine.Preferences(null, "", "", "");
+            long id = create(UUID.randomUUID().toString(), noPrefs);
+            assertThat(service.currentRecommendations("owner", id).path("recommendationStatus").path("reason").asText()).isEqualTo("MISSING_CRITERIA");
+            jdbc.update("UPDATE resumes SET title='백엔드 지원' WHERE id=?", resume);
+            var live = service.currentRecommendations("owner", id);
+            assertThat(live.path("recommendations")).hasSize(1);
+            assertThat(live.path("recommendationStatus").path("roleSource").asText()).isEqualTo("RESUME_TITLE");
+            assertThat(live.path("recommendations").get(0).path("supplemented").asBoolean()).isTrue();
+            service.currentRecommendationFeedback("owner", id, job, "NOT_INTERESTED");
+            assertThat(service.currentRecommendations("owner", id).path("recommendationStatus").path("reason").asText()).isEqualTo("ALL_EXCLUDED");
+            assertThatThrownBy(() -> service.currentRecommendations("other", id)).isInstanceOf(ResponseStatusException.class);
+            assertThatThrownBy(() -> service.currentRecommendationFeedback("other", id, job, "MATCHED")).isInstanceOf(ResponseStatusException.class);
+            assertThatThrownBy(() -> service.currentRecommendationFeedback("owner", id, -1, "NOT_INTERESTED")).isInstanceOf(ResponseStatusException.class);
+            jdbc.update("UPDATE job_posts SET moderation_status='HIDDEN' WHERE id=?", job);
+            assertThat(service.currentRecommendations("owner", id).path("recommendationStatus").path("reason").asText()).isEqualTo("NO_CURRENT_MATCHES");
+            verifyNoInteractions(openai);
+        } finally { jdbc.update("DELETE FROM job_posts WHERE id=?", job); }
+    }
+
+    @Test void savedAnalysisInfersRoleFromTitleButExplicitChoiceTakesPriority() {
+        jdbc.update("UPDATE resumes SET title='백엔드 지원' WHERE id=?", resume);
+        assertThat(savedInput.prepare("owner", resume).preferences().category()).containsExactly("백엔드");
+        jdbc.update("UPDATE resumes SET content_json=? WHERE id=?", "{\"careerProfile\":{\"category\":[\"프론트엔드\"]}}", resume);
+        assertThat(savedInput.prepare("owner", resume).preferences().category()).containsExactly("프론트엔드");
+    }
     long create(String key, LocalRecommendationEngine.Preferences p) {
         return service.create("owner",resume,key,ResumeAnalysisService.CONSENT_VERSION,p).path("id").asLong();
     }

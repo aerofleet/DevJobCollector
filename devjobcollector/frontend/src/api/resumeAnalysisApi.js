@@ -4,6 +4,8 @@ const base = '/ai/resume-analyses';
 export const getAnalysisCapabilities = async () => (await authenticatedApi.get(`${base}/capabilities`)).data;
 export const listAnalyses = async () => (await authenticatedApi.get(base)).data;
 export const getAnalysis = async (id) => (await authenticatedApi.get(`${base}/${id}`)).data;
+export const getCurrentRecommendations = async (id) => (await authenticatedApi.get(`${base}/${id}/recommendations`)).data;
+export const saveCurrentRecommendationFeedback = async (id, jobId, type) => authenticatedApi.put(`${base}/${id}/recommendations/feedback`, { jobId, type });
 export const createAnalysis = async (body, key) => (await authenticatedApi.post(base, body, {
   headers: { 'Idempotency-Key': key },
   timeout: 80000,

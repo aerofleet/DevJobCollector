@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class LocalRecommendationEngine {
-    public static final String VERSION = "local-tags-title-v3";
+    public static final String VERSION = "local-role-title-v4";
     private final double skillWeight, careerWeight, categoryWeight, locationWeight, employmentWeight, freshnessWeight;
 
     public LocalRecommendationEngine(
@@ -59,6 +59,11 @@ public class LocalRecommendationEngine {
 
     public List<Recommendation> rank(Set<String> resumeSkills, Preferences preferences,
                                      List<Candidate> candidates, LocalDate asOf) {
+        return rank(resumeSkills, preferences, candidates, asOf, 5);
+    }
+
+    List<Recommendation> rank(Set<String> resumeSkills, Preferences preferences,
+                              List<Candidate> candidates, LocalDate asOf, int limit) {
         double total = skillWeight + careerWeight + categoryWeight + locationWeight + employmentWeight + freshnessWeight;
         var ranked = new ArrayList<Recommendation>();
         for (Candidate job : candidates) {
@@ -68,7 +73,7 @@ public class LocalRecommendationEngine {
             matching.retainAll(resumeSkills);
             var missing = new TreeSet<>(requirements);
             missing.removeAll(resumeSkills);
-            boolean categoryMatch = matches(job.category(), preferences.category());
+            boolean categoryMatch = RecommendationRoles.matches(job.category(), preferences.category());
             // Freshness alone never qualifies an unrelated job.
             if (matching.isEmpty() && !categoryMatch) continue;
             double exact = requirements.isEmpty() ? 0 : (double) matching.size() / requirements.size();
@@ -93,7 +98,7 @@ public class LocalRecommendationEngine {
         }
         ranked.sort(Comparator.comparingDouble(Recommendation::matchScore).reversed().thenComparingLong(Recommendation::jobId));
         var result = new ArrayList<Recommendation>();
-        for (var value : ranked.subList(0, Math.min(5, ranked.size()))) {
+        for (var value : ranked.subList(0, Math.min(limit, ranked.size()))) {
             result.add(new Recommendation(value.jobId(), result.size() + 1, value.matchScore(),
                     value.matchPoints(), value.missingPoints(), value.components(), value.unknownFactors(), value.skillEvidenceSource()));
         }

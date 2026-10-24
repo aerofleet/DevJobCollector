@@ -8,6 +8,16 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.*;
 
 class LocalRecommendationEngineTest {
+    @Test void roleAliasesQualifyWithoutSkillTagsAndDoNotMatchUnrelatedRoles() {
+        var engine = new LocalRecommendationEngine(30,15,10,10,5,5);
+        var prefs = new LocalRecommendationEngine.Preferences(null, "백엔드", "", "");
+        for (String title : List.of("백엔드 지원", "Backend Engineer", "Back-end Developer", "서버 개발자")) {
+            assertThat(RecommendationRoles.detect(title)).contains("백엔드");
+            var candidate = new LocalRecommendationEngine.Candidate(1, title, null, null, null, LocalDate.now(), List.of());
+            assertThat(engine.rank(Set.of(), prefs, List.of(candidate), LocalDate.now())).hasSize(1);
+        }
+        assertThat(RecommendationRoles.detect("회계 지원 / 고객지원 / 프론트엔드")).doesNotContain("백엔드");
+    }
     final LocalRecommendationEngine engine = new LocalRecommendationEngine(30,15,10,10,5,5);
     final LocalDate today = LocalDate.of(2026,10,20);
     final LocalRecommendationEngine.Preferences preferences =

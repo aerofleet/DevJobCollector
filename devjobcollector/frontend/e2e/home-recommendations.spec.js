@@ -7,7 +7,7 @@ const result = id => ({ id, resumeId: 11, createdAt: '2026-10-24', detectedSkill
   review: { findings: [], observations: {}, score: {} },
   aiReview: id === 8 ? { status: 'COMPLETED', findings: [], strengths: [], gaps: [], jobs: [{ jobId: 17, relevance: 'RELATED', lead_with: 'API 운영 경험을 앞세우세요.', gap: '담당 범위를 확인하세요.', criteria: [] }] } : null });
 
-async function mock(page, { loggedIn = true, empty = false, fail = false } = {}) {
+async function mock(page, { loggedIn = true, empty = false, fail = false, reason = null, supplemented = false } = {}) {
   if (loggedIn) await page.addInitScript(value => localStorage.setItem('accessToken', value), token);
   const state = { hidden: false, fail, privateCalls: 0, writes: 0 };
   await page.route('**/api/v1/**', route => {
@@ -21,7 +21,18 @@ async function mock(page, { loggedIn = true, empty = false, fail = false } = {})
       return route.fulfill({ json: empty ? [] : history });
     }
     if (/\/resume-analyses\/\d+$/.test(path)) return route.fulfill({ json: { ...result(Number(path.split('/').pop())), recommendations: state.hidden ? [] : [job] } });
-    if (path.endsWith('/feedback')) { expect(req.postDataJSON()).toEqual({ jobId: 17, type: 'NOT_INTERESTED' }); state.hidden = true; return route.fulfill({ status: 204 }); }
+    if (path.endsWith('/recommendations')) return route.fulfill({ json: {
+      ...result(Number(path.split('/').at(-2))),
+      recommendations: state.hidden || reason ? [] : [{ ...job, supplemented }],
+      excludedRecommendations: state.hidden ? [job] : [],
+      aiReview: supplemented ? null : result(Number(path.split('/').at(-2))).aiReview,
+      recommendationStatus: { reason: reason || (state.hidden ? 'ALL_EXCLUDED' : 'AVAILABLE'), roleSource: 'RESUME_TITLE', categories: ['백엔드'] },
+    } });
+    if (path.endsWith('/recommendations/feedback')) {
+      expect(req.postDataJSON().jobId).toBe(17);
+      state.hidden = req.postDataJSON().type !== 'MATCHED';
+      return route.fulfill({ status: 204 });
+    }
     if (path.endsWith('/resumes')) return route.fulfill({ json: [{ id: 11, title: '내 이력서' }] });
     if (path.endsWith('/content-review')) return route.fulfill({ json: result(8).aiReview });
     if (path.includes('/jobs')) return route.fulfill({ json: { content: [], totalElements: 0 } });
@@ -58,7 +69,28 @@ test('추천 근거·이력서 전환·제외 저장·모바일 배치', async (
   await expect(section.getByText('현재 표시할 추천 공고가 없어요.')).toBeVisible();
   await page.reload();
   await expect(section.getByText('현재 표시할 추천 공고가 없어요.')).toBeVisible();
+  await expect(section.getByText('조건에 맞는 현재 공고를 모두 제외했어요.', { exact: false })).toBeVisible();
+  await section.getByText('제외한 공고 1개').click();
+  await section.getByRole('button', { name: '백엔드 엔지니어 제외 해제' }).click();
+  await expect(section.getByRole('button', { name: '백엔드 엔지니어 추천 제외' })).toBeVisible();
 });
+
+test('보충 공고는 AI 검토로 표시하지 않고 공고로 직접 연결한다', async ({ page }) => {
+  await mock(page, { supplemented: true });
+  await page.goto('/');
+  const section = page.getByRole('region', { name: '내 이력서로 찾는 추천 포지션' });
+  await expect(section.getByRole('link', { name: '공고 자세히 보기' })).toHaveAttribute('href', '/job/17');
+  await expect(section.getByText('AI 검토', { exact: true })).toHaveCount(0);
+  await expect(section.getByRole('link', { name: '추천 기준 이력서 확인' })).toHaveAttribute('href', '/resume?resumeId=11');
+});
+
+for (const [reason, message] of [['MISSING_CRITERIA', '추천 기준이 부족해요.'], ['NO_CURRENT_MATCHES', '현재 조회한 공고 중 기술 또는 직무가 연결되는 공고를 찾지 못했어요.']]) {
+  test(`추천 0건 사유 구분: ${reason}`, async ({ page }) => {
+    await mock(page, { reason });
+    await page.goto('/');
+    await expect(page.getByText(message, { exact: false })).toBeVisible();
+  });
+}
 
 test('조회 오류 재시도와 분석 없는 회원 안내', async ({ page }) => {
   const state = await mock(page, { fail: true, empty: true });

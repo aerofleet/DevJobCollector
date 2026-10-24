@@ -10,6 +10,12 @@
 .recommendation-controls label { display: grid; gap: 8px; min-width: 0; max-width: 100%; font-weight: 600; }
 .recommendation-controls select { padding: 10px; border: 1px solid #cfc5e5; border-radius: 8px; background: white; max-width: 100%; }
 .recommendation-caption { font-size: 13px; }
+.recommendation-excluded { margin: 16px 0; }
+.recommendation-excluded summary { cursor: pointer; }
+.recommendation-excluded ul { padding: 0; list-style: none; }
+.recommendation-excluded li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 0; }
+.recommendation-excluded li a { min-width: 0; overflow-wrap: anywhere; }
+.recommendation-excluded button { flex-shrink: 0; }
 .personal-job-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 20px 0; }
 .personal-job-grid article { background: white; padding: 22px; border: 1px solid #e4dfed; border-radius: 16px; display: flex; flex-direction: column; min-width: 0; }
 .personal-job-grid h3 { font-size: 19px; margin: 8px 0; overflow-wrap: anywhere; }

@@ -110,12 +110,12 @@ public class ResumeAnalysisService {
         result.put("asOf", today.toString());
         result.set("recommendations", mapper.valueToTree(engine.rank(skills, preferences, candidates, today)));
         result.set("improvements", mapper.valueToTree(engine.review(content)));
+        result.set("detectedSkills", mapper.valueToTree(skills));
+        result.set("derivedPreferences", mapper.valueToTree(preferences));
         if (prepared != null) {
             result.put("inputMode", "SAVED_RESUME");
             result.put("inputFingerprint", SavedResumeAnalysisInput.fingerprint(prepared));
             result.set("sources", mapper.valueToTree(prepared.attachments()));
-            result.set("detectedSkills", mapper.valueToTree(skills));
-            result.set("derivedPreferences", mapper.valueToTree(preferences));
         }
         result.set("review", mapper.valueToTree(ResumeEvidenceReview.review(
                 prepared == null ? ResumeEvidenceReview.savedDocuments(content) : prepared.documents(), skills)));
@@ -153,6 +153,109 @@ public class ResumeAnalysisService {
     @Transactional(readOnly = true)
     public ObjectNode get(String subject, long id) {
         return getOwned(members.requireCurrentMember(subject).getId(), id);
+    }
+
+    /** Live job discovery is separate from the immutable analysis/AI evidence snapshot. */
+    @Transactional(readOnly = true)
+    public ObjectNode currentRecommendations(String subject, long id) {
+        return currentRecommendationsOwned(members.requireCurrentMember(subject).getId(), id);
+    }
+
+    private ObjectNode currentRecommendationsOwned(long user, long id) {
+        ObjectNode result = getOwned(user, id); // Verify ownership before any resume or job lookup.
+        var today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        var skills = new TreeSet<String>();
+        result.path("detectedSkills").forEach(s -> skills.add(LocalRecommendationEngine.normalizeSkill(s.asText())));
+        var preferences = result.has("derivedPreferences")
+                ? mapper.convertValue(result.get("derivedPreferences"), LocalRecommendationEngine.Preferences.class)
+                : new LocalRecommendationEngine.Preferences(null, List.of(), List.of(), List.of());
+        String roleSource = "ANALYSIS";
+        if (preferences.category().isEmpty()) {
+            String title = jdbc.queryForObject("SELECT title FROM resumes WHERE id=? AND user_id=?", String.class,
+                    result.path("resumeId").asLong(), user);
+            var inferred = RecommendationRoles.detect(title);
+            if (!inferred.isEmpty()) {
+                preferences = new LocalRecommendationEngine.Preferences(preferences.careerYears(), inferred,
+                        preferences.location(), preferences.employmentType());
+                roleSource = "RESUME_TITLE";
+            }
+        }
+        var pool = candidates(skills, preferences, today);
+        var ranked = engine.rank(skills, preferences, pool, today, pool.size());
+        var feedback = new HashMap<Long, String>();
+        jdbc.queryForList("SELECT job_post_id,feedback_type FROM ai_recommendation_feedback WHERE analysis_id=?", id)
+                .forEach(row -> feedback.put(((Number) row.get("job_post_id")).longValue(), row.get("feedback_type").toString()));
+        var originalIds = new HashSet<Long>();
+        result.path("recommendations").forEach(j -> originalIds.add(j.path("jobId").asLong()));
+        var visible = mapper.createArrayNode();
+        var excluded = mapper.createArrayNode();
+        // Read metadata in one query, independent of candidate count.
+        var metadata = new HashMap<Long, Map<String, Object>>();
+        if (!ranked.isEmpty()) {
+            var ids = ranked.stream().map(LocalRecommendationEngine.Recommendation::jobId).toList();
+            var args = new ArrayList<Object>(ids);
+            args.add(today);
+            jdbc.queryForList("SELECT id,title,company_name,location,experience,end_date FROM job_posts WHERE id IN ("
+                    + String.join(",", Collections.nCopies(ids.size(), "?"))
+                    + ") AND is_active=1 AND moderation_status='ACTIVE' AND (end_date IS NULL OR end_date>=?)", args.toArray())
+                    .forEach(row -> metadata.put(((Number) row.get("id")).longValue(), row));
+        }
+        for (var recommendation : ranked) {
+            var job = metadata.get(recommendation.jobId());
+            if (job == null) continue;
+            ObjectNode item = mapper.valueToTree(recommendation);
+            item.put("title", Objects.toString(job.get("title"), ""));
+            item.put("companyName", Objects.toString(job.get("company_name"), ""));
+            item.put("location", Objects.toString(job.get("location"), ""));
+            item.put("experience", Objects.toString(job.get("experience"), ""));
+            item.put("endDate", Objects.toString(job.get("end_date"), ""));
+            item.put("supplemented", !originalIds.contains(recommendation.jobId()));
+            String value = feedback.get(recommendation.jobId());
+            if (value != null) item.put("feedback", value);
+            if (value != null && !"MATCHED".equals(value)) excluded.add(item);
+            else if (visible.size() < 5) { item.put("rank", visible.size() + 1); visible.add(item); }
+        }
+        result.set("recommendations", visible);
+        result.set("excludedRecommendations", excluded);
+        // Only retain saved AI reviews for the same, still-visible original jobs.
+        if (result.path("aiReview").isObject()) {
+            var visibleIds = new HashSet<Long>();
+            visible.forEach(j -> visibleIds.add(j.path("jobId").asLong()));
+            var reviews = mapper.createArrayNode();
+            result.path("aiReview").path("jobs").forEach(j -> {
+                if (visibleIds.contains(j.path("jobId").asLong()) && originalIds.contains(j.path("jobId").asLong())) reviews.add(j);
+            });
+            ((ObjectNode) result.path("aiReview")).set("jobs", reviews);
+        }
+        ObjectNode status = result.putObject("recommendationStatus");
+        status.put("asOf", today.toString());
+        status.put("candidateCount", pool.size());
+        status.put("excludedCount", excluded.size());
+        status.put("roleSource", roleSource);
+        status.set("categories", mapper.valueToTree(preferences.category()));
+        status.put("reason", !visible.isEmpty() ? "AVAILABLE"
+                : skills.isEmpty() && preferences.category().isEmpty() ? "MISSING_CRITERIA"
+                : !excluded.isEmpty() ? "ALL_EXCLUDED" : "NO_CURRENT_MATCHES");
+        return result;
+    }
+
+    @Transactional
+    public void currentRecommendationFeedback(String subject, long id, long jobId, String type) {
+        if (!Set.of("MATCHED", "NOT_INTERESTED").contains(Objects.toString(type, ""))) {
+            throw failure(HttpStatus.BAD_REQUEST, "INVALID_FEEDBACK");
+        }
+        long user = members.requireCurrentMember(subject).getId();
+        jdbc.queryForObject("SELECT id FROM users WHERE id=? FOR UPDATE", Long.class, user);
+        ObjectNode result = currentRecommendationsOwned(user, id);
+        boolean found = false;
+        for (String field : List.of("recommendations", "excludedRecommendations")) {
+            for (var job : result.path(field)) if (job.path("jobId").asLong() == jobId) found = true;
+        }
+        if (!found) throw failure(HttpStatus.NOT_FOUND, "RECOMMENDATION_NOT_FOUND");
+        jdbc.update("""
+                INSERT INTO ai_recommendation_feedback(analysis_id,job_post_id,feedback_type) VALUES(?,?,?)
+                ON DUPLICATE KEY UPDATE feedback_type=VALUES(feedback_type)
+                """, id, jobId, type);
     }
 
     @Transactional(readOnly = true)
@@ -240,7 +343,7 @@ public class ResumeAnalysisService {
             long jobId = recommendation.path("jobId").asLong();
             var jobs = jdbc.queryForList("""
                     SELECT title,company_name,location,experience,end_date FROM job_posts
-                    WHERE id=? AND is_active=1 AND moderation_status='ACTIVE' AND end_date>=?
+                    WHERE id=? AND is_active=1 AND moderation_status='ACTIVE' AND (end_date IS NULL OR end_date>=?)
                     """, jobId, LocalDate.now(ZoneId.of("Asia/Seoul")));
             if (jobs.isEmpty()) continue;
             ObjectNode item = (ObjectNode) recommendation.deepCopy();
@@ -285,16 +388,16 @@ public class ResumeAnalysisService {
         if (tagIds.isEmpty() && categories.isEmpty()) return titleCandidates(skills, today);
         String placeholders = tagIds.isEmpty() ? "NULL" : String.join(",", Collections.nCopies(tagIds.size(), "?"));
         String match = "(SELECT COUNT(*) FROM post_tags p WHERE p.job_post_id=j.id AND p.tech_stack_id IN (" + placeholders + "))";
-        String sql = "SELECT j.id,j.job_category,j.experience,j.location,j.hire_type,DATE(j.created_at) created_date,"
-                + match + " skill_hits FROM job_posts j WHERE j.is_active=1 AND j.moderation_status='ACTIVE' AND j.end_date>=?"
+        String sql = "SELECT j.id,CONCAT_WS(' ',j.job_category,j.title) role_text,j.experience,j.location,j.hire_type,DATE(j.created_at) created_date,"
+                + match + " skill_hits FROM job_posts j WHERE j.is_active=1 AND j.moderation_status='ACTIVE' AND (j.end_date IS NULL OR j.end_date>=?)"
                 + " HAVING skill_hits>0 OR (" + (categories.isEmpty() ? "FALSE"
-                    : String.join(" OR ", Collections.nCopies(categories.size(), "job_category LIKE ?"))) + ")"
+                    : String.join(" OR ", Collections.nCopies(categories.size(), "REGEXP_LIKE(role_text, ?, 'i')"))) + ")"
                 + " ORDER BY skill_hits DESC,j.created_at DESC,j.id ASC LIMIT 100";
         var args = new ArrayList<Object>(tagIds);
         args.add(today);
-        categories.forEach(category -> args.add("%" + category.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"));
+        categories.forEach(category -> args.add(RecommendationRoles.sqlPattern(category)));
         var candidates = jdbc.query(sql, (row, index) -> new LocalRecommendationEngine.Candidate(row.getLong("id"),
-                row.getString("job_category"), row.getString("experience"), row.getString("location"), row.getString("hire_type"),
+                row.getString("role_text"), row.getString("experience"), row.getString("location"), row.getString("hire_type"),
                 row.getDate("created_date") == null ? null : row.getDate("created_date").toLocalDate(), new ArrayList<>()), args.toArray());
         if (candidates.isEmpty()) return titleCandidates(skills, today);
         var ids = candidates.stream().map(LocalRecommendationEngine.Candidate::id).toList();
@@ -338,7 +441,7 @@ public class ResumeAnalysisService {
         var vocabulary = new ArrayList<>(jdbc.queryForList("SELECT stack_name FROM tech_stacks", String.class));
         vocabulary.addAll(terms);
         var rows = jdbc.queryForList("SELECT j.id,j.title,j.job_category,j.experience,j.location,j.hire_type,DATE(j.created_at) created_date"
-                + " FROM job_posts j WHERE j.is_active=1 AND j.moderation_status='ACTIVE' AND j.end_date>=?"
+                + " FROM job_posts j WHERE j.is_active=1 AND j.moderation_status='ACTIVE' AND (j.end_date IS NULL OR j.end_date>=?)"
                 + " AND NOT EXISTS (SELECT 1 FROM post_tags p WHERE p.job_post_id=j.id) AND (" + conditions + ")"
                 + " ORDER BY j.created_at DESC,j.id ASC LIMIT 100", args.toArray());
         var result = new ArrayList<LocalRecommendationEngine.Candidate>();
