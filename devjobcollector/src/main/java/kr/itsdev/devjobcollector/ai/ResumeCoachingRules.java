@@ -33,6 +33,8 @@ final class ResumeCoachingRules {
                 "assessment", Map.of("type", "string", "enum", List.of("SUPPORTED", "CHECK")), "explanation", TEXT));
         var job = object(Map.of("slot", Map.of("type", "integer", "minimum", 0, "maximum", 4),
                 "relevance", Map.of("type", "string", "enum", List.of("RELATED", "REVIEW_NEEDED", "LOW_RELEVANCE")),
+                "decision", Map.of("type", "string", "enum", List.of("RECOMMENDED", "STRETCH", "NOT_RECOMMENDED", "INSUFFICIENT_INFORMATION")),
+                "decisionReason", TEXT,
                 "lead_with", TEXT, "gap", TEXT, "criteria", array(criterion, 4)));
         return object(ordered("positioningEvidence", refs, "positioning", TEXT, "strengths", array(strength, 3),
                 "gaps", array(gap, 6), "rewrites", array(rewrite, 6), "job_fit", array(job, 5)));
@@ -146,6 +148,22 @@ final class ResumeCoachingRules {
             saved.path("criteria").forEach(c -> { facts.append(c.path("resumeQuote").asText()).append(' ').append(c.path("jobQuote").asText()); resumeFacts.append(c.path("resumeQuote").asText()).append(' '); });
             boolean supported = java.util.stream.StreamSupport.stream(saved.path("criteria").spliterator(),false)
                     .anyMatch(c -> c.path("assessment").asText().equals("SUPPORTED"));
+            String decision = text(item, "decision"), decisionReason = text(item, "decisionReason");
+            boolean completeEvidence = saved.path("criteria").size() == item.path("criteria").size();
+            if (Set.of("RECOMMENDED", "STRETCH", "NOT_RECOMMENDED", "INSUFFICIENT_INFORMATION").contains(decision)) {
+                boolean hasApplicantEvidence = java.util.stream.StreamSupport.stream(saved.path("criteria").spliterator(), false)
+                        .anyMatch(c -> !c.path("resumeQuote").asText().isBlank());
+                boolean hasUnchecked = java.util.stream.StreamSupport.stream(saved.path("criteria").spliterator(), false)
+                        .anyMatch(c -> "CHECK".equals(c.path("assessment").asText()));
+                if (!completeEvidence || !valid(decisionReason, facts.toString())
+                        || ((decision.equals("RECOMMENDED") || decision.equals("STRETCH")) && !supported)
+                        || (decision.equals("RECOMMENDED") && hasUnchecked)
+                        || (decision.equals("NOT_RECOMMENDED") && !hasApplicantEvidence)) {
+                    decision = "INSUFFICIENT_INFORMATION";
+                    decisionReason = "판정 근거를 충분히 확인하지 못해 추가 검토가 필요합니다.";
+                }
+                ((ObjectNode)saved).put("decision", decision).put("decisionReason", decisionReason);
+            }
             for (String field : List.of("lead_with","gap")) {
                 String value = text(item,field); ((ObjectNode)saved).put(field, field.equals("lead_with")
                         ? (supported && groundedClaim(value,resumeFacts.toString()) ? value : "") : (valid(value,facts.toString()) ? value : ""));

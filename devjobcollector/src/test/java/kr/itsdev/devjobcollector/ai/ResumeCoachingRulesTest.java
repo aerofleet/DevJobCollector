@@ -7,6 +7,19 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.*;
 
 class ResumeCoachingRulesTest {
+    @Test void suitabilityCannotApproveUnsupportedEvidenceOrRejectMissingEvidenceAsMismatch() throws Exception {
+        var out = output();
+        var job = out.withArray("job_fit").addObject().put("slot", 0).put("relevance", "RELATED")
+                .put("decision", "RECOMMENDED").put("decisionReason", "API 개발 경험이 연결됩니다.").put("lead_with", "").put("gap", "");
+        var criterion = job.putArray("criteria").addObject().put("jobQuoteId", "J0-P1").put("sourceId", "S1")
+                .put("resumeQuoteId", "S1-P1").put("assessment", "SUPPORTED").put("explanation", "API 개발 경험이 있습니다.");
+        var jobs = List.of(new ResumeContentReviewRules.Job(0, 1, "API 개발"));
+        assertThat(ResumeContentReviewRules.validate(out, sources, jobs, mapper).path("jobs").get(0).path("decision").asText()).isEqualTo("RECOMMENDED");
+        criterion.put("assessment", "CHECK");
+        assertThat(ResumeContentReviewRules.validate(out, sources, jobs, mapper).path("jobs").get(0).path("decision").asText()).isEqualTo("INSUFFICIENT_INFORMATION");
+        job.put("decision", "NOT_RECOMMENDED"); criterion.put("sourceId", "").put("resumeQuoteId", "");
+        assertThat(ResumeContentReviewRules.validate(out, sources, jobs, mapper).path("jobs").get(0).path("decision").asText()).isEqualTo("INSUFFICIENT_INFORMATION");
+    }
     final ObjectMapper mapper = new ObjectMapper();
     final String source = "6인 팀에서 API를 개발했습니다. 실패율을 65%에서 0%로 낮췄습니다.";
     final List<ResumeContentReviewRules.Source> sources = List.of(new ResumeContentReviewRules.Source("S1",source,

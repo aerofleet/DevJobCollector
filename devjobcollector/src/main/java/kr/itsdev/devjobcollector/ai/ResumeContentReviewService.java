@@ -30,7 +30,7 @@ public class ResumeContentReviewService {
         this.pii=pii; this.client=client; this.tx=new TransactionTemplate(manager);
     }
     record Prepared(long resumeId, SavedResumeAnalysisInput.Prepared input, List<ResumeContentReviewRules.Source> sources,
-                    List<ResumeContentReviewRules.Job> jobs, Map<String, Object> payload, String hash) {}
+                    List<ResumeContentReviewRules.Job> jobs, Map<Long, String> jobFingerprints, Map<String, Object> payload, String hash) {}
 
     public ObjectNode preview(String subject, long id) {
         Prepared prepared = prepare(subject, id);
@@ -61,8 +61,16 @@ public class ResumeContentReviewService {
         var sources = new ArrayList<ResumeContentReviewRules.Source>();
         var sourcePayload = new ArrayList<Map<String, Object>>();
         int length = 0;
-        for (var document : input.documents()) {
-            if (document.text().isBlank() || document.key().matches(".*/(startDate|endDate|link|repository|company|workType)$")) continue;
+        var documents = new ArrayList<>(input.documents());
+        int experienceIndex = 0;
+        for (var experience : read(contentRows.getFirst()).path("experience")) {
+            if (experience.path("isCurrent").asBoolean(false)) documents.add(new ResumeEvidenceReview.Document(
+                    "/experience/" + experienceIndex + "/currentEmployment", "저장된 이력서", null, "경력 " + (experienceIndex + 1),
+                    "현재 재직 중 (기준일: " + LocalDate.now(ZoneId.of("Asia/Seoul")) + ")"));
+            experienceIndex++;
+        }
+        for (var document : documents) {
+            if (document.text().isBlank() || document.key().matches(".*/(link|repository|company)$")) continue;
             String masked = pii.mask(document.text(), known).maskedText();
             length += masked.length();
             if (length > 40000 || sources.size() >= 120) throw fail(HttpStatus.UNPROCESSABLE_ENTITY, "CONTENT_REVIEW_TOO_LARGE");
@@ -76,11 +84,13 @@ public class ResumeContentReviewService {
         if (sources.isEmpty()) throw fail(HttpStatus.UNPROCESSABLE_ENTITY, "NO_RESUME_CONTENT");
         var jobs = new ArrayList<ResumeContentReviewRules.Job>();
         var jobPayload = new ArrayList<Map<String, Object>>();
+        var jobFingerprints = new HashMap<Long, String>();
         for (var recommendation : analysis.path("recommendations")) {
             long jobId = recommendation.path("jobId").asLong();
             var rows = jdbc.queryForList("SELECT title,job_category,experience,location,hire_type,LEFT(apply_qual,5000) qualifications FROM job_posts WHERE id=? AND is_active=1 AND moderation_status='ACTIVE' AND end_date>=?", jobId, LocalDate.now(ZoneId.of("Asia/Seoul")));
             if (rows.isEmpty()) continue;
             var row = rows.getFirst();
+            jobFingerprints.put(jobId, AiJobFit.jobFingerprint(row));
             String text = "제목: " + Objects.toString(row.get("title"), "") + "\n직무: " + Objects.toString(row.get("job_category"), "")
                     + "\n경력: " + Objects.toString(row.get("experience"), "") + "\n지역: " + Objects.toString(row.get("location"), "")
                     + "\n고용 형태: " + Objects.toString(row.get("hire_type"), "") + "\n수집된 자격 요건(최대 5000자): " + Objects.toString(row.get("qualifications"), "미수집")
@@ -91,16 +101,16 @@ public class ResumeContentReviewService {
         }
         Map<String, Object> payload = Map.of("sources", sourcePayload, "jobs", jobPayload);
         String hash = ResumeAnalysisService.hash(id + ":" + CONSENT + ":" + ResumeContentReviewRules.VERSION + ":" + SavedResumeAnalysisInput.fingerprint(input) + ":" + json(payload));
-        return new Prepared(resumeId, input, List.copyOf(sources), List.copyOf(jobs), payload, hash);
+        return new Prepared(resumeId, input, List.copyOf(sources), List.copyOf(jobs), Map.copyOf(jobFingerprints), payload, hash);
     }
 
     public ObjectNode review(String subject, long id, String consent, String previewHash) {
         if (!CONSENT.equals(consent)) throw fail(HttpStatus.BAD_REQUEST, "CONTENT_REVIEW_CONSENT_REQUIRED");
         ObjectNode existing = get(subject, id);
-        if (!existing.path("status").asText().equals("NOT_REQUESTED")) {
-            if (!existing.path("previewHash").asText().equals(previewHash)) throw fail(HttpStatus.CONFLICT, "REVIEW_ALREADY_REQUESTED");
+        if (!existing.path("status").asText().equals("NOT_REQUESTED") && existing.path("previewHash").asText().equals(previewHash)) {
             return existing;
         }
+        if (existing.path("status").asText().equals("PENDING")) throw fail(HttpStatus.CONFLICT, "REVIEW_ALREADY_REQUESTED");
         Prepared prepared = prepare(subject, id);
         if (!prepared.hash().equals(previewHash)) throw fail(HttpStatus.CONFLICT, "PREVIEW_CHANGED");
         long user = members.requireCurrentMember(subject).getId();
@@ -108,8 +118,8 @@ public class ResumeContentReviewService {
             jdbc.queryForObject("SELECT id FROM users WHERE id=? FOR UPDATE", Long.class, user);
             ObjectNode stored = ownedRaw(user, id);
             if (stored.has("aiReview")) {
-                if (!stored.path("aiReview").path("previewHash").asText().equals(previewHash)) throw fail(HttpStatus.CONFLICT, "REVIEW_ALREADY_REQUESTED");
-                return false;
+                if (stored.path("aiReview").path("previewHash").asText().equals(previewHash)) return false;
+                if (stored.path("aiReview").path("status").asText().equals("PENDING")) throw fail(HttpStatus.CONFLICT, "REVIEW_ALREADY_REQUESTED");
             }
             var content = jdbc.queryForList("SELECT content_json FROM resumes WHERE id=? AND user_id=? FOR SHARE", String.class, prepared.resumeId(), user);
             var ids = jdbc.queryForList("SELECT id FROM resume_attachments WHERE resume_id=? ORDER BY id FOR SHARE", Long.class, prepared.resumeId());
@@ -126,12 +136,20 @@ public class ResumeContentReviewService {
             claim.put("consentVersion", CONSENT); claim.put("previewHash", previewHash); claim.put("policy", "USER_REVIEWED_MASKED_TEXT");
             claim.put("piiGatePassed", false); claim.put("externalAttemptCount", 1);
             claim.put("model", OpenAiEvidenceClient.CONTENT_MODEL);
+            claim.put("fitVersion", AiJobFit.VERSION);
             jdbc.update("UPDATE ai_analysis_request SET result_json=? WHERE id=? AND user_id=?", json(stored), id, user);
             return true;
         });
         if (Boolean.TRUE.equals(reserved)) {
             ObjectNode reviewed = null;
-            try { reviewed = ResumeContentReviewRules.validate(client.review(prepared.payload()), prepared.sources(), prepared.jobs(), mapper); }
+            try {
+                reviewed = ResumeContentReviewRules.validate(client.review(prepared.payload()), prepared.sources(), prepared.jobs(), mapper);
+                for (var job : reviewed.path("jobs")) {
+                    ((ObjectNode)job).put("fitVersion", AiJobFit.VERSION)
+                            .put("inputFingerprint", SavedResumeAnalysisInput.fingerprint(prepared.input()))
+                            .put("jobFingerprint", prepared.jobFingerprints().get(job.path("jobId").asLong()));
+                }
+            }
             catch (Exception ignored) { /* Never persist provider error bodies or invalid output. No automatic retry. */ }
             ObjectNode output = reviewed;
             tx.executeWithoutResult(status -> {
@@ -156,6 +174,21 @@ public class ResumeContentReviewService {
             var visible = new HashSet<Long>(); analysis.path("recommendations").forEach(j -> visible.add(j.path("jobId").asLong()));
             var jobs = mapper.createArrayNode(); result.path("jobs").forEach(j -> { if (visible.contains(j.path("jobId").asLong())) jobs.add(j); });
             result.set("jobs", jobs);
+        }
+        if ("COMPLETED".equals(result.path("status").asText())) {
+            long user = members.requireCurrentMember(subject).getId();
+            String content = jdbc.queryForObject("SELECT content_json FROM resumes WHERE id=? AND user_id=?", String.class, analysis.path("resumeId").asLong(), user);
+            var attachments = jdbc.queryForList("SELECT id FROM resume_attachments WHERE resume_id=? ORDER BY id", Long.class, analysis.path("resumeId").asLong());
+            String fingerprint = ResumeAnalysisService.hash(ResumeAnalysisService.hash(content) + ":" + attachments);
+            boolean stale = !AiJobFit.VERSION.equals(result.path("fitVersion").asText());
+            for (var job : result.path("jobs")) {
+                var metadata = jdbc.queryForList("SELECT title,job_category,experience,location,hire_type,LEFT(apply_qual,5000) qualifications FROM job_posts WHERE id=?", job.path("jobId").asLong());
+                if (metadata.isEmpty() || "REVIEW_REQUIRED".equals(AiJobFit.decision(job, fingerprint, AiJobFit.jobFingerprint(metadata.getFirst())))) {
+                    stale = true;
+                    if (job.has("decision")) ((ObjectNode)job).put("decision", "REVIEW_REQUIRED").put("decisionReason", "자료가 변경되어 적합성을 다시 검토해야 합니다.");
+                }
+            }
+            result.put("fitReviewRequired", stale);
         }
         return result;
     }
