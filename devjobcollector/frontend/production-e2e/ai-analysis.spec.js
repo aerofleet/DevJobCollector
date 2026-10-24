@@ -95,9 +95,9 @@ test('운영 합성 이력서·첨부 기반 AI 내용 분석·근거 검증·�
     const recommendations = page.getByRole('region', { name: '내 이력서로 찾는 추천 포지션' });
     await recommendations.getByLabel('추천 기준 이력서').selectOption(String(analysisId));
     await expect(recommendations.locator('.personal-job-grid article').first()).toBeVisible();
-    await expect(recommendations.getByRole('link', { name: '추천 전체와 AI 코칭 확인' }))
+    await expect(recommendations.getByRole('link', { name: '저장된 분석과 AI 코칭 확인' }))
       .toHaveAttribute('href', `/resume-analysis?analysisId=${analysisId}`);
-    await recommendations.getByRole('link', { name: '추천 전체와 AI 코칭 확인' }).click();
+    await recommendations.getByRole('link', { name: '저장된 분석과 AI 코칭 확인' }).click();
     await expect(page.getByRole('heading', { name: '맞춤 공고 + 공고별 어필법', exact: true })).toBeVisible();
   } finally {
     if (resumeId) {
