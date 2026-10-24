@@ -88,6 +88,10 @@ class ResumeAnalysisIntegrationTest {
             assertThat(service.currentRecommendations("owner", id).path("excludedRecommendations")).isEmpty();
             assertThat(jdbc.queryForObject("SELECT result_json FROM ai_analysis_request WHERE id=?", String.class, id)).isEqualTo(original);
             assertThat(jdbc.queryForObject("SELECT request_count FROM ai_analysis_daily_usage WHERE user_id=?", Integer.class, user)).isEqualTo(1);
+            for (long job : ids) jdbc.update("UPDATE job_posts SET moderation_status='HIDDEN' WHERE id=?", job);
+            var unavailable = service.currentRecommendations("owner", id);
+            assertThat(unavailable.path("recommendationStatus").path("reason").asText()).isEqualTo("SAVED_JOBS_UNAVAILABLE");
+            assertThat(unavailable.path("recommendationStatus").path("unavailableSavedCount").asInt()).isEqualTo(5);
             verifyNoInteractions(openai);
         } finally { for (long job : ids) jdbc.update("DELETE FROM job_posts WHERE id=?", job); }
     }

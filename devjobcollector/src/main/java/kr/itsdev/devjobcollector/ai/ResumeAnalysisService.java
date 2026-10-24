@@ -231,11 +231,13 @@ public class ResumeAnalysisService {
         status.put("asOf", today.toString());
         status.put("candidateCount", pool.size());
         status.put("excludedCount", excluded.size());
+        status.put("unavailableSavedCount", result.path("unavailableRecommendationCount").asInt());
         status.put("roleSource", roleSource);
         status.set("categories", mapper.valueToTree(preferences.category()));
         status.put("reason", !visible.isEmpty() ? "AVAILABLE"
                 : skills.isEmpty() && preferences.category().isEmpty() ? "MISSING_CRITERIA"
-                : !excluded.isEmpty() ? "ALL_EXCLUDED" : "NO_CURRENT_MATCHES");
+                : !excluded.isEmpty() ? "ALL_EXCLUDED"
+                : result.path("unavailableRecommendationCount").asInt() > 0 ? "SAVED_JOBS_UNAVAILABLE" : "NO_CURRENT_MATCHES");
         return result;
     }
 
@@ -338,6 +340,7 @@ public class ResumeAnalysisService {
         result.put("createdAt", row.get("created_at").toString());
         var visible = mapper.createArrayNode();
         var excluded = mapper.createArrayNode();
+        int unavailable = 0;
         // Recheck live visibility on every read, including cached and idempotent responses.
         for (JsonNode recommendation : result.path("recommendations")) {
             long jobId = recommendation.path("jobId").asLong();
@@ -345,7 +348,7 @@ public class ResumeAnalysisService {
                     SELECT title,company_name,location,experience,end_date FROM job_posts
                     WHERE id=? AND is_active=1 AND moderation_status='ACTIVE' AND (end_date IS NULL OR end_date>=?)
                     """, jobId, LocalDate.now(ZoneId.of("Asia/Seoul")));
-            if (jobs.isEmpty()) continue;
+            if (jobs.isEmpty()) { unavailable++; continue; }
             ObjectNode item = (ObjectNode) recommendation.deepCopy();
             var job = jobs.getFirst();
             item.put("title", Objects.toString(job.get("title"), ""));
@@ -366,6 +369,7 @@ public class ResumeAnalysisService {
         }
         result.set("recommendations", visible);
         result.set("excludedRecommendations", excluded);
+        result.put("unavailableRecommendationCount", unavailable);
         if (result.path("aiReview").isObject()) {
             var visibleIds = new HashSet<Long>(); visible.forEach(j -> visibleIds.add(j.path("jobId").asLong()));
             var aiJobs = mapper.createArrayNode();

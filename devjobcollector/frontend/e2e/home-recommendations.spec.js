@@ -84,7 +84,7 @@ test('보충 공고는 AI 검토로 표시하지 않고 공고로 직접 연결�
   await expect(section.getByRole('link', { name: '추천 기준 이력서 확인' })).toHaveAttribute('href', '/resume?resumeId=11');
 });
 
-for (const [reason, message] of [['MISSING_CRITERIA', '추천 기준이 부족해요.'], ['NO_CURRENT_MATCHES', '현재 조회한 공고 중 기술 또는 직무가 연결되는 공고를 찾지 못했어요.']]) {
+for (const [reason, message] of [['MISSING_CRITERIA', '추천 기준이 부족해요.'], ['NO_CURRENT_MATCHES', '현재 조회한 공고 중 기술 또는 직무가 연결되는 공고를 찾지 못했어요.'], ['SAVED_JOBS_UNAVAILABLE', '저장된 추천 공고가 마감되거나 공개가 중단됐어요.']]) {
   test(`추천 0건 사유 구분: ${reason}`, async ({ page }) => {
     await mock(page, { reason });
     await page.goto('/');

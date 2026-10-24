@@ -75,6 +75,7 @@ function SavedRecommendations() {
     MISSING_CRITERIA: '추천 기준이 부족해요. 이력서의 희망 직무·기술을 입력하고 새로 분석해 주세요.',
     ALL_EXCLUDED: '조건에 맞는 현재 공고를 모두 제외했어요. 아래에서 제외를 해제하거나 전체 공고를 살펴보세요.',
     NO_CURRENT_MATCHES: '현재 조회한 공고 중 기술 또는 직무가 연결되는 공고를 찾지 못했어요. 희망 직무를 확인하거나 전체 공고를 살펴보세요.',
+    SAVED_JOBS_UNAVAILABLE: '저장된 추천 공고가 마감되거나 공개가 중단됐어요. 현재 공고에서도 대체할 추천을 찾지 못했어요.',
   })[result?.recommendationStatus?.reason] || '현재 추천 조건에 맞는 공고가 없어요. 추천 기준을 확인하거나 전체 공고를 살펴보세요.';
   return <>
     {history.length > 0 && <div className="recommendation-controls"><label>추천 기준 이력서
