@@ -296,7 +296,7 @@
 
 .discovery-section,
 .positions-section {
-  padding: 76px 0;
+  padding: 24px 0;
 }
 
 .discovery-section {
@@ -462,7 +462,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 40px;
-  margin-top: 36px;
+  margin-top: 16px;
   padding: 48px 56px;
   border-radius: 28px;
   background: #191724;
@@ -493,7 +493,7 @@
   display: flex;
   align-items: center;
   gap: 18px;
-  padding: 44px 0 52px;
+  padding: 32px 0;
   color: #9a96a0;
   font-size: 12px;
 }
@@ -510,6 +510,9 @@
 
 @media (max-width: 768px) {
   .main-page { padding-top: 56px; }
+  .discovery-section, .positions-section { padding: 16px 0; }
+  .login-cta { margin-top: 12px; }
+  .landing-footer { padding: 24px 0; }
 
   .landing-hero,
   .discovery-section,
@@ -561,7 +564,6 @@
   .floating-chip { font-size: 10px; }
   .chip-one { top: 34px; }
   .chip-two { bottom: 28px; }
-  .discovery-section, .positions-section { padding: 58px 0; }
   .job-list { grid-template-columns: 1fr; }
   .login-cta { border-radius: 22px; }
   .landing-footer { align-items: flex-start; flex-direction: column; gap: 5px; }

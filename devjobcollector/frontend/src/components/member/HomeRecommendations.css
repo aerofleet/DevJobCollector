@@ -1,5 +1,5 @@
 .home-recommendations { margin: 40px 0; padding: 30px; background: #f8f6ff; border: 1px solid #e5dff4; border-radius: 24px; min-width: 0; }
-.main-page > .home-recommendations { width: min(1180px, calc(100% - 64px)); margin: 52px auto; box-sizing: border-box; }
+.main-page > .home-recommendations { width: min(1180px, calc(100% - 64px)); margin: 16px auto; box-sizing: border-box; }
 .home-recommendations header, .recommendation-controls, .personal-job-top, .personal-job-grid footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
 .home-recommendations h2 { font-size: clamp(22px, 3vw, 30px); margin: 10px 0; }
 .home-recommendations a { color: #6036b5; font-weight: 650; text-decoration: none; }
@@ -25,10 +25,11 @@
 .home-recommendations :focus-visible { outline: 3px solid #966bd8; outline-offset: 3px; }
 .recommendation-empty { padding: 24px 0; }
 .recommendation-empty a { display: inline-block; margin: 10px 18px 0 0; }
-.career-shortcuts { width: min(1180px, calc(100% - 64px)); margin: 24px auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 20px 24px; box-sizing: border-box; background: #fff; border: 1px solid #e6e1ed; border-radius: 16px; }
+.career-shortcuts { width: min(1180px, calc(100% - 64px)); margin: 16px auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 20px 24px; box-sizing: border-box; background: #fff; border: 1px solid #e6e1ed; border-radius: 16px; }
 .career-shortcuts nav { display: flex; flex-wrap: wrap; gap: 18px; }
 .career-shortcuts a { color: #6036b5; text-decoration: none; font-weight: 600; }
 @media (max-width: 1000px) { .personal-job-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 768px) { .main-page > .home-recommendations, .career-shortcuts { margin-block: 12px; } }
 @media (max-width: 600px) { .main-page > .home-recommendations, .career-shortcuts { width: calc(100% - 32px); padding: 20px; } .home-recommendations { padding: 20px; } .personal-job-grid { grid-template-columns: minmax(0, 1fr); } }
 
 .main-page > .home-recommendations-guest { padding: 0; background: transparent; border: 0; border-radius: 0; }
