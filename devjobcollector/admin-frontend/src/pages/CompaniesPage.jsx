@@ -112,6 +112,7 @@ export default function CompaniesPage() {
   };
 
   const closeDetail = () => {
+    if (reviewing) return;
     if (expanded) { setExpanded(false); return; }
     setSelected(null);
     setReviewAction('');
@@ -176,8 +177,8 @@ export default function CompaniesPage() {
       {selected.company.status === 'PENDING_VERIFICATION'
         && selected.latestRequest?.status === 'PENDING'
         && selected.latestRequest.evidenceAvailable && <div className="company-review-actions">
-          <button type="button" onClick={() => { setReviewAction('approve'); reviewKey.current = ''; setError(''); }}>승인</button>
-          <button type="button" onClick={() => { setReviewAction('reject'); reviewKey.current = ''; setError(''); }}>반려</button>
+          <button type="button" disabled={reviewing} onClick={() => { setReviewAction('approve'); reviewKey.current = ''; setError(''); }}>승인</button>
+          <button type="button" disabled={reviewing} onClick={() => { setReviewAction('reject'); reviewKey.current = ''; setError(''); }}>반려</button>
         </div>}
       {reviewAction && <div className="company-review-confirm">
         <p>{reviewAction === 'approve' ? '첨부된 사업자등록증을 확인했나요? 승인하면 기업 기능을 사용할 수 있습니다.'

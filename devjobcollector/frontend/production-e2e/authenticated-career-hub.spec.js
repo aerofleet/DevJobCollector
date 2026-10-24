@@ -28,7 +28,7 @@ test('인증 사용자는 커리어 홈에 도달하고 활성 회원 정보를 
 
   await expect(page).toHaveURL(/\/member$/);
   await expect(page.getByRole('heading', { name: /내 커리어를 한곳에서/ })).toBeVisible();
-  await expect(page.getByRole('navigation', { name: '내 커리어 메뉴' })).toBeVisible();
+  await expect(page.getByRole('complementary', { name: '내 커리어 메뉴' })).toBeVisible();
   await expect(page.getByRole('link', { name: '커리어 홈' })).toHaveAttribute('aria-current', 'page');
 });
 
