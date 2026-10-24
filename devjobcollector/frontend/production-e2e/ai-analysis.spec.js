@@ -52,6 +52,19 @@ test('운영 합성 이력서·첨부 기반 AI 내용 분석·근거 검증·�
     });
     expect(uploaded.status()).toBe(201);
     await page.addInitScript((value) => localStorage.setItem('accessToken', value), token);
+    const homeResponse = page.waitForResponse(response => response.request().method() === 'GET'
+      && new URL(response.url()).pathname.endsWith('/resume-analyses/home-recommendations'));
+    await page.goto('/');
+    const immediateResponse = await homeResponse;
+    expect(immediateResponse.status()).toBe(200);
+    const immediate = await immediateResponse.json();
+    expect(immediate).toMatchObject({ resumeId, inputMode: 'HOME_RESUME' });
+    expect(immediate.id).toBeUndefined();
+    expect(immediate.aiReview).toBeUndefined();
+    expect(immediate.recommendations.length).toBeGreaterThan(0);
+    expect(immediate.recommendations.length).toBeLessThanOrEqual(8);
+    await expect(page.getByRole('heading', { name: /님을 위한 맞춤 추천!/ })).toBeVisible();
+    await expect(page.locator('.personal-job-grid article').first()).toBeVisible();
     const navigation = await page.goto(`/resume-analysis?resumeId=${resumeId}`);
     expect(navigation.status()).toBe(200);
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,follow');
