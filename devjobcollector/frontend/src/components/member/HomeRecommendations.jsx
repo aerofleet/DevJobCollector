@@ -68,6 +68,7 @@ function SavedRecommendations() {
     - (order[reviews.find(item => item.jobId === b.jobId)?.relevance] ?? 2)).slice(0, 8);
   const analysisLink = result?.id ? `/resume-analysis?analysisId=${result.id}` : result?.resumeId ? `/resume-analysis?resumeId=${result.resumeId}` : '/resume-analysis';
   const emptyMessage = ({
+    NO_ELIGIBLE_MATCHES: '연결되는 공고는 있지만 경력·직급 또는 개발 직무 조건에 맞지 않아 제외했어요. 이력서의 개발 경력과 재직 기간을 확인해 주세요.',
     MISSING_CRITERIA: '추천 기준이 부족해요. 이력서에 희망 직무·기술을 저장하면 홈에서 바로 추천받을 수 있어요.',
     ALL_EXCLUDED: result?.id ? '조건에 맞는 현재 공고를 모두 제외했어요. 아래에서 제외를 해제하거나 전체 공고를 살펴보세요.' : '이전 분석에서 제외한 공고예요. 추천 기준 변경에서 해당 분석을 선택해 제외를 해제할 수 있어요.',
     NO_CURRENT_MATCHES: '현재 조회한 공고 중 기술 또는 직무가 연결되는 공고를 찾지 못했어요. 희망 직무를 확인하거나 전체 공고를 살펴보세요.',
@@ -87,6 +88,10 @@ function SavedRecommendations() {
           <p className="recommendation-caption">{result.inputMode === 'HOME_RESUME' ? '최근 저장한 이력서의 직무·기술로 찾은 공고예요.' : '내 이력서에 맞는 현재 채용공고예요. AI 검토 배지는 검토 완료된 공고에만 표시돼요.'}
             {result.recommendationStatus?.roleSource === 'RESUME_TITLE' && <> 직무는 현재 이력서 제목에서 확인했어요: {result.recommendationStatus.categories.join(', ')}.</>}
             {' '}<Link to={`/resume?resumeId=${result.resumeId}`}>추천 기준 이력서 확인</Link></p>
+          {result.recommendationStatus?.seniorityPolicy && <p className="recommendation-caption">
+            {result.recommendationStatus.careerYears == null ? '개발 경력 연수를 확인할 수 없어 시니어급 추천을 보류했어요.' : `확인된 개발 경력 ${result.recommendationStatus.careerYears}년으로 최소 경력과 제목의 직급을 함께 확인했어요.`}
+            {' '}명시 연수가 없는 Senior·시니어·Lead는 5년, Staff는 7년, Principal·수석은 8년을 서비스 기준으로 적용해요.
+          </p>}
           {jobs.length ? <div className="personal-job-grid">{jobs.map(job => {
             const review = reviews.find(item => item.jobId === job.jobId);
             return <article key={job.jobId} className="recommended-job">
@@ -94,6 +99,8 @@ function SavedRecommendations() {
               <details className="personal-job-reason"><summary>추천 근거 보기</summary>
                 <strong>{review ? 'AI 검토' : '기술·경력 기반'}</strong>
                 <p>{job.matchPoints?.length ? `일치 조건: ${job.matchPoints.join(', ')}` : '이력서의 희망 직무와 연결되는 공고예요.'}</p>
+                {job.careerAssessment?.minimumYears != null && <p>최소 경력 기준: {job.careerAssessment.minimumYears}년{job.careerAssessment.source === 'TITLE_SENIORITY_POLICY' ? ' (제목 직급에 따른 서비스 기준)' : ' (공고 명시 조건)'}</p>}
+                {job.careerAssessment?.reason === 'CAREER_UNCONFIRMED' && <p>경력 충족 여부는 미확인이에요. 지원 전 요구 경력을 확인해 주세요.</p>}
                 {job.missingPoints?.length > 0 && <p>추가 확인: {job.missingPoints.join(', ')}</p>}
                 {review && <><strong>{({ RELATED: '연결되는 경험 있음', REVIEW_NEEDED: '지원 전 추가 확인', LOW_RELEVANCE: '관련성 낮음' })[review.relevance] || '공고 요건 확인'}</strong>
                   {review.lead_with && <p>{review.lead_with}</p>}{review.gap && <p>확인할 점: {review.gap}</p>}</>}

@@ -210,6 +210,8 @@ public class ResumeAnalysisService {
         var preferences = result.has("derivedPreferences")
                 ? mapper.convertValue(result.get("derivedPreferences"), LocalRecommendationEngine.Preferences.class)
                 : new LocalRecommendationEngine.Preferences(null, List.of(), List.of(), List.of());
+        Integer assessedYears = result.hasNonNull("assessedCareerYears") ? result.path("assessedCareerYears").asInt() : preferences.careerYears();
+        preferences = new LocalRecommendationEngine.Preferences(assessedYears, preferences.category(), preferences.location(), preferences.employmentType());
         String roleSource = "ANALYSIS";
         if (preferences.category().isEmpty()) {
             String title = jdbc.queryForObject("SELECT title FROM resumes WHERE id=? AND user_id=?", String.class,
@@ -222,6 +224,8 @@ public class ResumeAnalysisService {
             }
         }
         var pool = candidates(skills, preferences, today);
+        var assessments = new HashMap<Long, RecommendationEligibility.Decision>();
+        for (var candidate : pool) assessments.put(candidate.id(), RecommendationEligibility.assess(candidate, preferences.careerYears()));
         var ranked = engine.rank(skills, preferences, pool, today, pool.size());
         var feedback = new HashMap<Long, String>();
         // The latest feedback for this member/resume wins, including feedback on older analyses.
@@ -256,6 +260,7 @@ public class ResumeAnalysisService {
             var job = metadata.get(recommendation.jobId());
             if (job == null) continue;
             ObjectNode item = mapper.valueToTree(recommendation);
+            item.set("careerAssessment", mapper.valueToTree(assessments.get(recommendation.jobId())));
             item.put("title", Objects.toString(job.get("title"), ""));
             item.put("companyName", Objects.toString(job.get("company_name"), ""));
             item.put("location", Objects.toString(job.get("location"), ""));
@@ -286,12 +291,17 @@ public class ResumeAnalysisService {
         status.put("asOf", today.toString());
         status.put("candidateCount", pool.size());
         status.put("excludedCount", excluded.size());
+        status.set("careerYears", mapper.valueToTree(preferences.careerYears()));
+        long eligibilityFiltered = assessments.values().stream().filter(value -> !value.eligible()).count();
+        status.put("eligibilityFilteredCount", eligibilityFiltered);
+        status.put("seniorityPolicy", "senior-lead-5-staff-7-principal-8-v1");
         status.put("unavailableSavedCount", result.path("unavailableRecommendationCount").asInt());
         status.put("roleSource", roleSource);
         status.set("categories", mapper.valueToTree(preferences.category()));
         status.put("reason", !visible.isEmpty() ? "AVAILABLE"
                 : skills.isEmpty() && preferences.category().isEmpty() ? "MISSING_CRITERIA"
                 : !excluded.isEmpty() ? "ALL_EXCLUDED"
+                : eligibilityFiltered > 0 ? "NO_ELIGIBLE_MATCHES"
                 : result.path("unavailableRecommendationCount").asInt() > 0 ? "SAVED_JOBS_UNAVAILABLE" : "NO_CURRENT_MATCHES");
         return result;
     }
@@ -395,6 +405,15 @@ public class ResumeAnalysisService {
         result.put("resumeId", ((Number) row.get("resume_id")).longValue());
         result.put("status", row.get("status").toString());
         result.put("createdAt", row.get("created_at").toString());
+        Integer years = result.path("derivedPreferences").path("careerYears").isIntegralNumber()
+                ? result.path("derivedPreferences").path("careerYears").asInt() : null;
+        var savedContent = jdbc.queryForList("SELECT content_json FROM resumes WHERE id=? AND user_id=?", String.class,
+                result.path("resumeId").asLong(), user);
+        if (!savedContent.isEmpty()) {
+            Integer currentYears = SavedResumeAnalysisInput.careerYears(read(savedContent.getFirst()));
+            if (currentYears != null) years = currentYears;
+        }
+        result.set("assessedCareerYears", mapper.valueToTree(years));
         var visible = mapper.createArrayNode();
         var excluded = mapper.createArrayNode();
         int unavailable = 0;
@@ -408,6 +427,11 @@ public class ResumeAnalysisService {
             if (jobs.isEmpty()) { unavailable++; continue; }
             ObjectNode item = (ObjectNode) recommendation.deepCopy();
             var job = jobs.getFirst();
+            var assessment = RecommendationEligibility.assess(new LocalRecommendationEngine.Candidate(jobId,
+                    "", Objects.toString(job.get("experience"), ""), "", "", null, List.of(), false,
+                    Objects.toString(job.get("title"), "")), years);
+            if (!assessment.eligible()) continue;
+            item.set("careerAssessment", mapper.valueToTree(assessment));
             item.put("title", Objects.toString(job.get("title"), ""));
             item.put("companyName", Objects.toString(job.get("company_name"), ""));
             item.put("location", Objects.toString(job.get("location"), ""));
@@ -449,7 +473,7 @@ public class ResumeAnalysisService {
         if (tagIds.isEmpty() && categories.isEmpty()) return titleCandidates(skills, today);
         String placeholders = tagIds.isEmpty() ? "NULL" : String.join(",", Collections.nCopies(tagIds.size(), "?"));
         String match = "(SELECT COUNT(*) FROM post_tags p WHERE p.job_post_id=j.id AND p.tech_stack_id IN (" + placeholders + "))";
-        String sql = "SELECT j.id,CONCAT_WS(' ',j.job_category,j.title) role_text,j.experience,j.location,j.hire_type,DATE(j.created_at) created_date,"
+        String sql = "SELECT j.id,j.title,CONCAT_WS(' ',j.job_category,j.title) role_text,j.experience,j.location,j.hire_type,DATE(j.created_at) created_date,"
                 + match + " skill_hits FROM job_posts j WHERE j.is_active=1 AND j.moderation_status='ACTIVE' AND (j.end_date IS NULL OR j.end_date>=?)"
                 + " HAVING skill_hits>0 OR (" + (categories.isEmpty() ? "FALSE"
                     : String.join(" OR ", Collections.nCopies(categories.size(), "REGEXP_LIKE(role_text, ?, 'i')"))) + ")"
@@ -459,7 +483,7 @@ public class ResumeAnalysisService {
         categories.forEach(category -> args.add(RecommendationRoles.sqlPattern(category)));
         var candidates = jdbc.query(sql, (row, index) -> new LocalRecommendationEngine.Candidate(row.getLong("id"),
                 row.getString("role_text"), row.getString("experience"), row.getString("location"), row.getString("hire_type"),
-                row.getDate("created_date") == null ? null : row.getDate("created_date").toLocalDate(), new ArrayList<>()), args.toArray());
+                row.getDate("created_date") == null ? null : row.getDate("created_date").toLocalDate(), new ArrayList<>(), false, row.getString("title")), args.toArray());
         if (candidates.isEmpty()) return titleCandidates(skills, today);
         var ids = candidates.stream().map(LocalRecommendationEngine.Candidate::id).toList();
         var tags = jdbc.query("SELECT p.job_post_id,t.stack_name FROM post_tags p JOIN tech_stacks t ON t.id=p.tech_stack_id WHERE p.job_post_id IN ("
@@ -513,7 +537,7 @@ public class ResumeAnalysisService {
                     Objects.toString(row.get("job_category"), ""), Objects.toString(row.get("experience"), ""),
                     Objects.toString(row.get("location"), ""), Objects.toString(row.get("hire_type"), ""),
                     row.get("created_date") == null ? null : ((java.sql.Date) row.get("created_date")).toLocalDate(),
-                    new ArrayList<>(mentioned), true));
+                    new ArrayList<>(mentioned), true, Objects.toString(row.get("title"), "")));
         }
         return result;
     }

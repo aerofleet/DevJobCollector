@@ -167,6 +167,25 @@ class ResumeAnalysisIntegrationTest {
         } finally { jdbc.update("DELETE FROM job_posts WHERE id=?", job); }
     }
 
+    @Test void currentCareerFiltersSeniorTitlesInHomeSnapshotsAndTitleOnlyCandidates() {
+        long senior = seedJob(), junior = seedJob(), titleOnly = seedJob(), experienced = seedJob();
+        try {
+            jdbc.update("UPDATE job_posts SET title='Senior Software Engineer, Cloudflare for SaaS',experience='경력무관' WHERE id=?", senior);
+            jdbc.update("UPDATE job_posts SET title='Senior Java Engineer',job_category='기타',experience='경력무관' WHERE id=?", titleOnly);
+            jdbc.update("UPDATE job_posts SET title='Backend Engineer',experience='5년 이상' WHERE id=?", experienced);
+            String content = "{\"careerProfile\":{\"category\":[\"백엔드\"]},\"techStack\":[\"Java\"],\"experience\":[{\"startDate\":\"2024-01-01\",\"endDate\":\"2025-01-01\"}]}";
+            jdbc.update("UPDATE resumes SET content_json=? WHERE id=?", content, resume);
+            var home = service.homeRecommendations("owner");
+            assertThat(home.path("recommendations").findValuesAsText("jobId")).containsExactly(Long.toString(junior));
+            assertThat(home.path("recommendationStatus").path("eligibilityFilteredCount").asInt()).isEqualTo(3);
+            long id = create(UUID.randomUUID().toString(), new LocalRecommendationEngine.Preferences(8,"백엔드","",""));
+            assertThat(service.get("owner", id).path("recommendations").findValuesAsText("jobId")).containsExactly(Long.toString(junior));
+            assertThat(service.currentRecommendations("owner", id).path("recommendations").findValuesAsText("jobId")).containsExactly(Long.toString(junior));
+            assertThat(service.homeRecommendations("owner").path("recommendations").findValuesAsText("jobId")).containsExactly(Long.toString(junior));
+            verifyNoInteractions(openai);
+        } finally { jdbc.update("DELETE FROM job_posts WHERE id IN (?,?,?,?)", senior, junior, titleOnly, experienced); }
+    }
+
     long create(String key, LocalRecommendationEngine.Preferences p) {
         return service.create("owner",resume,key,ResumeAnalysisService.CONSENT_VERSION,p).path("id").asLong();
     }
@@ -435,7 +454,7 @@ class ResumeAnalysisIntegrationTest {
     @Test void untaggedTitleSkillsQualifyWithoutConfusingJavaScriptOrHiddenJobs() {
         long java = seedJob(), javascript = seedJob(), hidden = seedJob(), closed = seedJob();
         try {
-            jdbc.update("UPDATE job_posts SET title='Senior Java Engineer' WHERE id=?", java);
+            jdbc.update("UPDATE job_posts SET title='Java Engineer' WHERE id=?", java);
             jdbc.update("UPDATE job_posts SET title='JavaScript Engineer' WHERE id=?", javascript);
             jdbc.update("UPDATE job_posts SET title='Java Engineer', moderation_status='HIDDEN' WHERE id=?", hidden);
             jdbc.update("UPDATE job_posts SET title='Java Engineer', end_date=DATE_SUB(CURRENT_DATE,INTERVAL 1 DAY) WHERE id=?", closed);

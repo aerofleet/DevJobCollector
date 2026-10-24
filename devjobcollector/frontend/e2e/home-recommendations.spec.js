@@ -146,3 +146,15 @@ test('상시채용 마감일은 공통 카드 형식으로 표시한다', async 
   await expect(card.getByText('마감일: 채용 시 마감', { exact: true })).toBeVisible();
   await expect(card).not.toContainText('9999');
 });
+
+test('경력 필터 기준과 미확인 경력을 구분해 안내한다', async ({ page }) => {
+  await mock(page);
+  await page.route('**/home-recommendations', route => route.fulfill({ json: {
+    ...result(8), recommendations: [],
+    recommendationStatus: { reason: 'NO_ELIGIBLE_MATCHES', careerYears: null, seniorityPolicy: 'v1', eligibilityFilteredCount: 1 },
+  } }));
+  await page.goto('/');
+  await expect(page.getByText('개발 경력 연수를 확인할 수 없어 시니어급 추천을 보류했어요.', { exact: false })).toBeVisible();
+  await expect(page.getByText('연결되는 공고는 있지만 경력·직급 또는 개발 직무 조건에 맞지 않아 제외했어요.', { exact: false })).toBeVisible();
+  await expect(page.locator('.personal-job-grid article')).toHaveCount(0);
+});

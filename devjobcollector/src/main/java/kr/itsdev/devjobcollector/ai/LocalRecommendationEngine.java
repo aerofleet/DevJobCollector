@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class LocalRecommendationEngine {
-    public static final String VERSION = "local-role-title-v4";
+    public static final String VERSION = "local-career-eligibility-v5";
     private final double skillWeight, careerWeight, categoryWeight, locationWeight, employmentWeight, freshnessWeight;
 
     public LocalRecommendationEngine(
@@ -67,6 +67,7 @@ public class LocalRecommendationEngine {
         double total = skillWeight + careerWeight + categoryWeight + locationWeight + employmentWeight + freshnessWeight;
         var ranked = new ArrayList<Recommendation>();
         for (Candidate job : candidates) {
+            if (!RecommendationEligibility.assess(job, preferences.careerYears()).eligible()) continue;
             var requirements = new TreeSet<String>();
             job.skills().forEach(skill -> ResumeSkillVocabulary.split(skill).forEach(s -> requirements.add(normalizeSkill(s))));
             var matching = new TreeSet<>(requirements);
@@ -167,10 +168,14 @@ public class LocalRecommendationEngine {
         }
     }
     public record Candidate(long id, String category, String experience, String location, String employmentType,
-                            LocalDate createdDate, List<String> skills, boolean titleEvidence) {
+                            LocalDate createdDate, List<String> skills, boolean titleEvidence, String title) {
+        public Candidate(long id, String category, String experience, String location, String employmentType,
+                         LocalDate createdDate, List<String> skills, boolean titleEvidence) {
+            this(id, category, experience, location, employmentType, createdDate, skills, titleEvidence, category);
+        }
         public Candidate(long id, String category, String experience, String location, String employmentType,
                          LocalDate createdDate, List<String> skills) {
-            this(id, category, experience, location, employmentType, createdDate, skills, false);
+            this(id, category, experience, location, employmentType, createdDate, skills, false, category);
         }
     }
     public record Recommendation(long jobId, int rank, double matchScore, List<String> matchPoints,
