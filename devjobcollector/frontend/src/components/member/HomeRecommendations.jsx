@@ -7,15 +7,18 @@ import './HomeRecommendations.css';
 
 export default function HomeRecommendations() {
   const { token } = useMemberSession();
+  if (!token) return <section className="home-recommendations home-recommendations-guest" aria-labelledby="personal-positions-title">
+    <h2 id="personal-positions-title">나에게 맞는 추천 포지션을 찾고 있다면?</h2>
+    <Link className="recommendation-login-banner" to="/login?next=%2Fresume-analysis">
+      <span className="recommendation-login-message"><span aria-hidden="true">👋</span><span>로그인하고 내 이력서에 맞는<br />포지션을 추천받아보세요!</span></span>
+      <span className="recommendation-login-action">회원가입/로그인 <ArrowRight size={16} aria-hidden="true" /></span>
+    </Link>
+  </section>;
   return <section className="home-recommendations" aria-labelledby="personal-positions-title">
     <header><div><span className="section-eyebrow"><Sparkles size={16} /> YOUR NEXT POSITION</span>
       <h2 id="personal-positions-title">내 이력서로 찾는 추천 포지션</h2></div>
       <Link to="/resume-analysis">이력서 분석 · AI 코칭 <ArrowRight size={16} /></Link></header>
-    {token ? <SavedRecommendations key={token} /> : <div className="recommendation-empty">
-      <h3>내 경험과 연결되는 채용공고를 찾아보세요.</h3>
-      <p>로그인 후 이력서를 분석하면 기술·경력 조건으로 공고를 추천해요. 별도 동의 후 AI로 경험과 공고 요건도 검토할 수 있어요.</p>
-      <Link to="/login?next=%2Fresume-analysis">로그인하고 추천 시작하기 →</Link>
-    </div>}
+    <SavedRecommendations key={token} />
   </section>;
 }
 

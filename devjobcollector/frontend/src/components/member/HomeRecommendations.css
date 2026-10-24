@@ -30,3 +30,17 @@
 .career-shortcuts a { color: #6036b5; text-decoration: none; font-weight: 600; }
 @media (max-width: 1000px) { .personal-job-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .main-page > .home-recommendations, .career-shortcuts { width: calc(100% - 32px); padding: 20px; } .home-recommendations { padding: 20px; } .personal-job-grid { grid-template-columns: minmax(0, 1fr); } }
+
+.main-page > .home-recommendations-guest { padding: 0; background: transparent; border: 0; border-radius: 0; }
+.home-recommendations-guest h2 { margin: 0 0 20px; color: #222; font-size: 22px; font-weight: 700; line-height: 1.4; }
+.home-recommendations-guest .recommendation-login-banner { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 24px 28px; border-radius: 12px; background: #f5f2ff; color: #222; }
+.home-recommendations-guest .recommendation-login-banner:hover { background: #eee8ff; text-decoration: none; }
+.recommendation-login-message { display: flex; align-items: center; gap: 16px; font-size: 17px; font-weight: 500; line-height: 1.6; }
+.recommendation-login-message > [aria-hidden] { font-size: 32px; }
+.recommendation-login-action { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; font-size: 14px; font-weight: 650; }
+@media (max-width: 600px) {
+  .home-recommendations-guest h2 { font-size: 20px; margin-bottom: 16px; }
+  .home-recommendations-guest .recommendation-login-banner { align-items: flex-start; flex-direction: column; gap: 16px; padding: 20px; }
+  .recommendation-login-message { gap: 12px; font-size: 15px; }
+  .recommendation-login-action { align-self: flex-end; }
+}

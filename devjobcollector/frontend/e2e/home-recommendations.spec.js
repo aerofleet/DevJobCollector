@@ -33,7 +33,8 @@ async function mock(page, { loggedIn = true, empty = false, fail = false } = {})
 test('공개 홈은 개인 API나 모델 호출 없이 추천 시작 안내를 표시한다', async ({ page }) => {
   const state = await mock(page, { loggedIn: false });
   await page.goto('/');
-  await expect(page.getByRole('link', { name: '로그인하고 추천 시작하기' })).toHaveAttribute('href', '/login?next=%2Fresume-analysis');
+  await expect(page.locator('.recommendation-login-banner')).toHaveAttribute('href', '/login?next=%2Fresume-analysis');
+  await expect(page.locator('.recommendation-login-banner')).toContainText('회원가입/로그인');
   expect(state.privateCalls).toBe(0); expect(state.writes).toBe(0);
 });
 
