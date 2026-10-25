@@ -146,3 +146,20 @@ test('상시채용 마감일은 공통 카드 형식으로 표시한다', async 
   await expect(card.getByText('마감일: 채용 시 마감', { exact: true })).toBeVisible();
   await expect(card).not.toContainText('9999');
 });
+
+test('AI 적합성 판정과 보류 근거를 구분해 표시한다', async ({ page }) => {
+  await mock(page);
+  await page.route('**/home-recommendations', route => route.fulfill({ json: {
+    ...result(8), recommendations: [{ ...job, aiDecision: 'STRETCH', aiFit: { decision: 'STRETCH', decisionReason: 'API 경험은 연결되지만 운영 범위는 확인이 필요합니다.', criteria: [] } }],
+    aiExcludedRecommendations: [{ ...job, jobId: 99, title: 'Senior Software Engineer', aiDecision: 'NOT_RECOMMENDED', aiFit: { decisionReason: '공고의 운영 책임과 이력서 경력 간 차이가 큽니다.', criteria: [] } }],
+    recommendationStatus: { reason: 'AVAILABLE', aiFiltered: true, aiPendingCount: 1 },
+  } }));
+  await page.goto('/');
+  const section = page.getByRole('region', { name: '내 이력서로 찾는 추천 포지션' });
+  await expect(section.locator('.personal-job-grid article')).toHaveCount(1);
+  await section.getByText('추천 근거 보기', { exact: true }).click();
+  await expect(section.getByText('도전 지원', { exact: true })).toBeVisible();
+  await section.getByText('AI 검토로 보류한 공고 1개').click();
+  await expect(section.getByText('부적합: 공고의 운영 책임과 이력서 경력 간 차이가 큽니다.')).toBeVisible();
+  await expect(section.getByText('재검토 전까지 추천을 보류했어요.', { exact: false })).toBeVisible();
+});

@@ -167,6 +167,39 @@ class ResumeAnalysisIntegrationTest {
         } finally { jdbc.update("DELETE FROM job_posts WHERE id=?", job); }
     }
 
+    @Test void homeUsesAiDecisionsAndInvalidatesChangedEvidenceWithoutCallingModel() throws Exception {
+        long approved = seedJob(), rejected = seedJob(), insufficient = seedJob(), pending = seedJob();
+        try {
+            long id = create(UUID.randomUUID().toString(), prefs);
+            var stored = (com.fasterxml.jackson.databind.node.ObjectNode)mapper.readTree(jdbc.queryForObject("SELECT result_json FROM ai_analysis_request WHERE id=?", String.class, id));
+            String content = jdbc.queryForObject("SELECT content_json FROM resumes WHERE id=?", String.class, resume);
+            String inputHash = ResumeAnalysisService.hash(ResumeAnalysisService.hash(content) + ":[]");
+            var review = stored.putObject("aiReview").put("status", "COMPLETED").put("fitVersion", AiJobFit.VERSION);
+            var jobs = review.putArray("jobs");
+            long[] ids = {approved, rejected, insufficient};
+            String[] decisions = {"RECOMMENDED", "NOT_RECOMMENDED", "INSUFFICIENT_INFORMATION"};
+            for (int i = 0; i < ids.length; i++) {
+                var metadata = jdbc.queryForMap("SELECT title,job_category,experience,location,hire_type,LEFT(apply_qual,5000) qualifications FROM job_posts WHERE id=?", ids[i]);
+                jobs.addObject().put("jobId", ids[i]).put("decision", decisions[i]).put("fitVersion", AiJobFit.VERSION)
+                        .put("inputFingerprint", inputHash).put("jobFingerprint", AiJobFit.jobFingerprint(metadata));
+            }
+            jdbc.update("UPDATE ai_analysis_request SET result_json=? WHERE id=?", mapper.writeValueAsString(stored), id);
+            var first = service.currentRecommendations("owner", id);
+            assertThat(first.path("recommendations")).as("%s", first).hasSize(1);
+            assertThat(first.path("recommendations").get(0).path("jobId").asLong()).isEqualTo(approved);
+            assertThat(first.path("aiExcludedRecommendations")).hasSize(2);
+            assertThat(first.path("recommendationStatus").path("aiPendingCount").asInt()).isEqualTo(1);
+            service.feedback("owner", id, rejected, "MATCHED");
+            assertThat(service.currentRecommendations("owner", id).path("recommendations")).hasSize(1);
+            jdbc.update("UPDATE job_posts SET apply_qual='Updated senior responsibilities' WHERE id=?", approved);
+            assertThat(service.currentRecommendations("owner", id).path("recommendations")).isEmpty();
+            assertThat(contentReviews.get("owner", id).path("fitReviewRequired").asBoolean()).isTrue();
+            jdbc.update("UPDATE resumes SET content_json='{}' WHERE id=?", resume);
+            assertThat(service.currentRecommendations("owner", id).path("aiExcludedRecommendations")).isEmpty();
+            verifyNoInteractions(openai);
+        } finally { jdbc.update("DELETE FROM job_posts WHERE id IN (?,?,?,?)", approved, rejected, insufficient, pending); }
+    }
+
     long create(String key, LocalRecommendationEngine.Preferences p) {
         return service.create("owner",resume,key,ResumeAnalysisService.CONSENT_VERSION,p).path("id").asLong();
     }

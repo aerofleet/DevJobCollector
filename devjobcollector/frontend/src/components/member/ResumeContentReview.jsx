@@ -38,7 +38,9 @@ export default function ResumeContentReview({ result, disabled, onResult }) {
     <h3>이렇게 고쳐보세요</h3>
     {state !== 'COMPLETED' && <p>내 자료로 채운 완성 문장과 공고별 어필법을 받아보세요.</p>}
     {error && <p role="alert" className="analysis-error">{error}</p>}
-    {!result.inputFingerprint ? <p>이전 분석 기록입니다. 현재 자료로 새 분석을 만들면 AI 내용 분석을 사용할 수 있습니다.</p> : state === 'NOT_REQUESTED' && <>
+    {state === 'COMPLETED' && result.inputFingerprint && <button type="button" disabled={disabled || busy} onClick={() => run(async () => { setConsent(false); setPreview(await previewContentReview(result.id)); })}>공고 적합성 재검토 내용 확인</button>}
+    {review?.fitReviewRequired && <p role="status">저장된 적합성 판정을 다시 확인해야 해요. 이력서를 수정했다면 새 분석에서, 공고가 바뀌었다면 전송 내용 확인 후 재검토해 주세요.</p>}
+    {!result.inputFingerprint ? <p>이전 분석 기록입니다. 현재 자료로 새 분석을 만들면 AI 내용 분석을 사용할 수 있습니다.</p> : (state === 'NOT_REQUESTED' || (state === 'COMPLETED' && preview)) && <>
       {!preview && <button type="button" disabled={disabled || busy} onClick={() => run(async () => { setConsent(false); setPreview(await previewContentReview(result.id)); })}>
         {busy ? '전송할 자료 준비 중…' : 'AI에 전송할 내용 확인'}</button>}
       {preview && <div className="content-review-preview">
@@ -56,7 +58,7 @@ export default function ResumeContentReview({ result, disabled, onResult }) {
         <button type="button" disabled={!consent || busy || disabled} onClick={() => run(async () => {
           const value = await requestContentReview(result.id, preview.consentVersion, preview.previewHash); sync(value); setPreview(null); setConsent(false);
         })}>{busy ? 'AI가 경험과 공고를 검토 중…' : '동의하고 AI 내용 분석'}</button>
-        <p className="analysis-note">AI 요청은 근거 정리와 합산해 하루 최대 5회, 분석 결과당 내용 분석 1회입니다. 실패한 요청도 포함되며 자동 재시도하지 않습니다.</p>
+        <p className="analysis-note">AI 요청은 근거 정리와 합산해 하루 최대 5회입니다. 같은 전송 내용은 저장된 결과를 사용하고, 변경된 내용은 동의 후 다시 검토합니다. 실패한 요청도 포함되며 자동 재시도하지 않습니다.</p>
       </div>}
     </>}
     {['PENDING', 'INTERRUPTED', 'FAILED'].includes(state) && <p role="status">{state === 'PENDING' ? 'AI가 분석 중입니다.' : 'AI 내용 분석을 완료하지 못했습니다. 로컬 점검과 공고 후보는 계속 확인할 수 있습니다.'} 저장된 결과를 확인하거나 새 분석에서 이어가세요.</p>}
@@ -94,6 +96,7 @@ export function AiJobReview({ review }) {
   if (!review) return null;
   const names = { RELATED: '연결되는 경험 있음', REVIEW_NEEDED: '추가 확인 필요', LOW_RELEVANCE: '관련성 낮음' };
   return <div className="ai-job-review"><strong><span className="evidence-badge evidence-badge-ai">AI 판단</span> {names[review.relevance]}</strong>
+    {review.decision && <p><strong>{({ RECOMMENDED: '추천', STRETCH: '도전 지원', NOT_RECOMMENDED: '부적합', INSUFFICIENT_INFORMATION: '정보 부족', REVIEW_REQUIRED: '재검토 필요' })[review.decision]}</strong> — {review.decisionReason}</p>}
     <div className="coaching-job-fit"><div><h4>앞세울 경험</h4><p>{review.lead_with || '아래 인용된 경험을 공고 요건과 연결해보세요.'}</p></div><div><h4>보완할 요건</h4><p>{review.gap || '공고 원문의 지원 요건을 확인해보세요.'}</p></div></div>
     <details><summary>공고와 경험의 근거 보기</summary>
     {review.criteria.map((criterion, index) => <div key={index}>

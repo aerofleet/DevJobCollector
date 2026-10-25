@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
 
 /** Validate grounding independently from the model's structured-output promise. */
 public final class ResumeContentReviewRules {
-    public static final String VERSION = "content-review-v4-coaching";
+    public static final String VERSION = "content-review-v6-seniority-title";
     public record Source(String id, String text, ResumeEvidenceReview.Document original) {}
     public record Job(int slot, long jobId, String text) {}
     public record Passage(String id, String text) {}
@@ -120,6 +120,9 @@ public final class ResumeContentReviewRules {
                 if (assessment.equals("SUPPORTED") && !grounded(source, quote)) continue;
                 if (!quote.isBlank() && !grounded(source, quote)) continue;
                 if (introducesNumbers(explanation, job.text() + (source == null ? "" : source.text()))) continue;
+                if (assessment.equals("SUPPORTED") && Pattern.compile("경험.{0,20}없|담당.{0,20}없|하지\\s*않|한\\s*적.{0,8}없|(?i)no\\s+.{0,30}experience|never\\s").matcher(quote).find()) {
+                    assessment = "CHECK";
+                }
                 if (assessment.equals("SUPPORTED") && missingExplicitRequirement(jobQuote, quote)) {
                     assessment = "CHECK";
                     explanation = "인용된 경험만으로는 이 공고 요건 전체를 확인하기 어려워 추가 확인이 필요합니다.";

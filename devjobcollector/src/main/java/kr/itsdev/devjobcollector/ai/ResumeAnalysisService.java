@@ -236,6 +236,19 @@ public class ResumeAnalysisService {
         result.path("recommendations").forEach(j -> originalIds.add(j.path("jobId").asLong()));
         var visible = mapper.createArrayNode();
         var excluded = mapper.createArrayNode();
+        var aiExcluded = mapper.createArrayNode();
+        var aiReview = result.path("aiReview");
+        // Keep applying the AI gate to earlier completed reviews too. A policy version
+        // change makes their decisions REVIEW_REQUIRED; it must not reveal them again.
+        boolean aiFiltered = "COMPLETED".equals(aiReview.path("status").asText()) && aiReview.path("fitVersion").isTextual();
+        String currentInputFingerprint = "";
+        if (aiFiltered) {
+            String content = jdbc.queryForObject("SELECT content_json FROM resumes WHERE id=? AND user_id=?", String.class,
+                    result.path("resumeId").asLong(), user);
+            var attachmentIds = jdbc.queryForList("SELECT id FROM resume_attachments WHERE resume_id=? ORDER BY id", Long.class, result.path("resumeId").asLong());
+            currentInputFingerprint = hash(hash(content) + ":" + attachmentIds);
+        }
+        int pendingAiCount = 0;
         // Read metadata in one query, independent of candidate count.
         var metadata = new HashMap<Long, Map<String, Object>>();
         var stacks = new HashMap<Long, List<Map<String, Object>>>();
@@ -243,7 +256,7 @@ public class ResumeAnalysisService {
             var ids = ranked.stream().map(LocalRecommendationEngine.Recommendation::jobId).toList();
             var args = new ArrayList<Object>(ids);
             args.add(today);
-            jdbc.queryForList("SELECT id,title,company_name,location,experience,end_date,hire_type,source_platform FROM job_posts WHERE id IN ("
+            jdbc.queryForList("SELECT id,title,company_name,job_category,location,experience,end_date,hire_type,source_platform,LEFT(apply_qual,5000) qualifications FROM job_posts WHERE id IN ("
                     + String.join(",", Collections.nCopies(ids.size(), "?"))
                     + ") AND is_active=1 AND moderation_status='ACTIVE' AND (end_date IS NULL OR end_date>=?)", args.toArray())
                     .forEach(row -> metadata.put(((Number) row.get("id")).longValue(), row));
@@ -267,11 +280,21 @@ public class ResumeAnalysisService {
             item.put("supplemented", !originalIds.contains(recommendation.jobId()));
             String value = feedback.get(recommendation.jobId());
             if (value != null) item.put("feedback", value);
-            if (value != null && !"MATCHED".equals(value)) excluded.add(item);
-            else if (visible.size() < 8) { item.put("rank", visible.size() + 1); visible.add(item); }
+            if (value != null && !"MATCHED".equals(value)) { excluded.add(item); continue; }
+            if (aiFiltered) {
+                JsonNode review = mapper.createObjectNode();
+                for (var candidate : aiReview.path("jobs")) if (candidate.path("jobId").asLong() == recommendation.jobId()) review = candidate;
+                String decision = AiJobFit.decision(review, currentInputFingerprint, AiJobFit.jobFingerprint(job));
+                item.put("aiDecision", decision);
+                if ("REVIEW_REQUIRED".equals(decision)) { pendingAiCount++; continue; }
+                item.set("aiFit", review);
+                if (!AiJobFit.visible(decision)) { aiExcluded.add(item); continue; }
+            }
+            if (visible.size() < 8) { item.put("rank", visible.size() + 1); visible.add(item); }
         }
         result.set("recommendations", visible);
         result.set("excludedRecommendations", excluded);
+        result.set("aiExcludedRecommendations", aiExcluded);
         // Only retain saved AI reviews for the same, still-visible original jobs.
         if (result.path("aiReview").isObject()) {
             var visibleIds = new HashSet<Long>();
@@ -286,12 +309,17 @@ public class ResumeAnalysisService {
         status.put("asOf", today.toString());
         status.put("candidateCount", pool.size());
         status.put("excludedCount", excluded.size());
+        status.put("aiFiltered", aiFiltered);
+        status.put("aiExcludedCount", aiExcluded.size());
+        status.put("aiPendingCount", pendingAiCount);
         status.put("unavailableSavedCount", result.path("unavailableRecommendationCount").asInt());
         status.put("roleSource", roleSource);
         status.set("categories", mapper.valueToTree(preferences.category()));
         status.put("reason", !visible.isEmpty() ? "AVAILABLE"
                 : skills.isEmpty() && preferences.category().isEmpty() ? "MISSING_CRITERIA"
                 : !excluded.isEmpty() ? "ALL_EXCLUDED"
+                : aiFiltered && !aiExcluded.isEmpty() ? "NO_AI_APPROVED_MATCHES"
+                : aiFiltered && pendingAiCount > 0 ? "AI_REVIEW_REQUIRED"
                 : result.path("unavailableRecommendationCount").asInt() > 0 ? "SAVED_JOBS_UNAVAILABLE" : "NO_CURRENT_MATCHES");
         return result;
     }
