@@ -5,7 +5,7 @@ import java.util.*;
 
 /** Reuse only model decisions tied to the exact reviewed inputs. No seniority heuristics. */
 final class AiJobFit {
-    static final String VERSION = "ai-job-fit-v1";
+    static final String VERSION = "ai-job-fit-v2";
     static String jobFingerprint(Map<String, Object> job) {
         var value = new StringBuilder();
         for (String field : List.of("title", "job_category", "experience", "location", "hire_type", "qualifications")) {

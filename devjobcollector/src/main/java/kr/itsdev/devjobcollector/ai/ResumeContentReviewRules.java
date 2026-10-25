@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
 
 /** Validate grounding independently from the model's structured-output promise. */
 public final class ResumeContentReviewRules {
-    public static final String VERSION = "content-review-v5-job-fit";
+    public static final String VERSION = "content-review-v6-seniority-title";
     public record Source(String id, String text, ResumeEvidenceReview.Document original) {}
     public record Job(int slot, long jobId, String text) {}
     public record Passage(String id, String text) {}

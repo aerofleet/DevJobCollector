@@ -238,7 +238,9 @@ public class ResumeAnalysisService {
         var excluded = mapper.createArrayNode();
         var aiExcluded = mapper.createArrayNode();
         var aiReview = result.path("aiReview");
-        boolean aiFiltered = "COMPLETED".equals(aiReview.path("status").asText()) && AiJobFit.VERSION.equals(aiReview.path("fitVersion").asText());
+        // Keep applying the AI gate to earlier completed reviews too. A policy version
+        // change makes their decisions REVIEW_REQUIRED; it must not reveal them again.
+        boolean aiFiltered = "COMPLETED".equals(aiReview.path("status").asText()) && aiReview.path("fitVersion").isTextual();
         String currentInputFingerprint = "";
         if (aiFiltered) {
             String content = jdbc.queryForObject("SELECT content_json FROM resumes WHERE id=? AND user_id=?", String.class,
