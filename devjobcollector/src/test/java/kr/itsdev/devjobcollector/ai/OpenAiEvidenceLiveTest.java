@@ -8,6 +8,37 @@ import static org.assertj.core.api.Assertions.*;
 /** Explicit opt-in smoke tests. Synthetic data only; one billable API request per test. */
 @EnabledIfEnvironmentVariable(named="DJC_OPENAI_LIVE_TEST",matches="true")
 class OpenAiEvidenceLiveTest {
+    @Test void modelDoesNotTreatCareerUnspecifiedAsJuniorForTheReportedSeniorTitles() {
+        var mapper = new ObjectMapper();
+        var client = new OpenAiEvidenceClient(mapper, System.getenv("OPENAI_API_KEY"), true);
+        String resume = "백엔드 개발자로 1년 근무하며 Java API 개발을 담당했습니다. 시니어급 제품 전략, 솔루션 아키텍처, 대규모 시스템 운영 또는 기술 리딩 경험은 없습니다.";
+        var sources = java.util.List.of(new ResumeContentReviewRules.Source("S1", resume,
+                new ResumeEvidenceReview.Document("/experience/0/description", "synthetic", null, "경력 1", resume)));
+        var titles = java.util.List.of(
+                "Senior Product Manager, Cloudflare Workers",
+                "Senior Software Engineer, Cloudflare for SaaS",
+                "Senior Software Engineer, Cloudflare Hyperdrive",
+                "Senior Solutions Engineer, Cloudflare One (SASE/SSE)",
+                "Senior Systems Engineer, Cloudflare Tunnel");
+        var jobs = java.util.stream.IntStream.range(0, titles.size())
+                .mapToObj(i -> new ResumeContentReviewRules.Job(i, i + 10,
+                        titles.get(i) + ". 경력: 경력무관. 상세 담당 업무와 필수 요건은 미수집."))
+                .toList();
+        var payload = java.util.Map.<String, Object>of("sources", java.util.List.of(java.util.Map.of(
+                        "sourceId", "S1", "section", "경력 1", "text", resume,
+                        "passages", ResumeContentReviewRules.passages("S1", resume))),
+                "jobs", jobs.stream().map(j -> java.util.Map.of("slot", j.slot(), "text", j.text(),
+                        "passages", ResumeContentReviewRules.passages("J" + j.slot(), j.text()))).toList());
+        var output = client.review(payload);
+        var validated = ResumeContentReviewRules.validate(output, sources, jobs, mapper);
+        assertThat(validated.path("jobs")).as("Synthetic raw: %s", output).hasSize(5);
+        for (var job : validated.path("jobs")) {
+            assertThat(job.path("decision").asText())
+                    .as("Career-unspecified senior listing %s: %s", job.path("jobId"), job)
+                    .isNotIn("RECOMMENDED", "STRETCH");
+        }
+    }
+
     @Test void modelJudgesSeniorityFromEvidenceRatherThanFixedTitleYears() {
         var mapper = new ObjectMapper();
         var client = new OpenAiEvidenceClient(mapper, System.getenv("OPENAI_API_KEY"), true);
