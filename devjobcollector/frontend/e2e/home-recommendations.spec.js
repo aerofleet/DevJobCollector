@@ -92,7 +92,7 @@ test('보충 공고는 AI 검토로 표시하지 않고 공고로 직접 연결�
   await section.getByText('추천 근거 보기', { exact: true }).click();
   await expect(section.getByText('일치 조건: Java, Spring Boot')).toBeVisible();
   await expect(section.getByText('AI 검토', { exact: true })).toHaveCount(0);
-  await expect(section.getByRole('link', { name: '추천 기준 이력서 확인' })).toHaveAttribute('href', '/resume?resumeId=11');
+  await expect(section.getByRole('link', { name: '이력서 확인' })).toHaveAttribute('href', '/resume?resumeId=11');
 });
 
 for (const [reason, message] of [['MISSING_CRITERIA', '추천 기준이 부족해요.'], ['NO_CURRENT_MATCHES', '현재 조회한 공고 중 기술 또는 직무가 연결되는 공고를 찾지 못했어요.'], ['SAVED_JOBS_UNAVAILABLE', '저장된 추천 공고가 마감되거나 공개가 중단됐어요.']]) {
@@ -116,7 +116,7 @@ test('조회 오류 재시도와 분석 없는 회원 안내', async ({ page }) 
 test('로그인 후 분석 없이 이름과 저장 이력서 추천이 테마보다 먼저 표시된다', async ({ page }) => {
   const state = await mock(page, { preview: true, supplemented: true });
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: '테스트님을 위한 맞춤 추천!' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '테스트님을 위한 맞춤 AI 추천!' })).toBeVisible();
   const section = page.getByRole('region', { name: '내 이력서로 찾는 추천 포지션' });
   await expect(section.locator('.job-card').first()).toBeVisible();
   await expect(section.locator('.personal-job-grid article')).toHaveCount(8);
@@ -161,7 +161,7 @@ test('AI 적합성 판정과 보류 근거를 구분해 표시한다', async ({ 
   await expect(section.getByText('도전 지원', { exact: true })).toBeVisible();
   await section.getByText('AI 검토로 보류한 공고 1개').click();
   await expect(section.getByText('부적합: 공고의 운영 책임과 이력서 경력 간 차이가 큽니다.')).toBeVisible();
-  await expect(section.getByText('AI 적합성 검토 전까지 추천을 보류했어요.', { exact: false })).toBeVisible();
+  await expect(section.getByText('공고 1개는 AI 검토 전까지 추천을 보류했어요.', { exact: false })).toBeVisible();
 });
 
 test('시니어 공고의 최초 경력 검토 대기를 설명한다', async ({ page }) => {
@@ -174,5 +174,5 @@ test('시니어 공고의 최초 경력 검토 대기를 설명한다', async ({
   const section = page.getByRole('region', { name: '내 이력서로 찾는 추천 포지션' });
   await expect(section.locator('.personal-job-grid article')).toHaveCount(0);
   await expect(section.getByText('Senior·시니어·Vice President·Director·Manager 등 경력과 책임 범위 검토가 필요한 공고이거나', { exact: false })).toBeVisible();
-  await expect(section.getByText('공고 1개는 AI 적합성 검토 전까지', { exact: false })).toBeVisible();
+  await expect(section.getByText('공고 1개는 AI 검토 전까지', { exact: false })).toBeVisible();
 });

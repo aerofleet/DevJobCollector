@@ -30,7 +30,7 @@ test('운영 로그인 홈은 분석 요청 없이 저장 이력서로 추천을
     expect(result.aiReview).toBeUndefined();
     expect(result.recommendations.length).toBeGreaterThan(0);
     expect(result.recommendations.length).toBeLessThanOrEqual(8);
-    await expect(page.getByRole('heading', { name: /님을 위한 맞춤 추천!/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /님을 위한 맞춤 AI 추천!/ })).toBeVisible();
     await expect(page.locator('.personal-job-grid article')).toHaveCount(result.recommendations.length);
     expect(analysisWrites).toBe(0);
     const history = await request.get(`${base}/ai/resume-analyses`, { headers });

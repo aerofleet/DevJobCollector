@@ -17,7 +17,7 @@ export default function HomeRecommendations() {
     </Link>
   </section>;
   return <section className="home-recommendations home-recommendations-member" aria-label="내 이력서로 찾는 추천 포지션">
-    <header><h2 id="personal-positions-title">{member?.name || '회원'}님을 위한 맞춤 추천!</h2></header>
+    <header><h2 id="personal-positions-title">{member?.name || '회원'}님을 위한 맞춤 AI 추천!</h2></header>
     <SavedRecommendations key={token} />
   </section>;
 }
@@ -86,13 +86,13 @@ function SavedRecommendations() {
       : !result || result.recommendationStatus?.reason === 'NO_RESUME' ? <div className="recommendation-empty"><h3>첫 추천을 받아보세요.</h3><p>이력서에 희망 직무와 기술을 저장하면 맞춤 공고가 바로 표시돼요.</p>
         <Link to="/resume">이력서 작성하고 추천받기 →</Link></div>
         : <>
-          <p className="recommendation-caption">{result.inputMode === 'HOME_RESUME' ? '최근 저장한 이력서의 직무·기술로 찾은 공고예요.' : '내 이력서에 맞는 현재 채용공고예요. AI 검토 배지는 검토 완료된 공고에만 표시돼요.'}
-            {result.recommendationStatus?.roleSource === 'RESUME_TITLE' && <> 직무는 현재 이력서 제목에서 확인했어요: {result.recommendationStatus.categories.join(', ')}.</>}
-            {' '}<Link to={`/resume?resumeId=${result.resumeId}`}>추천 기준 이력서 확인</Link></p>
+          <p className="recommendation-caption">내 이력서를 바탕으로 찾은 공고예요.
+            {result.recommendationStatus?.roleSource === 'RESUME_TITLE' && <> 기준 직무: {result.recommendationStatus.categories.join(', ')}.</>}
+            {' '}<Link to={`/resume?resumeId=${result.resumeId}`}>이력서 확인</Link></p>
           <p className="recommendation-caption">{result.recommendationStatus?.aiFiltered
-            ? 'AI의 이력서·공고 비교 결과 중 추천과 도전 지원만 표시해요. 사용자 제외 피드백도 유지돼요.'
-            : 'AI 적합성 검토 전 후보예요. 기술 일치는 지원 자격 충족을 뜻하지 않아요. AI 코칭에서 전송 내용을 확인하면 경력·직급·공고 요건을 함께 검토해요.'}</p>
-          {result.recommendationStatus?.aiPendingCount > 0 && <p className="recommendation-caption">경력·직급 확인이 필요하거나 새로 등록·변경된 공고 {result.recommendationStatus.aiPendingCount}개는 AI 적합성 검토 전까지 추천을 보류했어요.</p>}
+            ? 'AI가 경력과 공고 요건을 검토한 추천이에요.'
+            : 'AI 검토 전 후보예요. AI 코칭에서 지원 적합성을 확인하세요.'}
+            {result.recommendationStatus?.aiPendingCount > 0 && <> 공고 {result.recommendationStatus.aiPendingCount}개는 AI 검토 전까지 추천을 보류했어요.</>}</p>
           {jobs.length ? <div className="personal-job-grid">{jobs.map(job => {
             const review = job.aiFit || reviews.find(item => item.jobId === job.jobId);
             return <article key={job.jobId} className="recommended-job">
