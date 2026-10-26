@@ -11,7 +11,7 @@ class OpenAiEvidenceLiveTest {
     @Test void modelChecksOverseasPreferencesAndRemoteCountryRestrictions() {
         var mapper = new ObjectMapper();
         var client = new OpenAiEvidenceClient(mapper, System.getenv("OPENAI_API_KEY"), true);
-        String resume = "Java API 개발 실무 경력 2년입니다. 희망 근무 지역은 일본만입니다. 일본 현지 출근을 희망하며 다른 국가 근무는 원하지 않습니다. 비자와 취업 허가 정보는 제공하지 않았습니다.";
+        String resume = "Java API 개발 실무 경력 2년입니다. 희망 근무 지역 선택: 일본, 원격. 비자와 취업 허가 정보는 제공하지 않았습니다.";
         var sources = java.util.List.of(new ResumeContentReviewRules.Source("S1", resume,
                 new ResumeEvidenceReview.Document("/careerProfile/location", "synthetic", null, "희망 근무 지역", resume)));
         var jobs = java.util.List.of(
