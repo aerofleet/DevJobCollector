@@ -2,10 +2,19 @@ package kr.itsdev.devjobcollector.ai;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.*;
+import java.util.regex.Pattern;
 
-/** Reuse only model decisions tied to the exact reviewed inputs. No seniority heuristics. */
+/** Senior-role signals require review; suitability remains an evidence-based model decision. */
 final class AiJobFit {
     static final String VERSION = "ai-job-fit-v2";
+    private static final Pattern SENIOR_ROLE = Pattern.compile(
+            "(?iu)(?<![\\p{L}\\p{N}_])(?:senior|sr\\.?|staff|principal|lead)(?![\\p{L}\\p{N}_])|시니어|수석");
+
+    static boolean requiresSeniorityReview(Map<String, Object> job) {
+        // Inspect role fields, not vendor names or incidental mentions of senior colleagues in the body.
+        return List.of("title", "experience", "job_category").stream()
+                .anyMatch(field -> SENIOR_ROLE.matcher(Objects.toString(job.get(field), "")).find());
+    }
     static String jobFingerprint(Map<String, Object> job) {
         var value = new StringBuilder();
         for (String field : List.of("title", "job_category", "experience", "location", "hire_type", "qualifications")) {

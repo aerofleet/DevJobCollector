@@ -281,6 +281,10 @@ public class ResumeAnalysisService {
             String value = feedback.get(recommendation.jobId());
             if (value != null) item.put("feedback", value);
             if (value != null && !"MATCHED".equals(value)) { excluded.add(item); continue; }
+            if (!aiFiltered && AiJobFit.requiresSeniorityReview(job)) {
+                pendingAiCount++;
+                continue;
+            }
             if (aiFiltered) {
                 JsonNode review = mapper.createObjectNode();
                 for (var candidate : aiReview.path("jobs")) if (candidate.path("jobId").asLong() == recommendation.jobId()) review = candidate;
@@ -319,7 +323,7 @@ public class ResumeAnalysisService {
                 : skills.isEmpty() && preferences.category().isEmpty() ? "MISSING_CRITERIA"
                 : !excluded.isEmpty() ? "ALL_EXCLUDED"
                 : aiFiltered && !aiExcluded.isEmpty() ? "NO_AI_APPROVED_MATCHES"
-                : aiFiltered && pendingAiCount > 0 ? "AI_REVIEW_REQUIRED"
+                : pendingAiCount > 0 ? "AI_REVIEW_REQUIRED"
                 : result.path("unavailableRecommendationCount").asInt() > 0 ? "SAVED_JOBS_UNAVAILABLE" : "NO_CURRENT_MATCHES");
         return result;
     }

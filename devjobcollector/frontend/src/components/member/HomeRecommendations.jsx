@@ -69,7 +69,7 @@ function SavedRecommendations() {
   const analysisLink = result?.id ? `/resume-analysis?analysisId=${result.id}` : result?.resumeId ? `/resume-analysis?resumeId=${result.resumeId}` : '/resume-analysis';
   const emptyMessage = ({
     NO_AI_APPROVED_MATCHES: 'AI가 검토한 공고 중 현재 추천할 공고가 없어요. 아래에서 부적합·정보 부족의 근거를 확인할 수 있어요.',
-    AI_REVIEW_REQUIRED: '이력서나 공고가 변경됐거나 아직 검토하지 않은 후보예요. 전송 내용을 확인하고 AI 적합성을 다시 검토해 주세요.',
+    AI_REVIEW_REQUIRED: 'Senior·시니어 등 경력 검토가 필요한 공고이거나, 이력서·공고가 변경된 후보예요. 전송 내용을 확인하고 AI 적합성을 검토해 주세요.',
     MISSING_CRITERIA: '추천 기준이 부족해요. 이력서에 희망 직무·기술을 저장하면 홈에서 바로 추천받을 수 있어요.',
     ALL_EXCLUDED: result?.id ? '조건에 맞는 현재 공고를 모두 제외했어요. 아래에서 제외를 해제하거나 전체 공고를 살펴보세요.' : '이전 분석에서 제외한 공고예요. 추천 기준 변경에서 해당 분석을 선택해 제외를 해제할 수 있어요.',
     NO_CURRENT_MATCHES: '현재 조회한 공고 중 기술 또는 직무가 연결되는 공고를 찾지 못했어요. 희망 직무를 확인하거나 전체 공고를 살펴보세요.',
@@ -92,7 +92,7 @@ function SavedRecommendations() {
           <p className="recommendation-caption">{result.recommendationStatus?.aiFiltered
             ? 'AI의 이력서·공고 비교 결과 중 추천과 도전 지원만 표시해요. 사용자 제외 피드백도 유지돼요.'
             : 'AI 적합성 검토 전 후보예요. 기술 일치는 지원 자격 충족을 뜻하지 않아요. AI 코칭에서 전송 내용을 확인하면 경력·직급·공고 요건을 함께 검토해요.'}</p>
-          {result.recommendationStatus?.aiPendingCount > 0 && <p className="recommendation-caption">새 공고 또는 변경된 공고 {result.recommendationStatus.aiPendingCount}개는 재검토 전까지 추천을 보류했어요.</p>}
+          {result.recommendationStatus?.aiPendingCount > 0 && <p className="recommendation-caption">경력·직급 확인이 필요하거나 새로 등록·변경된 공고 {result.recommendationStatus.aiPendingCount}개는 AI 적합성 검토 전까지 추천을 보류했어요.</p>}
           {jobs.length ? <div className="personal-job-grid">{jobs.map(job => {
             const review = job.aiFit || reviews.find(item => item.jobId === job.jobId);
             return <article key={job.jobId} className="recommended-job">

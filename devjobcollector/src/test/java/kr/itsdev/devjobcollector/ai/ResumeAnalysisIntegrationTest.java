@@ -170,6 +170,8 @@ class ResumeAnalysisIntegrationTest {
     @Test void homeUsesAiDecisionsAndInvalidatesChangedEvidenceWithoutCallingModel() throws Exception {
         long approved = seedJob(), rejected = seedJob(), insufficient = seedJob(), pending = seedJob();
         try {
+            jdbc.update("UPDATE job_posts SET title='Senior Java Engineer',experience='경력무관' WHERE id IN (?,?,?,?)",
+                    approved, rejected, insufficient, pending);
             long id = create(UUID.randomUUID().toString(), prefs);
             var stored = (com.fasterxml.jackson.databind.node.ObjectNode)mapper.readTree(jdbc.queryForObject("SELECT result_json FROM ai_analysis_request WHERE id=?", String.class, id));
             String content = jdbc.queryForObject("SELECT content_json FROM resumes WHERE id=?", String.class, resume);
@@ -202,6 +204,24 @@ class ResumeAnalysisIntegrationTest {
 
     long create(String key, LocalRecommendationEngine.Preferences p) {
         return service.create("owner",resume,key,ResumeAnalysisService.CONSENT_VERSION,p).path("id").asLong();
+    }
+    @Test void unreviewedSeniorTitleIsHeldFromHomeAndSavedRecommendations() {
+        long job = seedJob();
+        try {
+            jdbc.update("UPDATE job_posts SET title='Senior Java Engineer',experience='경력무관' WHERE id=?", job);
+            jdbc.update("UPDATE resumes SET content_json=? WHERE id=?",
+                    "{\"techStack\":[\"Java\"],\"careerProfile\":{\"category\":\"백엔드\"}}", resume);
+            var home = service.homeRecommendations("owner");
+            assertThat(home.path("recommendations")).isEmpty();
+            assertThat(home.path("recommendationStatus").path("reason").asText()).isEqualTo("AI_REVIEW_REQUIRED");
+            long id = create(UUID.randomUUID().toString(), prefs);
+            var current = service.currentRecommendations("owner", id);
+            assertThat(current.path("recommendations")).isEmpty();
+            assertThat(current.path("recommendationStatus").path("aiPendingCount").asInt()).isEqualTo(1);
+            jdbc.update("UPDATE job_posts SET title='Java Engineer' WHERE id=?", job);
+            assertThat(service.currentRecommendations("owner", id).path("recommendations")).hasSize(1);
+            verifyNoInteractions(openai);
+        } finally { jdbc.update("DELETE FROM job_posts WHERE id=?", job); }
     }
     @Test void contentReviewRequiresExactPreviewAndConsentAndCallsModelOnlyOnce() throws Exception {
         jdbc.update("UPDATE resumes SET content_json=? WHERE id=?", "{\"basicInfo\":{\"name\":\"홍길동\",\"email\":\"private@example.com\"},\"careerProfile\":{\"category\":\"백엔드\",\"location\":\"서울\"},\"projects\":[{\"description\":\"홍길동 Java API를 개발했습니다.\",\"actions\":\"테스트를 작성했습니다.\"}]}", resume);
