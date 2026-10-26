@@ -89,10 +89,10 @@ function SavedRecommendations() {
           <p className="recommendation-caption">내 이력서를 바탕으로 찾은 공고예요.
             {result.recommendationStatus?.roleSource === 'RESUME_TITLE' && <> 기준 직무: {result.recommendationStatus.categories.join(', ')}.</>}
             {' '}<Link to={`/resume?resumeId=${result.resumeId}`}>이력서 확인</Link></p>
-          <p className="recommendation-caption">{result.recommendationStatus?.aiFiltered
-            ? 'AI가 경력과 공고 요건을 검토한 추천이에요.'
-            : 'AI 검토 전 후보예요. AI 코칭에서 지원 적합성을 확인하세요.'}
-            {result.recommendationStatus?.aiPendingCount > 0 && <> 공고 {result.recommendationStatus.aiPendingCount}개는 AI 검토 전까지 추천을 보류했어요.</>}</p>
+          <p className="recommendation-caption">{result.recommendationStatus?.aiFiltered && 'AI가 경력과 공고 요건을 검토한 추천이에요. '}
+            {result.recommendationStatus?.aiPendingCount > 0
+              ? <>AI 추천 후보 {result.recommendationStatus.aiPendingCount}개가 있어요. AI 코칭에서 검토하면 지원 적합성을 추가로 확인할 수 있어요.</>
+              : !result.recommendationStatus?.aiFiltered && 'AI 코칭에서 공고를 검토하고 지원 적합성을 확인해 보세요.'}</p>
           {jobs.length ? <div className="personal-job-grid">{jobs.map(job => {
             const review = job.aiFit || reviews.find(item => item.jobId === job.jobId);
             return <article key={job.jobId} className="recommended-job">

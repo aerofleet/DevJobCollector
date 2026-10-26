@@ -161,7 +161,7 @@ test('AI 적합성 판정과 보류 근거를 구분해 표시한다', async ({ 
   await expect(section.getByText('도전 지원', { exact: true })).toBeVisible();
   await section.getByText('AI 검토로 보류한 공고 1개').click();
   await expect(section.getByText('부적합: 공고의 운영 책임과 이력서 경력 간 차이가 큽니다.')).toBeVisible();
-  await expect(section.getByText('공고 1개는 AI 검토 전까지 추천을 보류했어요.', { exact: false })).toBeVisible();
+  await expect(section.getByText('AI 추천 후보 1개가 있어요. AI 코칭에서 검토하면 지원 적합성을 추가로 확인할 수 있어요.', { exact: false })).toBeVisible();
 });
 
 test('시니어 공고의 최초 경력 검토 대기를 설명한다', async ({ page }) => {
@@ -174,5 +174,5 @@ test('시니어 공고의 최초 경력 검토 대기를 설명한다', async ({
   const section = page.getByRole('region', { name: '내 이력서로 찾는 추천 포지션' });
   await expect(section.locator('.personal-job-grid article')).toHaveCount(0);
   await expect(section.getByText('Senior·시니어·Vice President·Director·Manager 등 경력과 책임 범위 검토가 필요한 공고이거나', { exact: false })).toBeVisible();
-  await expect(section.getByText('공고 1개는 AI 검토 전까지', { exact: false })).toBeVisible();
+  await expect(section.getByText('AI 추천 후보 1개가 있어요.', { exact: false })).toBeVisible();
 });
