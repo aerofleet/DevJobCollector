@@ -5,6 +5,10 @@ on:
     branches: [codex/djc-ai-evidence]
   workflow_dispatch:
     inputs:
+      audit_email:
+        description: Read-only location audit for one account; empty runs normal verification
+        type: string
+        default: ''
       model_access_only:
         description: Check model visibility without generating content
         type: boolean
@@ -18,6 +22,44 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  location-audit:
+    if: ${{ inputs.audit_email != '' && inputs.audit_email != null }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Cloudflare client
+        run: |
+          curl --fail --location --retry 3 https://github.com/cloudflare/cloudflared/releases/download/2026.5.1/cloudflared-linux-amd64.deb -o cloudflared.deb
+          echo '4274f6106efbe586e8e2127aba02798c55bcfd99a45d14f08779d6afc51e8752  cloudflared.deb' | sha256sum --check --strict
+          sudo dpkg -i cloudflared.deb
+      - name: Read account location choices and runtime version
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          TUNNEL_SERVICE_TOKEN_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          TUNNEL_SERVICE_TOKEN_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+          AUDIT_EMAIL: ${{ inputs.audit_email }}
+        run: |
+          set -euo pipefail
+          echo "::add-mask::$AUDIT_EMAIL"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s' "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          cat > ~/.ssh/config <<EOF
+          Host djc-a1
+            HostName ssh-djc.itsdev.kr
+            User $SERVER_USER
+            IdentityFile ~/.ssh/id_rsa
+            ProxyCommand cloudflared access ssh --hostname %h
+            StrictHostKeyChecking accept-new
+            BatchMode yes
+            ConnectTimeout 20
+          EOF
+          chmod 600 ~/.ssh/config
+          encoded=$(printf '%s' "$AUDIT_EMAIL" | base64 -w0)
+          ssh djc-a1 "sudo python3 - '$encoded'" < .codex/diagnostics/location-audit.py
   model-access:
     if: ${{ inputs.model_access_only == true }}
     runs-on: ubuntu-latest
@@ -47,7 +89,7 @@ jobs:
               print(candidate + ": " + ("visible" if candidate in available else "not listed"))
           print("Visibility does not verify Responses permission or coaching quality.")
   verify:
-    if: ${{ inputs.model_access_only != true }}
+    if: ${{ inputs.model_access_only != true && (inputs.audit_email == '' || inputs.audit_email == null) }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
