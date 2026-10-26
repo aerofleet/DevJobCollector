@@ -104,4 +104,16 @@ class ResumeContentReviewRulesTest {
         var positive = ResumeContentReviewRules.validate(response, sources, List.of(new ResumeContentReviewRules.Job(0,17,"Java API 개발 경험")), mapper);
         assertThat(positive.path("jobs").get(0).path("criteria").get(0).path("assessment").asText()).isEqualTo("SUPPORTED");
     }
+    @Test void englishLocationWordsDoNotInvalidateCitedKoreanPreferences() throws Exception {
+        String preference = "희망 근무 지역은 일본만입니다.";
+        var locationSources = List.of(new ResumeContentReviewRules.Source("S1", preference,
+                new ResumeEvidenceReview.Document("/careerProfile/location", "synthetic", null, "희망 근무 지역", preference)));
+        var response = mapper.readTree("""
+            {"findings":[],"jobs":[{"slot":0,"relevance":"RELATED","criteria":[
+             {"jobQuoteId":"J0-P1","sourceId":"S1","resumeQuoteId":"S1-P1","assessment":"SUPPORTED","explanation":"일본 근무 희망과 공고 국가가 일치합니다."}]}]}
+            """);
+        var result = ResumeContentReviewRules.validate(response, locationSources,
+                List.of(new ResumeContentReviewRules.Job(0, 1, "Location: Tokyo, Japan.")), mapper);
+        assertThat(result.path("jobs").get(0).path("criteria").get(0).path("assessment").asText()).isEqualTo("SUPPORTED");
+    }
 }

@@ -156,7 +156,12 @@ public final class ResumeContentReviewRules {
         var terms = Pattern.compile("[A-Za-z][A-Za-z0-9+#]*(?:[./-][A-Za-z0-9+#]+)*").matcher(requirement);
         while (terms.find()) {
             String term = terms.group();
-            if (!Pattern.compile("(?<![A-Za-z0-9])" + Pattern.quote(term) + "(?![A-Za-z0-9])", Pattern.CASE_INSENSITIVE)
+            // Natural-language English (Location, Japan, experience) need not occur verbatim
+            // in Korean evidence. Guard concrete technologies; contextual fit is model-reviewed.
+            boolean technology = ResumeSkillVocabulary.NAMES.stream()
+                    .flatMap(name -> ResumeSkillVocabulary.split(name).stream())
+                    .anyMatch(name -> LocalRecommendationEngine.normalizeSkill(name).equals(LocalRecommendationEngine.normalizeSkill(term)));
+            if (technology && !Pattern.compile("(?<![A-Za-z0-9])" + Pattern.quote(term) + "(?![A-Za-z0-9])", Pattern.CASE_INSENSITIVE)
                     .matcher(evidence).find()) return true;
         }
         for (String activity : List.of("개발", "설계", "구현", "테스트", "운영", "배포", "분석", "최적화", "리팩토링", "주도", "관리"))
