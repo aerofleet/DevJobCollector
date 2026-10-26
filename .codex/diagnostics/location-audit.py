@@ -21,6 +21,9 @@ query = f"""
 START TRANSACTION READ ONLY;
 SELECT 'account_count' metric,COUNT(*) value FROM users WHERE email={identity};
 SELECT r.id resume_id,r.updated_at,JSON_EXTRACT(r.content_json,'$.careerProfile.location') locations,
+ (u.email={identity}) matches_requested_email
+ FROM resumes r JOIN users u ON u.id=r.user_id WHERE r.id=1;
+SELECT r.id resume_id,r.updated_at,JSON_EXTRACT(r.content_json,'$.careerProfile.location') locations,
  JSON_EXTRACT(r.content_json,'$.careerProfile.category') categories
  FROM resumes r JOIN users u ON u.id=r.user_id WHERE u.email={identity} ORDER BY r.updated_at DESC,r.id DESC LIMIT 20;
 SELECT a.id analysis_id,a.resume_id,a.created_at,a.recommendation_algo_version,
