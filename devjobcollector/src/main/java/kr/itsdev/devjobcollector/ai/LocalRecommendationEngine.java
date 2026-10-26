@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class LocalRecommendationEngine {
-    public static final String VERSION = "local-role-location-v5";
+    public static final String VERSION = "local-required-location-v6";
     private final double skillWeight, careerWeight, categoryWeight, locationWeight, employmentWeight, freshnessWeight;
 
     public LocalRecommendationEngine(
@@ -67,6 +67,7 @@ public class LocalRecommendationEngine {
         double total = skillWeight + careerWeight + categoryWeight + locationWeight + employmentWeight + freshnessWeight;
         var ranked = new ArrayList<Recommendation>();
         for (Candidate job : candidates) {
+            if (!RecommendationLocations.eligible(job.location(), preferences.location())) continue;
             var requirements = new TreeSet<String>();
             job.skills().forEach(skill -> ResumeSkillVocabulary.split(skill).forEach(s -> requirements.add(normalizeSkill(s))));
             var matching = new TreeSet<>(requirements);

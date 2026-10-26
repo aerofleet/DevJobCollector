@@ -457,6 +457,7 @@ class ResumeAnalysisIntegrationTest {
     @Test void savedMultipleCategoriesReachCandidateQueryAndRanking() throws Exception {
         long backend = seedJob(), frontend = seedJob();
         try {
+            jdbc.update("UPDATE job_posts SET location='서울' WHERE id=?", backend);
             jdbc.update("UPDATE job_posts SET job_category='프론트엔드',location='경기',hire_type='인턴' WHERE id=?", frontend);
             jdbc.update("UPDATE resumes SET content_json=? WHERE id=?", """
                     {"careerProfile":{"category":["백엔드","프론트엔드"],"location":["서울","경기"],"employmentType":["정규직","인턴"]},
@@ -498,6 +499,34 @@ class ResumeAnalysisIntegrationTest {
             assertThat(locationSource.path("text").asText()).contains("희망 근무 지역 (선택한 조건 중 하나)", "일본", "미국", "원격");
             assertThat(preview.path("payload").path("jobs").toString()).contains("Tokyo, Japan");
         } finally { jdbc.update("DELETE FROM job_posts WHERE id=?", job); }
+    }
+
+    @Test void domesticOnlyChoicesFilterBeforeCandidateLimitAndOverrideOldAnalysisPreferences() throws Exception {
+        var ids = new java.util.ArrayList<Long>();
+        try {
+            long domestic = seedJob(); ids.add(domestic);
+            jdbc.update("UPDATE job_posts SET title='Java Backend Engineer',location='South Korea',created_at=DATE_SUB(NOW(),INTERVAL 1 DAY) WHERE id=?", domestic);
+            long foreign = seedJob(); ids.add(foreign);
+            jdbc.update("UPDATE job_posts SET title='Java Backend Engineer',location='United States' WHERE id=?", foreign);
+            long analysisId = create(UUID.randomUUID().toString(), prefs);
+            for (int i = 0; i < 101; i++) {
+                long id = seedJob(); ids.add(id);
+                jdbc.update("UPDATE job_posts SET title='Java Backend Engineer',location='Japan' WHERE id=?", id);
+            }
+            var content = mapper.createObjectNode();
+            content.putArray("techStack").add("Java");
+            content.putObject("careerProfile").set("location", mapper.valueToTree(RecommendationLocations.DOMESTIC_REGIONS));
+            jdbc.update("UPDATE resumes SET content_json=? WHERE id=?", mapper.writeValueAsString(content), resume);
+            // Current saved analysis uses role candidates; the home path uses title fallback.
+            for (var result : java.util.List.of(service.currentRecommendations("owner", analysisId), service.homeRecommendations("owner"))) {
+                assertThat(result.path("recommendations")).as("%s", result).hasSize(1);
+                assertThat(result.path("recommendations").get(0).path("jobId").asLong()).isEqualTo(domestic);
+                assertThat(result.path("derivedPreferences").path("location")).hasSize(17);
+            }
+            content.withObject("careerProfile").putArray("location");
+            jdbc.update("UPDATE resumes SET content_json=? WHERE id=?", mapper.writeValueAsString(content), resume);
+            assertThat(service.homeRecommendations("owner").path("recommendations")).hasSize(8);
+        } finally { for (long id : ids) jdbc.update("DELETE FROM job_posts WHERE id=?", id); }
     }
 
     long seedJob() {

@@ -211,6 +211,16 @@ public class ResumeAnalysisService {
                 ? mapper.convertValue(result.get("derivedPreferences"), LocalRecommendationEngine.Preferences.class)
                 : new LocalRecommendationEngine.Preferences(null, List.of(), List.of(), List.of());
         String roleSource = "ANALYSIS";
+        // Live recommendations must obey the currently saved location choices, including
+        // an explicit empty array clearing the restriction, even for an older analysis.
+        String currentContent = jdbc.queryForObject("SELECT content_json FROM resumes WHERE id=? AND user_id=?", String.class,
+                result.path("resumeId").asLong(), user);
+        var currentProfile = read(currentContent).path("careerProfile");
+        if (currentProfile.has("location")) {
+            preferences = new LocalRecommendationEngine.Preferences(preferences.careerYears(), preferences.category(),
+                    SavedResumeAnalysisInput.allowed(currentProfile.path("location"), RecommendationLocations.OPTIONS), preferences.employmentType());
+            result.set("derivedPreferences", mapper.valueToTree(preferences));
+        }
         if (preferences.category().isEmpty()) {
             String title = jdbc.queryForObject("SELECT title FROM resumes WHERE id=? AND user_id=?", String.class,
                     result.path("resumeId").asLong(), user);
@@ -478,21 +488,24 @@ public class ResumeAnalysisService {
                 (row, index) -> Map.entry(row.getInt("id"), LocalRecommendationEngine.normalizeSkill(row.getString("stack_name"))))
                 .stream().filter(entry -> skills.contains(entry.getValue())).map(Map.Entry::getKey).toList();
         var categories = preferences.category();
-        if (tagIds.isEmpty() && categories.isEmpty()) return titleCandidates(skills, today);
+        if (tagIds.isEmpty() && categories.isEmpty()) return titleCandidates(skills, preferences.location(), today);
+        String locationPattern = RecommendationLocations.pattern(preferences.location());
         String placeholders = tagIds.isEmpty() ? "NULL" : String.join(",", Collections.nCopies(tagIds.size(), "?"));
         String match = "(SELECT COUNT(*) FROM post_tags p WHERE p.job_post_id=j.id AND p.tech_stack_id IN (" + placeholders + "))";
         String sql = "SELECT j.id,CONCAT_WS(' ',j.job_category,j.title) role_text,j.experience,j.location,j.hire_type,DATE(j.created_at) created_date,"
                 + match + " skill_hits FROM job_posts j WHERE j.is_active=1 AND j.moderation_status='ACTIVE' AND (j.end_date IS NULL OR j.end_date>=?)"
+                + (preferences.location().isEmpty() ? "" : " AND REGEXP_LIKE(j.location, ?, 'i')")
                 + " HAVING skill_hits>0 OR (" + (categories.isEmpty() ? "FALSE"
                     : String.join(" OR ", Collections.nCopies(categories.size(), "REGEXP_LIKE(role_text, ?, 'i')"))) + ")"
                 + " ORDER BY skill_hits DESC,j.created_at DESC,j.id ASC LIMIT 100";
         var args = new ArrayList<Object>(tagIds);
         args.add(today);
+        if (!preferences.location().isEmpty()) args.add(locationPattern.isEmpty() ? "a^" : locationPattern);
         categories.forEach(category -> args.add(RecommendationRoles.sqlPattern(category)));
         var candidates = jdbc.query(sql, (row, index) -> new LocalRecommendationEngine.Candidate(row.getLong("id"),
                 row.getString("role_text"), row.getString("experience"), row.getString("location"), row.getString("hire_type"),
                 row.getDate("created_date") == null ? null : row.getDate("created_date").toLocalDate(), new ArrayList<>()), args.toArray());
-        if (candidates.isEmpty()) return titleCandidates(skills, today);
+        if (candidates.isEmpty()) return titleCandidates(skills, preferences.location(), today);
         var ids = candidates.stream().map(LocalRecommendationEngine.Candidate::id).toList();
         var tags = jdbc.query("SELECT p.job_post_id,t.stack_name FROM post_tags p JOIN tech_stacks t ON t.id=p.tech_stack_id WHERE p.job_post_id IN ("
                 + String.join(",", Collections.nCopies(ids.size(), "?")) + ") ORDER BY p.job_post_id,t.stack_name",
@@ -500,13 +513,13 @@ public class ResumeAnalysisService {
         var byId = new HashMap<Long, LocalRecommendationEngine.Candidate>();
         candidates.forEach(candidate -> byId.put(candidate.id(), candidate));
         tags.forEach(tag -> byId.get(tag.getKey()).skills().add(tag.getValue()));
-        for (var candidate : titleCandidates(skills, today)) {
+        for (var candidate : titleCandidates(skills, preferences.location(), today)) {
             if (!byId.containsKey(candidate.id())) candidates.add(candidate);
         }
         return candidates;
     }
 
-    private List<LocalRecommendationEngine.Candidate> titleCandidates(Set<String> skills, LocalDate today) {
+    private List<LocalRecommendationEngine.Candidate> titleCandidates(Set<String> skills, List<String> locations, LocalDate today) {
         if (skills.isEmpty()) return List.of();
         var terms = new TreeSet<String>();
         for (String skill : skills) {
@@ -533,9 +546,12 @@ public class ResumeAnalysisService {
         });
         var vocabulary = new ArrayList<>(jdbc.queryForList("SELECT stack_name FROM tech_stacks", String.class));
         vocabulary.addAll(terms);
+        String locationPattern = RecommendationLocations.pattern(locations);
+        if (!locations.isEmpty()) args.add(locationPattern.isEmpty() ? "a^" : locationPattern);
         var rows = jdbc.queryForList("SELECT j.id,j.title,j.job_category,j.experience,j.location,j.hire_type,DATE(j.created_at) created_date"
                 + " FROM job_posts j WHERE j.is_active=1 AND j.moderation_status='ACTIVE' AND (j.end_date IS NULL OR j.end_date>=?)"
                 + " AND NOT EXISTS (SELECT 1 FROM post_tags p WHERE p.job_post_id=j.id) AND (" + conditions + ")"
+                + (locations.isEmpty() ? "" : " AND REGEXP_LIKE(j.location, ?, 'i')")
                 + " ORDER BY j.created_at DESC,j.id ASC LIMIT 100", args.toArray());
         var result = new ArrayList<LocalRecommendationEngine.Candidate>();
         for (var row : rows) {
