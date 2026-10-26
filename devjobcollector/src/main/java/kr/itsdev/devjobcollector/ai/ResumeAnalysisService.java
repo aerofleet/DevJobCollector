@@ -187,7 +187,7 @@ public class ResumeAnalysisService {
         var profile = content.path("careerProfile");
         var categories = SavedResumeAnalysisInput.allowed(profile.path("category"), "백엔드|프론트엔드|풀스택|데이터|인공지능|모바일|보안|DevOps");
         var preferences = new LocalRecommendationEngine.Preferences(SavedResumeAnalysisInput.careerYears(content), categories,
-                SavedResumeAnalysisInput.allowed(profile.path("location"), "서울|경기|인천|부산|대구|대전|광주|울산|세종|강원|충북|충남|전북|전남|경북|경남|제주|원격"),
+                SavedResumeAnalysisInput.allowed(profile.path("location"), RecommendationLocations.OPTIONS),
                 SavedResumeAnalysisInput.allowed(profile.path("employmentType"), "정규직|계약직|인턴|프리랜서"));
         var result = mapper.createObjectNode();
         result.put("resumeId", resumeId);

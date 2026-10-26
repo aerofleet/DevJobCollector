@@ -62,6 +62,10 @@ public class ResumeContentReviewService {
         var sourcePayload = new ArrayList<Map<String, Object>>();
         int length = 0;
         var documents = new ArrayList<>(input.documents());
+        if (!input.preferences().location().isEmpty()) documents.add(new ResumeEvidenceReview.Document(
+                "/careerProfile/location", "저장된 이력서", null, "희망 근무 지역",
+                "희망 근무 지역 (선택한 조건 중 하나): " + String.join(", ", input.preferences().location())
+                        + ". 희망 조건이며 거주지, 취업 허가 또는 비자 보유를 의미하지 않습니다."));
         int experienceIndex = 0;
         for (var experience : read(contentRows.getFirst()).path("experience")) {
             if (experience.path("isCurrent").asBoolean(false)) documents.add(new ResumeEvidenceReview.Document(

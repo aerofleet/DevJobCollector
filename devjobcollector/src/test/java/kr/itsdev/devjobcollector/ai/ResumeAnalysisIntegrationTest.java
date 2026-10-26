@@ -477,6 +477,27 @@ class ResumeAnalysisIntegrationTest {
         }
     }
 
+    @Test void overseasPreferencesReachHomeAnalysisAndAiPreview() throws Exception {
+        long job = seedJob();
+        try {
+            jdbc.update("UPDATE job_posts SET location='Tokyo, Japan' WHERE id=?", job);
+            jdbc.update("UPDATE resumes SET content_json=? WHERE id=?", """
+                    {"careerProfile":{"category":["백엔드"],"location":["일본","미국","원격"]},
+                     "techStack":["Java"],"projects":[{"description":"Java API 개발 경험"}]}
+                    """, resume);
+            var home = service.homeRecommendations("owner");
+            assertThat(home.path("derivedPreferences").path("location").toString()).contains("일본", "미국", "원격");
+            assertThat(home.path("recommendations").get(0).path("components").path("locationFit").asDouble()).isPositive();
+            var prepared = savedInput.prepare("owner", resume);
+            assertThat(prepared.preferences().location()).containsExactlyInAnyOrder("일본", "미국", "원격");
+            var analysis = service.createSaved("owner", resume, UUID.randomUUID().toString(), ResumeAnalysisService.CONSENT_VERSION, prepared);
+            when(openai.available()).thenReturn(true);
+            var preview = contentReviews.preview("owner", analysis.path("id").asLong());
+            assertThat(preview.path("payload").path("sources").toString()).contains("희망 근무 지역 (선택한 조건 중 하나)", "일본, 미국, 원격");
+            assertThat(preview.path("payload").path("jobs").toString()).contains("Tokyo, Japan");
+        } finally { jdbc.update("DELETE FROM job_posts WHERE id=?", job); }
+    }
+
     long seedJob() {
         String sn=UUID.randomUUID().toString();
         jdbc.update("""

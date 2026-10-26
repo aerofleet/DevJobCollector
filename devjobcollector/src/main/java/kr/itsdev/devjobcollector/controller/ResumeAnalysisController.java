@@ -109,7 +109,7 @@ public class ResumeAnalysisController {
     public record Request(@NotNull @Positive Long resumeId, @NotBlank @Size(max = 50) String consentVersion,
                           @Min(0) @Max(60) Integer careerYears,
                           @Pattern(regexp = "|백엔드|프론트엔드|풀스택|데이터|인공지능|모바일|보안|DevOps") String category,
-                          @Pattern(regexp = "|서울|경기|인천|부산|대구|대전|광주|울산|세종|강원|충북|충남|전북|전남|경북|경남|제주|원격") String location,
+                          @Pattern(regexp = "|" + kr.itsdev.devjobcollector.ai.RecommendationLocations.OPTIONS) String location,
                           @Pattern(regexp = "|정규직|계약직|인턴|프리랜서") String employmentType) {}
     public record Feedback(@NotNull @Positive Long jobId, @NotBlank @Size(max = 40) String type) {}
     public record ExplanationRequest(@NotBlank @Size(max = 50) String consentVersion) {}

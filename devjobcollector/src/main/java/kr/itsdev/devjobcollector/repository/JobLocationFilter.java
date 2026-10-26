@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /** Recognized location labels only: unknown text is not assumed to be overseas. */
-final class JobLocationFilter {
+public final class JobLocationFilter {
     private static final Map<String, List<String>> DOMESTIC = new LinkedHashMap<>();
     private static final Map<String, List<String>> OVERSEAS = new LinkedHashMap<>();
     static {
@@ -65,7 +65,7 @@ final class JobLocationFilter {
         map.put(key, Stream.concat(Stream.of(key), Stream.of(aliases)).toList());
     }
 
-    static String pattern(String value) {
+    public static String pattern(String value) {
         if (value == null || value.isBlank()) return null;
         String key = value.trim();
         Stream<String> terms;

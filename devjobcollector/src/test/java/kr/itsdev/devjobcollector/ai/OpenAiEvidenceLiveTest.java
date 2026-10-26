@@ -8,6 +8,32 @@ import static org.assertj.core.api.Assertions.*;
 /** Explicit opt-in smoke tests. Synthetic data only; one billable API request per test. */
 @EnabledIfEnvironmentVariable(named="DJC_OPENAI_LIVE_TEST",matches="true")
 class OpenAiEvidenceLiveTest {
+    @Test void modelChecksOverseasPreferencesAndRemoteCountryRestrictions() {
+        var mapper = new ObjectMapper();
+        var client = new OpenAiEvidenceClient(mapper, System.getenv("OPENAI_API_KEY"), true);
+        String resume = "Java API 개발 실무 경력 2년입니다. 희망 근무 지역은 일본만입니다. 일본 현지 출근을 희망하며 다른 국가 근무는 원하지 않습니다. 비자와 취업 허가 정보는 제공하지 않았습니다.";
+        var sources = java.util.List.of(new ResumeContentReviewRules.Source("S1", resume,
+                new ResumeEvidenceReview.Document("/careerProfile/location", "synthetic", null, "희망 근무 지역", resume)));
+        var jobs = java.util.List.of(
+                new ResumeContentReviewRules.Job(0, 1, "Junior Java Engineer. Location: Tokyo, Japan. Onsite. Java API experience 1 year required."),
+                new ResumeContentReviewRules.Job(1, 2, "Java Engineer. Remote, United States residents only. Must work from the US. Java API experience required."),
+                new ResumeContentReviewRules.Job(2, 3, "Java Engineer. Remote. Eligible work countries and onsite requirements are not collected."));
+        var payload = java.util.Map.<String, Object>of("sources", java.util.List.of(java.util.Map.of(
+                "sourceId", "S1", "section", "희망 근무 지역", "text", resume,
+                "passages", ResumeContentReviewRules.passages("S1", resume))),
+                "jobs", jobs.stream().map(j -> java.util.Map.of("slot", j.slot(), "text", j.text(),
+                        "passages", ResumeContentReviewRules.passages("J" + j.slot(), j.text()))).toList());
+        var output = client.review(payload);
+        var validated = ResumeContentReviewRules.validate(output, sources, jobs, mapper);
+        assertThat(validated.path("jobs")).as("%s", output).hasSize(3);
+        for (var job : validated.path("jobs")) {
+            long id = job.path("jobId").asLong();
+            if (id == 1) assertThat(job.path("decision").asText()).as("%s", job).isIn("RECOMMENDED", "STRETCH");
+            if (id == 2) assertThat(job.path("decision").asText()).as("%s", job).isEqualTo("NOT_RECOMMENDED");
+            if (id == 3) assertThat(job.path("decision").asText()).as("%s", job).isEqualTo("INSUFFICIENT_INFORMATION");
+        }
+    }
+
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
     void modelDoesNotTreatCareerUnspecifiedAsJuniorForTheReportedSeniorTitles(boolean management) {

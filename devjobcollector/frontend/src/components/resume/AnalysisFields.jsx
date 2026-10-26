@@ -1,4 +1,9 @@
 import styles from './Projects.module.css';
+import { LOCATION_GROUPS } from '../../data/locationFilters';
+
+const resumeLocationGroups = LOCATION_GROUPS.map(group => ({ ...group,
+  options: group.options.map(([key, label]) => key === 'Remote' ? '원격' : label),
+}));
 
 export function ExperienceEvidenceFields({ data, onChange, label }) {
   const fields = [
@@ -20,7 +25,7 @@ export function CareerProfile({ data = {}, onChange }) {
   const update = (key, value) => onChange({ ...data, [key]: value });
   const groups = [
     { key: 'category', label: '희망 직무', empty: '아직 정하지 않음', options: ['백엔드','프론트엔드','풀스택','데이터','인공지능','모바일','보안','DevOps'] },
-    { key: 'location', label: '희망 지역', empty: '지역 제한 없음', options: ['서울','경기','인천','부산','대구','대전','광주','울산','세종','강원','충북','충남','전북','전남','경북','경남','제주','원격'] },
+    { key: 'location', label: '희망 지역', empty: '지역 제한 없음', options: resumeLocationGroups.flatMap(group => group.options) },
     { key: 'employmentType', label: '고용 형태', empty: '형태 제한 없음', options: ['정규직','계약직','인턴','프리랜서'] },
   ];
   return <section id="careerProfile" className={styles.section} aria-label="지원 방향">
@@ -36,11 +41,14 @@ export function CareerProfile({ data = {}, onChange }) {
             <button type="button" disabled={!selected.length} onClick={() => update(key, [])}>전체 해제</button>
             <span>{selected.length ? `${selected.length}개 선택` : empty}</span>
           </div>
-          <div className={styles.preferenceOptions}>{options.map(value => <label key={value}>
+          {(key === 'location' ? resumeLocationGroups : [{ label: '', options }]).map(group => <div key={group.label}>
+          {group.label && <strong>{group.label}</strong>}
+          <div className={styles.preferenceOptions}>{group.options.map(value => <label key={value}>
             <input type="checkbox" checked={selected.includes(value)} onChange={event => update(key,
               options.filter(option => option === value ? event.target.checked : selected.includes(option)))} />
             {value}
-          </label>)}</div>
+          </label>)}</div></div>)}
+          {key === 'location' && <p className={styles.hint}>해외 전체 또는 국가를 선택할 수 있어요. 원격 공고도 거주국·근무 가능 지역을 AI 검토에서 확인합니다.</p>}
         </fieldset>;
       })}
     </div>

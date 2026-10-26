@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class LocalRecommendationEngine {
-    public static final String VERSION = "local-role-title-v4";
+    public static final String VERSION = "local-role-location-v5";
     private final double skillWeight, careerWeight, categoryWeight, locationWeight, employmentWeight, freshnessWeight;
 
     public LocalRecommendationEngine(
@@ -84,7 +84,7 @@ public class LocalRecommendationEngine {
             components.put("skillExactMatch", exact * skillWeight);
             components.put("careerFit", career == null ? 0 : career * careerWeight);
             components.put("jobCategory", categoryMatch ? categoryWeight : 0);
-            components.put("locationFit", matches(job.location(), preferences.location()) ? locationWeight : 0);
+            components.put("locationFit", RecommendationLocations.matches(job.location(), preferences.location()) ? locationWeight : 0);
             components.put("employmentType", matches(job.employmentType(), preferences.employmentType()) ? employmentWeight : 0);
             components.put("jobFreshness", fresh * freshnessWeight);
             double score = Math.round(components.values().stream().mapToDouble(Double::doubleValue).sum() / total * 10000) / 100.0;

@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 
 /** Senior-role signals require review; suitability remains an evidence-based model decision. */
 final class AiJobFit {
-    static final String VERSION = "ai-job-fit-v3-management";
+    static final String VERSION = "ai-job-fit-v4-location";
     private static final Pattern SENIOR_ROLE = Pattern.compile(
             "(?iu)(?<![\\p{L}\\p{N}_])(?:senior|sr\\.?|staff|principal|lead|vice[\\s-]+president|vp|director|manager)(?![\\p{L}\\p{N}_])|시니어|수석");
 

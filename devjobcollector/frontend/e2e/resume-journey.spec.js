@@ -283,6 +283,10 @@ test('지원 방향과 구체적 경험을 저장하고 분석 화면으로 이�
   await roles.getByLabel('프론트엔드', { exact: true }).check();
   await locations.getByLabel('서울', { exact: true }).check();
   await locations.getByLabel('경기', { exact: true }).check();
+  await locations.getByLabel('해외 전체', { exact: true }).check();
+  await locations.getByLabel('일본', { exact: true }).check();
+  await locations.getByLabel('미국', { exact: true }).check();
+  await locations.getByLabel('원격', { exact: true }).check();
   await employment.getByRole('button', { name: '전체 선택', exact: true }).click();
   await page.getByLabel('경험 요약').fill('Java API 개발 경험');
   await page.getByRole('button', { name: '프로젝트 추가', exact: true }).click();
@@ -295,14 +299,18 @@ test('지원 방향과 구체적 경험을 저장하고 분석 화면으로 이�
   await page.getByLabel('현재 재직 중').check();
   await page.getByRole('button', { name: '저장하고 AI 분석', exact: true }).click();
   await expect(page).toHaveURL(/resume-analysis\?resumeId=12/);
-  expect(state.lastCreate.content.careerProfile).toMatchObject({ category: ['백엔드', '프론트엔드'], location: ['서울', '경기'],
+  expect(state.lastCreate.content.careerProfile).toMatchObject({ category: ['백엔드', '프론트엔드'], location: ['서울', '경기', '해외 전체', '일본', '미국', '원격'],
     employmentType: ['정규직', '계약직', '인턴', '프리랜서'], summary: 'Java API 개발 경험' });
   expect(state.lastCreate.content.projects[0]).toMatchObject({ title: '주문 서비스', description: '기존에 작성한 설명', role: '주문 API 구현', actions: 'Spring Boot로 트랜잭션을 처리했습니다.' });
   expect(state.lastCreate.content.experience[0].isCurrent).toBe(true);
   await page.goto('/resume?resumeId=12');
   await expect(roles.getByLabel('백엔드', { exact: true })).toBeChecked();
   await expect(roles.getByLabel('프론트엔드', { exact: true })).toBeChecked();
-  await expect(locations.getByRole('checkbox', { checked: true })).toHaveCount(2);
+  await expect(locations.getByRole('checkbox', { checked: true })).toHaveCount(6);
+  await expect(locations.getByLabel('해외 전체', { exact: true })).toBeChecked();
+  await expect(locations.getByLabel('일본', { exact: true })).toBeChecked();
+  await expect(locations.getByLabel('미국', { exact: true })).toBeChecked();
+  await expect(locations.getByLabel('원격', { exact: true })).toBeChecked();
   await expect(employment.getByRole('checkbox', { checked: true })).toHaveCount(4);
   await page.locator('#projects').getByText('경험을 구체적으로 정리하기 · 선택', { exact: true }).click();
   await expect(page.getByLabel('프로젝트 1 내 역할과 담당 범위')).toHaveValue('주문 API 구현');
