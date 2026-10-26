@@ -493,7 +493,9 @@ class ResumeAnalysisIntegrationTest {
             var analysis = service.createSaved("owner", resume, UUID.randomUUID().toString(), ResumeAnalysisService.CONSENT_VERSION, prepared);
             when(openai.available()).thenReturn(true);
             var preview = contentReviews.preview("owner", analysis.path("id").asLong());
-            assertThat(preview.path("payload").path("sources").toString()).contains("희망 근무 지역 (선택한 조건 중 하나)", "일본, 미국, 원격");
+            var locationSource = java.util.stream.StreamSupport.stream(preview.path("payload").path("sources").spliterator(), false)
+                    .filter(source -> "희망 근무 지역".equals(source.path("section").asText())).findFirst().orElseThrow();
+            assertThat(locationSource.path("text").asText()).contains("희망 근무 지역 (선택한 조건 중 하나)", "일본", "미국", "원격");
             assertThat(preview.path("payload").path("jobs").toString()).contains("Tokyo, Japan");
         } finally { jdbc.update("DELETE FROM job_posts WHERE id=?", job); }
     }
