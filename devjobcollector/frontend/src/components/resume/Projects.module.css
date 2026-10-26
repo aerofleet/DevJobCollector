@@ -88,5 +88,12 @@
 .preferenceOptions { display: flex; flex-wrap: wrap; gap: 6px 12px; }
 .preferenceOptions label { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; font-size: 14px; cursor: pointer; }
 .preferenceOptions input { width: 16px; height: 16px; accent-color: #008a50; }
+.locationDisclosure { margin: 10px 0; border: 1px solid #e3e7e5; border-radius: 8px; }
+.locationDisclosure summary { padding: 10px 12px; min-height: 44px; box-sizing: border-box; cursor: pointer; font-weight: 600; }
+.locationDisclosure summary span { color: #626b66; font-size: 13px; font-weight: 400; }
+.locationDisclosure summary::after { content: '펼치기'; float: right; color: #008a50; font-size: 13px; }
+.locationDisclosure[open] summary::after { content: '접기'; }
+.locationDisclosure summary:focus-visible { outline: 2px solid #008a50; outline-offset: 2px; }
+.locationGroups { display: grid; gap: 12px; padding: 0 12px 12px; }
 .current { display: flex; align-items: center; gap: 8px; margin: 14px 0; font-size: 13px; color: #655a75; }
 .field { display: grid; gap: 8px; margin-top: 12px; }

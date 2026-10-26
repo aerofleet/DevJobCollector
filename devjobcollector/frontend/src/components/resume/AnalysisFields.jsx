@@ -34,6 +34,14 @@ export function CareerProfile({ data = {}, onChange }) {
       {groups.map(({ key, label, empty, options }) => {
         const values = Array.isArray(data[key]) ? data[key] : data[key] ? [data[key]] : [];
         const selected = options.filter(value => values.includes(value));
+        const renderOptions = group => <div key={group.label}>
+          {group.label && <strong>{group.label}</strong>}
+          <div className={styles.preferenceOptions}>{group.options.map(value => <label key={value}>
+            <input type="checkbox" checked={selected.includes(value)} onChange={event => update(key,
+              options.filter(option => option === value ? event.target.checked : selected.includes(option)))} />
+            {value}
+          </label>)}</div>
+        </div>;
         return <fieldset key={key} className={styles.preferenceGroup}>
           <legend>{label}</legend>
           <div className={styles.preferenceActions}>
@@ -41,13 +49,20 @@ export function CareerProfile({ data = {}, onChange }) {
             <button type="button" disabled={!selected.length} onClick={() => update(key, [])}>전체 해제</button>
             <span>{selected.length ? `${selected.length}개 선택` : empty}</span>
           </div>
-          {(key === 'location' ? resumeLocationGroups : [{ label: '', options }]).map(group => <div key={group.label}>
-          {group.label && <strong>{group.label}</strong>}
-          <div className={styles.preferenceOptions}>{group.options.map(value => <label key={value}>
-            <input type="checkbox" checked={selected.includes(value)} onChange={event => update(key,
-              options.filter(option => option === value ? event.target.checked : selected.includes(option)))} />
-            {value}
-          </label>)}</div></div>)}
+          {key === 'location' ? <>
+            {['국내', '해외'].map(region => {
+              const regionGroups = resumeLocationGroups.filter(group => region === '국내'
+                ? group.label === '국내' : !['국내', '근무 방식'].includes(group.label));
+              const count = regionGroups.flatMap(group => group.options).filter(value => selected.includes(value)).length;
+              return <details key={region} className={styles.locationDisclosure} open>
+                <summary>{region} <span>· {count}개 선택</span></summary>
+                <div className={styles.locationGroups}>{regionGroups.map(group => renderOptions({
+                  ...group, label: group.label === region ? '' : group.label,
+                }))}</div>
+              </details>;
+            })}
+            {resumeLocationGroups.filter(group => group.label === '근무 방식').map(renderOptions)}
+          </> : renderOptions({ label: '', options })}
           {key === 'location' && <p className={styles.hint}>해외 전체 또는 국가를 선택할 수 있어요. 원격 공고도 거주국·근무 가능 지역을 AI 검토에서 확인합니다.</p>}
         </fieldset>;
       })}
