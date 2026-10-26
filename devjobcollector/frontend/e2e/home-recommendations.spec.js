@@ -173,6 +173,6 @@ test('시니어 공고의 최초 경력 검토 대기를 설명한다', async ({
   await page.goto('/');
   const section = page.getByRole('region', { name: '내 이력서로 찾는 추천 포지션' });
   await expect(section.locator('.personal-job-grid article')).toHaveCount(0);
-  await expect(section.getByText('Senior·시니어 등 경력 검토가 필요한 공고이거나', { exact: false })).toBeVisible();
+  await expect(section.getByText('Senior·시니어·Vice President·Director·Manager 등 경력과 책임 범위 검토가 필요한 공고이거나', { exact: false })).toBeVisible();
   await expect(section.getByText('공고 1개는 AI 적합성 검토 전까지', { exact: false })).toBeVisible();
 });

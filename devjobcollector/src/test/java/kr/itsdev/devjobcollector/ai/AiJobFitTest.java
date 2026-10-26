@@ -10,7 +10,9 @@ import static org.assertj.core.api.Assertions.*;
 class AiJobFitTest {
     @ParameterizedTest
     @ValueSource(strings = {"Senior Java Engineer", "SENIOR Backend", "senior engineer", "Sr. Engineer",
-            "Sr Engineer", "Staff Engineer", "Principal Engineer", "Tech Lead", "시니어 개발자", "수석개발자"})
+            "Sr Engineer", "Staff Engineer", "Principal Engineer", "Tech Lead", "시니어 개발자", "수석개발자",
+            "Vice President of Engineering", "vice-president", "VICE PRESIDENT", "VP Engineering",
+            "Director of Engineering", "director", "Engineering Manager", "Product Manager", "MANAGER"})
     void seniorRolesRequireReviewEvenWhenExperienceSaysUnrestricted(String title) {
         assertThat(AiJobFit.requiresSeniorityReview(Map.of("title", title, "experience", "경력무관"))).isTrue();
     }
@@ -21,6 +23,8 @@ class AiJobFitTest {
         assertThat(AiJobFit.requiresSeniorityReview(Map.of("title", "Java Engineer", "company_name", "Cloudflare",
                 "qualifications", "Work with senior engineers"))).isFalse();
         assertThat(AiJobFit.requiresSeniorityReview(Map.of("title", "Leadership tooling engineer"))).isFalse();
+        assertThat(AiJobFit.requiresSeniorityReview(Map.of("title", "Directory services developer"))).isFalse();
+        assertThat(AiJobFit.requiresSeniorityReview(Map.of("title", "Java Engineer", "qualifications", "Reports to a Director and Manager"))).isFalse();
         assertThat(AiJobFit.requiresSeniorityReview(Map.of())).isFalse();
     }
 
@@ -34,6 +38,8 @@ class AiJobFitTest {
         assertThat(AiJobFit.decision(review, "resume-v2", hash)).isEqualTo("REVIEW_REQUIRED");
         assertThat(AiJobFit.decision(review, "resume-v1", AiJobFit.jobFingerprint(Map.of("title", "Junior Engineer"))))
                 .isEqualTo("REVIEW_REQUIRED");
+        review.put("fitVersion", "ai-job-fit-v2");
+        assertThat(AiJobFit.decision(review, "resume-v1", hash)).isEqualTo("REVIEW_REQUIRED");
         review.remove("fitVersion");
         assertThat(AiJobFit.decision(review, "resume-v1", hash)).isEqualTo("REVIEW_REQUIRED");
         assertThat(AiJobFit.visible("RECOMMENDED")).isTrue();

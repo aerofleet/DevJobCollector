@@ -205,10 +205,12 @@ class ResumeAnalysisIntegrationTest {
     long create(String key, LocalRecommendationEngine.Preferences p) {
         return service.create("owner",resume,key,ResumeAnalysisService.CONSENT_VERSION,p).path("id").asLong();
     }
-    @Test void unreviewedSeniorTitleIsHeldFromHomeAndSavedRecommendations() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"Senior Java Engineer", "Vice President of Engineering", "Director of Engineering", "Engineering Manager"})
+    void unreviewedSeniorTitleIsHeldFromHomeAndSavedRecommendations(String title) {
         long job = seedJob();
         try {
-            jdbc.update("UPDATE job_posts SET title='Senior Java Engineer',experience='경력무관' WHERE id=?", job);
+            jdbc.update("UPDATE job_posts SET title=?,experience='경력무관',job_category='백엔드' WHERE id=?", title, job);
             jdbc.update("UPDATE resumes SET content_json=? WHERE id=?",
                     "{\"techStack\":[\"Java\"],\"careerProfile\":{\"category\":\"백엔드\"}}", resume);
             var home = service.homeRecommendations("owner");

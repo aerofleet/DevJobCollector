@@ -8,13 +8,15 @@ import static org.assertj.core.api.Assertions.*;
 /** Explicit opt-in smoke tests. Synthetic data only; one billable API request per test. */
 @EnabledIfEnvironmentVariable(named="DJC_OPENAI_LIVE_TEST",matches="true")
 class OpenAiEvidenceLiveTest {
-    @Test void modelDoesNotTreatCareerUnspecifiedAsJuniorForTheReportedSeniorTitles() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void modelDoesNotTreatCareerUnspecifiedAsJuniorForTheReportedSeniorTitles(boolean management) {
         var mapper = new ObjectMapper();
         var client = new OpenAiEvidenceClient(mapper, System.getenv("OPENAI_API_KEY"), true);
         String resume = "백엔드 개발자로 1년 근무하며 Java API 개발을 담당했습니다. 시니어급 제품 전략, 솔루션 아키텍처, 대규모 시스템 운영 또는 기술 리딩 경험은 없습니다.";
         var sources = java.util.List.of(new ResumeContentReviewRules.Source("S1", resume,
                 new ResumeEvidenceReview.Document("/experience/0/description", "synthetic", null, "경력 1", resume)));
-        var titles = java.util.List.of(
+        var titles = management ? java.util.List.of("Vice President of Engineering", "Director of Engineering", "Engineering Manager") : java.util.List.of(
                 "Senior Product Manager, Cloudflare Workers",
                 "Senior Software Engineer, Cloudflare for SaaS",
                 "Senior Software Engineer, Cloudflare Hyperdrive",
@@ -31,7 +33,7 @@ class OpenAiEvidenceLiveTest {
                         "passages", ResumeContentReviewRules.passages("J" + j.slot(), j.text()))).toList());
         var output = client.review(payload);
         var validated = ResumeContentReviewRules.validate(output, sources, jobs, mapper);
-        assertThat(validated.path("jobs")).as("Synthetic raw: %s", output).hasSize(5);
+        assertThat(validated.path("jobs")).as("Synthetic raw: %s", output).hasSize(titles.size());
         for (var job : validated.path("jobs")) {
             assertThat(job.path("decision").asText())
                     .as("Career-unspecified senior listing %s: %s", job.path("jobId"), job)
