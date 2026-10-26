@@ -16,7 +16,7 @@ app = json.loads(subprocess.check_output(['docker', 'inspect', containers[0]], t
 env = dict(item.split('=', 1) for item in app['Config']['Env'] if '=' in item)
 url = urlsplit(env['SPRING_DATASOURCE_URL'].removeprefix('jdbc:'))
 print('runtime_image=' + app['Config']['Image'], flush=True)
-identity = "CONVERT(0x" + email.encode('utf-8').hex() + " USING utf8mb4)"
+identity = "CONVERT(0x" + email.encode('utf-8').hex() + " USING utf8mb4) COLLATE utf8mb4_unicode_ci"
 query = f"""
 START TRANSACTION READ ONLY;
 SELECT 'account_count' metric,COUNT(*) value FROM users WHERE email={identity};
