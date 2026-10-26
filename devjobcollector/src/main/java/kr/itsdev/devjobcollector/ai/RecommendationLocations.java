@@ -12,6 +12,9 @@ public final class RecommendationLocations {
 
     static String pattern(List<String> preferred) {
         var selections = new java.util.ArrayList<>(preferred);
+        // Remote is a work arrangement, not permission to bypass selected geography.
+        // Only a remote-only preference searches remote jobs without a geographic scope.
+        if (selections.stream().anyMatch(value -> !value.equals("원격"))) selections.removeIf("원격"::equals);
         if (preferred.containsAll(DOMESTIC_REGIONS)) selections.add("국내 전체");
         return selections.stream().map(value -> {
             String key = switch (value) {

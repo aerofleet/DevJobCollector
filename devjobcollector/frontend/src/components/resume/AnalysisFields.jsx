@@ -63,7 +63,7 @@ export function CareerProfile({ data = {}, onChange }) {
             })}
             {resumeLocationGroups.filter(group => group.label === '근무 방식').map(renderOptions)}
           </> : renderOptions({ label: '', options })}
-          {key === 'location' && <p className={styles.hint}>해외 전체 또는 국가를 선택할 수 있어요. 원격 공고도 거주국·근무 가능 지역을 AI 검토에서 확인합니다.</p>}
+          {key === 'location' && <p className={styles.hint}>원격을 함께 선택해도 지정한 지역 안에서 추천해요. 원격만 선택하면 국가 제한 없이 후보를 찾아요.</p>}
         </fieldset>;
       })}
     </div>

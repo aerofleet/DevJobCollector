@@ -511,17 +511,19 @@ class ResumeAnalysisIntegrationTest {
             long analysisId = create(UUID.randomUUID().toString(), prefs);
             for (int i = 0; i < 101; i++) {
                 long id = seedJob(); ids.add(id);
-                jdbc.update("UPDATE job_posts SET title='Java Backend Engineer',location='Japan' WHERE id=?", id);
+                String country = java.util.List.of("Poland", "United Kingdom", "Canada", "USA").get(i % 4);
+                jdbc.update("UPDATE job_posts SET title='Java Backend Engineer',location=? WHERE id=?", "Remote, " + country, id);
             }
             var content = mapper.createObjectNode();
             content.putArray("techStack").add("Java");
             content.putObject("careerProfile").set("location", mapper.valueToTree(RecommendationLocations.DOMESTIC_REGIONS));
+            ((com.fasterxml.jackson.databind.node.ArrayNode) content.path("careerProfile").path("location")).add("원격");
             jdbc.update("UPDATE resumes SET content_json=? WHERE id=?", mapper.writeValueAsString(content), resume);
             // Current saved analysis uses role candidates; the home path uses title fallback.
             for (var result : java.util.List.of(service.currentRecommendations("owner", analysisId), service.homeRecommendations("owner"))) {
                 assertThat(result.path("recommendations")).as("%s", result).hasSize(1);
                 assertThat(result.path("recommendations").get(0).path("jobId").asLong()).isEqualTo(domestic);
-                assertThat(result.path("derivedPreferences").path("location")).hasSize(17);
+                assertThat(result.path("derivedPreferences").path("location")).hasSize(18);
             }
             content.withObject("careerProfile").putArray("location");
             jdbc.update("UPDATE resumes SET content_json=? WHERE id=?", mapper.writeValueAsString(content), resume);

@@ -6,6 +6,17 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.*;
 
 class RecommendationLocationsTest {
+    @Test void remoteDoesNotExpandSelectedGeography() {
+        var domesticAndRemote = new java.util.ArrayList<>(RecommendationLocations.DOMESTIC_REGIONS);
+        domesticAndRemote.add("원격");
+        for (String location : List.of("Remote, Poland", "United Kingdom - Remote", "Remote, Canada", "USA (Remote)", "Remote"))
+            assertThat(RecommendationLocations.eligible(location, domesticAndRemote)).as(location).isFalse();
+        for (String location : List.of("Seoul", "Remote, South Korea", "부산 재택"))
+            assertThat(RecommendationLocations.eligible(location, domesticAndRemote)).as(location).isTrue();
+        assertThat(RecommendationLocations.eligible("Remote, Canada", List.of("일본", "원격"))).isFalse();
+        assertThat(RecommendationLocations.eligible("Remote, Japan", List.of("일본", "원격"))).isTrue();
+        assertThat(RecommendationLocations.eligible("Remote, Canada", List.of("원격"))).isTrue();
+    }
     @Test void acceptsOverseasAndLegacySelections() throws Exception {
         var input = new ObjectMapper().readTree("[\"서울\",\"해외 전체\",\"미국\",\"일본\",\"원격\",\"invalid\",\"미국\"]");
         assertThat(SavedResumeAnalysisInput.allowed(input, RecommendationLocations.OPTIONS))
