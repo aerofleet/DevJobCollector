@@ -40,5 +40,10 @@ command = [client, *args] if client else ['docker', 'run', '--rm', '-i', '--netw
                                       'mysql:8.4', 'mysql', *args]
 result = subprocess.run(command, input=query, text=True, capture_output=True, env=process_env)
 if result.returncode:
+    diagnostic = result.stderr
+    for value in (env['SPRING_DATASOURCE_PASSWORD'], env['SPRING_DATASOURCE_USERNAME'], url.hostname, email):
+        if value:
+            diagnostic = diagnostic.replace(value, '[redacted]')
+    print(diagnostic[:2000], flush=True)
     raise SystemExit('Read-only database audit failed; credential-bearing diagnostics suppressed')
 print(result.stdout)
