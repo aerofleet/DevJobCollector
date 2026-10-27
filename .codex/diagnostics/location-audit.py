@@ -19,6 +19,35 @@ print('runtime_image=' + app['Config']['Image'], flush=True)
 identity = "CONVERT(0x" + email.encode('utf-8').hex() + " USING utf8mb4) COLLATE utf8mb4_unicode_ci"
 query = f"""
 START TRANSACTION READ ONLY;
+SELECT id,updated_at,
+ JSON_LENGTH(JSON_EXTRACT(content_json,'$.projects')) project_count,
+ CHAR_LENGTH(JSON_EXTRACT(content_json,'$.projects')) project_chars,
+ JSON_LENGTH(JSON_EXTRACT(content_json,'$.experience')) experience_count,
+ CHAR_LENGTH(JSON_EXTRACT(content_json,'$.experience')) experience_chars,
+ CHAR_LENGTH(JSON_EXTRACT(content_json,'$.techStack')) skill_chars,
+ CHAR_LENGTH(JSON_EXTRACT(content_json,'$.introduction')) introduction_chars
+ FROM resumes WHERE id=1;
+SELECT COUNT(*) attachment_count FROM resume_attachments WHERE resume_id=1;
+SELECT id,created_at,
+ JSON_EXTRACT(result_json,'$.aiReview.status') review_status,
+ JSON_EXTRACT(result_json,'$.aiReview.fitVersion') fit_version,
+ JSON_LENGTH(JSON_EXTRACT(result_json,'$.aiReview.findings')) findings_count,
+ JSON_LENGTH(JSON_EXTRACT(result_json,'$.aiReview.strengths')) strengths_count,
+ JSON_EXTRACT(result_json,'$.aiReview.discardedFindings') discarded_findings,
+ JSON_LENGTH(JSON_EXTRACT(result_json,'$.aiReview.jobs')) reviewed_jobs,
+ JSON_LENGTH(JSON_EXTRACT(result_json,'$.detectedSkills')) detected_skills
+ FROM ai_analysis_request WHERE resume_id=1 ORDER BY id DESC LIMIT 5;
+SELECT a.id analysis_id,j.id job_id,j.title,j.experience,j.location,
+ CHAR_LENGTH(j.apply_qual) qualification_chars,
+ JSON_UNQUOTE(JSON_EXTRACT(r.item,'$.decision')) decision,
+ JSON_UNQUOTE(JSON_EXTRACT(r.item,'$.decisionReason')) reason,
+ JSON_LENGTH(JSON_EXTRACT(r.item,'$.criteria')) criteria_count
+ FROM ai_analysis_request a
+ JOIN JSON_TABLE(a.result_json,'$.aiReview.jobs[*]' COLUMNS(job_id BIGINT PATH '$.jobId',item JSON PATH '$')) r
+ JOIN job_posts j ON j.id=r.job_id
+ WHERE a.resume_id=1 ORDER BY a.id DESC,j.id LIMIT 25;
+SELECT id,title,experience,location,LEFT(apply_qual,5000) qualifications
+ FROM job_posts WHERE title='Server Developer [Commerce]' ORDER BY id DESC LIMIT 3;
 SELECT 'account_count' metric,COUNT(*) value FROM users WHERE email={identity};
 SELECT r.id resume_id,r.updated_at,JSON_EXTRACT(r.content_json,'$.careerProfile.location') locations,
  (u.email={identity}) matches_requested_email
