@@ -28,7 +28,14 @@ class OpenAiEvidenceLiveTest {
         assertThat(validated.path("jobs")).as("%s", output).hasSize(3);
         for (var job : validated.path("jobs")) {
             long id = job.path("jobId").asLong();
-            if (id == 1) assertThat(job.path("decision").asText()).as("%s", job).isIn("RECOMMENDED", "STRETCH");
+            if (id == 1) {
+                // This contract verifies geography, not that every other qualification is proven.
+                assertThat(job.path("decision").asText()).as("%s", job).isNotEqualTo("NOT_RECOMMENDED");
+                assertThat(job.path("criteria")).as("%s", job).anySatisfy(criterion -> {
+                    assertThat(criterion.path("jobQuote").asText()).contains("Tokyo, Japan");
+                    assertThat(criterion.path("assessment").asText()).isEqualTo("SUPPORTED");
+                });
+            }
             if (id == 2) assertThat(job.path("decision").asText()).as("%s", job).isEqualTo("NOT_RECOMMENDED");
             if (id == 3) assertThat(job.path("decision").asText()).as("%s", job).isEqualTo("INSUFFICIENT_INFORMATION");
         }
