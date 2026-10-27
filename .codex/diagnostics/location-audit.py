@@ -19,6 +19,23 @@ print('runtime_image=' + app['Config']['Image'], flush=True)
 identity = "CONVERT(0x" + email.encode('utf-8').hex() + " USING utf8mb4) COLLATE utf8mb4_unicode_ci"
 query = f"""
 START TRANSACTION READ ONLY;
+SELECT a.id,
+ JSON_EXTRACT(a.result_json,'$.derivedPreferences.careerYears') career_years,
+ JSON_KEYS(JSON_EXTRACT(a.result_json,'$.review.skillEvidence')) grounded_skill_names,
+ JSON_LENGTH(JSON_EXTRACT(a.result_json,'$.aiReview.positioningEvidence')) positioning_evidence_count,
+ JSON_EXTRACT(a.result_json,'$.sources') attachment_read_status
+ FROM ai_analysis_request a WHERE a.resume_id=1 ORDER BY a.id DESC LIMIT 1;
+SELECT e.idx,JSON_KEYS(e.item) experience_fields,
+ CHAR_LENGTH(JSON_UNQUOTE(JSON_EXTRACT(e.item,'$.description'))) description_chars,
+ JSON_EXTRACT(e.item,'$.workType') work_type,
+ JSON_EXTRACT(e.item,'$.isCurrent') is_current,
+ JSON_EXTRACT(e.item,'$.startDate') start_date,
+ JSON_EXTRACT(e.item,'$.endDate') end_date
+ FROM resumes r JOIN JSON_TABLE(r.content_json,'$.experience[*]' COLUMNS(idx FOR ORDINALITY,item JSON PATH '$')) e WHERE r.id=1;
+SELECT a.id,r.job_id,JSON_EXTRACT(r.item,'$.matchPoints') matched,
+ JSON_EXTRACT(r.item,'$.missingPoints') missing
+ FROM ai_analysis_request a JOIN JSON_TABLE(a.result_json,'$.recommendations[*]' COLUMNS(job_id BIGINT PATH '$.jobId',item JSON PATH '$')) r
+ WHERE a.resume_id=1 AND r.job_id=3599 ORDER BY a.id DESC LIMIT 1;
 SELECT id,updated_at,
  JSON_LENGTH(JSON_EXTRACT(content_json,'$.projects')) project_count,
  CHAR_LENGTH(JSON_EXTRACT(content_json,'$.projects')) project_chars,
