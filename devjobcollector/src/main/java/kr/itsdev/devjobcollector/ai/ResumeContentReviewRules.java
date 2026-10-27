@@ -8,9 +8,11 @@ import java.util.regex.Pattern;
 
 /** Validate grounding independently from the model's structured-output promise. */
 public final class ResumeContentReviewRules {
-    public static final String VERSION = "content-review-v9-remote-location";
+    public static final String VERSION = "content-review-v10-comparison-diagnostics";
     public record Source(String id, String text, ResumeEvidenceReview.Document original) {}
-    public record Job(int slot, long jobId, String text) {}
+    public record Job(int slot, long jobId, String text, Boolean requirementsCollected) {
+        public Job(int slot, long jobId, String text) { this(slot, jobId, text, null); }
+    }
     public record Passage(String id, String text) {}
     private static final Pattern NUMBER = Pattern.compile("[0-9]+(?:[.,][0-9]+)?");
 
@@ -98,14 +100,32 @@ public final class ResumeContentReviewRules {
             finding.put("sourcePath", original.key());
         }
         var validatedJobs = result.putArray("jobs"); var seen = new HashSet<Integer>();
+        var diagnostics = new LinkedHashMap<Integer, ObjectNode>();
+        int sourcePassageCount = sourcePassages.values().stream().mapToInt(Map::size).sum();
+        for (var job : jobs) {
+            var diagnostic = JobComparisonDiagnostics.create(mapper, job.jobId(), sourcePassageCount,
+                    passages("J" + job.slot(), job.text()).size());
+            if (job.requirementsCollected() != null) diagnostic.put("jobRequirementsCollected", job.requirementsCollected());
+            if (Boolean.FALSE.equals(job.requirementsCollected())) JobComparisonDiagnostics.issue(diagnostic, "JOB_REQUIREMENTS_NOT_COLLECTED");
+            diagnostics.put(job.slot(), diagnostic);
+        }
         for (var item : output.path("jobs")) {
             if (!item.path("slot").isIntegralNumber()) continue;
             int slot = item.path("slot").asInt();
             Job job = jobs.stream().filter(j -> j.slot() == slot).findFirst().orElse(null);
-            if (job == null || !seen.add(slot) || !Set.of("RELATED", "REVIEW_NEEDED", "LOW_RELEVANCE").contains(item.path("relevance").asText())) continue;
+            if (job == null) continue;
+            var diagnostic = diagnostics.get(slot);
+            diagnostic.put("receivedItems", diagnostic.path("receivedItems").asInt() + 1);
+            if (!seen.add(slot)) { JobComparisonDiagnostics.issue(diagnostic, "DUPLICATE_JOB_SLOT"); continue; }
+            if (!Set.of("RELATED", "REVIEW_NEEDED", "LOW_RELEVANCE").contains(item.path("relevance").asText())) {
+                JobComparisonDiagnostics.issue(diagnostic, "INVALID_RELEVANCE"); continue;
+            }
             var jobPassages = passageIndex("J" + slot, job.text());
             var criteria = mapper.createArrayNode();
-            if (!item.path("criteria").isArray() || item.path("criteria").size() > 4) continue;
+            if (!item.path("criteria").isArray() || item.path("criteria").size() > 4) {
+                JobComparisonDiagnostics.issue(diagnostic, "INVALID_CRITERIA_FORMAT"); continue;
+            }
+            diagnostic.put("submittedCriteria", item.path("criteria").size());
             for (var criterion : item.path("criteria")) {
                 String jobQuote = jobPassages.getOrDefault(bounded(criterion, "jobQuoteId", 80), "");
                 String quoteId = bounded(criterion, "resumeQuoteId", 80);
@@ -114,12 +134,15 @@ public final class ResumeContentReviewRules {
                 String explanation = bounded(criterion, "explanation", 600), assessment = criterion.path("assessment").asText();
                 Source source = bySource.get(criterion.path("sourceId").asText());
                 // Missing evidence is explicit; forged IDs must not turn into an empty CHECK.
-                if (quoteId.isBlank() != sourceId.isBlank() || (!quoteId.isBlank() && quote.isBlank())) continue;
-                if (jobQuote.isBlank() || !job.text().contains(jobQuote) || explanation.isBlank()) continue;
-                if (!Set.of("SUPPORTED", "CHECK").contains(assessment)) continue;
-                if (assessment.equals("SUPPORTED") && !grounded(source, quote)) continue;
-                if (!quote.isBlank() && !grounded(source, quote)) continue;
-                if (introducesNumbers(explanation, job.text() + (source == null ? "" : source.text()))) continue;
+                String rejection = null;
+                if (quoteId.isBlank() != sourceId.isBlank() || (!quoteId.isBlank() && quote.isBlank())) rejection = "INVALID_RESUME_REFERENCE";
+                else if (jobQuote.isBlank() || !job.text().contains(jobQuote)) rejection = "INVALID_JOB_REFERENCE";
+                else if (explanation.isBlank()) rejection = "MISSING_COMPARISON_EXPLANATION";
+                else if (!Set.of("SUPPORTED", "CHECK").contains(assessment)) rejection = "INVALID_ASSESSMENT";
+                else if (assessment.equals("SUPPORTED") && !grounded(source, quote)) rejection = "UNSUPPORTED_RESUME_CLAIM";
+                else if (!quote.isBlank() && !grounded(source, quote)) rejection = "RESUME_QUOTE_NOT_VERBATIM";
+                else if (introducesNumbers(explanation, job.text() + (source == null ? "" : source.text()))) rejection = "UNSUPPORTED_NUMERIC_CLAIM";
+                if (rejection != null) { JobComparisonDiagnostics.issue(diagnostic, rejection); continue; }
                 if (assessment.equals("SUPPORTED") && Pattern.compile("경험.{0,20}없|담당.{0,20}없|하지\\s*않|한\\s*적.{0,8}없|(?i)no\\s+.{0,30}experience|never\\s").matcher(quote).find()) {
                     assessment = "CHECK";
                 }
@@ -134,6 +157,9 @@ public final class ResumeContentReviewRules {
                     if (source.original().page() != null) saved.put("page", source.original().page());
                 }
             }
+            diagnostic.put("acceptedCriteria", criteria.size());
+            diagnostic.put("uncitedResumeCriteria", java.util.stream.StreamSupport.stream(criteria.spliterator(), false)
+                    .filter(c -> c.path("resumeQuote").asText().isBlank()).count());
             if (criteria.isEmpty()) continue;
             boolean supported = false;
             for (var c : criteria) if (c.path("assessment").asText().equals("SUPPORTED")) supported = true;
@@ -142,6 +168,8 @@ public final class ResumeContentReviewRules {
             saved.put("relevance", relevance.equals("RELATED") && !supported ? "REVIEW_NEEDED" : relevance);
             saved.set("criteria", criteria);
         }
+        var jobDiagnostics = result.putArray("jobDiagnostics");
+        diagnostics.values().forEach(d -> { JobComparisonDiagnostics.finish(d); jobDiagnostics.add(d); });
         result.put("discardedFindings", discarded);
         return result;
     }

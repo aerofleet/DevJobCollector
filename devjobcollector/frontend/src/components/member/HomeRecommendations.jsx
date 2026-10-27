@@ -4,6 +4,8 @@ import { ArrowRight } from 'lucide-react';
 import { useMemberSession } from '../../contexts/memberSession';
 import { getHomeRecommendations, getCurrentRecommendations, listAnalyses, saveCurrentRecommendationFeedback } from '../../api/resumeAnalysisApi';
 import JobCard from '../job/JobCard';
+import JobComparisonDiagnostics from './JobComparisonDiagnostics';
+import { comparisonSummary } from '../../utils/jobComparison';
 import './HomeRecommendations.css';
 
 export default function HomeRecommendations() {
@@ -114,7 +116,8 @@ function SavedRecommendations() {
               <button disabled={pending !== null} onClick={() => feedback(job, 'MATCHED')} aria-label={`${job.title} 제외 해제`}>제외 해제</button></li>)}</ul>
           </details>}
           {result.aiExcludedRecommendations?.length > 0 && <details className="recommendation-excluded"><summary>AI 검토로 보류한 공고 {result.aiExcludedRecommendations.length}개</summary>
-            {result.aiExcludedRecommendations.map(job => <div key={job.jobId}><Link to={`/job/${job.jobId}`}>{job.title}</Link><p>{job.aiDecision === 'NOT_RECOMMENDED' ? '부적합' : '정보 부족'}: {job.aiFit?.decisionReason}</p>
+            {result.aiExcludedRecommendations.map(job => <div key={job.jobId}><Link to={`/job/${job.jobId}`}>{job.title}</Link><p>{comparisonSummary(job.aiFit)?.label || (job.aiDecision === 'NOT_RECOMMENDED' ? '부적합' : '요건 확인 필요')}: {comparisonSummary(job.aiFit)?.reason || job.aiFit?.decisionReason}</p>
+              <JobComparisonDiagnostics review={job.aiFit} />
               {job.aiFit?.criteria?.map((criterion, index) => <p key={index}>공고: {criterion.jobQuote} / 이력서: {criterion.resumeQuote || '근거 미확인'} — {criterion.explanation}</p>)}
             </div>)}
           </details>}

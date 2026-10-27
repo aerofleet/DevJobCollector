@@ -100,7 +100,8 @@ public class ResumeContentReviewService {
                     + "\n고용 형태: " + Objects.toString(row.get("hire_type"), "") + "\n수집된 자격 요건(최대 5000자): " + Objects.toString(row.get("qualifications"), "미수집")
                     + "\n기술명(필수 요건 분류 아님): " + recommendation.path("matchPoints") + " " + recommendation.path("missingPoints");
             text = pii.mask(text.replaceAll("<[^>]*>", " "), known).maskedText();
-            int slot = jobs.size(); jobs.add(new ResumeContentReviewRules.Job(slot, jobId, text));
+            int slot = jobs.size(); jobs.add(new ResumeContentReviewRules.Job(slot, jobId, text,
+                    !Objects.toString(row.get("qualifications"), "").replaceAll("<[^>]*>", " ").isBlank()));
             jobPayload.add(Map.of("slot", slot, "text", text, "passages", ResumeContentReviewRules.passages("J" + slot, text)));
         }
         Map<String, Object> payload = Map.of("sources", sourcePayload, "jobs", jobPayload);

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import JobComparisonDiagnostics from './JobComparisonDiagnostics';
+import { comparisonSummary } from '../../utils/jobComparison';
 import { confirmContentReview, previewContentReview, getContentReview, requestContentReview, saveFindingFeedback } from '../../api/resumeAnalysisApi';
 
 const sectionNames = { projects: '프로젝트', experience: '경력', careerProfile: '지원 방향', techStack: '기술 스택', introduction: '간단소개', education: '학력', training: '교육이력', activities: '기타사항', coverLetter: '자기소개서' };
@@ -97,16 +99,18 @@ export function AiJobReview({ review }) {
   const criteria = review.criteria || [];
   const leadWith = review.lead_with?.trim();
   const gap = review.gap?.trim();
+  const comparison = comparisonSummary(review);
   const names = { RELATED: '연결되는 경험 있음', REVIEW_NEEDED: '추가 확인 필요', LOW_RELEVANCE: '관련성 낮음' };
   return <div className="ai-job-review"><strong><span className="evidence-badge evidence-badge-ai">AI 판단</span> {names[review.relevance]}</strong>
-    {review.decision && <p><strong>{({ RECOMMENDED: '추천', STRETCH: '도전 지원', NOT_RECOMMENDED: '부적합', INSUFFICIENT_INFORMATION: '정보 부족', REVIEW_REQUIRED: '재검토 필요' })[review.decision]}</strong> — {review.decisionReason}</p>}
+    {review.decision && <p><strong>{comparison?.label || ({ RECOMMENDED: '추천', STRETCH: '도전 지원', NOT_RECOMMENDED: '부적합', INSUFFICIENT_INFORMATION: '요건 확인 필요', REVIEW_REQUIRED: '재검토 필요' })[review.decision]}</strong> — {comparison?.reason || review.decisionReason}</p>}
+    <JobComparisonDiagnostics review={review} />
     {(leadWith || gap) && <div className="coaching-job-fit">
       {leadWith && <div><h4>앞세울 경험</h4><p>{leadWith}</p></div>}
       {gap && <div><h4>보완할 요건</h4><p>{gap}</p></div>}
     </div>}
     {!criteria.length ? <div className="analysis-note">
       <p>공고와 이력서를 비교할 검증된 인용 근거가 없습니다. 지원자의 경험이 부족하다는 판정은 아닙니다.</p>
-      <p>공고 상세와 저장된 이력서를 확인해 주세요. 자료를 보완한 뒤 AI 내용 분석에서 변경된 전송 내용을 확인하고 재검토할 수 있습니다. 같은 전송 내용은 저장된 결과를 사용합니다.</p>
+      <p>공고 상세와 AI 전송 내용을 확인해 주세요. 자료 또는 검증 기준이 변경되면 동의 후 재검토할 수 있습니다. 같은 내용과 검증 기준은 저장된 결과를 사용합니다.</p>
       {review.jobId && <Link to={`/job/${review.jobId}`}>공고 상세 확인</Link>}
       {' '}<a href="#ai-content-review">AI 내용 분석으로 이동</a>
     </div> : <details><summary>공고와 경험의 근거 보기</summary>

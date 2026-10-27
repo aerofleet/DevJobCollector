@@ -92,6 +92,8 @@ final class ResumeCoachingRules {
                 throw new IllegalArgumentException("Invalid coaching output");
         var legacy = mapper.createObjectNode(); legacy.putArray("findings"); legacy.set("jobs", output.path("job_fit"));
         var result = ResumeContentReviewRules.validateLegacy(legacy, sources, jobs, mapper);
+        var diagnostics = new HashMap<Long, ObjectNode>();
+        result.path("jobDiagnostics").forEach(d -> diagnostics.put(d.path("jobId").asLong(), (ObjectNode) d));
         var positioning = evidence(output.path("positioningEvidence"), sources, mapper);
         String headline = text(output, "positioning");
         result.put("positioning", !positioning.text().isBlank() && groundedClaim(headline, positioning.text()) ? headline : "");
@@ -149,32 +151,43 @@ final class ResumeCoachingRules {
             boolean supported = java.util.stream.StreamSupport.stream(saved.path("criteria").spliterator(),false)
                     .anyMatch(c -> c.path("assessment").asText().equals("SUPPORTED"));
             String decision = text(item, "decision"), decisionReason = text(item, "decisionReason");
+            var diagnostic = diagnostics.get(job.jobId());
+            ((ObjectNode) saved).set("comparisonDiagnostics", diagnostic);
             boolean completeEvidence = saved.path("criteria").size() == item.path("criteria").size();
             if (Set.of("RECOMMENDED", "STRETCH", "NOT_RECOMMENDED", "INSUFFICIENT_INFORMATION").contains(decision)) {
                 boolean hasApplicantEvidence = java.util.stream.StreamSupport.stream(saved.path("criteria").spliterator(), false)
                         .anyMatch(c -> !c.path("resumeQuote").asText().isBlank());
-                if (!completeEvidence || !valid(decisionReason, facts.toString())
-                        || ((decision.equals("RECOMMENDED") || decision.equals("STRETCH")) && !supported)
-                        || (decision.equals("NOT_RECOMMENDED") && !hasApplicantEvidence)) {
+                if (!valid(decisionReason, facts.toString())) JobComparisonDiagnostics.issue(diagnostic, "DECISION_NOT_GROUNDED");
+                if ((decision.equals("RECOMMENDED") || decision.equals("STRETCH")) && !supported)
+                    JobComparisonDiagnostics.issue(diagnostic, "UNSUPPORTED_RECOMMENDATION");
+                if (decision.equals("NOT_RECOMMENDED") && !hasApplicantEvidence)
+                    JobComparisonDiagnostics.issue(diagnostic, "UNSUPPORTED_REJECTION");
+                JobComparisonDiagnostics.finish(diagnostic);
+                if (!completeEvidence || !diagnostic.path("issues").isEmpty()) {
                     decision = "INSUFFICIENT_INFORMATION";
-                    decisionReason = "판정 근거를 충분히 확인하지 못해 추가 검토가 필요합니다.";
+                    decisionReason = JobComparisonDiagnostics.failureReason(diagnostic);
                 }
                 ((ObjectNode)saved).put("decision", decision).put("decisionReason", decisionReason);
+            } else {
+                JobComparisonDiagnostics.issue(diagnostic, "INVALID_DECISION");
+                JobComparisonDiagnostics.finish(diagnostic);
+                ((ObjectNode)saved).put("decision", "INSUFFICIENT_INFORMATION")
+                        .put("decisionReason", JobComparisonDiagnostics.failureReason(diagnostic));
             }
             for (String field : List.of("lead_with","gap")) {
                 String value = text(item,field); ((ObjectNode)saved).put(field, field.equals("lead_with")
                         ? (supported && groundedClaim(value,resumeFacts.toString()) ? value : "") : (valid(value,facts.toString()) ? value : ""));
             }
         }
-        boolean hasDecisions = java.util.stream.StreamSupport.stream(output.path("job_fit").spliterator(), false).anyMatch(j -> j.has("decision"));
-        if (hasDecisions) {
-            var included = new HashSet<Long>(); result.path("jobs").forEach(j -> included.add(j.path("jobId").asLong()));
-            for (var job : jobs) if (!included.contains(job.jobId())) {
-                ((ArrayNode)result.path("jobs")).addObject().put("jobId", job.jobId()).put("relevance", "REVIEW_NEEDED")
-                        .put("decision", "INSUFFICIENT_INFORMATION").put("decisionReason", "AI가 충분한 비교 근거를 제시하지 않아 추천을 보류했습니다.")
-                        .putArray("criteria");
-            }
+        var included = new HashSet<Long>(); result.path("jobs").forEach(j -> included.add(j.path("jobId").asLong()));
+        for (var job : jobs) if (!included.contains(job.jobId())) {
+            var diagnostic = diagnostics.get(job.jobId());
+            var saved = ((ArrayNode)result.path("jobs")).addObject().put("jobId", job.jobId()).put("relevance", "REVIEW_NEEDED")
+                    .put("decision", "INSUFFICIENT_INFORMATION").put("decisionReason", JobComparisonDiagnostics.failureReason(diagnostic));
+            saved.putArray("criteria");
+            saved.set("comparisonDiagnostics", diagnostic);
         }
+        result.remove("jobDiagnostics"); // Diagnostics live with each job, including in home exclusion responses.
         result.put("discardedFindings",discarded); return result;
     }
     static void answer(ObjectNode review, String findingId, int option) {
