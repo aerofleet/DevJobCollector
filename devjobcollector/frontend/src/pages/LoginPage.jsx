@@ -102,7 +102,7 @@ const LoginPage = () => {
     const oauthError = query.get('error');
     const oauthProvider = query.get('provider');
     const next = query.get('next') || sessionStorage.getItem('postLoginNextPath');
-    const fallbackPath = '/member';
+    const fallbackPath = '/';
     const redirectTo = next || fallbackPath;
 
     const authFailureReason = sessionStorage.getItem('authFailureReason');
@@ -182,7 +182,7 @@ const LoginPage = () => {
       const linkInProgressProvider = sessionStorage.getItem(LINK_IN_PROGRESS_PROVIDER_KEY);
       if (linkInProgressProvider === pendingLinkProvider) {
         clearAccountLinkFlow();
-        navigate('/member', { replace: true });
+        navigate('/', { replace: true });
         return;
       }
       void beginAccountLink(pendingLinkProvider);
