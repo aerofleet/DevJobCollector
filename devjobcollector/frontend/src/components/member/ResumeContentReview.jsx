@@ -34,7 +34,7 @@ export default function ResumeContentReview({ result, disabled, onResult }) {
   };
   const sync = value => { setReview(value); onResultRef.current(value); };
   const state = review?.status || 'NOT_REQUESTED';
-  return <section className="content-review" aria-label="AI 내용 분석">
+  return <section id="ai-content-review" className="content-review" aria-label="AI 내용 분석">
     <h3>이렇게 고쳐보세요</h3>
     {state !== 'COMPLETED' && <p>내 자료로 채운 완성 문장과 공고별 어필법을 받아보세요.</p>}
     {error && <p role="alert" className="analysis-error">{error}</p>}
@@ -94,15 +94,26 @@ export default function ResumeContentReview({ result, disabled, onResult }) {
 
 export function AiJobReview({ review }) {
   if (!review) return null;
+  const criteria = review.criteria || [];
+  const leadWith = review.lead_with?.trim();
+  const gap = review.gap?.trim();
   const names = { RELATED: '연결되는 경험 있음', REVIEW_NEEDED: '추가 확인 필요', LOW_RELEVANCE: '관련성 낮음' };
   return <div className="ai-job-review"><strong><span className="evidence-badge evidence-badge-ai">AI 판단</span> {names[review.relevance]}</strong>
     {review.decision && <p><strong>{({ RECOMMENDED: '추천', STRETCH: '도전 지원', NOT_RECOMMENDED: '부적합', INSUFFICIENT_INFORMATION: '정보 부족', REVIEW_REQUIRED: '재검토 필요' })[review.decision]}</strong> — {review.decisionReason}</p>}
-    <div className="coaching-job-fit"><div><h4>앞세울 경험</h4><p>{review.lead_with || '아래 인용된 경험을 공고 요건과 연결해보세요.'}</p></div><div><h4>보완할 요건</h4><p>{review.gap || '공고 원문의 지원 요건을 확인해보세요.'}</p></div></div>
-    <details><summary>공고와 경험의 근거 보기</summary>
-    {review.criteria.map((criterion, index) => <div key={index}>
+    {(leadWith || gap) && <div className="coaching-job-fit">
+      {leadWith && <div><h4>앞세울 경험</h4><p>{leadWith}</p></div>}
+      {gap && <div><h4>보완할 요건</h4><p>{gap}</p></div>}
+    </div>}
+    {!criteria.length ? <div className="analysis-note">
+      <p>공고와 이력서를 비교할 검증된 인용 근거가 없습니다. 지원자의 경험이 부족하다는 판정은 아닙니다.</p>
+      <p>공고 상세와 저장된 이력서를 확인해 주세요. 자료를 보완한 뒤 AI 내용 분석에서 변경된 전송 내용을 확인하고 재검토할 수 있습니다. 같은 전송 내용은 저장된 결과를 사용합니다.</p>
+      {review.jobId && <Link to={`/job/${review.jobId}`}>공고 상세 확인</Link>}
+      {' '}<a href="#ai-content-review">AI 내용 분석으로 이동</a>
+    </div> : <details><summary>공고와 경험의 근거 보기</summary>
+    {criteria.map((criterion, index) => <div key={index}>
       <p><strong>공고 근거</strong> “{criterion.jobQuote}”</p>
-      {criterion.resumeQuote ? <p><strong>이력서 근거</strong> “{criterion.resumeQuote}”<small>{location(criterion)}</small></p> : <p>관련 경험을 이력서에 추가해보세요</p>}
+      {criterion.resumeQuote ? <p><strong>이력서 근거</strong> “{criterion.resumeQuote}”<small>{location(criterion)}</small></p> : <p>이 요건과 비교할 이력서 근거를 확인하지 못했습니다.</p>}
       <p>{criterion.explanation}</p><span>{criterion.assessment === 'SUPPORTED' ? '연결되는 경험' : '지원 전 확인할 항목'}</span>
-    </div>)}</details>
+    </div>)}</details>}
   </div>;
 }
