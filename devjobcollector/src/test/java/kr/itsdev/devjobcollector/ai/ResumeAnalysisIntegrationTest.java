@@ -496,7 +496,7 @@ class ResumeAnalysisIntegrationTest {
             var preview = contentReviews.preview("owner", analysis.path("id").asLong());
             var locationSource = java.util.stream.StreamSupport.stream(preview.path("payload").path("sources").spliterator(), false)
                     .filter(source -> "희망 근무 지역".equals(source.path("section").asText())).findFirst().orElseThrow();
-            assertThat(locationSource.path("text").asText()).contains("희망 근무 지역 (선택한 조건 중 하나)", "일본", "미국", "원격");
+            assertThat(locationSource.path("text").asText()).contains("희망 근무 지역", "선택한 지역 중 하나", "원격 선택은 지역 범위를 넓히지 않음", "일본", "미국");
             assertThat(preview.path("payload").path("jobs").toString()).contains("Tokyo, Japan");
         } finally { jdbc.update("DELETE FROM job_posts WHERE id=?", job); }
     }
