@@ -23,7 +23,7 @@ SELECT a.id,
  JSON_EXTRACT(a.result_json,'$.derivedPreferences.careerYears') career_years,
  JSON_KEYS(JSON_EXTRACT(a.result_json,'$.review.skillEvidence')) grounded_skill_names,
  JSON_LENGTH(JSON_EXTRACT(a.result_json,'$.aiReview.positioningEvidence')) positioning_evidence_count,
- JSON_EXTRACT(a.result_json,'$.sources') attachment_read_status
+ JSON_LENGTH(JSON_EXTRACT(a.result_json,'$.sources')) attachment_source_count
  FROM ai_analysis_request a WHERE a.resume_id=1 ORDER BY a.id DESC LIMIT 1;
 SELECT e.idx,JSON_KEYS(e.item) experience_fields,
  CHAR_LENGTH(JSON_UNQUOTE(JSON_EXTRACT(e.item,'$.description'))) description_chars,
