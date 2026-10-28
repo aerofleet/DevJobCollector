@@ -66,7 +66,9 @@ public final class ResumeContentReviewRules {
 
     public static ObjectNode validate(JsonNode output, List<Source> sources, List<Job> jobs, ObjectMapper mapper) {
         if (output.has("rewrites")) return ResumeCoachingRules.validate(output, sources, jobs, mapper);
-        return validateLegacy(output, sources, jobs, mapper);
+        var legacy = validateLegacy(output, sources, jobs, mapper);
+        legacy.put("version", "legacy-unverified-rewrite");
+        return legacy;
     }
     static ObjectNode validateLegacy(JsonNode output, List<Source> sources, List<Job> jobs, ObjectMapper mapper) {
         if (!output.path("findings").isArray() || output.path("findings").size() > 6

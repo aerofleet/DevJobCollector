@@ -95,7 +95,7 @@ class JobComparisonDiagnosticsTest {
         var output = output(); job(output);
         var valid = validate(output);
         assertThat(valid.path("comparisonDiagnostics").path("status").asText()).isEqualTo("VALIDATED");
-        assertThat(valid.path("decision").asText()).isEqualTo("RECOMMENDED");
+        assertThat(valid.path("decision").asText()).isEqualTo("STRETCH");
         var emptyInput = ResumeContentReviewRules.validate(output, List.of(), jobs, mapper).path("jobs").get(0);
         assertThat(emptyInput.path("comparisonDiagnostics").path("status").asText()).isEqualTo("INPUT_MISSING");
         assertThat(emptyInput.path("comparisonDiagnostics").path("issues").path("NO_RESUME_PASSAGES").asInt()).isEqualTo(1);

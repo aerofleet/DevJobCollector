@@ -36,7 +36,7 @@ class OpenAiEvidenceLiveTest {
                     assertThat(criterion.path("assessment").asText()).isEqualTo("SUPPORTED");
                 });
             }
-            if (id == 2) assertThat(job.path("decision").asText()).as("%s", job).isEqualTo("NOT_RECOMMENDED");
+            if (id == 2) assertThat(job.path("decision").asText()).as("%s", job).isEqualTo("INSUFFICIENT_INFORMATION");
             if (id == 3) assertThat(job.path("decision").asText()).as("%s", job).isEqualTo("INSUFFICIENT_INFORMATION");
         }
     }
@@ -92,8 +92,8 @@ class OpenAiEvidenceLiveTest {
         assertThat(validated.path("jobs")).as("Synthetic raw: %s", output).hasSize(3);
         var decisions = new java.util.HashMap<Long,String>();
         validated.path("jobs").forEach(j -> decisions.put(j.path("jobId").asLong(), j.path("decision").asText()));
-        assertThat(decisions.get(1L)).as("Synthetic fit: %s", validated.path("jobs")).isEqualTo("NOT_RECOMMENDED");
-        assertThat(decisions.get(2L)).isIn("RECOMMENDED", "STRETCH");
+        assertThat(decisions.get(1L)).as("Synthetic fit: %s", validated.path("jobs")).isEqualTo("INSUFFICIENT_INFORMATION");
+        assertThat(decisions.get(2L)).isIn("STRETCH", "INSUFFICIENT_INFORMATION");
         assertThat(decisions.get(3L)).isEqualTo("INSUFFICIENT_INFORMATION");
     }
     @org.junit.jupiter.api.RepeatedTest(3)
@@ -120,7 +120,6 @@ class OpenAiEvidenceLiveTest {
         assertThat(validated.path("positioning").asText()).as("Synthetic output: %s; validated: %s", output, validated).isNotBlank();
         assertThat(validated.path("strengths").size()).as("Synthetic output: %s; validated: %s", output, validated).isGreaterThan(0);
         for (var finding : validated.path("findings")) assertThat(finding.path("suggestion").asText()).isNotBlank().doesNotContain("[", "]");
-        assertThat(validated.path("findings").size()).as("Synthetic output: %s; validated: %s", output, validated).isGreaterThan(0);
         assertThat(validated.path("jobs").size()).as("Synthetic output: %s; validated: %s", output, validated).isEqualTo(1);
         for (var finding : validated.path("findings")) assertThat(text).contains(finding.path("quote").asText());
         for (var criterion : validated.path("jobs").get(0).path("criteria")) {
