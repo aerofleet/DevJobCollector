@@ -56,6 +56,7 @@
 .personal-job-grid .recommended-job { display: flex; flex-direction: column; min-width: 0; }
 .personal-job-grid .job-card { flex: 1; height: auto; color: inherit; text-decoration: none; }
 .personal-job-reason button:first-child { color: #6036b5; font-weight: 650; }
+.personal-job-reason button + button { margin-left: auto; }
 .personal-job-grid footer { padding-top: 8px; }
 .related-recommendations { margin: 32px 0; }
 .related-job-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 20px 0; }
