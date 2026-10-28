@@ -103,8 +103,8 @@ function SavedRecommendations() {
             const review = job.aiFit || reviews.find(item => item.jobId === job.jobId);
             return <article key={job.jobId} className="recommended-job">
               <JobCard job={{ ...job, id: job.jobId }} />
-              <div className="personal-job-reason"><button type="button" aria-haspopup="dialog" onClick={() => setReason({ job, review })}>추천 근거 보기</button></div>
-              {result.id && <footer><button disabled={pending !== null} onClick={() => feedback(job, 'NOT_INTERESTED')} aria-label={`${job.title} 추천 제외`}>{pending === job.jobId ? '처리 중…' : '관심 없음'}</button></footer>}
+              <div className="personal-job-reason"><button type="button" aria-haspopup="dialog" onClick={() => setReason({ job, review })}>추천 근거 보기</button>
+                {result.id && <button type="button" disabled={pending !== null} onClick={() => feedback(job, 'NOT_INTERESTED')} aria-label={`${job.title} 추천 제외`}>{pending === job.jobId ? '처리 중…' : '관심 없음'}</button>}</div>
             </article>;
           })}</div> : <div className="recommendation-empty"><h3>현재 표시할 추천 공고가 없어요.</h3><p>{emptyMessage}</p><Link to="/jobs">전체 채용공고 보기 →</Link></div>}
           {relatedJobs.length > 0 && <section className="related-recommendations" aria-labelledby="related-recommendations-title">

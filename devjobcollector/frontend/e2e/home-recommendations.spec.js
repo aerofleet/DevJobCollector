@@ -56,6 +56,12 @@ test('추천 근거·이력서 전환·제외 저장·모바일 배치', async (
   const state = await mock(page);
   await page.goto('/');
   const section = page.getByRole('region', { name: '내 이력서로 찾는 추천 포지션' });
+  const reasonButton = section.getByRole('button', { name: '추천 근거 보기' });
+  const excludeButton = section.getByRole('button', { name: '백엔드 엔지니어 추천 제외' });
+  const reasonBounds = await reasonButton.boundingBox();
+  const excludeBounds = await excludeButton.boundingBox();
+  expect(Math.abs(reasonBounds.y - excludeBounds.y)).toBeLessThan(2);
+  expect(reasonBounds.x + reasonBounds.width).toBeLessThanOrEqual(excludeBounds.x);
   await section.getByText('추천 근거 보기', { exact: true }).click();
   const dialog = page.getByRole('dialog', { name: '추천 근거' });
   await expect(dialog.getByText('API 운영 경험을 앞세우세요.')).toBeVisible();
