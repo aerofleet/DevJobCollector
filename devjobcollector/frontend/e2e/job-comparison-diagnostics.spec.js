@@ -36,9 +36,13 @@ for (const item of cases) for (const surface of ['home', 'analysis']) {
     await page.goto(surface === 'home' ? '/' : '/resume-analysis?analysisId=8');
     if (surface === 'home') await page.locator('.recommendation-excluded > summary').click();
     const panel = page.locator(surface === 'home' ? '.recommendation-excluded' : '.ai-job-review');
+    if (surface === 'analysis') {
+      await expect(page.getByRole('region', { name: '분석 확인 필요' })).toContainText('합성 테스트 공고');
+      await expect(page.getByText('1번째 추천', { exact: false })).toHaveCount(0);
+    }
     await expect(panel.getByText(item.label, { exact: false }).first()).toBeVisible();
     await expect(panel.getByText(item.expected, { exact: false })).toBeVisible();
     await expect(panel.getByText('이전의 포괄적인 보류 사유')).toHaveCount(0);
-    if (item.diagnostic) await expect(panel.getByText(`AI 비교 항목 ${item.diagnostic.submittedCriteria}개 중 ${item.diagnostic.acceptedCriteria}개가 인용 검증을 통과했습니다.`)).toBeVisible();
+    if (item.diagnostic) await expect(panel.getByText(`비교 항목 ${item.diagnostic.submittedCriteria}개 중 ${item.diagnostic.acceptedCriteria}개의 인용문을 확인했습니다. 이는 요건 충족을 뜻하지 않습니다.`)).toBeVisible();
   });
 }

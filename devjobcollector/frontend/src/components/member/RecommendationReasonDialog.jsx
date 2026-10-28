@@ -80,7 +80,7 @@ export default function RecommendationReasonDialog({ job, review, onClose }) {
         </div>
         <p>{comparison?.reason || review?.decisionReason || (review ? relevanceNames[review.relevance] : null) || '이력서의 희망 직무와 연결되는 공고예요.'}</p>
         {criteria.length > 0 && <div className="rr-counts" aria-label="비교 항목 요약">
-          <span><i className="rr-dot rr-dot-match" aria-hidden="true" />경험 충족 <b>{supportedCount}</b></span>
+          <span><i className="rr-dot rr-dot-match" aria-hidden="true" />관련 경험 <b>{supportedCount}</b></span>
           <span><i className="rr-dot rr-dot-check" aria-hidden="true" />추가 확인 <b>{criteria.length - supportedCount}</b></span>
         </div>}
       </section>
@@ -101,12 +101,12 @@ export default function RecommendationReasonDialog({ job, review, onClose }) {
           const supported = isSupported(criterion);
           const StatusIcon = supported ? Check : Search;
           return <li key={index} className={`rr-match-card rr-match-card-${supported ? 'match' : 'check'}`}>
-            <div className="rr-card-heading"><span className={`rr-badge rr-badge-${supported ? 'match' : 'check'}`}><StatusIcon size={13} aria-hidden="true" />{supported ? '경험 충족' : '추가 검토 필요'}</span><span className="rr-card-index">{String(index + 1).padStart(2, '0')}</span></div>
-            <div className="rr-requirement"><h4>공고 요건</h4><p>{criterion.jobQuote || '공고 요건의 인용 근거를 확인해 주세요.'}</p></div>
+            <div className="rr-card-heading"><span className={`rr-badge rr-badge-${supported ? 'match' : 'check'}`}><StatusIcon size={13} aria-hidden="true" />{supported ? '관련 경험' : '추가 검토 필요'}</span><span className="rr-card-index">{String(index + 1).padStart(2, '0')}</span></div>
+            <div className="rr-requirement"><h4>공고 요건</h4><small>{({ REQUIRED: '필수', PREFERRED: '우대' })[criterion.requirementType] || '구분 확인 필요'}</small><p>{criterion.jobQuote || '공고 요건의 인용 근거를 확인해 주세요.'}</p></div>
             <div className="rr-evidence"><h4><FileText size={13} aria-hidden="true" />이력서 근거</h4><p>{criterion.resumeQuote?.trim() || '이 요건과 비교할 이력서 근거를 확인하지 못했어요.'}</p>
               {(criterion.label || criterion.page) && <small>{[criterion.label, criterion.page ? `${criterion.page}쪽` : null].filter(Boolean).join(' · ')}</small>}
             </div>
-            {criterion.explanation && <div className="rr-interpretation"><h4>매칭 해석</h4><p>{criterion.explanation}</p></div>}
+            {criterion.explanation && <div className="rr-interpretation"><h4>매칭 해석</h4><p>{supported ? '인용된 경험이 요건과 연결될 수 있습니다. 요건 충족 여부는 직접 확인해 주세요.' : '제공된 자료의 인용만으로 이 요건을 확인하기 어렵습니다. 경험이 없다는 뜻은 아닙니다.'}</p></div>}
           </li>;
         })}</ol> : <div className="rr-empty"><FileText size={22} aria-hidden="true" /><p>{review ? '공고와 이력서를 비교할 검증된 인용 근거가 없어요. 지원자의 경험이 부족하다는 판정은 아니에요.' : '요건별 인용 비교는 아직 없어요. 현재는 이력서의 희망 직무와 기술·경력 조건으로 연결한 공고예요.'}</p></div>}
         {review && needsReview && <div className="rr-diagnostics"><JobComparisonDiagnostics review={review} /></div>}

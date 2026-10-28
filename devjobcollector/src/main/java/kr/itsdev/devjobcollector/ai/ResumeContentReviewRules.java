@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
 
 /** Validate grounding independently from the model's structured-output promise. */
 public final class ResumeContentReviewRules {
-    public static final String VERSION = "content-review-v10-comparison-diagnostics";
+    public static final String VERSION = "content-review-v11-evidence-policy";
     public record Source(String id, String text, ResumeEvidenceReview.Document original) {}
     public record Job(int slot, long jobId, String text, Boolean requirementsCollected) {
         public Job(int slot, long jobId, String text) { this(slot, jobId, text, null); }
@@ -150,8 +150,15 @@ public final class ResumeContentReviewRules {
                     assessment = "CHECK";
                     explanation = "인용된 경험만으로는 이 공고 요건 전체를 확인하기 어려워 추가 확인이 필요합니다.";
                 }
+                if (assessment.equals("SUPPORTED")) {
+                    // Verbatim citation is not semantic proof that the entire requirement is met.
+                    explanation = "인용된 경험이 이 요건과 연결될 수 있으나, 요건 충족 여부는 직접 확인해 주세요.";
+                } else {
+                    explanation = "제공된 자료의 인용만으로 이 요건을 확인하기 어렵습니다. 경험이 없다는 뜻은 아닙니다.";
+                }
                 var saved = criteria.addObject(); saved.put("jobQuote", jobQuote); saved.put("resumeQuote", quote);
                 saved.put("assessment", assessment); saved.put("explanation", explanation);
+                saved.put("requirementType", requirementType(jobQuote));
                 if (source != null && !quote.isBlank()) {
                     saved.put("label", source.original().label()); saved.put("section", source.original().section());
                     if (source.original().page() != null) saved.put("page", source.original().page());
@@ -195,6 +202,12 @@ public final class ResumeContentReviewRules {
         for (String activity : List.of("개발", "설계", "구현", "테스트", "운영", "배포", "분석", "최적화", "리팩토링", "주도", "관리"))
             if (requirement.contains(activity) && !evidence.contains(activity)) return true;
         return false;
+    }
+    static String requirementType(String quote) {
+        boolean preferred = Pattern.compile("(?iu)우대|가산점|preferred|nice[ -]to[ -]have").matcher(quote).find();
+        boolean required = Pattern.compile("(?iu)필수|자격요건|필요(?:한|합니다)|required|must[ \\t]+(?:have|be)").matcher(quote).find();
+        if (preferred == required) return "UNKNOWN";
+        return preferred ? "PREFERRED" : "REQUIRED";
     }
     private static String bounded(JsonNode item, String key, int max) {
         var value = item.path(key); return value.isTextual() && value.asText().length() <= max ? value.asText().strip() : "";

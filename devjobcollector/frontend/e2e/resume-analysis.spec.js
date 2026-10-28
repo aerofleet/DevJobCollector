@@ -6,7 +6,7 @@ test('코칭 결과 순서·지역 표시·확인 답변 저장과 취소', asyn
     suggestion: base, baseSuggestion: base, feedback: 'OPEN', confirm: [{ question: 'API를 단독 담당했나요?', options: [
       { label: '단독 담당', suggestion: 'API를 단독 개발해 실패율을 65%에서 0%로 낮췄습니다.' },
       { label: '공동 담당', suggestion: 'API를 공동 개발해 실패율을 65%에서 0%로 낮췄습니다.' }] }] };
-  const ai = { status: 'COMPLETED', positioning: '장애를 수치로 진단하는 백엔드 개발자',
+  const ai = { status: 'COMPLETED', version: 'content-review-v11-evidence-policy', positioning: '장애를 수치로 진단하는 백엔드 개발자',
     strengths: [{ point: '실패율 개선 경험', evidence: [{ quote: base, label: '경험.pdf', page: 1 }], placement: '프로젝트 첫 줄에 두세요.' }],
     gaps: [{ type: 'buried', what: '성과를 첫 문장으로 옮겨보세요.', why_it_matters: '기여를 바로 읽을 수 있어요.' }], findings: [finding],
     jobs: [{ jobId: 17, relevance: 'RELATED', lead_with: '실패율을 낮춘 API 경험을 앞세우세요.', gap: '운영 범위를 설명해보세요.', criteria: [] }] };
@@ -332,7 +332,7 @@ test('AI 내용 분석은 전송 미리보기 동의 후 실행하고 수정안�
       if (req.method() === 'POST') {
         aiCalls++;
         expect(req.postDataJSON()).toEqual({ consentVersion: 'openai-content-review-v1', previewHash: 'a'.repeat(64) });
-        state = { status: 'COMPLETED', findings: [{ id: 'f1', feedback: 'OPEN', issueType: 'ROLE', quote: 'Java API를 개발했습니다.', label: '저장된 이력서', section: '프로젝트 1',
+        state = { status: 'COMPLETED', version: 'content-review-v11-evidence-policy', findings: [{ id: 'f1', feedback: 'OPEN', issueType: 'ROLE', quote: 'Java API를 개발했습니다.', label: '저장된 이력서', section: '프로젝트 1',
           problem: '담당한 기능을 구분해 주세요.', actions: ['직접 구현한 기능을 적어 주세요.'], rewriteTemplate: '[담당 기능]을 구현했습니다.' }],
           jobs: [{ jobId: 17, relevance: 'RELATED', criteria: [{ jobQuote: 'Java API 개발', resumeQuote: 'Java API를 개발했습니다.', assessment: 'SUPPORTED', explanation: 'API 개발 경험을 연결할 수 있습니다.' }] }] };
       }
@@ -352,7 +352,7 @@ test('AI 내용 분석은 전송 미리보기 동의 후 실행하고 수정안�
   await panel.getByRole('checkbox').check(); await submit.click();
   await expect(panel.getByText('담당한 기능을 구분해 주세요.', { exact: true })).toBeVisible();
   await page.getByText('공고와 경험의 근거 보기', { exact: true }).click();
-  await expect(page.getByText('API 개발 경험을 연결할 수 있습니다.', { exact: true })).toBeVisible();
+  await expect(page.getByText('인용된 경험이 요건과 연결될 수 있습니다. 요건 충족 여부는 직접 확인해 주세요.', { exact: true })).toBeVisible();
   await panel.getByRole('button', { name: '이 지적이 틀렸어요', exact: true }).click();
   await expect(panel.getByRole('button', { name: '이 지적이 틀렸어요', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await panel.getByRole('button', { name: 'AI 처리 상태 확인' }).click(); expect(aiCalls).toBe(1);

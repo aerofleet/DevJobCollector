@@ -104,6 +104,28 @@ class ResumeContentReviewRulesTest {
         var positive = ResumeContentReviewRules.validate(response, sources, List.of(new ResumeContentReviewRules.Job(0,17,"Java API 개발 경험")), mapper);
         assertThat(positive.path("jobs").get(0).path("criteria").get(0).path("assessment").asText()).isEqualTo("SUPPORTED");
     }
+    @Test void explicitRequirementLabelsAreConservative() {
+        assertThat(ResumeContentReviewRules.requirementType("필수: Java 개발 경험")).isEqualTo("REQUIRED");
+        assertThat(ResumeContentReviewRules.requirementType("Kubernetes 경험 우대")).isEqualTo("PREFERRED");
+        assertThat(ResumeContentReviewRules.requirementType("Kubernetes 경험")).isEqualTo("UNKNOWN");
+        assertThat(ResumeContentReviewRules.requirementType("필수: Java, 우대: Kubernetes")).isEqualTo("UNKNOWN");
+    }
+    @Test void ambiguousOperationsEvidenceNeverClaimsRequirementFulfilled() throws Exception {
+        var response = mapper.readTree("""
+            {"findings":[],"jobs":[{"slot":0,"relevance":"RELATED","criteria":[
+            {"jobQuoteId":"J0-P1","sourceId":"S1","resumeQuoteId":"S1-P1","assessment":"SUPPORTED","explanation":"요건을 충족합니다."}]}]}
+            """);
+        for (var pair : List.of(
+                List.of("고가용성 및 확장성 운영 경험", "개발·배포·운영 전담"),
+                List.of("장애 대응 및 복구 자동화 경험", "노출 포트를 제거했습니다."),
+                List.of("실무 경력 1년 이상", "2024년 개발을 시작했습니다."))) {
+            var doc = new ResumeEvidenceReview.Document("/projects/0/description", "합성 이력서", null, "프로젝트", pair.get(1));
+            var result = ResumeContentReviewRules.validate(response, List.of(new ResumeContentReviewRules.Source("S1", pair.get(1), doc)),
+                    List.of(new ResumeContentReviewRules.Job(0, 17, pair.get(0))), mapper);
+            var criterion = result.path("jobs").get(0).path("criteria").get(0);
+            assertThat(criterion.path("explanation").asText()).doesNotContain("충족합니다");
+        }
+    }
     @Test void englishLocationWordsDoNotInvalidateCitedKoreanPreferences() throws Exception {
         String preference = "희망 근무 지역은 일본만입니다.";
         var locationSources = List.of(new ResumeContentReviewRules.Source("S1", preference,

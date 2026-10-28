@@ -72,6 +72,24 @@ final class ResumeCoachingRules {
         return Pattern.compile("(?<![A-Za-z])[A-Z][A-Za-z0-9+#]*(?:\\.[A-Za-z]+)?")
                 .matcher(value).results().allMatch(m -> evidence.toLowerCase(Locale.ROOT).contains(m.group().toLowerCase(Locale.ROOT)));
     }
+    private static boolean preservesNumbers(String original, String suggestion) {
+        var remaining = new HashSet<String>();
+        var metric = Pattern.compile("[0-9]+(?:[.,][0-9]+)?%?");
+        metric.matcher(suggestion).results().forEach(m -> remaining.add(m.group()));
+        var numbers = metric.matcher(original);
+        while (numbers.find()) {
+            String number = numbers.group();
+            if (!remaining.contains(number)) return false;
+        }
+        return true;
+    }
+    private static boolean substantiveChange(String original, String suggestion) {
+        return !original.replaceAll("[\\s\\p{P}\\p{S}]", "").equals(suggestion.replaceAll("[\\s\\p{P}\\p{S}]", ""));
+    }
+    private static boolean preservesTechnologies(String original, String suggestion) {
+        var names = ResumeSkillVocabulary.NAMES;
+        return SavedResumeAnalysisInput.findSkills(suggestion, names).containsAll(SavedResumeAnalysisInput.findSkills(original, names));
+    }
     private static String readableReason(String value, JsonNode refs) {
         // Normalize only references already checked against the applicant's source passages.
         var identifiers = new TreeSet<String>(Comparator.comparingInt(String::length).reversed().thenComparing(Comparator.naturalOrder()));
@@ -122,6 +140,7 @@ final class ResumeCoachingRules {
             if (!e.text().isBlank()) checkedRefs.addAll((ArrayNode)item.path("evidence"));
             reason = readableReason(reason, checkedRefs);
             if (original.text().isBlank() || !groundedClaim(suggestion,facts) || !valid(reason,facts)
+                    || !preservesNumbers(facts, suggestion) || !preservesTechnologies(facts, suggestion) || !substantiveChange(original.text(), suggestion)
                     || !item.path("confirm").isArray() || item.path("confirm").size() > 1) { discarded++; continue; }
             String key = "ai:rewrite:" + ResumeAnalysisService.hash(original.text()); if (!seen.add(key)) continue;
             var saved = findings.addObject(); saved.setAll((ObjectNode) original.quotes().get(0));
@@ -135,7 +154,9 @@ final class ResumeCoachingRules {
                 var options = mapper.createArrayNode(); var labels = new HashSet<String>();
                 for (var option : c.path("options")) {
                     String label = text(option,"label"), variant = text(option,"suggestion");
-                    if (label.length() > 100 || !valid(label, facts) || !groundedClaim(variant, facts + " " + label) || !labels.add(label)) continue;
+                    if (label.length() > 100 || !valid(label, facts) || !groundedClaim(variant, facts + " " + label)
+                            || !preservesNumbers(facts, variant) || !preservesTechnologies(facts, variant)
+                            || !substantiveChange(original.text(), variant) || !labels.add(label)) continue;
                     options.addObject().put("label",label).put("suggestion",variant);
                 }
                 if (options.size() != c.path("options").size()) continue;
@@ -166,6 +187,14 @@ final class ResumeCoachingRules {
                 if (!completeEvidence || !diagnostic.path("issues").isEmpty()) {
                     decision = "INSUFFICIENT_INFORMATION";
                     decisionReason = JobComparisonDiagnostics.failureReason(diagnostic);
+                } else if (decision.equals("RECOMMENDED") || decision.equals("STRETCH")) {
+                    decision = "STRETCH";
+                    decisionReason = "인용된 경험이 공고와 연결될 수 있지만, 필수·우대 요건과 경력 충족 여부는 직접 확인이 필요합니다.";
+                } else if (decision.equals("NOT_RECOMMENDED")) {
+                    decision = "INSUFFICIENT_INFORMATION";
+                    decisionReason = "제공된 자료와 공고 요건만으로 지원 적합성을 확정하기 어렵습니다. 해당 요건을 직접 확인해 주세요.";
+                } else {
+                    decisionReason = "제공된 자료와 공고 요건만으로 지원 적합성을 확정하기 어렵습니다. 해당 요건을 직접 확인해 주세요.";
                 }
                 ((ObjectNode)saved).put("decision", decision).put("decisionReason", decisionReason);
             } else {

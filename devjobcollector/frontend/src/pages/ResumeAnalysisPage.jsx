@@ -8,6 +8,7 @@ import ResumeContentReview, { AiJobReview } from '../components/member/ResumeCon
 import { listResumes } from '../api/resumeApi';
 import authenticatedApi from '../api/authenticatedApi';
 import { formatDate } from '../utils/dateParser';
+import { comparisonSummary } from '../utils/jobComparison';
 import {
   getAnalysisCapabilities, listAnalyses, getAnalysis, createAnalysis, deleteAnalysis, saveAnalysisFeedback,
   getExplanation, requestExplanation, saveFindingFeedback,
@@ -106,10 +107,17 @@ export default function ResumeAnalysisPage() {
   }, [result?.id]);
 
   const relevanceOrder = { RELATED: 0, REVIEW_NEEDED: 1, LOW_RELEVANCE: 3 };
-  const recommendedJobs = [...(result?.recommendations || [])].sort((a, b) => {
+  const needsAnalysisCheck = job => {
+    if (result?.aiReview?.status !== 'COMPLETED') return false;
+    const review = result.aiReview.jobs?.find(item => item.jobId === job.jobId);
+    return result.aiReview.version !== 'content-review-v11-evidence-policy' || !review || Boolean(comparisonSummary(review))
+      || ['INSUFFICIENT_INFORMATION', 'REVIEW_REQUIRED', 'NOT_RECOMMENDED'].includes(review.decision);
+  };
+  const recommendedJobs = [...(result?.recommendations || [])].filter(job => !needsAnalysisCheck(job)).sort((a, b) => {
     const order = job => relevanceOrder[result?.aiReview?.jobs?.find(item => item.jobId === job.jobId)?.relevance] ?? 2;
     return order(a) - order(b);
   });
+  const checkJobs = (result?.recommendations || []).filter(needsAnalysisCheck);
   const currentExplanation = explanation?.analysisId === result?.id ? explanation : null;
 
   const perform = async (operation) => {
@@ -249,12 +257,18 @@ export default function ResumeAnalysisPage() {
               ? '피드백에 따라 모든 추천 공고를 제외했습니다. 제외한 공고에서 다시 노출할 수 있습니다.'
               : '경험과 기술 스택을 보완해 다시 분석하거나, 전체 공고에서 지원할 기회를 찾아보세요.'}</p>}
             {!result.recommendations.length && <Link className="evidence-browse" to="/jobs">전체 공개 공고 둘러보기 →</Link>}
-            <div className="analysis-jobs">{recommendedJobs.map((job, jobIndex) => <article key={job.jobId} className="analysis-job">
-              <span className="analysis-score">{jobIndex + 1}번째 추천 · {result.aiReview?.status === 'COMPLETED' ? 'AI 관련성 검토 순서' : '근거 확인'}</span>
+            {[{ title: '추천 공고', jobs: recommendedJobs }, { title: '분석 확인 필요', jobs: checkJobs }].map(group => group.jobs.length > 0 && <section key={group.title} aria-label={group.title}>
+            <h4>{group.title}</h4><div className="analysis-jobs">{group.jobs.map((job, jobIndex) => <article key={job.jobId} className="analysis-job">
+              <span className="analysis-score">{group.title === '분석 확인 필요' ? '분석 확인 필요' : `${jobIndex + 1}번째 추천 · ${result.aiReview?.status === 'COMPLETED' ? 'AI 관련성 검토 순서' : '근거 확인'}`}</span>
               <h4><Link to={`/job/${job.jobId}`}>{job.title}</Link></h4>
               <p>{job.companyName} · 근무 지역: {job.location?.trim() || '공고 원문에서 확인'} · {job.experience || '경력 조건 확인'}</p>
               {job.endDate && <p className="analysis-note">마감일 · {formatDate(job.endDate)}</p>}
-              <AiJobReview review={result.aiReview?.jobs?.find(item => item.jobId === job.jobId)} />
+              {result.aiReview?.status === 'COMPLETED' && result.aiReview.version !== 'content-review-v11-evidence-policy' && <p>이전 기준의 판정입니다. 새 기준으로 재검토하기 전에는 적합성을 확정할 수 없습니다.</p>}
+              <AiJobReview review={(() => {
+                const review = result.aiReview?.jobs?.find(item => item.jobId === job.jobId);
+                return review && result.aiReview.version !== 'content-review-v11-evidence-policy'
+                  ? { ...review, decision: review.decision === 'INSUFFICIENT_INFORMATION' ? review.decision : 'REVIEW_REQUIRED', decisionReason: '새 기준으로 재검토가 필요합니다.', relevance: 'REVIEW_NEEDED', lead_with: '', gap: '' } : review;
+              })()} />
               <details><summary>기술 매칭 살펴보기</summary><JobEvidence job={job} review={result.review} /></details>
               {currentExplanation?.jobs?.find((item) => item.jobId === job.jobId)?.highlights?.length > 0 &&
                 <div><strong><span className="evidence-badge evidence-badge-ai">AI 판단</span> AI가 선택한 추천 근거</strong><ul>{currentExplanation.jobs.find((item) => item.jobId === job.jobId).highlights.map((text) =>
@@ -262,7 +276,7 @@ export default function ResumeAnalysisPage() {
               <label>추천 피드백<select value={job.feedback || ''} disabled={busy}
                 onChange={(e) => updateRecommendationFeedback(job, e.target.value)}><option value="">선택해 주세요</option>{Object.entries(feedbackOptions).map(([value, label]) =>
                 <option key={value} value={value}>{label}</option>)}</select></label>
-            </article>)}</div>
+            </article>)}</div></section>)}
             {!!result.excludedRecommendations?.length && <details className="analysis-panel">
               <summary>제외한 공고 {result.excludedRecommendations.length}개</summary>
               <ul>{result.excludedRecommendations.map(job => <li key={job.jobId}>

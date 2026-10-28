@@ -14,7 +14,7 @@ class ResumeCoachingRulesTest {
         var criterion = job.putArray("criteria").addObject().put("jobQuoteId", "J0-P1").put("sourceId", "S1")
                 .put("resumeQuoteId", "S1-P1").put("assessment", "SUPPORTED").put("explanation", "API 개발 경험이 있습니다.");
         var jobs = List.of(new ResumeContentReviewRules.Job(0, 1, "API 개발"));
-        assertThat(ResumeContentReviewRules.validate(out, sources, jobs, mapper).path("jobs").get(0).path("decision").asText()).isEqualTo("RECOMMENDED");
+        assertThat(ResumeContentReviewRules.validate(out, sources, jobs, mapper).path("jobs").get(0).path("decision").asText()).isEqualTo("STRETCH");
         criterion.put("assessment", "CHECK");
         assertThat(ResumeContentReviewRules.validate(out, sources, jobs, mapper).path("jobs").get(0).path("decision").asText()).isEqualTo("INSUFFICIENT_INFORMATION");
         job.put("decision", "NOT_RECOMMENDED"); criterion.put("sourceId", "").put("resumeQuoteId", "");
@@ -38,8 +38,8 @@ class ResumeCoachingRulesTest {
            "gaps":[],"rewrites":[{"sourceId":"S1","quoteId":"S1-P1","evidence":[{"sourceId":"S1","quoteId":"S1-P2"}],
            "suggestion":"6인 팀에서 API를 개발하고 실패율을 65%에서 0%로 낮췄습니다.","reason":"역할과 결과를 함께 보여주세요.",
            "confirm":[{"question":"API를 단독으로 담당했나요?","options":[
-           {"label":"단독 담당","suggestion":"6인 팀에서 API를 단독 개발했습니다."},
-           {"label":"공동 담당","suggestion":"6인 팀에서 API를 공동 개발했습니다."}]}]}],"job_fit":[]}
+           {"label":"단독 담당","suggestion":"6인 팀에서 API를 단독 개발하고 실패율을 65%에서 0%로 낮췄습니다."},
+           {"label":"공동 담당","suggestion":"6인 팀에서 API를 공동 개발하고 실패율을 65%에서 0%로 낮췄습니다."}]}]}],"job_fit":[]}
           """);
     }
     @Test void restoresEvidenceAndChangesOnlyConfirmedDraftWithUndo() throws Exception {
@@ -66,6 +66,36 @@ class ResumeCoachingRulesTest {
         ((ObjectNode)out.path("strengths").get(0).path("evidence").get(0)).put("sourceId","FORGED");
         var result=ResumeContentReviewRules.validate(out,sources,List.of(),mapper);
         assertThat(result.path("findings").size()).isZero(); assertThat(result.path("strengths").size()).isZero();
+    }
+    @Test void rejectsDroppedMetricsAndPunctuationOnlyChanges() throws Exception {
+        var dropped = output();
+        ((ObjectNode)dropped.path("rewrites").get(0)).put("suggestion", "6인 팀에서 API를 개발하고 실패율을 0%로 낮췄습니다.");
+        assertThat(ResumeContentReviewRules.validate(dropped,sources,List.of(),mapper).path("findings")).isEmpty();
+        var punctuation = output();
+        ((ObjectNode)punctuation.path("rewrites").get(0)).put("suggestion", "6인 팀에서 API를 개발했습니다,");
+        ((ObjectNode)punctuation.path("rewrites").get(0)).putArray("evidence").addObject().put("sourceId", "S1").put("quoteId", "S1-P1");
+        assertThat(ResumeContentReviewRules.validate(punctuation,sources,List.of(),mapper).path("findings")).isEmpty();
+        String original = "Kubernetes와 Java를 사용해 배포를 자동화했습니다.";
+        var techSource = List.of(new ResumeContentReviewRules.Source("S1", original,
+                new ResumeEvidenceReview.Document("/projects/0/description", "이력서", null, "프로젝트", original)));
+        var missingTech = output();
+        ((ObjectNode)missingTech.path("rewrites").get(0)).put("suggestion", "Java로 배포를 자동화했습니다.")
+                .putArray("evidence").addObject().put("sourceId", "S1").put("quoteId", "S1-P1");
+        assertThat(ResumeContentReviewRules.validate(missingTech,techSource,List.of(),mapper).path("findings")).isEmpty();
+    }
+    @Test void dateAloneDoesNotProveTenureAndFinalRecommendationDoesNotClaimFulfillment() throws Exception {
+        var out = output();
+        var job = out.withArray("job_fit").addObject().put("slot", 0).put("relevance", "RELATED")
+                .put("decision", "RECOMMENDED").put("decisionReason", "경력 1년을 충족합니다.").put("lead_with", "").put("gap", "");
+        job.putArray("criteria").addObject().put("jobQuoteId", "J0-P1").put("sourceId", "S1")
+                .put("resumeQuoteId", "S1-P1").put("assessment", "SUPPORTED").put("explanation", "1년 경력을 충족합니다.");
+        String dated = "2024년 개발을 시작했습니다.";
+        var datedSource = List.of(new ResumeContentReviewRules.Source("S1", dated,
+                new ResumeEvidenceReview.Document("/experience/0/description", "이력서", null, "경력", dated)));
+        var result = ResumeContentReviewRules.validate(out, datedSource, List.of(new ResumeContentReviewRules.Job(0, 1, "실무 경력 1년 이상")), mapper);
+        assertThat(result.path("jobs").get(0).path("decision").asText()).isEqualTo("INSUFFICIENT_INFORMATION");
+        assertThat(result.path("jobs").get(0).path("criteria").get(0).path("assessment").asText()).isEqualTo("CHECK");
+        assertThat(result.path("jobs").get(0).path("decisionReason").asText()).doesNotContain("충족합니다");
     }
     @Test void filtersNoiseAliasesAndNegativeContextsWithoutRemovingPositiveEvidence() {
         var vocabulary = List.of("테스트","환경","Prometheus/Grafana","Grafana","Kafka","RabbitMQ","Kotlin","MongoDB","AWS","Java");

@@ -6,6 +6,7 @@ export default function ResumeCoachingSummary({ result }) {
   const skills = result.detectedSkills || [];
   const gaps = ai?.gaps || [];
   const missingCareer = result.inputMode === 'SAVED_RESUME' && result.derivedPreferences?.careerYears == null;
+  const reviewChecks = ai?.jobs?.filter(job => job.decision === 'INSUFFICIENT_INFORMATION' || job.decision === 'REVIEW_REQUIRED' || ['MODEL_OMITTED', 'EMPTY_COMPARISON', 'VALIDATION_FAILED', 'INPUT_MISSING'].includes(job.comparisonDiagnostics?.status)).length || 0;
   const edit = `/resume?resumeId=${result.resumeId}`;
   return <>
     <section className="coaching-hero" aria-label="지원 방향 요약">
@@ -15,7 +16,8 @@ export default function ResumeCoachingSummary({ result }) {
       <div className="coaching-metrics">
         <div><strong>{observations?.withMeasurement ?? 0}<small> / {observations?.outcomeSentences ?? 0}</small></strong><span>측정값이 있는 성과 문장</span></div>
         <div><strong>{skills.length}</strong><span>자료에서 확인한 기술</span></div>
-        <div><strong>{gaps.length + Number(missingCareer)}</strong><span>지금 확인할 부분</span></div>
+        <div><strong>{gaps.length + Number(missingCareer)}</strong><span>이력서 내용 확인 항목</span></div>
+        {ai && <div><strong>{reviewChecks}</strong><span>공고 분석 확인 항목</span></div>}
       </div>
     </section>
     <section className="coaching-section" aria-label="가장 강한 어필 포인트">

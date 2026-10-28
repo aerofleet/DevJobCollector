@@ -26,8 +26,8 @@ export default function JobComparisonDiagnostics({ review }) {
   if (!diagnostic) return comparisonSummary(review) && <p className="analysis-note">새 검증 기준으로 확인하려면 AI 내용 분석에서 전송 미리보기를 확인한 후 재검토해 주세요. 자동으로 AI를 다시 호출하지 않습니다.</p>;
   const failures = Object.entries(diagnostic.issues || {}).filter(([, count]) => count > 0);
   return <div className="comparison-diagnostics">
-    <p>AI 비교 항목 {diagnostic.submittedCriteria}개 중 {diagnostic.acceptedCriteria}개가 인용 검증을 통과했습니다.</p>
-    <p className="analysis-note">전송된 인용 구간: 이력서 {diagnostic.resumePassageCount}개 · 공고 {diagnostic.jobPassageCount}개</p>
+    <p>비교 항목 {diagnostic.submittedCriteria}개 중 {diagnostic.acceptedCriteria}개의 인용문을 확인했습니다. 이는 요건 충족을 뜻하지 않습니다.</p>
+    <details><summary>인용 검증 상세</summary><p className="analysis-note">전송된 인용 구간: 이력서 {diagnostic.resumePassageCount}개 · 공고 {diagnostic.jobPassageCount}개</p></details>
     {failures.length > 0 && <ul>{failures.map(([code, count]) => <li key={code}>{issues[code] || '비교 결과 검증 실패'} ({count}건)</li>)}</ul>}
     {diagnostic.uncitedResumeCriteria > 0 && <p>비교 항목 {diagnostic.uncitedResumeCriteria}개에는 이력서 인용이 없습니다. 해당 경험이 없다는 뜻은 아니며, 아래 공고 요건과 연결할 등록 자료를 확인해 주세요.</p>}
   </div>;

@@ -220,11 +220,11 @@ test('추천 모달은 요건별 상태와 인용을 묶고 본문만 스크롤�
   await trigger.click();
   const dialog = page.getByRole('dialog', { name: '추천 근거' });
   await expect(dialog).toContainText('DevOps Engineer');
-  await expect(dialog.getByLabel('비교 항목 요약')).toContainText('경험 충족 2');
+  await expect(dialog.getByLabel('비교 항목 요약')).toContainText('관련 경험 2');
   await expect(dialog.getByLabel('비교 항목 요약')).toContainText('추가 확인 1');
   const cards = dialog.getByRole('listitem').filter({ has: page.getByRole('heading', { name: '공고 요건', exact: true }) });
   await expect(cards).toHaveCount(3);
-  await expect(cards.first()).toContainText('경험 충족');
+  await expect(cards.first()).toContainText('관련 경험');
   await expect(cards.first()).toContainText(criteria[0].resumeQuote);
   await expect(cards.first()).toContainText('포트폴리오.pdf · 2쪽');
   await expect(cards.last()).toContainText('추가 검토 필요');
@@ -245,7 +245,7 @@ test('추천 모달은 요건별 상태와 인용을 묶고 본문만 스크롤�
   await page.screenshot({ path: `.codex/recommendation-modal-${test.info().project.name}.png` });
   const headerTop = await dialog.locator('.rr-header').evaluate(node => node.getBoundingClientRect().top);
   await cards.last().scrollIntoViewIfNeeded();
-  await expect(cards.last().getByText(criteria[2].explanation)).toBeVisible();
+  await expect(cards.last().getByText('제공된 자료의 인용만으로 이 요건을 확인하기 어렵습니다.', { exact: false })).toBeVisible();
   expect(await dialog.locator('.rr-header').evaluate(node => node.getBoundingClientRect().top)).toBe(headerTop);
   await expect(dialog.getByRole('button', { name: '추천 근거 닫기' })).toBeVisible();
   expect(await dialog.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
@@ -271,7 +271,7 @@ test('구형 비교 항목과 누락된 근거는 충족으로 과장하지 않�
   await page.goto('/');
   await page.getByRole('button', { name: '추천 근거 보기' }).click();
   const dialog = page.getByRole('dialog', { name: '추천 근거' });
-  await expect(dialog.getByLabel('비교 항목 요약')).toContainText('경험 충족 1');
+  await expect(dialog.getByLabel('비교 항목 요약')).toContainText('관련 경험 1');
   await expect(dialog.getByLabel('비교 항목 요약')).toContainText('추가 확인 1');
   await expect(dialog.getByText('Java API를 개발했습니다.', { exact: true })).toBeVisible();
   await expect(dialog.getByText('이 요건과 비교할 이력서 근거를 확인하지 못했어요.')).toBeVisible();

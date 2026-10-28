@@ -66,8 +66,8 @@ export default function ResumeContentReview({ result, disabled, onResult }) {
     {['PENDING', 'INTERRUPTED', 'FAILED'].includes(state) && <p role="status">{state === 'PENDING' ? 'AI가 분석 중입니다.' : 'AI 내용 분석을 완료하지 못했습니다. 로컬 점검과 공고 후보는 계속 확인할 수 있습니다.'} 저장된 결과를 확인하거나 새 분석에서 이어가세요.</p>}
     <button className="content-review-refresh" type="button" disabled={busy || disabled} onClick={() => run(async () => sync(await getContentReview(result.id)))}>AI 처리 상태 확인</button>
     {state === 'COMPLETED' && <div>
-      {!review.findings?.length && <p>경험의 역할·과정·결과를 조금 더 적고 다시 분석해보세요. 구체적인 자료가 있으면 완성 문장으로 제안해드려요.</p>}
-      {review.findings?.map(finding => <article className="evidence-finding" key={finding.id}>
+      {review.version !== 'content-review-v11-evidence-policy' ? <p>이전 기준으로 작성된 수정 제안은 표시하지 않습니다. 전송 내용을 확인하고 동의하면 새 기준으로 재검토할 수 있습니다.</p> : !review.findings?.length && <p>현재 표현을 유지해도 좋아요. 추가로 확인된 실질적인 수정 제안이 없습니다.</p>}
+      {review.version === 'content-review-v11-evidence-policy' && review.findings?.map(finding => <article className="evidence-finding" key={finding.id}>
         <span className="evidence-badge evidence-badge-ai">AI 수정 제안</span>
         <p className="analysis-note">{location(finding)}</p>
         <blockquote><span>원문</span><p><mark>{finding.quote}</mark></p></blockquote>
@@ -115,9 +115,9 @@ export function AiJobReview({ review }) {
       {' '}<a href="#ai-content-review">AI 내용 분석으로 이동</a>
     </div> : <details><summary>공고와 경험의 근거 보기</summary>
     {criteria.map((criterion, index) => <div key={index}>
-      <p><strong>공고 근거</strong> “{criterion.jobQuote}”</p>
+      <p><strong>공고 근거 · {({ REQUIRED: '필수', PREFERRED: '우대' })[criterion.requirementType] || '구분 확인 필요'}</strong> “{criterion.jobQuote}”</p>
       {criterion.resumeQuote ? <p><strong>이력서 근거</strong> “{criterion.resumeQuote}”<small>{location(criterion)}</small></p> : <p>이 요건과 비교할 이력서 근거를 확인하지 못했습니다.</p>}
-      <p>{criterion.explanation}</p><span>{criterion.assessment === 'SUPPORTED' ? '연결되는 경험' : '지원 전 확인할 항목'}</span>
+      <p>{criterion.assessment === 'SUPPORTED' ? '인용된 경험이 요건과 연결될 수 있습니다. 요건 충족 여부는 직접 확인해 주세요.' : '제공된 자료의 인용만으로 이 요건을 확인하기 어렵습니다. 경험이 없다는 뜻은 아닙니다.'}</p><span>{criterion.assessment === 'SUPPORTED' ? '관련 경험' : '지원 전 확인할 항목'}</span>
     </div>)}</details>}
   </div>;
 }
