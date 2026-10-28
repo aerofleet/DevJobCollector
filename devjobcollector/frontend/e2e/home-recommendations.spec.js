@@ -128,7 +128,7 @@ test('로그인 후 분석 없이 이름과 저장 이력서 추천이 테마보
   await expect(page.getByRole('heading', { name: '테스트님을 위한 맞춤 AI 추천!' })).toBeVisible();
   const section = page.getByRole('region', { name: '내 이력서로 찾는 추천 포지션' });
   await expect(section.locator('.job-card').first()).toBeVisible();
-  await expect(section.locator('.personal-job-grid article')).toHaveCount(8);
+  await expect(section.locator('.personal-job-grid article')).toHaveCount(5);
   await expect(section.getByRole('link', { name: '이 이력서로 AI 코칭 받기' })).toHaveAttribute('href', '/resume-analysis?resumeId=11');
   await expect(section.getByText('AI 검토', { exact: true })).toHaveCount(0);
   await expect(section.getByRole('button', { name: /추천 제외/ })).toHaveCount(0);
@@ -171,7 +171,7 @@ test('AI 적합성 판정과 보류 근거를 구분해 표시한다', async ({ 
   await page.getByRole('dialog').getByRole('button', { name: '추천 근거 닫기' }).click();
   await section.getByText('AI 검토로 보류한 공고 1개').click();
   await expect(section.getByText('부적합: 공고의 운영 책임과 이력서 경력 간 차이가 큽니다.')).toBeVisible();
-  await expect(section.getByText('AI 추천 후보 1개가 있어요. AI 코칭에서 검토하면 지원 적합성을 추가로 확인할 수 있어요.', { exact: false })).toBeVisible();
+  await expect(section.getByText('AI가 분석한 이력서·포트폴리오 자료와 공고 요건', { exact: false })).toBeVisible();
 });
 
 test('시니어 공고의 최초 경력 검토 대기를 설명한다', async ({ page }) => {
@@ -184,7 +184,22 @@ test('시니어 공고의 최초 경력 검토 대기를 설명한다', async ({
   const section = page.getByRole('region', { name: '내 이력서로 찾는 추천 포지션' });
   await expect(section.locator('.personal-job-grid article')).toHaveCount(0);
   await expect(section.getByText('Senior·시니어·Vice President·Director·Manager 등 경력과 책임 범위 검토가 필요한 공고이거나', { exact: false })).toBeVisible();
-  await expect(section.getByText('AI 추천 후보 1개가 있어요.', { exact: false })).toBeVisible();
+  await expect(section.getByText('AI 코칭을 실행하면', { exact: false })).toBeVisible();
+});
+
+test('연관 공고는 검토 전 상태를 구분하고 더 보기로 표시한다', async ({ page }) => {
+  await mock(page);
+  await page.route('**/home-recommendations', route => route.fulfill({ json: {
+    ...result(8), relatedRecommendations: Array.from({ length: 13 }, (_, index) => ({ ...job, jobId: 30 + index, aiReviewPending: true })),
+    recommendationStatus: { reason: 'AVAILABLE', aiFiltered: true, aiPendingCount: 13 },
+  } }));
+  await page.goto('/');
+  const related = page.getByRole('region', { name: '함께 살펴볼 연관 공고 13개' });
+  await expect(related.locator('.job-card')).toHaveCount(12);
+  await expect(related.getByText('AI 적합성 검토 전 · 공고 요건 확인 필요')).toHaveCount(12);
+  await related.getByRole('button', { name: '연관 공고 더 보기' }).click();
+  await expect(related.locator('.job-card')).toHaveCount(13);
+  await expect(related.locator('.job-card').last()).toHaveAttribute('href', '/job/42');
 });
 
 test('추천 모달은 요건별 상태와 인용을 묶고 본문만 스크롤하며 포커스를 유지한다', async ({ page }) => {

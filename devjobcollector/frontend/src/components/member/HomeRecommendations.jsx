@@ -35,11 +35,12 @@ function SavedRecommendations() {
   const [pending, setPending] = useState(null);
   const [notice, setNotice] = useState('');
   const [reason, setReason] = useState(null);
+  const [relatedLimit, setRelatedLimit] = useState(12);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      setLoading(true); setError(''); setResult(null); setNotice('');
+      setLoading(true); setError(''); setResult(null); setNotice(''); setRelatedLimit(12);
       try {
         const [items, data] = await Promise.all([listAnalyses(), selected ? getCurrentRecommendations(selected) : getHomeRecommendations()]);
         const available = items.filter(item => item.status === 'COMPLETED_LOCAL');
@@ -69,7 +70,8 @@ function SavedRecommendations() {
   const order = { RELATED: 0, REVIEW_NEEDED: 1, LOW_RELEVANCE: 3 };
   const jobs = [...(result?.recommendations || [])].sort((a, b) =>
     (order[reviews.find(item => item.jobId === a.jobId)?.relevance] ?? 2)
-    - (order[reviews.find(item => item.jobId === b.jobId)?.relevance] ?? 2)).slice(0, 8);
+    - (order[reviews.find(item => item.jobId === b.jobId)?.relevance] ?? 2)).slice(0, 5);
+  const relatedJobs = result?.relatedRecommendations || [];
   const analysisLink = result?.id ? `/resume-analysis?analysisId=${result.id}` : result?.resumeId ? `/resume-analysis?resumeId=${result.resumeId}` : '/resume-analysis';
   const emptyMessage = ({
     NO_AI_APPROVED_MATCHES: 'AI가 검토한 공고 중 현재 추천할 공고가 없어요. 아래에서 부적합·정보 부족의 근거를 확인할 수 있어요.',
@@ -90,13 +92,13 @@ function SavedRecommendations() {
       : !result || result.recommendationStatus?.reason === 'NO_RESUME' ? <div className="recommendation-empty"><h3>첫 추천을 받아보세요.</h3><p>이력서에 희망 직무와 기술을 저장하면 맞춤 공고가 바로 표시돼요.</p>
         <Link to="/resume">이력서 작성하고 추천받기 →</Link></div>
         : <>
-          <p className="recommendation-caption">내 이력서를 바탕으로 찾은 공고예요.
+          <p className="recommendation-caption">저장한 자체 작성 이력서와 분석에 포함된 제출 이력서·포트폴리오를 바탕으로 공고를 찾았어요.
             {result.recommendationStatus?.roleSource === 'RESUME_TITLE' && <> 기준 직무: {result.recommendationStatus.categories.join(', ')}.</>}
             {' '}<Link to={`/resume?resumeId=${result.resumeId}`}>이력서 확인</Link></p>
-          <p className="recommendation-caption">{result.recommendationStatus?.aiFiltered && 'AI가 경력과 공고 요건을 검토한 추천이에요. '}
-            {result.recommendationStatus?.aiPendingCount > 0
-              ? <>AI 추천 후보 {result.recommendationStatus.aiPendingCount}개가 있어요. AI 코칭에서 검토하면 지원 적합성을 추가로 확인할 수 있어요.</>
-              : !result.recommendationStatus?.aiFiltered && 'AI 코칭에서 공고를 검토하고 지원 적합성을 확인해 보세요.'}</p>
+          <p className="recommendation-caption">{result.recommendationStatus?.aiFiltered
+            ? '핵심 추천은 AI가 분석한 이력서·포트폴리오 자료와 공고 요건을 비교한 결과예요.'
+            : '핵심 추천은 이력서의 직무·기술 조건을 바탕으로 찾았어요. AI 코칭을 실행하면 분석한 자료와 공고 요건을 비교할 수 있어요.'}</p>
+          {jobs.length > 0 && <h3>핵심 추천 공고</h3>}
           {jobs.length ? <div className="personal-job-grid">{jobs.map(job => {
             const review = job.aiFit || reviews.find(item => item.jobId === job.jobId);
             return <article key={job.jobId} className="recommended-job">
@@ -105,6 +107,15 @@ function SavedRecommendations() {
               {result.id && <footer><button disabled={pending !== null} onClick={() => feedback(job, 'NOT_INTERESTED')} aria-label={`${job.title} 추천 제외`}>{pending === job.jobId ? '처리 중…' : '관심 없음'}</button></footer>}
             </article>;
           })}</div> : <div className="recommendation-empty"><h3>현재 표시할 추천 공고가 없어요.</h3><p>{emptyMessage}</p><Link to="/jobs">전체 채용공고 보기 →</Link></div>}
+          {relatedJobs.length > 0 && <section className="related-recommendations" aria-labelledby="related-recommendations-title">
+            <h3 id="related-recommendations-title">함께 살펴볼 연관 공고 {relatedJobs.length}개</h3>
+            <p className="recommendation-caption">이력서의 희망 직무와 기술 등 조건에 따라 정렬했어요. AI 적합성 검토가 필요한 공고는 지원 전 요건을 직접 확인해 주세요.</p>
+            <div className="related-job-grid">{relatedJobs.slice(0, relatedLimit).map(job => <article key={job.jobId}>
+              <JobCard job={{ ...job, id: job.jobId }} />
+              {job.aiReviewPending && <p className="related-review-note">AI 적합성 검토 전 · 공고 요건 확인 필요</p>}
+            </article>)}</div>
+            {relatedLimit < relatedJobs.length && <button type="button" onClick={() => setRelatedLimit(value => value + 12)}>연관 공고 더 보기</button>}
+          </section>}
           {result.id && result.excludedRecommendations?.length > 0 && <details className="recommendation-excluded"><summary>제외한 공고 {result.excludedRecommendations.length}개</summary>
             <ul>{result.excludedRecommendations.map(job => <li key={job.jobId}><Link to={`/job/${job.jobId}`}>{job.title}</Link>
               <button disabled={pending !== null} onClick={() => feedback(job, 'MATCHED')} aria-label={`${job.title} 제외 해제`}>제외 해제</button></li>)}</ul>

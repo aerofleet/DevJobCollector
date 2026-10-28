@@ -245,6 +245,7 @@ public class ResumeAnalysisService {
         var originalIds = new HashSet<Long>();
         result.path("recommendations").forEach(j -> originalIds.add(j.path("jobId").asLong()));
         var visible = mapper.createArrayNode();
+        var related = mapper.createArrayNode();
         var excluded = mapper.createArrayNode();
         var aiExcluded = mapper.createArrayNode();
         var aiReview = result.path("aiReview");
@@ -293,6 +294,8 @@ public class ResumeAnalysisService {
             if (value != null && !"MATCHED".equals(value)) { excluded.add(item); continue; }
             if (!aiFiltered && AiJobFit.requiresSeniorityReview(job)) {
                 pendingAiCount++;
+                item.put("aiReviewPending", true);
+                related.add(item);
                 continue;
             }
             if (aiFiltered) {
@@ -300,13 +303,15 @@ public class ResumeAnalysisService {
                 for (var candidate : aiReview.path("jobs")) if (candidate.path("jobId").asLong() == recommendation.jobId()) review = candidate;
                 String decision = AiJobFit.decision(review, currentInputFingerprint, AiJobFit.jobFingerprint(job));
                 item.put("aiDecision", decision);
-                if ("REVIEW_REQUIRED".equals(decision)) { pendingAiCount++; continue; }
+                if ("REVIEW_REQUIRED".equals(decision)) { pendingAiCount++; item.put("aiReviewPending", true); related.add(item); continue; }
                 item.set("aiFit", review);
                 if (!AiJobFit.visible(decision)) { aiExcluded.add(item); continue; }
             }
-            if (visible.size() < 8) { item.put("rank", visible.size() + 1); visible.add(item); }
+            if (visible.size() < 5) { item.put("rank", visible.size() + 1); visible.add(item); }
+            else related.add(item);
         }
         result.set("recommendations", visible);
+        result.set("relatedRecommendations", related);
         result.set("excludedRecommendations", excluded);
         result.set("aiExcludedRecommendations", aiExcluded);
         // Only retain saved AI reviews for the same, still-visible original jobs.

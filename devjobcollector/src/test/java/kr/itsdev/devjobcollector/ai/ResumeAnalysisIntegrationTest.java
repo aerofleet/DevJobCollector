@@ -191,6 +191,9 @@ class ResumeAnalysisIntegrationTest {
             assertThat(first.path("recommendations").get(0).path("jobId").asLong()).isEqualTo(approved);
             assertThat(first.path("aiExcludedRecommendations")).hasSize(2);
             assertThat(first.path("recommendationStatus").path("aiPendingCount").asInt()).isEqualTo(1);
+            assertThat(first.path("relatedRecommendations")).hasSize(1);
+            assertThat(first.path("relatedRecommendations").get(0).path("jobId").asLong()).isEqualTo(pending);
+            assertThat(first.path("relatedRecommendations").get(0).path("aiReviewPending").asBoolean()).isTrue();
             service.feedback("owner", id, rejected, "MATCHED");
             assertThat(service.currentRecommendations("owner", id).path("recommendations")).hasSize(1);
             jdbc.update("UPDATE job_posts SET apply_qual='Updated senior responsibilities' WHERE id=?", approved);
@@ -527,7 +530,9 @@ class ResumeAnalysisIntegrationTest {
             }
             content.withObject("careerProfile").putArray("location");
             jdbc.update("UPDATE resumes SET content_json=? WHERE id=?", mapper.writeValueAsString(content), resume);
-            assertThat(service.homeRecommendations("owner").path("recommendations")).hasSize(8);
+            var unrestricted = service.homeRecommendations("owner");
+            assertThat(unrestricted.path("recommendations")).hasSize(5);
+            assertThat(unrestricted.path("relatedRecommendations").size()).isGreaterThan(0);
         } finally { for (long id : ids) jdbc.update("DELETE FROM job_posts WHERE id=?", id); }
     }
 

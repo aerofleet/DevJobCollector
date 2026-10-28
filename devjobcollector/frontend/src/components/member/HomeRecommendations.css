@@ -57,3 +57,11 @@
 .personal-job-grid .job-card { flex: 1; height: auto; color: inherit; text-decoration: none; }
 .personal-job-reason button { color: #6036b5; font-weight: 650; }
 .personal-job-grid footer { padding-top: 8px; }
+.related-recommendations { margin: 32px 0; }
+.related-job-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 20px 0; }
+.related-job-grid article { min-width: 0; }
+.related-job-grid .job-card { height: auto; min-height: 100%; box-sizing: border-box; }
+.related-job-grid article:has(.related-review-note) .job-card { min-height: 0; }
+.related-review-note { margin: 8px 0; font-size: 12px; }
+@media (max-width: 1000px) { .related-job-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .related-job-grid { grid-template-columns: minmax(0, 1fr); } }
