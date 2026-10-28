@@ -252,7 +252,7 @@ test('추천 모달은 요건별 상태와 인용을 묶고 본문만 스크롤�
   await page.mouse.click(2, 2);
   await expect(dialog).toHaveCount(0);
   await expect(trigger).toBeFocused();
-  expect(await page.evaluate(() => document.body.style.overflow)).toBe('scroll');
+  await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('scroll');
   await trigger.click();
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
