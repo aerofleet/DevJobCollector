@@ -70,12 +70,12 @@ test('추천 근거·이력서 전환·제외 저장·모바일 배치', async (
   await section.getByText('추천 기준 변경', { exact: true }).click();
   await section.getByLabel('추천 기준 이력서').selectOption('7');
   await section.getByText('추천 근거 보기', { exact: true }).click();
-  await expect(section.getByText('기술·경력 기반', { exact: true })).toBeVisible();
-  await expect(section.getByText('AI 검토', { exact: true })).toHaveCount(0);
+  await expect(dialog.getByText('기술·경력 기반', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('AI 검토', { exact: true })).toHaveCount(0);
   await dialog.getByRole('button', { name: '추천 근거 닫기' }).click();
   await section.getByLabel('추천 기준 이력서').selectOption('8');
   await section.getByText('추천 근거 보기', { exact: true }).click();
-  await expect(section.getByText('API 운영 경험을 앞세우세요.')).toBeVisible();
+  await expect(dialog.getByText('API 운영 경험을 앞세우세요.')).toBeVisible();
   await dialog.getByRole('button', { name: '추천 근거 닫기' }).click();
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: `.codex/recommendations-${test.info().project.name}.png`, fullPage: true });
@@ -96,8 +96,10 @@ test('보충 공고는 AI 검토로 표시하지 않고 공고로 직접 연결�
   const section = page.getByRole('region', { name: '내 이력서로 찾는 추천 포지션' });
   await expect(section.locator('.job-card')).toHaveAttribute('href', '/job/17');
   await section.getByText('추천 근거 보기', { exact: true }).click();
-  await expect(section.getByText('일치 조건: Java, Spring Boot')).toBeVisible();
-  await expect(section.getByText('AI 검토', { exact: true })).toHaveCount(0);
+  const dialog = page.getByRole('dialog', { name: '추천 근거' });
+  await expect(dialog.getByRole('region', { name: '추천 조건' })).toContainText('Java');
+  await expect(dialog.getByRole('region', { name: '추천 조건' })).toContainText('Spring Boot');
+  await expect(dialog.getByText('AI 검토', { exact: true })).toHaveCount(0);
   await page.getByRole('dialog').getByRole('button', { name: '추천 근거 닫기' }).click();
   await expect(section.getByRole('link', { name: '이력서 확인' })).toHaveAttribute('href', '/resume?resumeId=11');
 });
@@ -165,7 +167,7 @@ test('AI 적합성 판정과 보류 근거를 구분해 표시한다', async ({ 
   const section = page.getByRole('region', { name: '내 이력서로 찾는 추천 포지션' });
   await expect(section.locator('.personal-job-grid article')).toHaveCount(1);
   await section.getByText('추천 근거 보기', { exact: true }).click();
-  await expect(section.getByText('도전 지원', { exact: true })).toBeVisible();
+  await expect(page.getByRole('dialog').getByText('도전 지원', { exact: true })).toBeVisible();
   await page.getByRole('dialog').getByRole('button', { name: '추천 근거 닫기' }).click();
   await section.getByText('AI 검토로 보류한 공고 1개').click();
   await expect(section.getByText('부적합: 공고의 운영 책임과 이력서 경력 간 차이가 큽니다.')).toBeVisible();
@@ -183,4 +185,93 @@ test('시니어 공고의 최초 경력 검토 대기를 설명한다', async ({
   await expect(section.locator('.personal-job-grid article')).toHaveCount(0);
   await expect(section.getByText('Senior·시니어·Vice President·Director·Manager 등 경력과 책임 범위 검토가 필요한 공고이거나', { exact: false })).toBeVisible();
   await expect(section.getByText('AI 추천 후보 1개가 있어요.', { exact: false })).toBeVisible();
+});
+
+test('추천 모달은 요건별 상태와 인용을 묶고 본문만 스크롤하며 포커스를 유지한다', async ({ page }) => {
+  const state = await mock(page);
+  const criteria = [
+    { assessment: 'SUPPORTED', jobQuote: '배포 자동화 파이프라인을 운영하고 CI/CD 환경을 개선해요.', resumeQuote: 'OCI와 Cloudflare Tunnel 기반 인프라에 GitHub Actions CI/CD와 Nginx Blue-Green 배포 체계를 구축했습니다.', explanation: '배포 자동화 파이프라인을 구축하고 운영한 경험이 공고 요건과 연결됩니다.', label: '포트폴리오.pdf', page: 2 },
+    { assessment: 'SUPPORTED', jobQuote: '서비스 안정성을 위한 모니터링/로깅 시스템을 구축하고 운영해요.', resumeQuote: 'Prometheus·Grafana·Loki 기반의 통합 관측 체계를 구축 및 운영했습니다.', explanation: '모니터링과 로깅 체계를 직접 운영한 경험이 확인됩니다.' },
+    { assessment: 'CHECK', jobQuote: 'Kubernetes와 컨테이너 기반 네트워크 구조를 깊이 이해하고 트러블 슈팅해 본 경험', resumeQuote: '', explanation: '인용된 이력서에서 Kubernetes 핵심 운영 경험을 확인하지 못했습니다.' },
+  ];
+  await page.route('**/home-recommendations', route => route.fulfill({ json: {
+    ...result(8), recommendations: [{ ...job, title: 'DevOps Engineer', missingPoints: ['Kubernetes'], aiFit: {
+      decision: 'STRETCH', decisionReason: '배포 자동화와 모니터링 경험은 강력하나, Kubernetes 핵심 운영 경험은 보완이 권장됩니다.', criteria,
+    } }],
+  } }));
+  await page.goto('/');
+  await page.evaluate(() => { document.body.style.overflow = 'scroll'; });
+  const trigger = page.getByRole('button', { name: '추천 근거 보기' });
+  await trigger.click();
+  const dialog = page.getByRole('dialog', { name: '추천 근거' });
+  await expect(dialog).toContainText('DevOps Engineer');
+  await expect(dialog.getByLabel('비교 항목 요약')).toContainText('경험 충족 2');
+  await expect(dialog.getByLabel('비교 항목 요약')).toContainText('추가 확인 1');
+  const cards = dialog.getByRole('listitem').filter({ has: page.getByRole('heading', { name: '공고 요건', exact: true }) });
+  await expect(cards).toHaveCount(3);
+  await expect(cards.first()).toContainText('경험 충족');
+  await expect(cards.first()).toContainText(criteria[0].resumeQuote);
+  await expect(cards.first()).toContainText('포트폴리오.pdf · 2쪽');
+  await expect(cards.last()).toContainText('추가 검토 필요');
+  await expect(cards.last()).toContainText('이 요건과 비교할 이력서 근거를 확인하지 못했어요.');
+  await expect(dialog.getByRole('button', { name: '추천 근거 닫기' })).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(dialog.getByRole('link', { name: '공고 상세 보기' })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(dialog.getByRole('button', { name: '추천 근거 닫기' })).toBeFocused();
+  await expect(dialog.getByRole('link', { name: '공고 상세 보기' })).toHaveAttribute('href', '/job/17');
+  expect(await page.evaluate(() => document.body.style.overflow)).toBe('hidden');
+  const bounds = await dialog.boundingBox();
+  const viewport = page.viewportSize();
+  expect(bounds.x).toBeGreaterThanOrEqual(0);
+  expect(bounds.y).toBeGreaterThanOrEqual(0);
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.width);
+  expect(bounds.y + bounds.height).toBeLessThanOrEqual(viewport.height);
+  await page.screenshot({ path: `.codex/recommendation-modal-${test.info().project.name}.png` });
+  const headerTop = await dialog.locator('.rr-header').evaluate(node => node.getBoundingClientRect().top);
+  await cards.last().scrollIntoViewIfNeeded();
+  await expect(cards.last().getByText(criteria[2].explanation)).toBeVisible();
+  expect(await dialog.locator('.rr-header').evaluate(node => node.getBoundingClientRect().top)).toBe(headerTop);
+  await expect(dialog.getByRole('button', { name: '추천 근거 닫기' })).toBeVisible();
+  expect(await dialog.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
+  await page.mouse.click(2, 2);
+  await expect(dialog).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  expect(await page.evaluate(() => document.body.style.overflow)).toBe('scroll');
+  await trigger.click();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  expect(state.writes).toBe(0);
+});
+
+test('구형 비교 항목과 누락된 근거는 충족으로 과장하지 않는다', async ({ page }) => {
+  await mock(page);
+  await page.route('**/home-recommendations', route => route.fulfill({ json: {
+    ...result(8), aiReview: { status: 'COMPLETED', jobs: [{ jobId: 17, relevance: 'RELATED', criteria: [
+      { assessment: 'SUPPORTED', jobQuote: 'Java API 개발', resumeQuote: 'Java API를 개발했습니다.', explanation: 'API 개발 경험이 연결됩니다.' },
+      { assessment: 'SUPPORTED', jobQuote: '컨테이너 네트워크 운영', resumeQuote: '   ', explanation: '인용 근거를 확인해 주세요.' },
+    ] }] },
+  } }));
+  await page.goto('/');
+  await page.getByRole('button', { name: '추천 근거 보기' }).click();
+  const dialog = page.getByRole('dialog', { name: '추천 근거' });
+  await expect(dialog.getByLabel('비교 항목 요약')).toContainText('경험 충족 1');
+  await expect(dialog.getByLabel('비교 항목 요약')).toContainText('추가 확인 1');
+  await expect(dialog.getByText('Java API를 개발했습니다.', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('이 요건과 비교할 이력서 근거를 확인하지 못했어요.')).toBeVisible();
+});
+
+test('비교 실패는 경험 부족과 구분하고 재검토 상태로 표시한다', async ({ page }) => {
+  const state = await mock(page);
+  await page.route('**/home-recommendations', route => route.fulfill({ json: {
+    ...result(8), recommendations: [{ ...job, aiFit: { decision: 'INSUFFICIENT_INFORMATION', criteria: [], comparisonDiagnostics: { status: 'MODEL_OMITTED' } } }],
+  } }));
+  await page.goto('/');
+  await page.getByRole('button', { name: '추천 근거 보기' }).click();
+  const dialog = page.getByRole('dialog', { name: '추천 근거' });
+  await expect(dialog.getByText('AI 비교 누락', { exact: true }).first()).toBeVisible();
+  await expect(dialog.getByText('AI 검토 확인 필요', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('지원자의 경험이 부족하다는 판정은 아니에요.', { exact: false })).toBeVisible();
+  expect(state.writes).toBe(0);
 });
