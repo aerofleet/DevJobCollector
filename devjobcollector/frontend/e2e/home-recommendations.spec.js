@@ -57,7 +57,11 @@ test('추천 근거·이력서 전환·제외 저장·모바일 배치', async (
   await page.goto('/');
   const section = page.getByRole('region', { name: '내 이력서로 찾는 추천 포지션' });
   await section.getByText('추천 근거 보기', { exact: true }).click();
-  await expect(section.getByText('API 운영 경험을 앞세우세요.')).toBeVisible();
+  const dialog = page.getByRole('dialog', { name: '추천 근거' });
+  await expect(dialog.getByText('API 운영 경험을 앞세우세요.')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(section.getByRole('button', { name: '추천 근거 보기' })).toBeFocused();
   expect(state.writes).toBe(0);
   await expect(section.getByText('마감일: 2026.12.31')).toBeVisible();
   await expect(section.locator('.job-card')).toHaveAttribute('href', '/job/17');
@@ -68,9 +72,11 @@ test('추천 근거·이력서 전환·제외 저장·모바일 배치', async (
   await section.getByText('추천 근거 보기', { exact: true }).click();
   await expect(section.getByText('기술·경력 기반', { exact: true })).toBeVisible();
   await expect(section.getByText('AI 검토', { exact: true })).toHaveCount(0);
+  await dialog.getByRole('button', { name: '추천 근거 닫기' }).click();
   await section.getByLabel('추천 기준 이력서').selectOption('8');
   await section.getByText('추천 근거 보기', { exact: true }).click();
   await expect(section.getByText('API 운영 경험을 앞세우세요.')).toBeVisible();
+  await dialog.getByRole('button', { name: '추천 근거 닫기' }).click();
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: `.codex/recommendations-${test.info().project.name}.png`, fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -92,6 +98,7 @@ test('보충 공고는 AI 검토로 표시하지 않고 공고로 직접 연결�
   await section.getByText('추천 근거 보기', { exact: true }).click();
   await expect(section.getByText('일치 조건: Java, Spring Boot')).toBeVisible();
   await expect(section.getByText('AI 검토', { exact: true })).toHaveCount(0);
+  await page.getByRole('dialog').getByRole('button', { name: '추천 근거 닫기' }).click();
   await expect(section.getByRole('link', { name: '이력서 확인' })).toHaveAttribute('href', '/resume?resumeId=11');
 });
 
@@ -159,6 +166,7 @@ test('AI 적합성 판정과 보류 근거를 구분해 표시한다', async ({ 
   await expect(section.locator('.personal-job-grid article')).toHaveCount(1);
   await section.getByText('추천 근거 보기', { exact: true }).click();
   await expect(section.getByText('도전 지원', { exact: true })).toBeVisible();
+  await page.getByRole('dialog').getByRole('button', { name: '추천 근거 닫기' }).click();
   await section.getByText('AI 검토로 보류한 공고 1개').click();
   await expect(section.getByText('부적합: 공고의 운영 책임과 이력서 경력 간 차이가 큽니다.')).toBeVisible();
   await expect(section.getByText('AI 추천 후보 1개가 있어요. AI 코칭에서 검토하면 지원 적합성을 추가로 확인할 수 있어요.', { exact: false })).toBeVisible();

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { useMemberSession } from '../../contexts/memberSession';
@@ -33,6 +33,12 @@ function SavedRecommendations() {
   const [attempt, setAttempt] = useState(0);
   const [pending, setPending] = useState(null);
   const [notice, setNotice] = useState('');
+  const [reason, setReason] = useState(null);
+  const dialogRef = useRef(null);
+
+  useEffect(() => {
+    if (reason) dialogRef.current?.showModal();
+  }, [reason]);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,15 +105,7 @@ function SavedRecommendations() {
             const review = job.aiFit || reviews.find(item => item.jobId === job.jobId);
             return <article key={job.jobId} className="recommended-job">
               <JobCard job={{ ...job, id: job.jobId }} />
-              <details className="personal-job-reason"><summary>추천 근거 보기</summary>
-                {review?.decision && <><strong>{({ RECOMMENDED: 'AI 추천', STRETCH: '도전 지원', NOT_RECOMMENDED: '부적합', INSUFFICIENT_INFORMATION: '정보 부족' })[review.decision]}</strong><p>{review.decisionReason}</p></>}
-                <strong>{review ? 'AI 검토' : '기술·경력 기반'}</strong>
-                <p>{job.matchPoints?.length ? `일치 조건: ${job.matchPoints.join(', ')}` : '이력서의 희망 직무와 연결되는 공고예요.'}</p>
-                {job.missingPoints?.length > 0 && <p>추가 확인: {job.missingPoints.join(', ')}</p>}
-                {review && <><strong>{({ RELATED: '연결되는 경험 있음', REVIEW_NEEDED: '지원 전 추가 확인', LOW_RELEVANCE: '관련성 낮음' })[review.relevance] || '공고 요건 확인'}</strong>
-                  {review.lead_with && <p>{review.lead_with}</p>}{review.gap && <p>확인할 점: {review.gap}</p>}</>}
-                {review?.decision && review.criteria?.map((criterion, index) => <div key={index}><p>공고 근거: {criterion.jobQuote}</p><p>이력서 근거: {criterion.resumeQuote || '확인 가능한 내용 없음'}</p><p>{criterion.explanation}</p></div>)}
-              </details>
+              <div className="personal-job-reason"><button type="button" onClick={() => setReason({ job, review })}>추천 근거 보기</button></div>
               {result.id && <footer><button disabled={pending !== null} onClick={() => feedback(job, 'NOT_INTERESTED')} aria-label={`${job.title} 추천 제외`}>{pending === job.jobId ? '처리 중…' : '관심 없음'}</button></footer>}
             </article>;
           })}</div> : <div className="recommendation-empty"><h3>현재 표시할 추천 공고가 없어요.</h3><p>{emptyMessage}</p><Link to="/jobs">전체 채용공고 보기 →</Link></div>}
@@ -123,6 +121,19 @@ function SavedRecommendations() {
           </details>}
           <Link className="recommendation-all" to={analysisLink}>{result.id ? '저장된 분석과 AI 코칭 확인' : '이 이력서로 AI 코칭 받기'} <ArrowRight size={16} /></Link>
         </>}
+    {reason && <dialog ref={dialogRef} className="recommendation-reason-dialog" aria-labelledby="recommendation-reason-title" onClose={() => setReason(null)}>
+      <div className="recommendation-reason-header"><div><h2 id="recommendation-reason-title">추천 근거</h2><p>{reason.job.title}</p></div>
+        <button type="button" aria-label="추천 근거 닫기" onClick={() => dialogRef.current?.close()}>×</button></div>
+      <div className="recommendation-reason-content">
+        {reason.review?.decision && <><strong>{({ RECOMMENDED: 'AI 추천', STRETCH: '도전 지원', NOT_RECOMMENDED: '부적합', INSUFFICIENT_INFORMATION: '정보 부족' })[reason.review.decision]}</strong><p>{reason.review.decisionReason}</p></>}
+        <strong>{reason.review ? 'AI 검토' : '기술·경력 기반'}</strong>
+        <p>{reason.job.matchPoints?.length ? `일치 조건: ${reason.job.matchPoints.join(', ')}` : '이력서의 희망 직무와 연결되는 공고예요.'}</p>
+        {reason.job.missingPoints?.length > 0 && <p>추가 확인: {reason.job.missingPoints.join(', ')}</p>}
+        {reason.review && <><strong>{({ RELATED: '연결되는 경험 있음', REVIEW_NEEDED: '지원 전 추가 확인', LOW_RELEVANCE: '관련성 낮음' })[reason.review.relevance] || '공고 요건 확인'}</strong>
+          {reason.review.lead_with && <p>{reason.review.lead_with}</p>}{reason.review.gap && <p>확인할 점: {reason.review.gap}</p>}</>}
+        {reason.review?.decision && reason.review.criteria?.map((criterion, index) => <div key={index}><p>공고 근거: {criterion.jobQuote}</p><p>이력서 근거: {criterion.resumeQuote || '확인 가능한 내용 없음'}</p><p>{criterion.explanation}</p></div>)}
+      </div>
+    </dialog>}
     {notice && <p role="status">{notice}</p>}
   </>;
 }
