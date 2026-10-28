@@ -307,7 +307,7 @@ public class ResumeAnalysisService {
                 item.set("aiFit", review);
                 if (!AiJobFit.visible(decision)) { aiExcluded.add(item); continue; }
             }
-            if (visible.size() < 5) { item.put("rank", visible.size() + 1); visible.add(item); }
+            if (visible.size() < 8) { item.put("rank", visible.size() + 1); visible.add(item); }
             else related.add(item);
         }
         result.set("recommendations", visible);

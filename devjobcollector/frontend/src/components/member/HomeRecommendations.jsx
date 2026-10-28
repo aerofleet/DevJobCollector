@@ -70,7 +70,7 @@ function SavedRecommendations() {
   const order = { RELATED: 0, REVIEW_NEEDED: 1, LOW_RELEVANCE: 3 };
   const jobs = [...(result?.recommendations || [])].sort((a, b) =>
     (order[reviews.find(item => item.jobId === a.jobId)?.relevance] ?? 2)
-    - (order[reviews.find(item => item.jobId === b.jobId)?.relevance] ?? 2)).slice(0, 5);
+    - (order[reviews.find(item => item.jobId === b.jobId)?.relevance] ?? 2)).slice(0, 8);
   const relatedJobs = result?.relatedRecommendations || [];
   const analysisLink = result?.id ? `/resume-analysis?analysisId=${result.id}` : result?.resumeId ? `/resume-analysis?resumeId=${result.resumeId}` : '/resume-analysis';
   const emptyMessage = ({

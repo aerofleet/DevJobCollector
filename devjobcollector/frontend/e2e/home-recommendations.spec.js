@@ -128,7 +128,7 @@ test('로그인 후 분석 없이 이름과 저장 이력서 추천이 테마보
   await expect(page.getByRole('heading', { name: '테스트님을 위한 맞춤 AI 추천!' })).toBeVisible();
   const section = page.getByRole('region', { name: '내 이력서로 찾는 추천 포지션' });
   await expect(section.locator('.job-card').first()).toBeVisible();
-  await expect(section.locator('.personal-job-grid article')).toHaveCount(5);
+  await expect(section.locator('.personal-job-grid article')).toHaveCount(8);
   await expect(section.getByRole('link', { name: '이 이력서로 AI 코칭 받기' })).toHaveAttribute('href', '/resume-analysis?resumeId=11');
   await expect(section.getByText('AI 검토', { exact: true })).toHaveCount(0);
   await expect(section.getByRole('button', { name: /추천 제외/ })).toHaveCount(0);
