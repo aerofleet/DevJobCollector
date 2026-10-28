@@ -71,20 +71,20 @@ class ResumeAnalysisIntegrationTest {
             long id = create(UUID.randomUUID().toString(), prefs);
             String original = jdbc.queryForObject("SELECT result_json FROM ai_analysis_request WHERE id=?", String.class, id);
             var first = service.currentRecommendations("owner", id);
-            assertThat(first.path("recommendations")).hasSize(8);
-            assertThat(first.path("relatedRecommendations")).hasSize(2);
+            assertThat(first.path("recommendations")).hasSize(4);
+            assertThat(first.path("relatedRecommendations")).hasSize(6);
             long closed = first.path("recommendations").get(0).path("jobId").asLong();
             jdbc.update("UPDATE job_posts SET end_date=DATE_SUB(CURRENT_DATE,INTERVAL 1 DAY) WHERE id=?", closed);
             var refreshed = service.currentRecommendations("owner", id);
-            assertThat(refreshed.path("recommendations")).hasSize(8);
-            assertThat(refreshed.path("relatedRecommendations")).hasSize(1);
+            assertThat(refreshed.path("recommendations")).hasSize(4);
+            assertThat(refreshed.path("relatedRecommendations")).hasSize(5);
             assertThat(refreshed.path("recommendations").findValuesAsText("jobId")).doesNotContain(Long.toString(closed));
-            assertThat(refreshed.path("recommendations").findValuesAsText("supplemented")).contains("true");
+            assertThat(refreshed.path("relatedRecommendations").findValuesAsText("supplemented")).contains("true");
             long hidden = refreshed.path("recommendations").get(0).path("jobId").asLong();
             service.currentRecommendationFeedback("owner", id, hidden, "NOT_INTERESTED");
             var replaced = service.currentRecommendations("owner", id);
-            assertThat(replaced.path("recommendations")).hasSize(8);
-            assertThat(replaced.path("relatedRecommendations")).isEmpty();
+            assertThat(replaced.path("recommendations")).hasSize(4);
+            assertThat(replaced.path("relatedRecommendations")).hasSize(4);
             assertThat(replaced.path("relatedRecommendations").findValuesAsText("jobId")).doesNotContain(Long.toString(hidden));
             assertThat(replaced.path("excludedRecommendations")).hasSize(1);
             assertThat(replaced.path("recommendations").findValuesAsText("jobId")).doesNotContain(Long.toString(hidden));
@@ -535,7 +535,7 @@ class ResumeAnalysisIntegrationTest {
             content.withObject("careerProfile").putArray("location");
             jdbc.update("UPDATE resumes SET content_json=? WHERE id=?", mapper.writeValueAsString(content), resume);
             var unrestricted = service.homeRecommendations("owner");
-            assertThat(unrestricted.path("recommendations")).hasSize(8);
+            assertThat(unrestricted.path("recommendations")).hasSize(4);
             assertThat(unrestricted.path("relatedRecommendations").size()).isGreaterThan(0);
         } finally { for (long id : ids) jdbc.update("DELETE FROM job_posts WHERE id=?", id); }
     }
