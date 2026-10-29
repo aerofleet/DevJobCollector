@@ -18,6 +18,8 @@ class ExperienceClassificationTest {
     @Test void missingExperienceIsNotUnrestricted() {
         assertThat(ExperienceClassification.classify("경력무관", "개발자", "서비스 개발", false).category()).isEqualTo("UNKNOWN");
         assertThat(ExperienceClassification.classify("경력무관", "개발자", "경력 무관", false).category()).isEqualTo("ANY");
+        assertThat(ExperienceClassification.classify("경력무관", "개발자", "자격요건\n경력 3~5년", false).category()).isEqualTo("UNKNOWN");
+        assertThat(ExperienceClassification.classify("경력무관", "개발자", "팀 소개\n팀장의 경력 7년 이상", false).category()).isEqualTo("UNKNOWN");
     }
 
     @Test void structuredAndEnglishRequirementsAreRecognized() {

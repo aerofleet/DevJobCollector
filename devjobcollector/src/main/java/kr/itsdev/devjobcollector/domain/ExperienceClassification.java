@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
 public record ExperienceClassification(String category, String label) {
     private static final Pattern YEAR = Pattern.compile("(?i)(?:경력|실무)[^\\n.!?]{0,25}?(\\d{1,2})\\s*년(?!\\s*(?:이하|미만|차))|(?:\\d{1,2})\\s*년\\s*이상의?[^\\n.!?]{0,20}?(?:경력|실무|개발|업무)|(?:at least|minimum of|minimum)\\s+(\\d{1,2})\\s+years?[^\\n.!?]{0,30}experience|(?<!\\d)(\\d{1,2})\\+\\s+years?[^\\n.!?]{0,30}experience");
     private static final Pattern NUMBER = Pattern.compile("\\d{1,2}");
+    private static final Pattern YEAR_RANGE = Pattern.compile("\\d{1,2}\\s*(?:년\\s*)?[~～–-]\\s*\\d{1,2}\\s*년");
     private static final Pattern PREFERRED = Pattern.compile("(?i)우대\\s*(?:사항|요건|조건)|preferred\\s+(?:qualifications|requirements)|nice to have");
     private static final Pattern REQUIRED = Pattern.compile("(?i)자격\\s*요건|지원\\s*자격|필수\\s*(?:요건|사항|조건)|(?:minimum\\s+)?requirements|qualifications");
     private static final Pattern OTHER = Pattern.compile("(?i)주요\\s*업무|담당\\s*업무|복리\\s*후생|근무\\s*조건|전형\\s*절차|responsibilities|benefits|about the (?:role|team)");
@@ -18,13 +19,14 @@ public record ExperienceClassification(String category, String label) {
                 .replaceAll("<[^>]*>", " ");
         int minimum = 0;
         boolean minimumExplicit = false;
-        boolean preferred = false;
+        boolean inRequired = false;
         for (String line : text.split("\\R")) {
             String value = line.trim();
-            if (PREFERRED.matcher(value).find()) { preferred = true; continue; }
-            if (REQUIRED.matcher(value).find()) { preferred = false; }
-            if (OTHER.matcher(value).find()) { preferred = true; continue; }
-            if (preferred || value.contains("우대") || value.toLowerCase(Locale.ROOT).contains("preferred")) continue;
+            if (PREFERRED.matcher(value).find()) { inRequired = false; continue; }
+            if (REQUIRED.matcher(value).find()) { inRequired = true; }
+            if (OTHER.matcher(value).find()) { inRequired = false; continue; }
+            if (!inRequired || value.contains("우대") || value.toLowerCase(Locale.ROOT).contains("preferred")
+                    || YEAR_RANGE.matcher(value).find()) continue;
             Matcher match = YEAR.matcher(value);
             while (match.find()) {
                 Matcher number = NUMBER.matcher(match.group());
