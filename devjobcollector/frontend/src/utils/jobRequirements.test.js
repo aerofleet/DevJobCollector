@@ -28,6 +28,12 @@ test('extracts inline Kakao requirement sections without unrelated text', () => 
   assert.deepEqual(result, { required: ['백엔드 개발 경력 3년 이상인 분'], preferred: ['실무 경력 7년 이상인 분'] });
 });
 
+test('extracts technology names from Kakao qualifications without matching substrings', () => {
+  const text = '◆ 지원자격 - 백엔드 서버 개발 경력 만 3년 이상이신 분 - Java/Kotlin Spring 기반 웹/애플리케이션/REST API 개발 경험이 있으신 분 - RDBMS, NoSQL 스키마 설계 및 활용 경험이 있으신 분 - Docker와 Kubernetes에 대한 개념 ◆ 우대사항 - JavaScript 경험';
+  assert.deepEqual(extractMentionedTools(extractJobRequirements(text)), ['Java', 'Kotlin', 'JavaScript', 'Spring', 'RDBMS', 'NoSQL', 'Docker', 'Kubernetes']);
+  assert.deepEqual(extractMentionedTools(extractJobRequirements('자격 요건\nJavaScript 경험')), ['JavaScript']);
+});
+
 test('reads encoded HTML requirement sections and retains adjacent text', () => {
   const result = extractJobRequirements('&lt;p&gt;&lt;strong&gt;자격&lt;/strong&gt; &lt;strong&gt;요건&lt;/strong&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;strong&gt;3&lt;/strong&gt;&lt;strong&gt;년 이상&lt;/strong&gt;의 실무 경력&lt;/li&gt;&lt;/ul&gt;');
   assert.deepEqual(result.required, ['3년 이상의 실무 경력']);

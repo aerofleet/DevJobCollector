@@ -63,6 +63,8 @@ const DetailPage = () => {
   const requirements = extractJobRequirements(job.applyQual);
   const salary = extractJobSalary(job.applyQual);
   const mentionedTools = extractMentionedTools(requirements);
+  const registeredTools = new Set((job.techStacks || []).map((tech) => tech.stackName?.trim().toLowerCase()));
+  const additionalTools = mentionedTools.filter((name) => !registeredTools.has(name.toLowerCase()));
   let originalUrl = null;
   try {
     const parsed = new URL(job.originalUrl);
@@ -151,7 +153,8 @@ const DetailPage = () => {
               <TechStackBadge key={tech.id} tech={tech} />
             ))}
           </div>
-          {!job.techStacks?.length && (mentionedTools.length ? <><p className="job-content-empty">원문 자격·우대 항목에 언급된 기술 및 도구</p><div className="tech-stack">{mentionedTools.map((name) => <TechStackBadge key={name} tech={{ stackName: name }} />)}</div></> : <p className="job-content-empty">등록된 기술 스택이 없습니다. 원문을 확인해 주세요.</p>)}
+          {additionalTools.length > 0 && <><p className="job-content-empty">원문 자격·우대 항목에 언급된 기술 및 도구</p><div className="tech-stack">{additionalTools.map((name) => <TechStackBadge key={name} tech={{ stackName: name }} />)}</div></>}
+          {!job.techStacks?.length && !additionalTools.length && <p className="job-content-empty">등록된 기술 스택이 없습니다. 원문을 확인해 주세요.</p>}
         </section>
 
         <section className="detail-section">
