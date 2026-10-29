@@ -257,12 +257,10 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
         }
 
         return switch (experience) {
-            case "신입" -> jobPost.experience.containsIgnoreCase("신입");
-            case "경력" -> jobPost.experience.containsIgnoreCase("경력")
-                    .and(jobPost.experience.containsIgnoreCase("신입").not())
-                    .and(jobPost.experience.containsIgnoreCase("무관").not());
-            case "경력무관" -> jobPost.experience.containsIgnoreCase("무관");
-            default -> jobPost.experience.containsIgnoreCase(experience.trim());
+            case "신입" -> jobPost.experienceCategory.in("ENTRY", "BOTH");
+            case "경력" -> jobPost.experienceCategory.in("EXPERIENCED", "BOTH");
+            case "경력무관" -> jobPost.experienceCategory.eq("ANY");
+            default -> jobPost.experienceLabel.containsIgnoreCase(experience.trim());
         };
     }
 

@@ -56,6 +56,26 @@ class JobSearchRepositoryIntegrationTest {
     }
 
     @Test
+    void filtersByClassifiedExperienceRatherThanSyntheticUnrestrictedValue() {
+        repository.save(JobPost.builder().sourcePlatform(SourcePlatform.GREENHOUSE).originalSn("exp-required")
+                .companyName("경력 분류 평가").title("개발자").experience("경력무관")
+                .applyQual("자격요건\n실무 경력 7년 이상\n우대사항\n실무 경력 10년 이상")
+                .startDate(LocalDate.now()).endDate(LocalDate.now().plusDays(30))
+                .originalUrl("https://example.com/required").build());
+        repository.save(JobPost.builder().sourcePlatform(SourcePlatform.GREENHOUSE).originalSn("exp-unknown")
+                .companyName("경력 분류 평가").title("개발자").experience("경력무관")
+                .applyQual("우대사항\n실무 경력 5년 이상")
+                .startDate(LocalDate.now()).endDate(LocalDate.now().plusDays(30))
+                .originalUrl("https://example.com/unknown").build());
+        entityManager.flush();
+        entityManager.clear();
+        var page = PageRequest.of(0, 20);
+        assertThat(repository.searchByAllFieldsOptimized("경력 분류 평가", null, "경력", null, null, LocalDate.now(), page).getContent())
+                .extracting(JobPost::getOriginalSn).containsExactly("exp-required");
+        assertThat(repository.searchByAllFieldsOptimized("경력 분류 평가", null, "경력무관", null, null, LocalDate.now(), page).getContent()).isEmpty();
+    }
+
+    @Test
     void searchesDescriptionProcessAndEmploymentType() {
         saveJob("description", "서비스 개발자", "Kafka 스트림 처리", null, "정규직");
         saveJob("process", "플랫폼 개발자", null, "코딩테스트 후 기술면접", "계약직");

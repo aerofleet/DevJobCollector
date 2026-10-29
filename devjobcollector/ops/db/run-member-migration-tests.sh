@@ -47,6 +47,7 @@ SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=0 \
     --tests kr.itsdev.devjobcollector.migration.AdminSecurityV8MigrationTest \
     --tests kr.itsdev.devjobcollector.migration.AdminUserV9MigrationTest \
     --tests kr.itsdev.devjobcollector.migration.CompanyJobV12MigrationTest \
+    --tests kr.itsdev.devjobcollector.migration.ExperienceClassificationMigrationTest \
     --tests kr.itsdev.devjobcollector.migration.CareerHubV4AuditTest \
     --tests kr.itsdev.devjobcollector.career.CareerRepositoryIntegrationTest \
     --tests kr.itsdev.devjobcollector.career.CareerActivityConcurrencyIntegrationTest \

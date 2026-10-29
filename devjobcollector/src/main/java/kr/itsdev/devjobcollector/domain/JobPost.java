@@ -48,6 +48,12 @@ public class JobPost {
     @Column(name = "experience")
     private String experience;
 
+    @Column(name = "experience_category", nullable = false, length = 20)
+    private String experienceCategory = "UNKNOWN";
+
+    @Column(name = "experience_label", nullable = false, length = 255)
+    private String experienceLabel = "경력 확인 필요";
+
     @Column(name = "location")
     private String location;
     
@@ -127,6 +133,7 @@ public class JobPost {
 
     @PrePersist
     public void prePersist() {
+        classifyExperience();
         this.createdAt = LocalDateTime.now();
         if (this.isActive == false) {
             this.isActive = true;
@@ -136,7 +143,14 @@ public class JobPost {
 
     @PreUpdate
     public void preUpdate() {
+        classifyExperience();
         validateDates();
+    }
+
+    private void classifyExperience() {
+        var classification = ExperienceClassification.classify(experience, title, applyQual, sourcePlatform == SourcePlatform.COMPANY_DIRECT);
+        experienceCategory = classification.category();
+        experienceLabel = classification.label();
     }
 
     private void validateDates() {

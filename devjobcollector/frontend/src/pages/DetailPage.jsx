@@ -124,7 +124,7 @@ const DetailPage = () => {
             </div>
             <div className="info-item">
               <span className="label">경력</span>
-              <span className="value">{job.experience || '경력무관'}</span>
+              <span className="value">{job.experience || '경력 확인 필요'}</span>
             </div>
             <div className="info-item">
               <span className="label">공고일</span>

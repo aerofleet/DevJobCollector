@@ -75,7 +75,7 @@ const JobCard = ({ job }) => {
         <div className='job-location-experience'>
           <span>{job.location || '위치미정'}</span>
           <span className='separator'>·</span>
-          <span>{job.experience || '경력무관'}</span>
+          <span>{job.experience || '경력 확인 필요'}</span>
           {job.hireType && (
             <>
               <span className='separator'>·</span>
