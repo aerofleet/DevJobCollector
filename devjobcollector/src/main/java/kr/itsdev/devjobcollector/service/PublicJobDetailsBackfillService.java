@@ -25,7 +25,7 @@ public class PublicJobDetailsBackfillService {
         if (!collectionEnabled) return;
         List<Row> rows = jdbc.query("SELECT id, original_sn FROM job_posts WHERE source_platform='PUBLIC_ALIO' "
                         + "AND public_details_checked_at IS NULL AND (public_details_attempted_at IS NULL "
-                        + "OR public_details_attempted_at < CURRENT_TIMESTAMP - INTERVAL 1 DAY) ORDER BY id LIMIT 20",
+                        + "OR public_details_attempted_at < CURRENT_TIMESTAMP - INTERVAL 1 DAY) ORDER BY id LIMIT 5",
                 (rs, row) -> new Row(rs.getLong("id"), rs.getString("original_sn")));
         for (Row row : rows) {
             try {
