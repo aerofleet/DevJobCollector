@@ -51,6 +51,6 @@ export function extractJobSalary(content) {
 // Show only recognizable tool names explicitly mentioned in qualification sections.
 export function extractMentionedTools(requirements) {
   const text = [...requirements.required, ...requirements.preferred].join(' ');
-  const tools = ['Google apps', 'JIRA', 'Salesforce Service Cloud', 'Amazon Connect', 'LibreChat', 'Gemini', 'Glean', 'Java', 'Kotlin', 'JavaScript', 'TypeScript', 'Python', 'React', 'Spring', 'RDBMS', 'NoSQL', 'Docker', 'Kubernetes', 'AWS', 'IaC', 'CI/CD'];
+  const tools = ['Google apps', 'JIRA', 'Salesforce Service Cloud', 'Amazon Connect', 'LibreChat', 'Gemini', 'Glean', 'Java', 'Kotlin', 'JavaScript', 'TypeScript', 'Python', 'React', 'Spring', 'iOS', 'RDBMS', 'NoSQL', 'Docker', 'Kubernetes', 'AWS', 'IaC', 'CI/CD'];
   return tools.filter((name) => new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text));
 }

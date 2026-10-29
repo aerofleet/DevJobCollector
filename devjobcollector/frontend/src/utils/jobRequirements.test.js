@@ -44,6 +44,11 @@ test('extracts technology names from Kakao qualifications without matching subst
   assert.deepEqual(extractMentionedTools(extractJobRequirements('자격 요건\nJavaScript 경험')), ['JavaScript']);
 });
 
+test('recognizes iOS without treating general frameworks and business domains as technologies', () => {
+  const result = extractJobRequirements('자격 조건\nNative iOS 개발 경력 5년 이상으로, iOS 플랫폼 및 주요 Framework에 대한 깊은 이해\n우대 사항\nE-commerce, O2O 또는 대규모 모바일 서비스 개발 경험');
+  assert.deepEqual(extractMentionedTools(result), ['iOS']);
+});
+
 test('reads encoded HTML requirement sections and retains adjacent text', () => {
   const result = extractJobRequirements('&lt;p&gt;&lt;strong&gt;자격&lt;/strong&gt; &lt;strong&gt;요건&lt;/strong&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;strong&gt;3&lt;/strong&gt;&lt;strong&gt;년 이상&lt;/strong&gt;의 실무 경력&lt;/li&gt;&lt;/ul&gt;');
   assert.deepEqual(result.required, ['3년 이상의 실무 경력']);
