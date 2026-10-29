@@ -26,6 +26,34 @@ class ExperienceClassificationMigrationTest {
     @AfterAll static void cleanup() { flyway(null).clean(); }
     @BeforeEach void resetSchema() { flyway(null).clean(); }
 
+    @Test void reclassifiesMinimumRangeWithoutOverwritingReviewedMetadata() throws Exception {
+        flyway("28").migrate();
+        try (Connection connection = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
+            connection.setCatalog(SCHEMA);
+            try (Statement statement = connection.createStatement()) {
+                statement.executeUpdate("INSERT INTO job_posts (source_platform,original_sn,company_name,title,experience,apply_qual,start_date,end_date,original_url,is_active,reviewed_experience_category) VALUES "
+                        + "('GREENHOUSE','range','기업','Support','경력무관','<p>Job requirements:</p><li>Minimum of 2-3 years of relevant experience.</li>','2026-01-01','2030-01-01','https://example.com',1,NULL),"
+                        + "('GREENHOUSE','reviewed','기업','Support','경력무관','<p>Job requirements:</p><li>Minimum of 2-3 years of relevant experience.</li>','2026-01-01','2030-01-01','https://example.com',1,'ANY')");
+            }
+        }
+        flyway(null).migrate();
+        try (Connection connection = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
+            connection.setCatalog(SCHEMA);
+            try (Statement statement = connection.createStatement(); ResultSet rows = statement.executeQuery(
+                    "SELECT original_sn,experience_category,experience_label FROM job_posts ORDER BY original_sn")) {
+                assertThat(rows.next()).isTrue();
+                assertThat(rows.getString("experience_category")).isEqualTo("EXPERIENCED");
+                assertThat(rows.getString("experience_label")).isEqualTo("경력 최소 2~3년");
+                assertThat(rows.next()).isTrue();
+                assertThat(rows.getString("experience_category")).isEqualTo("UNKNOWN");
+            }
+        }
+    }
+
     @Test void preservesOriginalLocationWhenAddingReviewFields() throws Exception {
         flyway("27").migrate();
         try (Connection connection = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),

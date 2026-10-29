@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractJobRequirements } from './jobRequirements.js';
+import { extractJobRequirements, extractJobSalary, extractMentionedTools } from './jobRequirements.js';
 import { jobSourceLabel } from './jobSource.js';
 
 test('extracts only named requirement sections and stops at other headings', () => {
@@ -10,7 +10,17 @@ test('extracts only named requirement sections and stops at other headings', () 
 
 test('does not classify unstructured content and limits extracted items', () => {
   assert.deepEqual(extractJobRequirements('경력 3년 이상의 개발자를 찾습니다.'), { required: [], preferred: [] });
-  assert.deepEqual(extractJobRequirements('Requirements\n- one\n- two\n- three\n- four\nBenefits\n- holiday').required, ['one', 'two', 'three']);
+  assert.deepEqual(extractJobRequirements('Requirements\n- one\n- two\n- three\n- four\nBenefits\n- holiday').required, ['one', 'two', 'three', 'four']);
+});
+
+test('extracts Coinbase qualifications, preferred tools and labeled salary separately', () => {
+  const html = '<p>What we look for in you (i.e. job requirements):</p><ul><li>Shift and weekend work is a requirement.</li><li>Minimum of 2-3 years of relevant experience.</li></ul><p>Nice to haves:</p><ul><li>Understanding of Google apps, JIRA, Salesforce Service Cloud, or Amazon Connect.</li></ul><p>Requirements:</p><ul><li>Use Gemini responsibly.</li></ul><p>#P78778</p><p>Pay Transparency Notice: The target annual base salary is below.</p><div>Annual base salary range (excluding bonus):</div><div><span>₹700,000</span><span>&mdash;</span><span>₹700,000 INR</span></div><p>Application Limit: 3 applications.</p>';
+  const result = extractJobRequirements(html);
+  assert.deepEqual(result.required, ['Shift and weekend work is a requirement.', 'Minimum of 2-3 years of relevant experience.', 'Use Gemini responsibly.']);
+  assert.deepEqual(result.preferred, ['Understanding of Google apps, JIRA, Salesforce Service Cloud, or Amazon Connect.']);
+  assert.deepEqual(extractMentionedTools(result), ['Google apps', 'JIRA', 'Salesforce Service Cloud', 'Amazon Connect', 'Gemini']);
+  assert.equal(extractJobSalary(html), 'Annual base salary range (excluding bonus): ₹700,000—₹700,000 INR');
+  assert.equal(extractJobSalary('Requirements\n5 years of experience'), null);
 });
 
 test('extracts inline Kakao requirement sections without unrelated text', () => {

@@ -4,6 +4,15 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ExperienceClassificationTest {
+    @Test void recognizesExplicitEnglishMinimumRangeOnlyInRequirements() {
+        String line = "Minimum of 2-3 years of relevant experience in customer support.";
+        var actual = ExperienceClassification.classify("경력무관", "Support", "What we look for in you (i.e. job requirements):\n" + line, false);
+        assertThat(actual.category()).isEqualTo("EXPERIENCED");
+        assertThat(actual.label()).isEqualTo("경력 최소 2~3년");
+        assertThat(actual.evidence()).isEqualTo(line);
+        assertThat(ExperienceClassification.classify(null, "Support", "Nice to haves:\n" + line, false).category()).isEqualTo("UNKNOWN");
+        assertThat(ExperienceClassification.classify(null, "Support", "Requirements\n2-3 years of experience", false).category()).isEqualTo("UNKNOWN");
+    }
     @Test void requiredYearsOverrideSyntheticUnrestrictedValue() {
         var actual = ExperienceClassification.classify("경력무관", "개발자", "자격요건\n- 개발 경력 7년 이상\n우대사항\n- 실무 경력 10년 이상", false);
         assertThat(actual.category()).isEqualTo("EXPERIENCED");

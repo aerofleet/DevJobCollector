@@ -7,7 +7,7 @@ import { createApplication, createBookmark, recordRecentJob } from '../api/caree
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import TechStackBadge from '../components/job/TechStackBadge';
 import { jobSourceLabel } from '../utils/jobSource';
-import { extractJobRequirements } from '../utils/jobRequirements';
+import { extractJobRequirements, extractJobSalary, extractMentionedTools } from '../utils/jobRequirements';
 import { formatDate } from '../utils/dateParser';
 import { getDaysRemaining } from '../utils/dateParser';
 import '../styles/DetailPage.css';
@@ -61,6 +61,8 @@ const DetailPage = () => {
 
   const daysRemaining = getDaysRemaining(job.endDate);
   const requirements = extractJobRequirements(job.applyQual);
+  const salary = extractJobSalary(job.applyQual);
+  const mentionedTools = extractMentionedTools(requirements);
   let originalUrl = null;
   try {
     const parsed = new URL(job.originalUrl);
@@ -127,12 +129,12 @@ const DetailPage = () => {
               <span className="value">{job.experience || '경력 확인 필요'}</span>
             </div>
             <div className="info-item">
-              <span className="label">공고일</span>
+              <span className="label">공고일 또는 수집일</span>
               <span className="value">{formatDate(job.startDate)}</span>
             </div>
             <div className="info-item">
               <span className="label">마감일</span>
-              <span className="value">{formatDate(job.endDate)}</span>
+              <span className="value">{job.endDate?.startsWith('9999-12-31') ? '마감일 미제공' : formatDate(job.endDate)}</span>
             </div>
             <div className="info-item">
               {daysRemaining !== null && daysRemaining >= 0 && (
@@ -149,7 +151,7 @@ const DetailPage = () => {
               <TechStackBadge key={tech.id} tech={tech} />
             ))}
           </div>
-          {!job.techStacks?.length && <p className="job-content-empty">등록된 기술 스택이 없습니다. 원문을 확인해 주세요.</p>}
+          {!job.techStacks?.length && (mentionedTools.length ? <><p className="job-content-empty">원문 자격·우대 항목에 언급된 기술 및 도구</p><div className="tech-stack">{mentionedTools.map((name) => <TechStackBadge key={name} tech={{ stackName: name }} />)}</div></> : <p className="job-content-empty">등록된 기술 스택이 없습니다. 원문을 확인해 주세요.</p>)}
         </section>
 
         <section className="detail-section">
@@ -161,6 +163,10 @@ const DetailPage = () => {
           <h3>우대 사항</h3>
           {requirements.preferred.length ? <ul>{requirements.preferred.map((item, index) => <li key={index}>{item}</li>)}</ul>
             : <p className="job-content-empty">우대 사항을 확인하지 못했어요. 원문을 확인해 주세요.</p>}
+        </section>
+        <section className="detail-section">
+          <h3>급여 정보</h3>
+          {salary ? <p>{salary}</p> : <p className="job-content-empty">급여 정보를 확인하지 못했어요. 원문을 확인해 주세요.</p>}
           <p className="detail-source-note">일부 항목만 표시됩니다. 정확한 자격 조건과 상세 내용은 원문에서 확인해 주세요.</p>
           {originalUrl && <a className="detail-original-link" href={originalUrl} target="_blank" rel="noopener noreferrer">공고 원문 보기 ↗</a>}
         </section>
