@@ -26,6 +26,37 @@ class ExperienceClassificationMigrationTest {
     @AfterAll static void cleanup() { flyway(null).clean(); }
     @BeforeEach void resetSchema() { flyway(null).clean(); }
 
+    @Test void correctsOnlyMatchingDaangnGreenhouseUrls() throws Exception {
+        flyway("23").migrate();
+        try (Connection connection = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
+            connection.setCatalog(SCHEMA);
+            try (Statement statement = connection.createStatement()) {
+                statement.executeUpdate("INSERT INTO job_posts (source_platform,original_sn,company_name,title,start_date,end_date,original_url,is_active) VALUES "
+                        + "('GREENHOUSE','daangn:8043877003','당근','개발자','2026-01-01','2030-01-01','https://about.daangn.com?gh_jid=8043877003',1),"
+                        + "('GREENHOUSE','other:42','다른 기업','개발자','2026-01-01','2030-01-01','https://about.daangn.com?gh_jid=42',1),"
+                        + "('GREENHOUSE','daangn:43','당근','개발자','2026-01-01','2030-01-01','https://about.daangn.com?gh_jid=99',1)");
+            }
+        }
+        flyway(null).migrate();
+        try (Connection connection = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
+            connection.setCatalog(SCHEMA);
+            try (Statement statement = connection.createStatement(); ResultSet rows = statement.executeQuery(
+                    "SELECT original_sn,original_url FROM job_posts ORDER BY original_sn")) {
+                assertThat(rows.next()).isTrue();
+                assertThat(rows.getString("original_url")).isEqualTo("https://about.daangn.com?gh_jid=99");
+                assertThat(rows.next()).isTrue();
+                assertThat(rows.getString("original_url")).isEqualTo("https://careers.daangn.com/jobs/role/8043877003/");
+                assertThat(rows.next()).isTrue();
+                assertThat(rows.getString("original_url")).isEqualTo("https://about.daangn.com?gh_jid=42");
+                assertThat(rows.next()).isFalse();
+            }
+        }
+    }
+
     @Test void reclassifiesExistingInlineSectionsAfterV22() throws Exception {
         flyway("22").migrate();
         try (Connection connection = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),

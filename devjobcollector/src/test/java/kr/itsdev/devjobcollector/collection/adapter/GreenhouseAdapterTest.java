@@ -48,7 +48,30 @@ class GreenhouseAdapterTest {
         assertThat(result.jobs().getFirst().sourceJobId()).isEqualTo("123");
         assertThat(result.jobs().getFirst().team()).isEqualTo("Engineering");
         assertThat(result.jobs().getFirst().plainDescription()).isEqualTo("Build reliable APIs");
+        assertThat(result.jobs().getFirst().sourceUrl()).isEqualTo("https://job-boards.greenhouse.io/gitlab/jobs/123");
         assertThat(result.responseHash()).hasSize(64);
+        server.verify();
+    }
+
+    @Test
+    void correctsOnlyMatchingDaangnCompanyHomeLinks() {
+        RestTemplate restTemplate = new RestTemplate();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
+        GreenhouseAdapter adapter = new GreenhouseAdapter(restTemplate, new ObjectMapper());
+        CompanySourceTarget target = new CompanySourceTarget(null, SourceType.GREENHOUSE, "daangn", "https://about.daangn.com/jobs", CollectionTier.A);
+        server.expect(requestTo("https://boards-api.greenhouse.io/v1/boards/daangn/jobs?content=true"))
+                .andRespond(withSuccess("""
+                        {"jobs":[
+                          {"id":8043877003,"title":"ML Engineer","absolute_url":"https://about.daangn.com?gh_jid=8043877003"},
+                          {"id":42,"title":"Existing correct link","absolute_url":"https://careers.daangn.com/jobs/role/42/"},
+                          {"id":43,"title":"Mismatched link","absolute_url":"https://about.daangn.com?gh_jid=99"}
+                        ]}
+                        """, MediaType.APPLICATION_JSON));
+        var jobs = adapter.fetchJobs(target, CollectionContext.now()).jobs();
+        assertThat(jobs.get(0).sourceUrl()).isEqualTo("https://careers.daangn.com/jobs/role/8043877003/");
+        assertThat(jobs.get(0).applyUrl()).isEqualTo(jobs.get(0).sourceUrl());
+        assertThat(jobs.get(1).sourceUrl()).isEqualTo("https://careers.daangn.com/jobs/role/42/");
+        assertThat(jobs.get(2).sourceUrl()).isEqualTo("https://about.daangn.com?gh_jid=99");
         server.verify();
     }
 }

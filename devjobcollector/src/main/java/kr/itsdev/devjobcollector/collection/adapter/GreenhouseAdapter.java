@@ -54,7 +54,7 @@ public class GreenhouseAdapter implements JobSourceAdapter {
             String rawResponse = restTemplate.getForObject(url, String.class);
             GreenhouseJobResponse response = objectMapper.readValue(rawResponse, GreenhouseJobResponse.class);
             List<GreenhouseJobResponse.Job> sourceJobs = response.jobs() == null ? List.of() : response.jobs();
-            List<JobRawDto> jobs = sourceJobs.stream().map(this::toRawJob).toList();
+            List<JobRawDto> jobs = sourceJobs.stream().map(job -> toRawJob(target, job)).toList();
             CollectionStatus status = jobs.isEmpty() ? CollectionStatus.EMPTY_SUCCESS : CollectionStatus.SUCCESS;
             return new CollectionResult(status, jobs, jobs.size(), SCHEMA_VERSION,
                     !jobs.isEmpty(), ContentHash.sha256(rawResponse));
@@ -73,8 +73,14 @@ public class GreenhouseAdapter implements JobSourceAdapter {
         }
     }
 
-    private JobRawDto toRawJob(GreenhouseJobResponse.Job job) {
+    private JobRawDto toRawJob(CompanySourceTarget target, GreenhouseJobResponse.Job job) {
         String rawPayload = writePayload(job);
+        String jobUrl = job.absoluteUrl();
+        if ("daangn".equals(target.getSourceIdentifier()) && job.id() != null
+                && (Objects.equals(jobUrl, "https://about.daangn.com?gh_jid=" + job.id())
+                || Objects.equals(jobUrl, "https://about.daangn.com/?gh_jid=" + job.id()))) {
+            jobUrl = "https://careers.daangn.com/jobs/role/" + job.id() + "/";
+        }
         String team = job.departments() == null ? null : job.departments().stream()
                 .map(GreenhouseJobResponse.Department::name)
                 .filter(Objects::nonNull)
@@ -88,8 +94,8 @@ public class GreenhouseAdapter implements JobSourceAdapter {
                 job.location() == null ? null : job.location().name(),
                 null,
                 team,
-                job.absoluteUrl(),
-                job.absoluteUrl(),
+                jobUrl,
+                jobUrl,
                 toPlainText(job.content()),
                 parseInstant(job.firstPublished()),
                 parseInstant(job.updatedAt()),
