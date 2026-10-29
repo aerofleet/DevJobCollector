@@ -42,10 +42,10 @@ class ExperienceClassificationMigrationTest {
                 System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
             connection.setCatalog(SCHEMA);
             try (Statement statement = connection.createStatement(); ResultSet rows = statement.executeQuery(
-                    "SELECT location,effective_location,reviewed_source_hash FROM job_posts WHERE original_sn='test:28'")) {
+                    "SELECT location,reviewed_location,reviewed_source_hash FROM job_posts WHERE original_sn='test:28'")) {
                 assertThat(rows.next()).isTrue();
                 assertThat(rows.getString("location")).isEqualTo("Remote, United States");
-                assertThat(rows.getString("effective_location")).isEqualTo("Remote, United States");
+                assertThat(rows.getString("reviewed_location")).isNull();
                 assertThat(rows.getString("reviewed_source_hash")).isNull();
             }
         }

@@ -164,7 +164,7 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
         return containsAny(jobPost.title, alternatives)
                 .or(containsAny(jobPost.companyName, alternatives))
                 .or(containsAny(jobPost.location, alternatives))
-                .or(containsAny(jobPost.effectiveLocation, alternatives))
+                .or(containsAny(jobPost.reviewedLocation, alternatives))
                 .or(containsAny(jobPost.experience, alternatives))
                 .or(containsAny(jobPost.experienceLabel, alternatives))
                 .or(containsAny(jobPost.jobCategory, alternatives))
@@ -203,7 +203,7 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
 
     private BooleanExpression singleLocationCondition(String location) {
         String pattern = JobLocationFilter.pattern(location);
-        var effective = jobPost.effectiveLocation.coalesce(jobPost.location);
+        var effective = jobPost.reviewedLocation.coalesce(jobPost.location);
         return pattern == null ? effective.containsIgnoreCase(location.trim())
                 : Expressions.booleanTemplate("function('regexp_like', {0}, {1}) = true", effective.lower(), pattern);
     }

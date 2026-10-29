@@ -70,8 +70,6 @@ public class JobPost {
     private String reviewedLocation;
     @Column(name = "reviewed_source_hash", length = 64)
     private String reviewedSourceHash;
-    @Column(name = "effective_location", length = 255)
-    private String effectiveLocation;
 
     @Column(name = "location")
     private String location;
@@ -179,7 +177,6 @@ public class JobPost {
         experienceLabel = reviewedExperienceLabel != null ? reviewedExperienceLabel : classification.label();
         experienceEvidence = reviewedExperienceEvidence != null ? reviewedExperienceEvidence.substring(0, Math.min(500, reviewedExperienceEvidence.length())) : classification.evidence();
         experienceMethod = reviewedExperienceCategory != null ? "AI_REVIEWED" : classification.method();
-        effectiveLocation = reviewedLocation != null ? reviewedLocation : location;
     }
 
     public void applyReviewedMetadata(String category, String label, String evidence, String reviewedLocation) {
@@ -193,7 +190,7 @@ public class JobPost {
         classifyExperience();
     }
 
-    public String getDisplayLocation() { return effectiveLocation != null ? effectiveLocation : location; }
+    public String getDisplayLocation() { return reviewedLocation != null ? reviewedLocation : location; }
 
     private String sourceFingerprint() {
         String source = java.util.Objects.toString(title, "") + "\u0000" + java.util.Objects.toString(experience, "")
