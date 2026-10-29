@@ -24,7 +24,7 @@ public record JobApplicationResponse(
         JobPost jobPost = application.getJobPost();
         return new JobApplicationResponse(
                 application.getId(), jobPost.getId(), jobPost.getCompanyName(), jobPost.getTitle(),
-                jobPost.getLocation(), jobPost.getExperience(), jobPost.getEndDate(), jobPost.getOriginalUrl(),
+                jobPost.getDisplayLocation(), jobPost.getExperienceLabel(), jobPost.getEndDate(), jobPost.getOriginalUrl(),
                 application.getStatus(), application.getAppliedAt(), application.getMemo(), application.getUpdatedAt()
         );
     }

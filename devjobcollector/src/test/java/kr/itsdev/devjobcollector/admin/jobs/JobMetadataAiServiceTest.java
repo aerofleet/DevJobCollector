@@ -111,4 +111,25 @@ class JobMetadataAiServiceTest {
         assertThatThrownBy(() -> service.analyze(42, preview.inputHash(), true, admin)).isInstanceOf(ResponseStatusException.class);
         verify(jdbc).update(anyString(), any(Object[].class));
     }
+
+    @Test void appliesReviewedValuesOnlyWhenVersionAndEvidenceMatch() {
+        var service = service(true, "GREENHOUSE:permitted");
+        var preview = service.preview(42, admin);
+        when(jobs.findByIdForModeration(42L)).thenReturn(Optional.of(job));
+        when(jdbc.queryForList(anyString(), any(Object[].class))).thenReturn(java.util.List.of(java.util.Map.of(
+                "job_version", 3L, "input_hash", preview.inputHash(), "experience_quote", "개발 경력 3년 이상",
+                "location_quote", "근무지 서울", "review_status", "NEEDS_REVIEW")));
+        assertThat(service.apply(42, 7, 3, "EXPERIENCED", "경력 3년 이상", "서울", admin)).containsEntry("status", "APPLIED");
+        verify(job).applyReviewedMetadata("EXPERIENCED", "경력 3년 이상", "개발 경력 3년 이상", "서울");
+        verify(jobs).saveAndFlush(job);
+    }
+
+    @Test void rejectsReviewOfChangedPostingWithoutApplyingValues() {
+        var service = service(true, "GREENHOUSE:permitted");
+        when(jobs.findByIdForModeration(42L)).thenReturn(Optional.of(job));
+        assertThatThrownBy(() -> service.apply(42, 7, 2, "EXPERIENCED", "경력 3년 이상", "서울", admin))
+                .isInstanceOf(ResponseStatusException.class);
+        verify(job, never()).applyReviewedMetadata(any(), any(), any(), any());
+        verify(jobs, never()).saveAndFlush(any());
+    }
 }

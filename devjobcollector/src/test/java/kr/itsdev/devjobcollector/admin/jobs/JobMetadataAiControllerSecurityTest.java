@@ -52,4 +52,15 @@ class JobMetadataAiControllerSecurityTest {
                 .andExpect(status().isForbidden());
         verifyNoInteractions(service);
     }
+
+    @Test void administratorCannotApplyReviewWithoutCsrf() throws Exception {
+        when(authentication.authenticate("admin-token")).thenReturn(new AdminPrincipal(
+                1L, "admin@example.com", "admin", AdminRole.ADMIN, Set.of(), "session", "hash"));
+        mvc.perform(post("/api/v1/admin/jobs/42/ai-metadata/7/apply")
+                .cookie(new Cookie("DJC_ADMIN_SESSION", "admin-token"))
+                .header("Origin", "https://djc-admin.itsdev.kr").contentType("application/json")
+                .content("{\"expectedVersion\":0,\"experienceCategory\":\"EXPERIENCED\",\"experienceLabel\":\"경력 5년\"}"))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(service);
+    }
 }

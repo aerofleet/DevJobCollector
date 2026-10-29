@@ -24,6 +24,7 @@ export default function JobsPage() {
   const [aiResult, setAiResult] = useState(null);
   const [aiHistory, setAiHistory] = useState([]);
   const [aiConfirmed, setAiConfirmed] = useState(false);
+  const [reviewDraft, setReviewDraft] = useState(null);
 
   const load = useCallback(async () => {
     setError('');
@@ -39,7 +40,7 @@ export default function JobsPage() {
 
   const selectJob = async (id) => {
     setError(''); setReason(''); setNewEndDate(''); setPendingStatus(null);
-    setAiPreview(null); setAiResult(null); setAiHistory([]); setAiConfirmed(false);
+    setAiPreview(null); setAiResult(null); setAiHistory([]); setAiConfirmed(false); setReviewDraft(null);
     try {
       const job = (await adminApi.job(id)).data;
       if (job.sourcePlatform === 'COMPANY_DIRECT') {
@@ -48,6 +49,23 @@ export default function JobsPage() {
       setSelected(job);
     }
     catch (cause) { setError(cause.message); }
+  };
+
+  const applyAiReview = async () => {
+    if (!selected || !reviewDraft || busy) return;
+    setBusy(true); setError('');
+    try {
+      const applied = await adminRequest(`/jobs/${selected.id}/ai-metadata/${reviewDraft.id}/apply`, {
+        method: 'POST', body: JSON.stringify({ expectedVersion: selected.version,
+          experienceCategory: reviewDraft.category || null, experienceLabel: reviewDraft.experience.trim() || null,
+          location: reviewDraft.location.trim() || null }),
+      });
+      setSelected({ ...selected, version: applied.version }); setReviewDraft(null);
+      setAiHistory(await adminRequest(`/jobs/${selected.id}/ai-metadata/history`));
+      setAiResult({ status: 'APPLIED' });
+    } catch (cause) {
+      setError(cause.status === 409 ? '공고 또는 제안이 변경되었습니다. 상세를 다시 열어 확인해 주세요.' : cause.message);
+    } finally { setBusy(false); }
   };
 
   const prepareAi = async () => {
@@ -160,10 +178,11 @@ export default function JobsPage() {
       {selected.companyJob?.state === 'DELETED' && <p>삭제 처리된 공고입니다. 공고와 감사 기록은 보존되며 수정·재게시할 수 없습니다.</p>}
       {admin.role !== 'REVIEWER' && <section className="moderation-form" aria-label="AI 공고 조건 검토">
         <h3>AI 공고 조건 검토</h3>
-        <p>경력·근무지의 제안을 생성합니다. 결과는 검토용이며 검색 필터에 자동 적용되지 않습니다.</p>
+        <p>경력·근무지 제안을 원문과 비교하고 검토한 조건을 검색 필터에 반영할 수 있습니다.</p>
         <button className="secondary-button" type="button" disabled={busy} onClick={prepareAi}>전송 내용 확인</button>
         {aiPreview && <div>
           <p>출처: {aiPreview.sourceKey} · {aiPreview.sourceAllowed ? 'AI 분석 허용 출처' : 'AI 분석 허용 미설정'}</p>
+          <p>수집된 원본 근무지: {aiPreview.sourceLocation || '정보 없음'}</p>
           <p>아래 내용이 OpenAI에 전송됩니다. 공고 출처의 전송·분석 허용 여부와 내용을 확인해 주세요.</p>
           {aiPreview.truncated && <p>공고가 길어 앞부분만 전송됩니다. 빠진 내용은 원문에서 확인해 주세요.</p>}
           <textarea aria-label="AI에 전송할 공고 내용" value={aiPreview.content} readOnly rows={8} />
@@ -172,12 +191,26 @@ export default function JobsPage() {
           <button className="primary-button" type="button" disabled={!aiPreview.sourceAllowed || !aiConfirmed || busy} onClick={analyzeAi}>
             {busy ? '분석 중…' : '확인하고 AI 분석'}</button>
         </div>}
-        {aiResult && <p role="status">AI 제안을 저장했습니다. 검색 필터에는 반영되지 않았습니다.</p>}
+        {aiResult && <p role="status">{aiResult.status === 'APPLIED' ? '검토한 조건을 공고와 검색 필터에 반영했습니다.' : 'AI 제안을 저장했습니다. 검색 필터에는 아직 반영되지 않았습니다.'}</p>}
         {aiHistory.length > 0 && <details><summary>이전 AI 제안 {aiHistory.length}건</summary>
           {aiHistory.map((item) => <div key={item.id}>
             <p>경력 제안: {item.experience_suggestion || '확인 필요'}</p><p>근거: {item.experience_quote || '없음'}</p>
             <p>근무지 제안: {item.location_suggestion || '확인 필요'}</p><p>근거: {item.location_quote || '없음'}</p>
             <p>검토 상태: {item.review_status} · 공고 버전 {item.job_version}</p>
+            {item.review_status === 'APPLIED' && <p>반영한 조건: {[item.applied_experience_label, item.applied_location].filter(Boolean).join(' · ')}</p>}
+            {item.review_status === 'NEEDS_REVIEW' && item.job_version === selected.version &&
+              <button className="secondary-button" type="button" disabled={busy} onClick={() => setReviewDraft({
+                id: item.id, category: '', experience: '', location: '', hasExperience: Boolean(item.experience_quote), hasLocation: Boolean(item.location_quote),
+              })}>원문 확인 후 조건 반영</button>}
+            {reviewDraft?.id === item.id && <div role="group" aria-label="검토한 공고 조건 입력">
+              <p>원문 근거를 확인하고 반영할 항목만 입력해 주세요. 근거에 없는 조건은 입력하지 마세요.</p>
+              {reviewDraft.hasExperience && <><label>경력 분류<select value={reviewDraft.category} onChange={(event) => setReviewDraft({ ...reviewDraft, category: event.target.value })}>
+                <option value="">반영하지 않음</option><option value="ENTRY">신입</option><option value="EXPERIENCED">경력</option><option value="BOTH">신입·경력</option><option value="ANY">경력무관</option>
+              </select></label><label>경력 표시<input value={reviewDraft.experience} maxLength={255} onChange={(event) => setReviewDraft({ ...reviewDraft, experience: event.target.value })} placeholder="예: 경력 5년 이상" /></label></>}
+              {reviewDraft.hasLocation && <label>근무지 표시<input value={reviewDraft.location} maxLength={255} onChange={(event) => setReviewDraft({ ...reviewDraft, location: event.target.value })} placeholder="예: 미국 뉴욕, 원격" /></label>}
+              <button className="primary-button" type="button" disabled={busy || (!reviewDraft.category && !reviewDraft.location.trim()) || Boolean(reviewDraft.category) !== Boolean(reviewDraft.experience.trim())} onClick={applyAiReview}>확인한 조건 반영</button>
+              <button className="secondary-button" type="button" disabled={busy} onClick={() => setReviewDraft(null)}>취소</button>
+            </div>}
           </div>)}
         </details>}
       </section>}

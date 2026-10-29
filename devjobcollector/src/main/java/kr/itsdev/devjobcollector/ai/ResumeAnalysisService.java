@@ -267,7 +267,7 @@ public class ResumeAnalysisService {
             var ids = ranked.stream().map(LocalRecommendationEngine.Recommendation::jobId).toList();
             var args = new ArrayList<Object>(ids);
             args.add(today);
-            jdbc.queryForList("SELECT id,title,company_name,job_category,location,experience_label AS experience,end_date,hire_type,source_platform,LEFT(apply_qual,5000) qualifications FROM job_posts WHERE id IN ("
+            jdbc.queryForList("SELECT id,title,company_name,job_category,COALESCE(effective_location,location) AS location,experience_label AS experience,end_date,hire_type,source_platform,LEFT(apply_qual,5000) qualifications FROM job_posts WHERE id IN ("
                     + String.join(",", Collections.nCopies(ids.size(), "?"))
                     + ") AND is_active=1 AND moderation_status='ACTIVE' AND (end_date IS NULL OR end_date>=?)", args.toArray())
                     .forEach(row -> metadata.put(((Number) row.get("id")).longValue(), row));
@@ -449,7 +449,7 @@ public class ResumeAnalysisService {
         for (JsonNode recommendation : result.path("recommendations")) {
             long jobId = recommendation.path("jobId").asLong();
             var jobs = jdbc.queryForList("""
-                    SELECT title,company_name,location,experience_label AS experience,end_date FROM job_posts
+                    SELECT title,company_name,COALESCE(effective_location,location) AS location,experience_label AS experience,end_date FROM job_posts
                     WHERE id=? AND is_active=1 AND moderation_status='ACTIVE' AND (end_date IS NULL OR end_date>=?)
                     """, jobId, LocalDate.now(ZoneId.of("Asia/Seoul")));
             if (jobs.isEmpty()) { unavailable++; continue; }
@@ -497,9 +497,9 @@ public class ResumeAnalysisService {
         String locationPattern = RecommendationLocations.pattern(preferences.location());
         String placeholders = tagIds.isEmpty() ? "NULL" : String.join(",", Collections.nCopies(tagIds.size(), "?"));
         String match = "(SELECT COUNT(*) FROM post_tags p WHERE p.job_post_id=j.id AND p.tech_stack_id IN (" + placeholders + "))";
-        String sql = "SELECT j.id,CONCAT_WS(' ',j.job_category,j.title) role_text,j.experience_label AS experience,j.location,j.hire_type,DATE(j.created_at) created_date,"
+        String sql = "SELECT j.id,CONCAT_WS(' ',j.job_category,j.title) role_text,j.experience_label AS experience,COALESCE(j.effective_location,j.location) AS location,j.hire_type,DATE(j.created_at) created_date,"
                 + match + " skill_hits FROM job_posts j WHERE j.is_active=1 AND j.moderation_status='ACTIVE' AND (j.end_date IS NULL OR j.end_date>=?)"
-                + (preferences.location().isEmpty() ? "" : " AND REGEXP_LIKE(j.location, ?, 'i')")
+                + (preferences.location().isEmpty() ? "" : " AND REGEXP_LIKE(COALESCE(j.effective_location,j.location), ?, 'i')")
                 + " HAVING skill_hits>0 OR (" + (categories.isEmpty() ? "FALSE"
                     : String.join(" OR ", Collections.nCopies(categories.size(), "REGEXP_LIKE(role_text, ?, 'i')"))) + ")"
                 + " ORDER BY skill_hits DESC,j.created_at DESC,j.id ASC LIMIT 100";
@@ -553,10 +553,10 @@ public class ResumeAnalysisService {
         vocabulary.addAll(terms);
         String locationPattern = RecommendationLocations.pattern(locations);
         if (!locations.isEmpty()) args.add(locationPattern.isEmpty() ? "a^" : locationPattern);
-        var rows = jdbc.queryForList("SELECT j.id,j.title,j.job_category,j.experience_label AS experience,j.location,j.hire_type,DATE(j.created_at) created_date"
+        var rows = jdbc.queryForList("SELECT j.id,j.title,j.job_category,j.experience_label AS experience,COALESCE(j.effective_location,j.location) AS location,j.hire_type,DATE(j.created_at) created_date"
                 + " FROM job_posts j WHERE j.is_active=1 AND j.moderation_status='ACTIVE' AND (j.end_date IS NULL OR j.end_date>=?)"
                 + " AND NOT EXISTS (SELECT 1 FROM post_tags p WHERE p.job_post_id=j.id) AND (" + conditions + ")"
-                + (locations.isEmpty() ? "" : " AND REGEXP_LIKE(j.location, ?, 'i')")
+                + (locations.isEmpty() ? "" : " AND REGEXP_LIKE(COALESCE(j.effective_location,j.location), ?, 'i')")
                 + " ORDER BY j.created_at DESC,j.id ASC LIMIT 100", args.toArray());
         var result = new ArrayList<LocalRecommendationEngine.Candidate>();
         for (var row : rows) {

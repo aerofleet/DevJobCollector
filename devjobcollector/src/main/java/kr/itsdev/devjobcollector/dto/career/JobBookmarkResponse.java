@@ -23,8 +23,8 @@ public record JobBookmarkResponse(
                 jobPost.getId(),
                 jobPost.getCompanyName(),
                 jobPost.getTitle(),
-                jobPost.getLocation(),
-                jobPost.getExperience(),
+                jobPost.getDisplayLocation(),
+                jobPost.getExperienceLabel(),
                 jobPost.getEndDate(),
                 jobPost.getOriginalUrl(),
                 bookmark.getCreatedAt()

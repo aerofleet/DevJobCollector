@@ -60,6 +60,19 @@ public class JobPost {
     @Column(name = "experience_method", nullable = false, length = 20)
     private String experienceMethod = "UNKNOWN";
 
+    @Column(name = "reviewed_experience_category", length = 20)
+    private String reviewedExperienceCategory;
+    @Column(name = "reviewed_experience_label", length = 255)
+    private String reviewedExperienceLabel;
+    @Column(name = "reviewed_experience_evidence", length = 1000)
+    private String reviewedExperienceEvidence;
+    @Column(name = "reviewed_location", length = 255)
+    private String reviewedLocation;
+    @Column(name = "reviewed_source_hash", length = 64)
+    private String reviewedSourceHash;
+    @Column(name = "effective_location", length = 255)
+    private String effectiveLocation;
+
     @Column(name = "location")
     private String location;
     
@@ -154,11 +167,38 @@ public class JobPost {
     }
 
     private void classifyExperience() {
+        if (reviewedSourceHash != null && !reviewedSourceHash.equals(sourceFingerprint())) {
+            reviewedExperienceCategory = null;
+            reviewedExperienceLabel = null;
+            reviewedExperienceEvidence = null;
+            reviewedLocation = null;
+            reviewedSourceHash = null;
+        }
         var classification = ExperienceClassification.classify(experience, title, applyQual, sourcePlatform == SourcePlatform.COMPANY_DIRECT);
-        experienceCategory = classification.category();
-        experienceLabel = classification.label();
-        experienceEvidence = classification.evidence();
-        experienceMethod = classification.method();
+        experienceCategory = reviewedExperienceCategory != null ? reviewedExperienceCategory : classification.category();
+        experienceLabel = reviewedExperienceLabel != null ? reviewedExperienceLabel : classification.label();
+        experienceEvidence = reviewedExperienceEvidence != null ? reviewedExperienceEvidence.substring(0, Math.min(500, reviewedExperienceEvidence.length())) : classification.evidence();
+        experienceMethod = reviewedExperienceCategory != null ? "AI_REVIEWED" : classification.method();
+        effectiveLocation = reviewedLocation != null ? reviewedLocation : location;
+    }
+
+    public void applyReviewedMetadata(String category, String label, String evidence, String reviewedLocation) {
+        if (category != null) {
+            this.reviewedExperienceCategory = category;
+            this.reviewedExperienceLabel = label;
+            this.reviewedExperienceEvidence = evidence;
+        }
+        if (reviewedLocation != null) this.reviewedLocation = reviewedLocation;
+        this.reviewedSourceHash = sourceFingerprint();
+        classifyExperience();
+    }
+
+    public String getDisplayLocation() { return effectiveLocation != null ? effectiveLocation : location; }
+
+    private String sourceFingerprint() {
+        String source = java.util.Objects.toString(title, "") + "\u0000" + java.util.Objects.toString(experience, "")
+                + "\u0000" + java.util.Objects.toString(location, "") + "\u0000" + java.util.Objects.toString(applyQual, "");
+        return kr.itsdev.devjobcollector.collection.support.ContentHash.sha256(source);
     }
 
     private void validateDates() {

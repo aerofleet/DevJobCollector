@@ -36,5 +36,12 @@ public class JobMetadataAiController {
         return service.analyze(id, request.inputHash(), request.confirmed(), actor);
     }
 
+    @PostMapping("/{reviewId}/apply")
+    public Map<String, Object> apply(@PathVariable long id, @PathVariable long reviewId,
+                                    @Valid @RequestBody ApplyRequest request, @AuthenticationPrincipal AdminPrincipal actor) {
+        return service.apply(id, reviewId, request.expectedVersion(), request.experienceCategory(), request.experienceLabel(), request.location(), actor);
+    }
+
     public record AnalyzeRequest(@NotBlank @Pattern(regexp = "[a-f0-9]{64}") String inputHash, boolean confirmed) {}
+    public record ApplyRequest(@jakarta.validation.constraints.NotNull Long expectedVersion, String experienceCategory, String experienceLabel, String location) {}
 }

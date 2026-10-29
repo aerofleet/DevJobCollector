@@ -26,6 +26,31 @@ class ExperienceClassificationMigrationTest {
     @AfterAll static void cleanup() { flyway(null).clean(); }
     @BeforeEach void resetSchema() { flyway(null).clean(); }
 
+    @Test void preservesOriginalLocationWhenAddingReviewFields() throws Exception {
+        flyway("27").migrate();
+        try (Connection connection = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
+            connection.setCatalog(SCHEMA);
+            try (Statement statement = connection.createStatement()) {
+                statement.executeUpdate("INSERT INTO job_posts (source_platform,original_sn,company_name,title,location,start_date,end_date,original_url,is_active) VALUES ('GREENHOUSE','test:28','기업','공고','Remote, United States','2026-01-01','2030-01-01','https://example.com',1)");
+            }
+        }
+        flyway(null).migrate();
+        try (Connection connection = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
+            connection.setCatalog(SCHEMA);
+            try (Statement statement = connection.createStatement(); ResultSet rows = statement.executeQuery(
+                    "SELECT location,effective_location,reviewed_source_hash FROM job_posts WHERE original_sn='test:28'")) {
+                assertThat(rows.next()).isTrue();
+                assertThat(rows.getString("location")).isEqualTo("Remote, United States");
+                assertThat(rows.getString("effective_location")).isEqualTo("Remote, United States");
+                assertThat(rows.getString("reviewed_source_hash")).isNull();
+            }
+        }
+    }
+
     @Test void createsReviewTableOnUpgradeFromV26() throws Exception {
         flyway("26").migrate();
         flyway(null).migrate();

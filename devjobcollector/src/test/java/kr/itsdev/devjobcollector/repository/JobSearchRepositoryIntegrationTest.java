@@ -56,6 +56,24 @@ class JobSearchRepositoryIntegrationTest {
     }
 
     @Test
+    void filtersByReviewedExperienceAndLocationAndRevertsAfterSourceChange() {
+        var job = repository.save(JobPost.builder().sourcePlatform(SourcePlatform.GREENHOUSE).originalSn("review-filter")
+                .companyName("검토 평가 기업").title("Sales Director").experience("경력무관").location("Remote")
+                .applyQual("Requirements: leadership 5 years. Location: New York.")
+                .startDate(LocalDate.now()).endDate(LocalDate.now().plusDays(30)).originalUrl("https://example.com/review").build());
+        job.applyReviewedMetadata("EXPERIENCED", "경력 5년 이상", "leadership 5 years", "미국 뉴욕, 원격");
+        entityManager.flush(); entityManager.clear();
+        var page = PageRequest.of(0, 20);
+        var results = repository.searchByAllFieldsOptimized("검토 평가 기업", "미국", "경력", null, null, LocalDate.now(), page).getContent();
+        assertThat(results).extracting(JobPost::getOriginalSn).containsExactly("review-filter");
+        var loaded = results.getFirst();
+        loaded.refreshFromSource("검토 평가 기업", "Sales Director", null, "경력무관", "Remote", null,
+                LocalDate.now(), LocalDate.now().plusDays(30), "https://example.com/review", "Changed requirements", null);
+        entityManager.flush(); entityManager.clear();
+        assertThat(repository.searchByAllFieldsOptimized("검토 평가 기업", "미국", "경력", null, null, LocalDate.now(), page).getContent()).isEmpty();
+    }
+
+    @Test
     void filtersByClassifiedExperienceRatherThanSyntheticUnrestrictedValue() {
         repository.save(JobPost.builder().sourcePlatform(SourcePlatform.GREENHOUSE).originalSn("exp-required")
                 .companyName("경력 분류 평가").title("개발자").experience("경력무관")
