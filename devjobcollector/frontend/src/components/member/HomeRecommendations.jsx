@@ -15,7 +15,7 @@ export default function HomeRecommendations() {
   if (!token) return <section className="home-recommendations home-recommendations-guest" aria-labelledby="personal-positions-title">
     <h2 id="personal-positions-title">나에게 맞는 추천 포지션을 찾고 있다면?</h2>
     <Link className="recommendation-login-banner" to="/login?next=%2Fresume-analysis">
-      <span className="recommendation-login-message"><span aria-hidden="true">👋</span><span>로그인하고 내 이력서에 맞는 포지션을 추천받아보세요!</span></span>
+      <span className="recommendation-login-message"><span aria-hidden="true">👋</span><span>로그인하고 내 이력서에 맞는 AI 추천 포지션을 만나보세요!</span></span>
       <span className="recommendation-login-action">회원가입/로그인 <ArrowRight size={16} aria-hidden="true" /></span>
     </Link>
   </section>;
