@@ -54,6 +54,12 @@ public class JobPost {
     @Column(name = "experience_label", nullable = false, length = 255)
     private String experienceLabel = "경력 확인 필요";
 
+    @Column(name = "experience_evidence", length = 500)
+    private String experienceEvidence;
+
+    @Column(name = "experience_method", nullable = false, length = 20)
+    private String experienceMethod = "UNKNOWN";
+
     @Column(name = "location")
     private String location;
     
@@ -151,6 +157,8 @@ public class JobPost {
         var classification = ExperienceClassification.classify(experience, title, applyQual, sourcePlatform == SourcePlatform.COMPANY_DIRECT);
         experienceCategory = classification.category();
         experienceLabel = classification.label();
+        experienceEvidence = classification.evidence();
+        experienceMethod = classification.method();
     }
 
     private void validateDates() {

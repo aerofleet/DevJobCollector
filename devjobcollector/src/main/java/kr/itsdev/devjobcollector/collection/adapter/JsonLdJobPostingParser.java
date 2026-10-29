@@ -104,7 +104,7 @@ public class JsonLdJobPostingParser {
                 sourceJobId,
                 companyName(posting.get("hiringOrganization"), fallbackCompanyName),
                 title,
-                location(posting.get("jobLocation")),
+                jobLocation(posting),
                 joinValues(posting.get("employmentType")),
                 experience(posting.get("experienceRequirements")),
                 firstText(posting, "occupationalCategory", "industry"),
@@ -140,7 +140,14 @@ public class JsonLdJobPostingParser {
         if (value.isTextual() || value.isArray()) {
             return joinValues(value);
         }
-        return firstText(value, "name", "value", "monthsOfExperience");
+        String text = firstText(value, "name", "value");
+        if (text != null) return text;
+        JsonNode months = value.get("monthsOfExperience");
+        if (months != null && months.canConvertToInt() && months.asInt() > 0) {
+            int count = months.asInt();
+            return count % 12 == 0 ? "경력 " + (count / 12) + "년 이상" : "경력 " + count + "개월 이상";
+        }
+        return null;
     }
 
     private static String location(JsonNode value) {
@@ -164,6 +171,22 @@ public class JsonLdJobPostingParser {
                 ? firstTextOrScalar(address.get("addressCountry"), "name") : null;
         addIfPresent(parts, country);
         return parts.isEmpty() ? null : String.join(" ", parts);
+    }
+
+    private static String jobLocation(JsonNode posting) {
+        String physical = location(posting.get("jobLocation"));
+        String type = joinValues(posting.get("jobLocationType"));
+        if (type == null || java.util.Arrays.stream(type.split(","))
+                .map(String::trim).noneMatch("TELECOMMUTE"::equalsIgnoreCase)) return physical;
+        JsonNode restrictions = posting.get("applicantLocationRequirements");
+        List<String> areas = new ArrayList<>();
+        if (restrictions != null && restrictions.isArray()) {
+            restrictions.forEach(item -> addIfPresent(areas, firstTextOrScalar(item, "name")));
+        } else {
+            addIfPresent(areas, firstTextOrScalar(restrictions, "name"));
+        }
+        String remote = areas.isEmpty() ? "재택 (지역 확인 필요)" : "재택 (" + String.join(", ", areas) + ")";
+        return physical == null ? remote : physical + ", " + remote;
     }
 
     private static String identifier(JsonNode value) {

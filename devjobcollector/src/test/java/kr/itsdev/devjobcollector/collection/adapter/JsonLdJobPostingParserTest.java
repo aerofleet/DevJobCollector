@@ -41,6 +41,34 @@ class JsonLdJobPostingParserTest {
         assertThat(result.malformedScriptCount()).isEqualTo(1);
     }
 
+    @Test
+    void mapsStructuredExperienceMonthsWithUnits() {
+        JsonLdJobPostingParser parser = new JsonLdJobPostingParser(new ObjectMapper(), new CompanyPageCollectionProperties(null, 20_000));
+        String html = """
+                <script type="application/ld+json">{"@type":"JobPosting","title":"Engineer",
+                "identifier":"one","url":"https://example.com/one",
+                "experienceRequirements":{"@type":"OccupationalExperienceRequirements","monthsOfExperience":18}}</script>
+                """;
+        assertThat(parser.parse(html, URI.create("https://example.com/jobs"), "Company").jobs())
+                .singleElement().satisfies(job -> assertThat(job.experience()).isEqualTo("경력 18개월 이상"));
+    }
+
+    @Test
+    void preservesRemoteEligibilityAndDoesNotInventAnEligibleCountry() {
+        JsonLdJobPostingParser parser = new JsonLdJobPostingParser(new ObjectMapper(), new CompanyPageCollectionProperties(null, 20_000));
+        String html = """
+                <script type="application/ld+json">[{"@type":"JobPosting","title":"Engineer",
+                "identifier":"one","url":"https://example.com/one","jobLocationType":"TELECOMMUTE",
+                "applicantLocationRequirements":[{"@type":"Country","name":"대한민국"}]},
+                {"@type":"JobPosting","title":"Engineer","identifier":"two","url":"https://example.com/two",
+                "jobLocationType":"TELECOMMUTE"}]</script>
+                """;
+        var jobs = parser.parse(html, URI.create("https://example.com/jobs"), "Company").jobs();
+        assertThat(jobs).hasSize(2);
+        assertThat(jobs.get(0).location()).isEqualTo("재택 (대한민국)");
+        assertThat(jobs.get(1).location()).isEqualTo("재택 (지역 확인 필요)");
+    }
+
     private void assertMappedJob(JobRawDto job) {
         assertThat(job.sourceJobId()).isEqualTo("backend-2026-01");
         assertThat(job.companyName()).isEqualTo("테스트회사");

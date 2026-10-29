@@ -26,6 +26,34 @@ class ExperienceClassificationMigrationTest {
     @AfterAll static void cleanup() { flyway(null).clean(); }
     @BeforeEach void resetSchema() { flyway(null).clean(); }
 
+    @Test void reclassifiesEncodedHtmlAfterV24() throws Exception {
+        flyway("24").migrate();
+        try (Connection connection = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
+            connection.setCatalog(SCHEMA);
+            try (Statement statement = connection.createStatement()) {
+                statement.executeUpdate("INSERT INTO job_posts (source_platform,original_sn,company_name,title,experience,apply_qual,start_date,end_date,original_url,is_active) VALUES "
+                        + "('GREENHOUSE','html-10339','기업','ML Engineer','경력무관','&lt;p&gt;&lt;strong&gt;자격&lt;/strong&gt; &lt;strong&gt;요건&lt;/strong&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;strong&gt;3&lt;/strong&gt;&lt;strong&gt;년 이상&lt;/strong&gt;의 상용 환경 내 머신러닝, 자연어 처리(NLP) 또는 AI 모델 개발, 학습 및 배포 실무 경력을 보유하신 분&lt;/li&gt;&lt;/ul&gt;','2026-01-01','2030-01-01','https://example.com',1)");
+            }
+        }
+        flyway(null).migrate();
+        try (Connection connection = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
+            connection.setCatalog(SCHEMA);
+            try (Statement statement = connection.createStatement(); ResultSet rows = statement.executeQuery(
+                    "SELECT experience,experience_category,experience_label,experience_evidence,experience_method FROM job_posts WHERE original_sn='html-10339'")) {
+                assertThat(rows.next()).isTrue();
+                assertThat(rows.getString("experience")).isEqualTo("경력무관");
+                assertThat(rows.getString("experience_category")).isEqualTo("EXPERIENCED");
+                assertThat(rows.getString("experience_label")).isEqualTo("경력 3년 이상");
+                assertThat(rows.getString("experience_evidence")).contains("3년 이상의", "실무 경력");
+                assertThat(rows.getString("experience_method")).isEqualTo("RULE");
+            }
+        }
+    }
+
     @Test void correctsOnlyMatchingDaangnGreenhouseUrls() throws Exception {
         flyway("23").migrate();
         try (Connection connection = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),
