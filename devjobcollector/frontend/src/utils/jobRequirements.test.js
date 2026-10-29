@@ -59,6 +59,11 @@ test('recognizes iOS without treating general frameworks and business domains as
   assert.deepEqual(extractMentionedTools(result), ['iOS']);
 });
 
+test('recognizes databases mentioned in preferred qualifications', () => {
+  const result = extractJobRequirements('지원자격\n객체지향 언어 경험\n우대사항\nJava/Spring 기반 백엔드 개발 경험\nPostgreSQL, MongoDB 등을 활용한 데이터베이스 설계 및 개발 경험');
+  assert.deepEqual(extractMentionedTools(result), ['Java', 'Spring', 'PostgreSQL', 'MongoDB']);
+});
+
 test('reads encoded HTML requirement sections and retains adjacent text', () => {
   const result = extractJobRequirements('&lt;p&gt;&lt;strong&gt;자격&lt;/strong&gt; &lt;strong&gt;요건&lt;/strong&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;strong&gt;3&lt;/strong&gt;&lt;strong&gt;년 이상&lt;/strong&gt;의 실무 경력&lt;/li&gt;&lt;/ul&gt;');
   assert.deepEqual(result.required, ['3년 이상의 실무 경력']);
