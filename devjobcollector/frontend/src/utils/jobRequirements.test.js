@@ -70,6 +70,15 @@ test('extracts GitLab qualifications independently of technology and stops at te
   assert.deepEqual(extractJobRequirements('What you bring\n- Communication skills\nBonus points\n- Event planning experience\nAbout the team\nTeam description'), { required: ['Communication skills'], preferred: ['Event planning experience'] });
 });
 
+test('extracts Airbnb expertise, inline preferred item and pay range', () => {
+  const html = '<p>Your Expertise:</p><ul><li>4+ years of accounting experience, with at least 1 year in month-end close.</li><li>Advanced Excel skills.</li><li>Preferred: public accounting experience; SQL or another database query language.</li></ul><p>Your Location:</p><p>US Remote Eligible.</p><div>Pay Range</div><div>$106,000&mdash;$125,000 USD</div>';
+  const result = extractJobRequirements(html);
+  assert.deepEqual(result.required, ['4+ years of accounting experience, with at least 1 year in month-end close.', 'Advanced Excel skills.']);
+  assert.deepEqual(result.preferred, ['public accounting experience; SQL or another database query language.']);
+  assert.deepEqual(extractMentionedTools(result), ['SQL', 'Excel']);
+  assert.equal(extractJobSalary(html), 'Pay Range $106,000—$125,000 USD');
+});
+
 test('reads encoded HTML requirement sections and retains adjacent text', () => {
   const result = extractJobRequirements('&lt;p&gt;&lt;strong&gt;자격&lt;/strong&gt; &lt;strong&gt;요건&lt;/strong&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;strong&gt;3&lt;/strong&gt;&lt;strong&gt;년 이상&lt;/strong&gt;의 실무 경력&lt;/li&gt;&lt;/ul&gt;');
   assert.deepEqual(result.required, ['3년 이상의 실무 경력']);
