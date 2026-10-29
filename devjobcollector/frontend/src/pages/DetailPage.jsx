@@ -7,7 +7,7 @@ import { createApplication, createBookmark, recordRecentJob } from '../api/caree
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import TechStackBadge from '../components/job/TechStackBadge';
 import { jobSourceLabel } from '../utils/jobSource';
-import { extractJobRequirements, extractJobSalary, extractMentionedTools } from '../utils/jobRequirements';
+import { extractJobRequirements, extractJobSalary, extractMentionedTools, formatJobLocation } from '../utils/jobRequirements';
 import { formatDate } from '../utils/dateParser';
 import { getDaysRemaining } from '../utils/dateParser';
 import '../styles/DetailPage.css';
@@ -124,7 +124,7 @@ const DetailPage = () => {
           <div className="info-grid">
             <div className="info-item">
               <span className="label">위치</span>
-              <span className="value">{job.location || '위치 미정'}</span>
+              <span className="value">{formatJobLocation(job.location) || '위치 미정'}</span>
             </div>
             <div className="info-item">
               <span className="label">경력</span>

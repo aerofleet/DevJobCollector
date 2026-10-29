@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractJobRequirements, extractJobSalary, extractMentionedTools } from './jobRequirements.js';
+import { extractJobRequirements, extractJobSalary, extractMentionedTools, formatJobLocation } from './jobRequirements.js';
 import { jobSourceLabel } from './jobSource.js';
 
 test('extracts only named requirement sections and stops at other headings', () => {
@@ -31,6 +31,16 @@ test('extracts Pinterest requirements and salary across intervening context', ()
   assert.deepEqual(extractMentionedTools(result), ['IaC', 'CI/CD']);
   assert.equal(extractJobSalary(html), '기본급 US based applicants only $177,185—$364,795 USD');
   assert.equal(extractJobSalary('Salary is competitive.\nOur Commitment to Inclusion:\n$123,000 USD'), null);
+});
+
+test('recognizes Figma required and preferred sections and deduplicates locations', () => {
+  const text = '<p>We\'d love to hear from you if you have:</p><ul><li>3+ years of experience leading engineering teams</li><li>Experience using large language models</li></ul><p>While not required, it’s an added plus if you also have:</p><ul><li>Understanding of design systems</li></ul><p>At Figma, one of our values is Grow as you go.</p><p>Pay Transparency Disclosure</p>';
+  const result = extractJobRequirements(text);
+  assert.deepEqual(result.required, ['3+ years of experience leading engineering teams', 'Experience using large language models']);
+  assert.deepEqual(result.preferred, ['Understanding of design systems']);
+  assert.deepEqual(extractMentionedTools(result), ['LLM']);
+  assert.equal(formatJobLocation('New York, NY; San Francisco, CA • New York, NY • United States'), 'New York, NY · San Francisco, CA · United States');
+  assert.equal(formatJobLocation('Seoul; 서울; Remote'), 'Seoul · 서울 · Remote');
 });
 
 test('extracts inline Kakao requirement sections without unrelated text', () => {

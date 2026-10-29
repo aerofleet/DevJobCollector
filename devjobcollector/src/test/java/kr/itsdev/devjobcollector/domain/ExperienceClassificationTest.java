@@ -4,6 +4,13 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ExperienceClassificationTest {
+    @Test void recognizesFigmaRequiredExperienceButExcludesPreferred() {
+        String required = "We'd love to hear from you if you have:\n3+ years of experience leading engineering teams\nWhile not required, it’s an added plus if you also have:\n8+ years of experience with design systems";
+        var result = ExperienceClassification.classify("경력무관", "Manager", required, false);
+        assertThat(result.label()).isEqualTo("경력 3년 이상");
+        assertThat(result.evidence()).contains("3+ years");
+        assertThat(ExperienceClassification.classify(null, "Manager", "While not required, it’s an added plus if you also have:\n8+ years of experience", false).category()).isEqualTo("UNKNOWN");
+    }
     @Test void recognizesExplicitEnglishMinimumRangeOnlyInRequirements() {
         String line = "Minimum of 2-3 years of relevant experience in customer support.";
         var actual = ExperienceClassification.classify("경력무관", "Support", "What we look for in you (i.e. job requirements):\n" + line, false);
