@@ -46,6 +46,25 @@ jobs:
           for candidate in ("gpt-5-nano", "gpt-5-mini", "gpt-5.4-mini", "gpt-5.4-mini-2026-03-17"):
               print(candidate + ": " + ("visible" if candidate in available else "not listed"))
           print("Visibility does not verify Responses permission or coaching quality.")
+  job-metadata:
+    if: ${{ inputs.model_access_only == true }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+      - name: Test one synthetic job against the configured model
+        working-directory: devjobcollector
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DJC_OPENAI_LIVE_TEST: "true"
+        run: |
+          chmod +x gradlew
+          ./gradlew test --tests '*ai.JobMetadataAiLiveTest' --no-daemon
   verify:
     if: ${{ inputs.model_access_only != true }}
     runs-on: ubuntu-latest
