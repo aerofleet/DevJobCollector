@@ -26,6 +26,21 @@ class ExperienceClassificationMigrationTest {
     @AfterAll static void cleanup() { flyway(null).clean(); }
     @BeforeEach void resetSchema() { flyway(null).clean(); }
 
+    @Test void createsReviewTableOnUpgradeFromV26() throws Exception {
+        flyway("26").migrate();
+        flyway(null).migrate();
+        try (Connection connection = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
+            connection.setCatalog(SCHEMA);
+            try (Statement statement = connection.createStatement(); ResultSet rows = statement.executeQuery(
+                    "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='job_metadata_ai_review' AND column_name IN ('input_hash','experience_quote','location_quote','review_status')")) {
+                assertThat(rows.next()).isTrue();
+                assertThat(rows.getInt(1)).isEqualTo(4);
+            }
+        }
+    }
+
     @Test void reclassifiesEncodedHtmlAfterV24() throws Exception {
         flyway("24").migrate();
         try (Connection connection = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),

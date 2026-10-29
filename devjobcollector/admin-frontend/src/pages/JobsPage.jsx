@@ -20,6 +20,10 @@ export default function JobsPage() {
   const [pendingStatus, setPendingStatus] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [aiPreview, setAiPreview] = useState(null);
+  const [aiResult, setAiResult] = useState(null);
+  const [aiHistory, setAiHistory] = useState([]);
+  const [aiConfirmed, setAiConfirmed] = useState(false);
 
   const load = useCallback(async () => {
     setError('');
@@ -35,6 +39,7 @@ export default function JobsPage() {
 
   const selectJob = async (id) => {
     setError(''); setReason(''); setNewEndDate(''); setPendingStatus(null);
+    setAiPreview(null); setAiResult(null); setAiHistory([]); setAiConfirmed(false);
     try {
       const job = (await adminApi.job(id)).data;
       if (job.sourcePlatform === 'COMPANY_DIRECT') {
@@ -43,6 +48,37 @@ export default function JobsPage() {
       setSelected(job);
     }
     catch (cause) { setError(cause.message); }
+  };
+
+  const prepareAi = async () => {
+    if (!selected || busy) return;
+    setBusy(true); setError(''); setAiConfirmed(false); setAiResult(null);
+    try {
+      const [preview, history] = await Promise.all([
+        adminRequest(`/jobs/${selected.id}/ai-metadata/preview`),
+        adminRequest(`/jobs/${selected.id}/ai-metadata/history`),
+      ]);
+      setAiPreview(preview); setAiHistory(history);
+    } catch (cause) { setError(cause.message); }
+    finally { setBusy(false); }
+  };
+
+  const analyzeAi = async () => {
+    if (!selected || !aiPreview || !aiConfirmed || busy) return;
+    setBusy(true); setError('');
+    try {
+      const result = await adminRequest(`/jobs/${selected.id}/ai-metadata/analyze`, {
+        method: 'POST', body: JSON.stringify({ inputHash: aiPreview.inputHash, confirmed: true }),
+      });
+      setAiResult(result); setAiConfirmed(false);
+      setAiHistory(await adminRequest(`/jobs/${selected.id}/ai-metadata/history`));
+    } catch (cause) {
+      setError(cause.code === 'JOB_AI_DISABLED' ? 'AI 공고 분석이 비활성화되어 있습니다.'
+        : cause.code === 'SOURCE_NOT_ALLOWED' ? '이 출처는 AI 분석을 허용하도록 설정되지 않았습니다.'
+          : cause.code === 'JOB_METADATA_ALREADY_KNOWN' ? '경력과 근무지 정보가 이미 확인된 공고입니다.'
+          : cause.code === 'PREVIEW_CHANGED' || cause.code === 'JOB_CHANGED' ? '공고가 변경되었습니다. 전송 내용을 다시 확인해 주세요.'
+            : cause.message);
+    } finally { setBusy(false); }
   };
 
   const changeStatus = async () => {
@@ -122,6 +158,28 @@ export default function JobsPage() {
         <div><dt>원본</dt><dd><a href={selected.originalUrl} target="_blank" rel="noreferrer">원본 공고 확인</a></dd></div></dl>
       {selected.sourcePlatform === 'COMPANY_DIRECT' && <p>기업 직접 등록 공고입니다. 이 화면에서 처리한 내용은 기업 공고 검수의 처리 이력에도 기록됩니다.</p>}
       {selected.companyJob?.state === 'DELETED' && <p>삭제 처리된 공고입니다. 공고와 감사 기록은 보존되며 수정·재게시할 수 없습니다.</p>}
+      {admin.role !== 'REVIEWER' && <section className="moderation-form" aria-label="AI 공고 조건 검토">
+        <h3>AI 공고 조건 검토</h3>
+        <p>경력·근무지의 제안을 생성합니다. 결과는 검토용이며 검색 필터에 자동 적용되지 않습니다.</p>
+        <button className="secondary-button" type="button" disabled={busy} onClick={prepareAi}>전송 내용 확인</button>
+        {aiPreview && <div>
+          <p>출처: {aiPreview.sourceKey} · {aiPreview.sourceAllowed ? 'AI 분석 허용 출처' : 'AI 분석 허용 미설정'}</p>
+          <p>아래 내용이 OpenAI에 전송됩니다. 공고 출처의 전송·분석 허용 여부와 내용을 확인해 주세요.</p>
+          <textarea aria-label="AI에 전송할 공고 내용" value={aiPreview.content} readOnly rows={8} />
+          <label><input type="checkbox" checked={aiConfirmed} disabled={!aiPreview.sourceAllowed || busy}
+            onChange={(event) => setAiConfirmed(event.target.checked)} /> 전송 내용과 출처의 이용 허용 범위를 확인했습니다.</label>
+          <button className="primary-button" type="button" disabled={!aiPreview.sourceAllowed || !aiConfirmed || busy} onClick={analyzeAi}>
+            {busy ? '분석 중…' : '확인하고 AI 분석'}</button>
+        </div>}
+        {aiResult && <p role="status">AI 제안을 저장했습니다. 검색 필터에는 반영되지 않았습니다.</p>}
+        {aiHistory.length > 0 && <details><summary>이전 AI 제안 {aiHistory.length}건</summary>
+          {aiHistory.map((item) => <div key={item.id}>
+            <p>경력 제안: {item.experience_suggestion || '확인 필요'}</p><p>근거: {item.experience_quote || '없음'}</p>
+            <p>근무지 제안: {item.location_suggestion || '확인 필요'}</p><p>근거: {item.location_quote || '없음'}</p>
+            <p>검토 상태: {item.review_status} · 공고 버전 {item.job_version}</p>
+          </div>)}
+        </details>}
+      </section>}
       {admin.role !== 'REVIEWER' && actions.length > 0 && <div className="moderation-form">
         {!pendingStatus ? <div className="job-actions">{actions.map((action) =>
           <button className="secondary-button" key={action} type="button" disabled={busy}

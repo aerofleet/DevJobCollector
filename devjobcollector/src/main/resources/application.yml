@@ -9,6 +9,9 @@ ai:
   preprocessing:
     enabled: ${AI_PREPROCESSING_ENABLED:false}
     worker-jar: ${AI_PREPROCESSING_WORKER_JAR:}
+  job-metadata:
+    enabled: ${JOB_METADATA_AI_ENABLED:false}
+    allowed-sources: ${JOB_METADATA_AI_ALLOWED_SOURCES:}
 
 spring:
   application:
