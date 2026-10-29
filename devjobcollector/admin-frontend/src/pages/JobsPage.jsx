@@ -165,6 +165,7 @@ export default function JobsPage() {
         {aiPreview && <div>
           <p>출처: {aiPreview.sourceKey} · {aiPreview.sourceAllowed ? 'AI 분석 허용 출처' : 'AI 분석 허용 미설정'}</p>
           <p>아래 내용이 OpenAI에 전송됩니다. 공고 출처의 전송·분석 허용 여부와 내용을 확인해 주세요.</p>
+          {aiPreview.truncated && <p>공고가 길어 앞부분만 전송됩니다. 빠진 내용은 원문에서 확인해 주세요.</p>}
           <textarea aria-label="AI에 전송할 공고 내용" value={aiPreview.content} readOnly rows={8} />
           <label><input type="checkbox" checked={aiConfirmed} disabled={!aiPreview.sourceAllowed || busy}
             onChange={(event) => setAiConfirmed(event.target.checked)} /> 전송 내용과 출처의 이용 허용 범위를 확인했습니다.</label>

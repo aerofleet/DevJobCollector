@@ -52,6 +52,13 @@ class JobMetadataAiServiceTest {
         verify(jdbc, never()).update(anyString(), any(Object[].class));
     }
 
+    @Test void reportsTruncatedPreviewWithoutSplittingUnicode() {
+        when(job.getApplyQual()).thenReturn("a".repeat(11999) + "😀" + "b".repeat(5));
+        var preview = service(true, "GREENHOUSE:permitted").preview(42, admin);
+        assertThat(preview.truncated()).isTrue();
+        assertThat(preview.content()).hasSize(11999);
+    }
+
     @Test void doesNotSendJobsWhoseExperienceAndLocationAreKnown() {
         when(job.getExperienceCategory()).thenReturn("EXPERIENCED");
         when(job.getLocation()).thenReturn("서울");

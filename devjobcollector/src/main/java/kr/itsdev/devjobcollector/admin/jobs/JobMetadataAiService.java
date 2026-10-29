@@ -84,8 +84,12 @@ public class JobMetadataAiService {
         String raw = job.getApplyQual() == null ? "" : job.getApplyQual();
         String text = Jsoup.parse(HtmlUtils.htmlUnescape(HtmlUtils.htmlUnescape(raw))).text().replace('\u00a0', ' ').trim();
         if (text.isBlank()) throw error(HttpStatus.UNPROCESSABLE_ENTITY, "JOB_CONTENT_EMPTY");
-        if (text.length() > 12000) text = text.substring(0, 12000);
-        return new Preview(job.getId(), job.getVersion(), sourceKey, text, sha256(text), allowedSources.contains(sourceKey));
+        boolean truncated = text.length() > 12000;
+        if (truncated) {
+            int end = Character.isHighSurrogate(text.charAt(11999)) ? 11999 : 12000;
+            text = text.substring(0, end);
+        }
+        return new Preview(job.getId(), job.getVersion(), sourceKey, text, sha256(text), allowedSources.contains(sourceKey), truncated);
     }
 
     static void validatePair(String input, String value, String quote) {
@@ -105,5 +109,5 @@ public class JobMetadataAiService {
         catch (Exception e) { throw new IllegalStateException(e); }
     }
     private static ResponseStatusException error(HttpStatus status, String code) { return new ResponseStatusException(status, code); }
-    public record Preview(long jobId, long version, String sourceKey, String content, String inputHash, boolean sourceAllowed) {}
+    public record Preview(long jobId, long version, String sourceKey, String content, String inputHash, boolean sourceAllowed, boolean truncated) {}
 }
