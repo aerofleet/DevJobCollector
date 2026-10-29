@@ -91,6 +91,22 @@ public class JobPost {
 
     @Column(name = "process_info", columnDefinition = "LONGTEXT")
     private String processInfo;
+
+    @Column(name = "public_preference", columnDefinition = "LONGTEXT")
+    private String publicPreference;
+    @Column(name = "public_preference_conditions", columnDefinition = "LONGTEXT")
+    private String publicPreferenceConditions;
+    @Column(name = "public_disqualification", columnDefinition = "LONGTEXT")
+    private String publicDisqualification;
+    @Column(name = "public_details_checked_at")
+    private LocalDateTime publicDetailsCheckedAt;
+
+    public void updatePublicDetails(String preference, String conditions, String disqualification) {
+        this.publicPreference = preference;
+        this.publicPreferenceConditions = conditions;
+        this.publicDisqualification = disqualification;
+        this.publicDetailsCheckedAt = LocalDateTime.now();
+    }
    
     @Column(name = "is_active", nullable = false, columnDefinition = "BOOLEAN DEFAULT true")
     private boolean isActive = true;

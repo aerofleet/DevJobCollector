@@ -166,6 +166,9 @@ const DetailPage = () => {
             <h3>지원 자격</h3>
             <StructuredJobContent content={job.applyQual} emptyMessage="제공된 지원 자격이 없습니다." />
           </section>
+          {job.publicPreference && <section className="detail-section"><h3>우대 사항</h3><StructuredJobContent content={job.publicPreference} /></section>}
+          {job.publicPreferenceConditions && <section className="detail-section"><h3>우대 조건</h3><StructuredJobContent content={job.publicPreferenceConditions} /></section>}
+          {job.publicDisqualification && <section className="detail-section"><h3>결격 사유</h3><StructuredJobContent content={job.publicDisqualification} /></section>}
           <section className="detail-section">
             <h3>전형 절차 및 방법</h3>
             <StructuredJobContent content={job.processInfo} emptyMessage="제공된 전형 정보가 없습니다." />

@@ -32,6 +32,9 @@ public class JobPostDetailDto {
     // 상세 정보
     private String applyQual;
     private String processInfo;
+    private String publicPreference;
+    private String publicPreferenceConditions;
+    private String publicDisqualification;
 
     private boolean isActive;
 
