@@ -45,3 +45,18 @@ test('모바일에서도 핵심 항목과 하단 액션을 화면 너비 안에 
   expect(contentBox.x + contentBox.width).toBeLessThanOrEqual(360);
   expect(actionBox.x + actionBox.width).toBeLessThanOrEqual(360);
 });
+
+test('알리오 공고의 제공된 지원 자격과 전형 방법을 전체 표시한다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/43?*', (route) => route.fulfill({ json: {
+    ...jobDetail, id: 43, sourcePlatform: 'PUBLIC_ALIO', applyQual: '지원 자격 상세 문구\n추가 자격 문구',
+    processInfo: '서류 전형\n면접 전형', files: [{ id: 1, fileName: '채용 공고.pdf', fileUrl: 'https://example.com/notice.pdf' }],
+  } }));
+  await page.goto('/job/43');
+  await expect(page.getByText('출처 · 공공기관 알리오')).toBeVisible();
+  await expect(page.getByText(/지원 자격 상세 문구/)).toBeVisible();
+  await expect(page.getByText(/추가 자격 문구/)).toBeVisible();
+  await expect(page.getByText(/면접 전형/)).toBeVisible();
+  await expect(page.getByRole('link', { name: '채용 공고.pdf' })).toHaveAttribute('href', 'https://example.com/notice.pdf');
+  await expect(page.getByRole('link', { name: '공고 원문 보기 ↗' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /지원하기/ })).toBeEnabled();
+});

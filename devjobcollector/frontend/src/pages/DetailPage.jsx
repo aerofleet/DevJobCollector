@@ -6,6 +6,7 @@ import { fetchJobDetail, recordJobEngagement } from '../api/jobApi';
 import { createApplication, createBookmark, recordRecentJob } from '../api/careerActivityApi';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import TechStackBadge from '../components/job/TechStackBadge';
+import StructuredJobContent from '../components/job/StructuredJobContent';
 import { jobSourceLabel } from '../utils/jobSource';
 import { extractJobRequirements, extractJobSalary, extractMentionedTools, formatJobLocation } from '../utils/jobRequirements';
 import { formatDate } from '../utils/dateParser';
@@ -61,6 +62,7 @@ const DetailPage = () => {
 
   const daysRemaining = getDaysRemaining(job.endDate);
   const requirements = extractJobRequirements(job.applyQual);
+  const isPublicAlio = job.sourcePlatform === 'PUBLIC_ALIO';
   const salary = extractJobSalary(job.applyQual);
   const mentionedTools = extractMentionedTools(requirements);
   const registeredTools = new Set((job.techStacks || []).map((tech) => tech.stackName?.trim().toLowerCase()));
@@ -130,6 +132,8 @@ const DetailPage = () => {
               <span className="label">경력</span>
               <span className="value">{job.experience || '경력 확인 필요'}</span>
             </div>
+            {isPublicAlio && job.jobCategory && <div className="info-item"><span className="label">채용 분야</span><span className="value">{job.jobCategory}</span></div>}
+            {isPublicAlio && job.hireType && <div className="info-item"><span className="label">고용 형태</span><span className="value">{job.hireType}</span></div>}
             <div className="info-item">
               <span className="label">공고일 또는 수집일</span>
               <span className="value">{formatDate(job.startDate)}</span>
@@ -154,9 +158,25 @@ const DetailPage = () => {
             ))}
           </div>
           {additionalTools.length > 0 && <><p className="job-content-empty">원문 자격·우대 항목에 언급된 기술 및 도구</p><div className="tech-stack">{additionalTools.map((name) => <TechStackBadge key={name} tech={{ stackName: name }} />)}</div></>}
-          {!job.techStacks?.length && !additionalTools.length && <p className="job-content-empty">등록된 기술 스택이 없습니다. 원문을 확인해 주세요.</p>}
+          {!job.techStacks?.length && !additionalTools.length && <p className="job-content-empty">{isPublicAlio ? '등록된 기술 스택이 없습니다.' : '등록된 기술 스택이 없습니다. 원문을 확인해 주세요.'}</p>}
         </section>
 
+        {isPublicAlio ? <>
+          <section className="detail-section">
+            <h3>지원 자격</h3>
+            <StructuredJobContent content={job.applyQual} emptyMessage="제공된 지원 자격이 없습니다." />
+          </section>
+          <section className="detail-section">
+            <h3>전형 절차 및 방법</h3>
+            <StructuredJobContent content={job.processInfo} emptyMessage="제공된 전형 정보가 없습니다." />
+            <p className="detail-source-note">출처: 공공기관 알리오 · 제공된 공고 정보와 첨부파일을 확인해 주세요.</p>
+          </section>
+          {job.files?.length > 0 && <section className="detail-section"><h3>첨부파일</h3><ul>{job.files.map((file) => {
+            let href = null;
+            try { const parsed = new URL(file.fileUrl); if (['http:', 'https:'].includes(parsed.protocol)) href = parsed.href; } catch { /* 유효한 주소만 연결합니다. */ }
+            return <li key={file.id}>{href ? <a href={href} target="_blank" rel="noopener noreferrer">{file.fileName || '첨부파일'}</a> : (file.fileName || '첨부파일')}</li>;
+          })}</ul></section>}
+        </> : <>
         <section className="detail-section">
           <h3>자격 조건</h3>
           {requirements.required.length ? <ul>{requirements.required.map((item, index) => <li key={index}>{item}</li>)}</ul>
@@ -173,6 +193,7 @@ const DetailPage = () => {
           <p className="detail-source-note">일부 항목만 표시됩니다. 정확한 자격 조건과 상세 내용은 원문에서 확인해 주세요.</p>
           {originalUrl && <a className="detail-original-link" href={originalUrl} target="_blank" rel="noopener noreferrer">공고 원문 보기 ↗</a>}
         </section>
+        </>}
 
         <div className="action-buttons">
           <button type="button" className="save-job-button im-button" onClick={async () => {
