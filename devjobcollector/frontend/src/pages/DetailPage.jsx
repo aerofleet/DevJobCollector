@@ -6,7 +6,8 @@ import { fetchJobDetail, recordJobEngagement } from '../api/jobApi';
 import { createApplication, createBookmark, recordRecentJob } from '../api/careerActivityApi';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import TechStackBadge from '../components/job/TechStackBadge';
-import StructuredJobContent from '../components/job/StructuredJobContent';
+import { jobSourceLabel } from '../utils/jobSource';
+import { extractJobRequirements } from '../utils/jobRequirements';
 import { formatDate } from '../utils/dateParser';
 import { getDaysRemaining } from '../utils/dateParser';
 import '../styles/DetailPage.css';
@@ -59,6 +60,12 @@ const DetailPage = () => {
   if (!job) return <div className="error-message">공고를 찾을 수 없습니다.</div>;
 
   const daysRemaining = getDaysRemaining(job.endDate);
+  const requirements = extractJobRequirements(job.applyQual);
+  let originalUrl = null;
+  try {
+    const parsed = new URL(job.originalUrl);
+    if (['http:', 'https:'].includes(parsed.protocol)) originalUrl = parsed.href;
+  } catch { /* 원문 주소가 없거나 유효하지 않습니다. */ }
 
   const requireMember = () => {
     if (getAccessToken()) return true;
@@ -90,7 +97,7 @@ const DetailPage = () => {
     createApplication(id).then(() => setActivityMessage('지원 기록을 저장했습니다. 열린 채용 사이트에서 지원을 완료해주세요.')).catch((activityError) => {
       if (activityError.response?.status !== 401) setActivityMessage('지원 기록 저장에 실패했습니다. 열린 채용 사이트에서 지원 여부를 확인해주세요.');
     });
-    window.open(job.originalUrl, '_blank', 'noopener,noreferrer');
+    if (originalUrl) window.open(originalUrl, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -105,8 +112,8 @@ const DetailPage = () => {
       <div className="detail-container">
         <header className="detail-header">
           <h1>{job.title}</h1>
-          {job.sourcePlatform === 'COMPANY_DIRECT' && <span className="company-direct-badge">기업 직접 등록</span>}
-          <span>{job.companyName} {'>'}</span>
+          <p className="detail-source">출처 · {jobSourceLabel(job)}</p>
+          <span>{job.companyName}</span>
         </header>
 
         <section className="detail-section-top">
@@ -136,38 +143,27 @@ const DetailPage = () => {
         </section>
 
         <section className="detail-section">
-          <h3>카테고리</h3>
+          <h3>기술 스택</h3>
           <div className="tech-stack">
             {job.techStacks?.map((tech) => (
               <TechStackBadge key={tech.id} tech={tech} />
             ))}
           </div>
+          {!job.techStacks?.length && <p className="job-content-empty">등록된 기술 스택이 없습니다. 원문을 확인해 주세요.</p>}
         </section>
 
-        {job.processInfo && (
-          <section className="detail-section">
-            <div className="detail-section-heading">
-              <span className="detail-section-number">01</span>
-              <h2>전형 절차</h2>
-            </div>
-            <StructuredJobContent content={job.processInfo} />
-          </section>
-        )}
-
-        {job.applyQual && (
-          <section className="detail-section">
-            <div className="detail-section-heading">
-              <span className="detail-section-number">{job.processInfo ? '02' : '01'}</span>
-              <div>
-                <p>JOB DESCRIPTION</p>
-                <h2>상세 내용</h2>
-              </div>
-            </div>
-            {job.sourcePlatform === 'COMPANY_DIRECT'
-              ? <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{job.applyQual}</div>
-              : <StructuredJobContent content={job.applyQual} />}
-          </section>
-        )}
+        <section className="detail-section">
+          <h3>자격 조건</h3>
+          {requirements.required.length ? <ul>{requirements.required.map((item, index) => <li key={index}>{item}</li>)}</ul>
+            : <p className="job-content-empty">자격 조건을 확인하지 못했어요. 원문을 확인해 주세요.</p>}
+        </section>
+        <section className="detail-section">
+          <h3>우대 사항</h3>
+          {requirements.preferred.length ? <ul>{requirements.preferred.map((item, index) => <li key={index}>{item}</li>)}</ul>
+            : <p className="job-content-empty">우대 사항을 확인하지 못했어요. 원문을 확인해 주세요.</p>}
+          <p className="detail-source-note">일부 항목만 표시됩니다. 정확한 자격 조건과 상세 내용은 원문에서 확인해 주세요.</p>
+          {originalUrl && <a className="detail-original-link" href={originalUrl} target="_blank" rel="noopener noreferrer">공고 원문 보기 ↗</a>}
+        </section>
 
         <div className="action-buttons">
           <button type="button" className="save-job-button im-button" onClick={async () => {
@@ -186,7 +182,7 @@ const DetailPage = () => {
           >
             {activityPending === 'bookmark' ? '저장 중...' : '공고 저장'}
           </button>
-          <button type="button" className="apply-button im-button" onClick={handleApply}>지원하기 🚀</button>
+          <button type="button" className="apply-button im-button" onClick={handleApply} disabled={!originalUrl}>지원하기 🚀</button>
         </div>
         <div className="im-feedback" role="status" aria-live="polite" aria-atomic="true">
           {activityMessage && <div className="im-toast"><span>{activityMessage}</span><button type="button" className="im-button" aria-label="알림 닫기" onClick={() => setActivityMessage('')}>닫기</button></div>}

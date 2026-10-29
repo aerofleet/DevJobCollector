@@ -96,6 +96,8 @@
   padding: 16px;
 }
 
+.job-source { display: block; margin-bottom: 8px; color: #706a7b; font-size: 12px; font-weight: 600; }
+
 /* 회사명 */
 .job-company-row {
   display: flex;

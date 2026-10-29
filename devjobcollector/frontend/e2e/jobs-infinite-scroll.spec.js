@@ -81,10 +81,10 @@ test('공고 내용 검색 범위를 안내하고 복합 검색어를 API에 전
 
   await expect(page).toHaveURL(/keyword=Java%2FKafka(?:\+|%20)%EC%8B%A0%EC%9E%85/);
   await expect.poll(() => requestedKeywords.includes('Java/Kafka 신입')).toBe(true);
-  await expect(page.locator('.job-match-snippet')).toHaveText('Java와 Kafka 기반 공고 내용 일치 구간');
+  await expect(page.locator('.job-match-snippet')).toHaveCount(0);
 });
 
-test('탭 복귀 시 숨김 공고를 캐시 없이 다시 검색해 제거한다', async ({ page }) => {
+test('5분 이상 탭을 떠난 뒤 복귀하면 숨김 공고를 다시 검색해 제거한다', async ({ page }) => {
   const requestKeys = [];
   let hidden = false;
   await page.route('**/api/v1/jobs/search**', async (route) => {
@@ -100,7 +100,14 @@ test('탭 복귀 시 숨김 공고를 캐시 없이 다시 검색해 제거한�
   await page.goto('/jobs?keyword=한국탄소산업진흥원');
   await expect(page.locator('.job-card')).toHaveCount(1);
   hidden = true;
-  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    const now = Date.now();
+    Date.now = () => now + 301_000;
+    Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
   await expect(page.locator('.job-card')).toHaveCount(0);
   await expect(page.getByText('조건에 맞는 공고 0개')).toBeVisible();
   expect(requestKeys.length).toBeGreaterThanOrEqual(2);

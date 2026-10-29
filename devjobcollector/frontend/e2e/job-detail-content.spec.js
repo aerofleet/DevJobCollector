@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 const jobDetail = {
   id: 42,
+  sourcePlatform: 'GREENHOUSE',
   title: '플랫폼 백엔드 개발자',
   companyName: '데브잡스랩',
   location: '서울',
@@ -22,23 +23,22 @@ test.beforeEach(async ({ page }) => {
   }));
 });
 
-test('상세 내용을 제목, 목록, 안내 링크로 구조화해 표시한다', async ({ page }) => {
+test('공고 원문 대신 출처와 자격 조건을 표시하고 원문으로 연결한다', async ({ page }) => {
   await page.goto('/job/42');
 
-  const detail = page.locator('.structured-job-content').nth(1);
-  await expect(detail.getByRole('heading', { name: '주요업무' })).toBeVisible();
-  await expect(detail.getByRole('heading', { name: '자격요건' })).toBeVisible();
-  await expect(detail.getByRole('heading', { name: 'About the team' })).toBeVisible();
-  await expect(detail.locator('li')).toHaveCount(4);
-  await expect(detail.getByRole('link', { name: 'https://example.com/guide' })).toHaveAttribute('rel', 'noopener noreferrer');
+  await expect(page.getByText('출처 · Greenhouse')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '자격 조건' })).toBeVisible();
+  await expect(page.getByText('백엔드 개발 경력 3년 이상')).toBeVisible();
+  await expect(page.getByText('Java와 Spring 기반 서비스를 개발합니다.')).toHaveCount(0);
+  await expect(page.getByRole('link', { name: '공고 원문 보기 ↗' })).toHaveAttribute('href', jobDetail.originalUrl);
   expect(await page.evaluate(() => window.__jobContentInjected)).toBeUndefined();
 });
 
-test('모바일에서도 본문과 하단 액션을 화면 너비 안에 표시한다', async ({ page }, testInfo) => {
+test('모바일에서도 핵심 항목과 하단 액션을 화면 너비 안에 표시한다', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-360', '모바일 프로젝트 전용 평가');
   await page.goto('/job/42');
 
-  const contentBox = await page.locator('.structured-job-content').nth(1).boundingBox();
+  const contentBox = await page.getByRole('heading', { name: '자격 조건' }).boundingBox();
   const actionBox = await page.locator('.action-buttons').boundingBox();
   expect(contentBox.x).toBeGreaterThanOrEqual(0);
   expect(contentBox.x + contentBox.width).toBeLessThanOrEqual(360);

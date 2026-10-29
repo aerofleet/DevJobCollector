@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import TechStackBadge from './TechStackBadge';
 import { formatDate, getDaysRemaining, isOpenEndedDate } from '../../utils/dateParser';
 import { getCompanyInitials, getCompanyLogoUrl } from '../../utils/companyLogo';
+import { jobSourceLabel } from '../../utils/jobSource';
 import '../../styles/JobCard.css';
 
 const JobCard = ({ job }) => {
@@ -47,7 +48,7 @@ const JobCard = ({ job }) => {
       
       {/* 컨텐츠 영역 */}
       <div className='job-content'>
-        {job.sourcePlatform === 'COMPANY_DIRECT' && <span className="company-direct-badge">기업 직접 등록</span>}
+        <span className="job-source">출처 · {jobSourceLabel(job)}</span>
         {/* 회사명 + 마감일 */}
         <div className='job-company-row'>
           <p className='job-company'>{job.companyName}</p>
@@ -69,10 +70,6 @@ const JobCard = ({ job }) => {
             <TechStackBadge key={tech.id} tech={tech} />
           ))}
         </div>
-
-        {job.matchedSnippet && (
-          <p className="job-match-snippet">{job.matchedSnippet}</p>
-        )}
 
         {/* 지역 + 경력 */}
         <div className='job-location-experience'>
