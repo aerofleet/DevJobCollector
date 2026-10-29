@@ -23,6 +23,16 @@ test('extracts Coinbase qualifications, preferred tools and labeled salary separ
   assert.equal(extractJobSalary('Requirements\n5 years of experience'), null);
 });
 
+test('extracts Pinterest requirements and salary across intervening context', () => {
+  const html = '<p>What we’re looking for:</p><ul><li>Minimum 10 years experience in high-scale infrastructure.</li><li>Experience with IaC or CI/CD.</li></ul><p>In-Office Requirement Statement:</p><ul><li>Office visits 1–2 times every 6 months.</li></ul><p>In an effort to provide greater transparency, we are sharing the base salary range for this position. The position is also eligible for equity. Final salary depends on location and experience.</p><p>Information about benefits is available here.</p><div>US based applicants only</div><div>$177,185&mdash;$364,795 USD</div><p>Our Commitment to Inclusion:</p>';
+  const result = extractJobRequirements(html);
+  assert.deepEqual(result.required, ['Minimum 10 years experience in high-scale infrastructure.', 'Experience with IaC or CI/CD.']);
+  assert.deepEqual(result.preferred, []);
+  assert.deepEqual(extractMentionedTools(result), ['IaC', 'CI/CD']);
+  assert.equal(extractJobSalary(html), '기본급 US based applicants only $177,185—$364,795 USD');
+  assert.equal(extractJobSalary('Salary is competitive.\nOur Commitment to Inclusion:\n$123,000 USD'), null);
+});
+
 test('extracts inline Kakao requirement sections without unrelated text', () => {
   const result = extractJobRequirements('◆ 조직소개 - 소개 내용 ◆ 지원자격 - 백엔드 개발 경력 3년 이상인 분 ◆ 우대사항 - 실무 경력 7년 이상인 분 ◆ 접수 방법 - 채용사이트 지원');
   assert.deepEqual(result, { required: ['백엔드 개발 경력 3년 이상인 분'], preferred: ['실무 경력 7년 이상인 분'] });
