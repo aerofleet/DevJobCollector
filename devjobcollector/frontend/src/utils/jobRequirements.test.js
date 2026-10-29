@@ -64,6 +64,12 @@ test('recognizes databases mentioned in preferred qualifications', () => {
   assert.deepEqual(extractMentionedTools(result), ['Java', 'Spring', 'PostgreSQL', 'MongoDB']);
 });
 
+test('extracts GitLab qualifications independently of technology and stops at team information', () => {
+  const html = '<p>What You’ll Bring&nbsp;</p><ul><li>Experience supporting multiple senior leaders.</li><li>Proficiency with tools such as Google Workspace, Slack and Zoom.</li><li>Clear, approachable communication across functions.</li></ul><p>About the team</p><p>You will join our team.</p><p>Benefits</p><ul><li>Flexible Paid Time Off</li></ul>';
+  assert.deepEqual(extractJobRequirements(html), { required: ['Experience supporting multiple senior leaders.', 'Proficiency with tools such as Google Workspace, Slack and Zoom.', 'Clear, approachable communication across functions.'], preferred: [] });
+  assert.deepEqual(extractJobRequirements('What you bring\n- Communication skills\nBonus points\n- Event planning experience\nAbout the team\nTeam description'), { required: ['Communication skills'], preferred: ['Event planning experience'] });
+});
+
 test('reads encoded HTML requirement sections and retains adjacent text', () => {
   const result = extractJobRequirements('&lt;p&gt;&lt;strong&gt;자격&lt;/strong&gt; &lt;strong&gt;요건&lt;/strong&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;strong&gt;3&lt;/strong&gt;&lt;strong&gt;년 이상&lt;/strong&gt;의 실무 경력&lt;/li&gt;&lt;/ul&gt;');
   assert.deepEqual(result.required, ['3년 이상의 실무 경력']);

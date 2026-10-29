@@ -1,5 +1,5 @@
-const HEADINGS = /^(?:#{1,6}\s*)?[[【]?(자격\s*(?:요건|조건)|지원\s*자격|필수\s*요건|우대\s*사항|우대\s*요건|preferred qualifications|preferred requirements|nice to haves?|while not required,?\s*it['’]s an added plus if you also have|we['’]d love to hear from you if you have|what we(?:['’]re| are) looking for|what we look for in you(?:\s*\(i\.?e\.?\s*,?\s*job requirements\))?|qualifications|requirements)[\]】]?[\s:：-]*$/i;
-const OTHER_HEADING = /^(?:#{1,6}\s+.+|[[【].+[\]】]|(?:주요\s*업무|담당\s*업무|업무\s*내용|조직\s*소개|근무\s*조건|복리\s*후생|전형\s*절차|채용\s*절차|접수\s*방법|기타\s*사항|responsibilities|benefits|about the role|hiring process)\s*[:：]?)$/i;
+const HEADINGS = /^(?:#{1,6}\s*)?[[【]?(자격\s*(?:요건|조건)|지원\s*자격|필수\s*요건|우대\s*사항|우대\s*요건|preferred qualifications|preferred requirements|nice to haves?|bonus points|while not required,?\s*it['’]s an added plus if you also have|we['’]d love to hear from you if you have|what you(?:['’]ll| will)?\s+(?:bring|need)|what we(?:['’]re| are) looking for|what we look for in you(?:\s*\(i\.?e\.?\s*,?\s*job requirements\))?|qualifications|requirements)[\]】]?[\s:：-]*$/i;
+const OTHER_HEADING = /^(?:#{1,6}\s+.+|[[【].+[\]】]|(?:주요\s*업무|담당\s*업무|업무\s*내용|조직\s*소개|근무\s*조건|복리\s*후생|전형\s*절차|채용\s*절차|접수\s*방법|기타\s*사항|responsibilities|benefits|about the (?:role|team)|hiring process)\s*[:：]?)$/i;
 
 // Recognize explicit sections only; unknown formats must not be presented as requirements.
 export function extractJobRequirements(content) {
@@ -16,7 +16,7 @@ export function extractJobRequirements(content) {
     if (!line) continue;
     const heading = line.match(HEADINGS);
     if (heading) {
-      section = /우대|preferred|nice to have|added plus/i.test(heading[1]) ? 'preferred' : 'required';
+      section = /우대|preferred|nice to have|added plus|bonus points/i.test(heading[1]) ? 'preferred' : 'required';
       continue;
     }
     if (OTHER_HEADING.test(line) || /^#\s*[A-Z]?\d+\b/i.test(line) || /^(?:at figma, one of our values|pay transparency|annual base salary|application limit|equal opportunity employer|accommodations|data privacy)\b/i.test(line) || /^[^:：]{1,80}[:：]$/.test(line)) { section = null; continue; }
