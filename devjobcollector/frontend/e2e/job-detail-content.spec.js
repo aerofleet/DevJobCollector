@@ -12,7 +12,7 @@ const jobDetail = {
   originalUrl: 'https://example.com/jobs/42',
   techStacks: [],
   processInfo: '1. 서류 전형\n2. 기술 인터뷰\n3. 최종 인터뷰',
-  applyQual: '<p>주요업무:</p><ul><li>Java와 Spring 기반 서비스를 개발합니다.</li><li>코드 리뷰와 설계 개선에 참여합니다.</li></ul>\n자격요건:\n• 백엔드 개발 경력 3년 이상\n• HTTP와 데이터베이스에 대한 이해\nAbout the team:\n제품 조직과 긴밀하게 협업합니다.\n<img src=x onerror="window.__jobContentInjected=true">\n※ 자세한 안내: https://example.com/guide',
+  applyQual: '◆ 업무내용 - Java와 Spring 기반 서비스를 개발합니다. ◆ 지원자격 - 백엔드 개발 경력 3년 이상 - HTTP와 데이터베이스에 대한 이해 ◆ 우대사항 - 클라우드 운영 경험 ◆ 접수 방법 - https://example.com/guide',
 };
 
 test.beforeEach(async ({ page }) => {
@@ -29,6 +29,7 @@ test('공고 원문 대신 출처와 자격 조건을 표시하고 원문으로 
   await expect(page.getByText('출처 · Greenhouse')).toBeVisible();
   await expect(page.getByRole('heading', { name: '자격 조건' })).toBeVisible();
   await expect(page.getByText('백엔드 개발 경력 3년 이상')).toBeVisible();
+  await expect(page.getByText('클라우드 운영 경험')).toBeVisible();
   await expect(page.getByText('Java와 Spring 기반 서비스를 개발합니다.')).toHaveCount(0);
   await expect(page.getByRole('link', { name: '공고 원문 보기 ↗' })).toHaveAttribute('href', jobDetail.originalUrl);
   expect(await page.evaluate(() => window.__jobContentInjected)).toBeUndefined();

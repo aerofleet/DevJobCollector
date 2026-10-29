@@ -11,12 +11,13 @@ public record ExperienceClassification(String category, String label) {
     private static final Pattern YEAR_RANGE = Pattern.compile("\\d{1,2}\\s*(?:년\\s*)?[~～–-]\\s*\\d{1,2}\\s*년");
     private static final Pattern PREFERRED = Pattern.compile("(?i)우대\\s*(?:사항|요건|조건)|preferred\\s+(?:qualifications|requirements)|nice to have");
     private static final Pattern REQUIRED = Pattern.compile("(?i)자격\\s*요건|지원\\s*자격|필수\\s*(?:요건|사항|조건)|(?:minimum\\s+)?requirements|qualifications");
-    private static final Pattern OTHER = Pattern.compile("(?i)주요\\s*업무|담당\\s*업무|복리\\s*후생|근무\\s*조건|전형\\s*절차|responsibilities|benefits|about the (?:role|team)");
+    private static final Pattern OTHER = Pattern.compile("(?i)주요\\s*업무|담당\\s*업무|업무\\s*내용|복리\\s*후생|근무\\s*조건|전형\\s*절차|접수\\s*방법|responsibilities|benefits|about the (?:role|team)");
 
     public static ExperienceClassification classify(String source, String title, String description, boolean direct) {
         String stated = source == null ? "" : source.trim();
         String text = description == null ? "" : description.replaceAll("(?i)<br\\s*/?>|</(?:p|div|li|h[1-6])>", "\n")
-                .replaceAll("<[^>]*>", " ");
+                .replaceAll("<[^>]*>", " ").replace("\u200b", "")
+                .replaceAll("\\s*◆\\s*", "\n").replaceAll("[ \\t]+-[ \\t]+", "\n- ");
         int minimum = 0;
         boolean minimumExplicit = false;
         boolean inRequired = false;

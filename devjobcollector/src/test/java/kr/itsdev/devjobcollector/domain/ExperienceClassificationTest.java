@@ -28,4 +28,11 @@ class ExperienceClassificationTest {
         assertThat(ExperienceClassification.classify("신입·경력", "개발자", "", false).category()).isEqualTo("BOTH");
         assertThat(ExperienceClassification.classify(null, "개발자", "자격요건\n실무 5년", false).label()).isEqualTo("경력 5년");
     }
+
+    @Test void separatesInlineKakaoSectionsAndIgnoresPreferredExperience() {
+        var result = ExperienceClassification.classify("경력무관", "Backend Engineer",
+                "◆ 조직소개 - 시스템을 개발합니다. ◆ 업무내용 - 서버 운영 ◆ 지원자격 - 백엔드 개발 경력 3년 이상인 분 - 협업 경험 ◆ 우대사항 - 실무 경력 7년 이상인 분 ◆ 접수 방법 - 원문 확인", false);
+        assertThat(result.category()).isEqualTo("EXPERIENCED");
+        assertThat(result.label()).isEqualTo("경력 3년 이상");
+    }
 }

@@ -8,6 +8,7 @@ import java.sql.Statement;
 import java.util.UUID;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
@@ -23,6 +24,33 @@ class ExperienceClassificationMigrationTest {
         return config.load();
     }
     @AfterAll static void cleanup() { flyway(null).clean(); }
+    @BeforeEach void resetSchema() { flyway(null).clean(); }
+
+    @Test void reclassifiesExistingInlineSectionsAfterV22() throws Exception {
+        flyway("22").migrate();
+        try (Connection connection = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
+            connection.setCatalog(SCHEMA);
+            try (Statement statement = connection.createStatement()) {
+                statement.executeUpdate("INSERT INTO job_posts (source_platform,original_sn,company_name,title,experience,apply_qual,start_date,end_date,original_url,is_active) VALUES "
+                        + "('KAKAO','inline','기업','개발자','경력무관','◆ 지원자격 - 백엔드 개발 경력 3년 이상인 분 ◆ 우대사항 - 실무 경력 7년 이상인 분','2026-01-01','2030-01-01','https://example.com',1)");
+            }
+        }
+        flyway(null).migrate();
+        try (Connection connection = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
+            connection.setCatalog(SCHEMA);
+            try (Statement statement = connection.createStatement(); ResultSet rows = statement.executeQuery(
+                    "SELECT experience,experience_category,experience_label FROM job_posts WHERE original_sn='inline'")) {
+                assertThat(rows.next()).isTrue();
+                assertThat(rows.getString("experience")).isEqualTo("경력무관");
+                assertThat(rows.getString("experience_category")).isEqualTo("EXPERIENCED");
+                assertThat(rows.getString("experience_label")).isEqualTo("경력 3년 이상");
+            }
+        }
+    }
 
     @Test void backfillsExistingRowsWithoutChangingSourceData() throws Exception {
         flyway("20").migrate();
