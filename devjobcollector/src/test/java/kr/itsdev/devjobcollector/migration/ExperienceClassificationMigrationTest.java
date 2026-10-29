@@ -38,6 +38,13 @@ class ExperienceClassificationMigrationTest {
                 assertThat(rows.next()).isTrue();
                 assertThat(rows.getInt(1)).isEqualTo(4);
             }
+            try (Statement statement = connection.createStatement()) {
+                statement.executeUpdate("INSERT INTO job_posts (source_platform,original_sn,company_name,title,start_date,end_date,original_url,is_active) VALUES ('GREENHOUSE','review:1','기업','공고','2026-01-01','2030-01-01','https://example.com',1)");
+                String insert = "INSERT INTO job_metadata_ai_review (job_post_id,job_version,input_hash,source_key,model,experience_suggestion,experience_quote,location_suggestion,location_quote,review_status,requested_by,created_at) "
+                        + "SELECT id,version,'hash','GREENHOUSE:review','model','경력 3년','3년','','','NEEDS_REVIEW',1,NOW(6) FROM job_posts WHERE original_sn='review:1' AND version=";
+                assertThat(statement.executeUpdate(insert + "0")).isEqualTo(1);
+                assertThat(statement.executeUpdate(insert + "99")).isZero();
+            }
         }
     }
 
