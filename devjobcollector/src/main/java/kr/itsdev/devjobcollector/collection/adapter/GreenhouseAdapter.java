@@ -116,8 +116,12 @@ public class GreenhouseAdapter implements JobSourceAdapter {
         if (html == null) {
             return null;
         }
-        return HtmlUtils.htmlUnescape(html.replaceAll("<[^>]+>", " "))
-                .replaceAll("\\s+", " ")
+        return HtmlUtils.htmlUnescape(HtmlUtils.htmlUnescape(html))
+                .replaceAll("(?i)<br\\s*/?>|</(?:p|div|li|h[1-6])\\s*>", "\n")
+                .replaceAll("(?i)<li(?:\\s[^>]*)?>", "\n• ")
+                .replaceAll("<[^>]+>", "")
+                .replaceAll("[\\t\\x0B\\f\\r ]+", " ")
+                .replaceAll("\\n[ ]*\\n+", "\n")
                 .trim();
     }
 
