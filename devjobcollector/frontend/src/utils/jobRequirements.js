@@ -24,12 +24,12 @@ export function extractJobRequirements(content) {
       result.preferred.push(preferredItem[1].trim());
       continue;
     }
-    const heading = line.match(HEADINGS);
+    const heading = line.match(HEADINGS) || line.match(/^(how do i know if the role is right for me)\?\s*$/i);
     if (heading) {
       section = /우대|이런\s*경험이\s*있다면\s*더\s*좋아요|preferred|nice to have|added plus|bonus points/i.test(heading[1]) ? 'preferred' : 'required';
       continue;
     }
-    if (OTHER_HEADING.test(line) || /^(?:채용하고 싶은 사람|전형절차 및 기타사항|유의사항|전형\s*절차\s*및\s*안내\s*사항)\s*[:：]?$/i.test(line) || /^(?:#\s*[A-Z]?\d+|PID(?:\s*-\s*[A-Z]?\d+)?$)/i.test(line) || /^(?:position details|pay and benefits|pay range transparency|salary\s*[:：]|compensation\s*[:：]|at figma, one of our values|pay transparency|annual base salary|application limit|equal opportunity employer|accommodations|data privacy)/i.test(line) || /^[^:：]{1,80}[:：]$/.test(line)) { section = null; continue; }
+    if (OTHER_HEADING.test(line) || /^(?:채용하고 싶은 사람|전형절차 및 기타사항|유의사항|전형\s*절차\s*및\s*안내\s*사항)\s*[:：]?$/i.test(line) || /^(?:#\s*[A-Z]?\d+|PID(?:\s*-\s*[A-Z]?\d+)?$)/i.test(line) || /^(?:position details|pay and benefits|compensation\s*&\s*benefits|pay range transparency|salary\s*[:：]|compensation\s*[:：]|at figma, one of our values|pay transparency|annual base salary|application limit|equal opportunity employer|accommodations|data privacy)/i.test(line) || /^[^:：]{1,80}[:：]$/.test(line)) { section = null; continue; }
     if (!section) continue;
     const item = line.replace(/^[-*•●▪◦‣·]\s*/, '').replace(/^\d+[.)]\s*/, '').trim();
     if (!item || /^https?:\/\//i.test(item)) continue;
@@ -50,7 +50,8 @@ export function extractExperienceWording(requirements) {
   const candidates = requirements.required.filter(item =>
     (/(?:\d{1,2}\s*년\s*이상[^.!?\n]{0,40}(?:경험|경력)|(?:경험|경력)[^.!?\n]{0,40}\d{1,2}\s*년\s*이상)/.test(item)
       || /\b\d{1,2}\+\s*years?\b[^.!?\n]{0,80}\bexperience\b/i.test(item)
-      || /\b(?:minimum(?: of)?|at least)\s+\d{1,2}\s+years?\b[^.!?\n]{0,80}\bexperience\b/i.test(item))
+      || /\b(?:minimum(?: of)?|at least)\s+\d{1,2}\s+years?\b[^.!?\n]{0,80}\bexperience\b/i.test(item)
+      || /\b\d{1,2}\+\s+years?\s+in\s+(?!school\b|college\b|university\b|education\b)[a-z]/i.test(item))
       && !/우대|선호|prefer|(?:학위|석사|박사)[^.!?\n]{0,80}(?:또는|혹은)[^.!?\n]{0,80}\d{1,2}\s*년/i.test(item));
   if (candidates.length === 0 && requirements.required.some(item => /경력\s*구분\s*[:：]\s*무관/.test(item))) return '경력무관';
   if (candidates.length !== 1) return null;
@@ -83,10 +84,11 @@ export function extractJobDuties(content) {
   const heading = /^(?:#{1,6}\s*)?[[【]?(?:주요\s*업무|담당\s*업무|업무\s*내용|합류하면\s*함께\s*할\s*업무예요|합류하면\s*함께할\s*업무예요|responsibilities|what you(?:['’]ll| will) do)[\]】]?[\s:：-]*$/i;
   const items = [];
   let inside = false;
-  for (const raw of lines) {
+  for (const [index, raw] of lines.entries()) {
     const line = raw.trim();
     if (!line) continue;
-    if (heading.test(line)) { inside = true; continue; }
+    if (heading.test(line) || (/^the opportunity\s*:?$/i.test(line) && lines.slice(index + 1).some(next => /^how do i know if the role is right for me\?\s*$/i.test(next.trim())))) { inside = true; continue; }
+    if (/^how do i know if the role is right for me\?\s*$/i.test(line)) { inside = false; continue; }
     if (HEADINGS.test(line) || OTHER_HEADING.test(line) || /^#{1,6}\s+/.test(line)
       || /^(?:전형\s*절차|토스로의\s*합류\s*여정|PID\s*-\s*[A-Z]?\d+|pay transparency|annual base salary|salary\s*[:：]|compensation\s*[:：])/i.test(line)
       || /^[^:：]{1,80}[:：]$/.test(line)) { inside = false; continue; }

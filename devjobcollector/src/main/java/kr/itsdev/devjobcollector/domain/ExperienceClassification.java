@@ -9,6 +9,7 @@ import org.springframework.web.util.HtmlUtils;
 public record ExperienceClassification(String category, String label, String evidence, String method) {
     private static final Pattern YEAR = Pattern.compile("(?i)(?:경력|실무|경험)[^\\n.!?]{0,25}?(\\d{1,2})\\s*년(?!\\s*(?:이하|미만|차))|(?:\\d{1,2})\\s*년\\s*이상의?[^\\n.!?]{0,120}?(?:경력|실무|경험)|(?:at least|minimum of|minimum)\\s+(\\d{1,2})\\s+years?[^\\n.!?]{0,100}experience|(?<!\\d)(\\d{1,2})\\+\\s+years?[^\\n.!?]{0,100}experience");
     private static final Pattern NUMBER = Pattern.compile("\\d{1,2}");
+    private static final Pattern YEARS_IN_FIELD = Pattern.compile("(?i)(?<!\\d)(\\d{1,2})\\+\\s+years?\\s+in\\s+(?!school\\b|college\\b|university\\b|education\\b)[a-z]");
     private static final Pattern YEAR_RANGE = Pattern.compile("\\d{1,2}\\s*(?:년\\s*)?[~～–-]\\s*\\d{1,2}\\s*년");
     private static final Pattern MINIMUM_ENGLISH_RANGE = Pattern.compile("(?i)\\b(?:minimum of|minimum|at least)\\s+(\\d{1,2})\\s*[-–~]\\s*(\\d{1,2})\\s*years?\\b[^\\n]{0,100}\\bexperience\\b");
     private static final Pattern PREFERRED = Pattern.compile("(?i)우대\\s*(?:사항|요건|조건)|preferred\\s*(?:[:：]|qualifications|requirements|skills)|nice to have|^(?:#{1,6}\\s*)?이런\\s*경험이\\s*있다면\\s*더\\s*좋아요\\s*[:：]?$|^while not required,?\\s*it['’]s an added plus if you also have\\s*[:：]?$");
@@ -34,10 +35,10 @@ public record ExperienceClassification(String category, String label, String evi
         for (String line : text.split("\\R")) {
             String value = line.trim();
             if (PREFERRED.matcher(value).find()) { inRequired = false; continue; }
-            boolean requiredHeading = REQUIRED.matcher(value).find();
+            boolean requiredHeading = REQUIRED.matcher(value).find() || value.matches("(?i)^how do i know if the role is right for me\\?\\s*$");
             if (requiredHeading) { inRequired = true; }
             else if (value.matches("^#{1,6}\\s+.*")) { inRequired = false; continue; }
-            if (value.matches("(?i)^(?:PID\\s*-\\s*[A-Z]?\\d+|pay transparency.*|pay range transparency.*|annual base salary.*|application limit.*|equal opportunity.*|relocation statement\\s*[:：]?|in-office requirement statement\\s*[:：]?)$")) { inRequired = false; continue; }
+            if (value.matches("(?i)^(?:PID\\s*-\\s*[A-Z]?\\d+|pay transparency.*|pay range transparency.*|compensation\\s*&\\s*benefits.*|annual base salary.*|application limit.*|equal opportunity.*|relocation statement\\s*[:：]?|in-office requirement statement\\s*[:：]?)$")) { inRequired = false; continue; }
             boolean bullet = value.matches("^[-*•●▪◦‣·]\\s*.*");
             if (!bullet && OTHER.matcher(value).find()) { inRequired = false; continue; }
             if (!inRequired) continue;
@@ -49,6 +50,13 @@ public record ExperienceClassification(String category, String label, String evi
                     && !clauses[0].toLowerCase(Locale.ROOT).contains("preferred")) candidate = clauses[0].trim();
             if (candidate.matches(".*(?:학위|석사|박사)[^.!?\\n]{0,80}(?:또는|혹은)[^.!?\\n]{0,80}\\d{1,2}\\s*년.*") || candidate.contains("우대") || candidate.contains("선호") || candidate.toLowerCase(Locale.ROOT).contains("preferred")
                     || YEAR_RANGE.matcher(candidate).find()) continue;
+            Matcher yearsInField = YEARS_IN_FIELD.matcher(candidate);
+            if (yearsInField.find() && Integer.parseInt(yearsInField.group(1)) > minimum) {
+                minimum = Integer.parseInt(yearsInField.group(1));
+                minimumRange = null;
+                minimumExplicit = true;
+                evidence = candidate.length() > 500 ? candidate.substring(0, 500) : candidate;
+            }
             Matcher range = MINIMUM_ENGLISH_RANGE.matcher(candidate);
             if (range.find()) {
                 int lower = Integer.parseInt(range.group(1));

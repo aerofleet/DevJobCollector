@@ -2,6 +2,17 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractExperienceWording, extractJobDuties, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, formatJobLocation } from './jobRequirements.js';
 
+test('classifies role-fit requirements and years in a professional field', () => {
+  const text = 'The Opportunity:\n• Develop forecasts\n• Build dashboards\nHow Do I Know if the Role is Right For Me?\n• 6+ years in analytics or strategy, ideally at a marketplace.\n• Proficient in SQL and Python\nCompensation & Benefits\n• 12+ years in analytics';
+  const req = extractJobRequirements(text);
+  assert.deepEqual(extractJobDuties(text), ['Develop forecasts', 'Build dashboards']);
+  assert.equal(req.required.length, 2);
+  assert.equal(extractExperienceWording(req), '6년 이상');
+  assert.deepEqual(extractMentionedTools(req), ['Python', 'SQL']);
+  assert.equal(extractExperienceWording(extractJobRequirements('How Do I Know if the Role is Right For Me?\n• 6+ years in college')), null);
+  assert.deepEqual(extractJobDuties('The Opportunity:\n• Company overview'), []);
+});
+
 test('extracts minimum years in a looking-for section without treating preferred experience as required', () => {
   assert.equal(extractExperienceWording(extractJobRequirements('What we’re looking for:\n• Minimum 5 years experience scoping product research, ideally in ad tech')), '5년 이상');
   assert.equal(extractExperienceWording(extractJobRequirements('What we’re looking for:\n• Minimum 5 years experience preferred')), null);

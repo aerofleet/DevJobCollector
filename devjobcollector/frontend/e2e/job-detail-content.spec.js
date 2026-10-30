@@ -192,3 +192,16 @@ test('최소 경력 영문 표현을 경력 요약에 표시한다', async ({ pa
   await expect(page.locator('.info-item').filter({ hasText: '경력' }).locator('.value')).toHaveText('5년 이상');
   await expect(page.getByRole('heading', { name: '자격 조건' }).locator('..')).toContainText('Minimum 5 years experience');
 });
+
+test('역할 적합성 제목 아래의 필수 경력과 도구를 표시한다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/11134?*', route => route.fulfill({ json: {
+    ...jobDetail, id: 11134, sourcePlatform: 'GREENHOUSE', experience: '경력 6년 이상', techStacks: [],
+    applyQual: 'The Opportunity:\n• Develop forecast models\nHow Do I Know if the Role is Right For Me?\n• 6+ years in analytics or strategy, ideally at an ad-tech company\n• Proficient in SQL and Python\nCompensation & Benefits\n• Insurance',
+  } }));
+  await page.goto('/job/11134');
+  await expect(page.locator('.info-item').filter({ hasText: '경력' }).locator('.value')).toHaveText('6년 이상');
+  await expect(page.getByRole('heading', { name: '담당 업무' }).locator('..')).toContainText('Develop forecast models');
+  await expect(page.getByRole('heading', { name: '자격 조건' }).locator('..')).toContainText('6+ years in analytics');
+  await expect(page.getByRole('heading', { name: '자격 조건' }).locator('..')).not.toContainText('Insurance');
+  await expect(page.getByRole('heading', { name: '기술 스택' }).locator('..')).toContainText('Python');
+});

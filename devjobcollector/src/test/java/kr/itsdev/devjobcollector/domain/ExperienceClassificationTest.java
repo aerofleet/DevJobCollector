@@ -4,6 +4,13 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ExperienceClassificationTest {
+    @Test void recognizesYearsInFieldWithinRoleFitSection() {
+        String text = "How Do I Know if the Role is Right For Me?\n• 6+ years in analytics or strategy, ideally at a marketplace.\nCompensation & Benefits\n• 12+ years in analytics";
+        var result = ExperienceClassification.classify(null, "Manager", text, false);
+        assertThat(result.label()).isEqualTo("경력 6년 이상");
+        assertThat(ExperienceClassification.classify(null, "Manager", "How Do I Know if the Role is Right For Me?\n• 6+ years in college", false).category()).isEqualTo("UNKNOWN");
+        assertThat(ExperienceClassification.classify(null, "Manager", "How Do I Know if the Role is Right For Me?\n• 6+ years in analytics preferred", false).category()).isEqualTo("UNKNOWN");
+    }
     @Test void recognizesMinimumExperienceInLookingForSection() {
         String text = "What we’re looking for:\n• Minimum 5 years experience scoping and conducting product research, ideally in ad tech\nRelocation Statement:\n• Minimum 10 years experience";
         var result = ExperienceClassification.classify(null, "Researcher", text, false);
