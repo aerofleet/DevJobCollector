@@ -4,6 +4,16 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ExperienceClassificationTest {
+    @Test void recognizesExperienceInTossQualificationSectionButNotPreferredOrOtherSections() {
+        String text = "# 이런 분과 함께하고 싶어요\n- 자금 오퍼레이션 업무를 2년 이상 경험하신 분이면 좋아요\n# 이런 경험이 있다면 더 좋아요\n- 자금 업무를 7년 이상 경험하신 분\n# 토스로의 합류 여정\n- 9년 이상 경험";
+        var result = ExperienceClassification.classify("경력무관", "Treasury Manager", text, false);
+        assertThat(result.category()).isEqualTo("EXPERIENCED");
+        assertThat(result.label()).isEqualTo("경력 2년 이상");
+        assertThat(result.evidence()).contains("2년 이상 경험");
+        assertThat(ExperienceClassification.classify(null, "Role", "# 이런 경험이 있다면 더 좋아요\n- 7년 이상 경험", false).category()).isEqualTo("UNKNOWN");
+        assertThat(ExperienceClassification.classify(null, "Role", "# 이런 분과 함께하고 싶어요\n- 5년 이상 경험 우대", false).category()).isEqualTo("UNKNOWN");
+        assertThat(ExperienceClassification.classify(null, "Role", "# 이런 분과 함께하고 싶어요\n- 협업 능력\n# 이력서 작성 가이드\n- 9년 이상 경험", false).category()).isEqualTo("UNKNOWN");
+    }
     @Test void classifiesExpertiseAndExcludesInlinePreferredExperience() {
         var actual = ExperienceClassification.classify("경력무관", "Accountant", "Your Expertise:\n4+ years of accounting experience, with at least 1 year in month-end close.\nPreferred: 8+ years of accounting experience", false);
         assertThat(actual.label()).isEqualTo("경력 4년 이상");

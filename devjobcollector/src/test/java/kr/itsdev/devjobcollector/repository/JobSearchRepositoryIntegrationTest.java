@@ -74,6 +74,22 @@ class JobSearchRepositoryIntegrationTest {
     }
 
     @Test
+    void filtersExperienceWordingAndExcludesPreferredOnly() {
+        var required = repository.save(JobPost.builder().sourcePlatform(SourcePlatform.COMPANY_PAGE).originalSn("toss:filter-required")
+                .companyName("토스 경력 평가").title("Treasury Manager").experience("경력무관")
+                .applyQual("# 이런 분과 함께하고 싶어요\n- 자금 오퍼레이션 업무를 2년 이상 경험하신 분이면 좋아요\n# 이런 경험이 있다면 더 좋아요\n- 7년 이상 경험")
+                .startDate(LocalDate.now()).endDate(LocalDate.now().plusDays(30)).originalUrl("https://example.com/required").build());
+        repository.save(JobPost.builder().sourcePlatform(SourcePlatform.COMPANY_PAGE).originalSn("toss:filter-preferred")
+                .companyName("토스 경력 평가").title("Treasury Manager").experience("경력무관")
+                .applyQual("# 이런 경험이 있다면 더 좋아요\n- 7년 이상 경험")
+                .startDate(LocalDate.now()).endDate(LocalDate.now().plusDays(30)).originalUrl("https://example.com/preferred").build());
+        entityManager.flush(); entityManager.clear();
+        var results = repository.searchByAllFieldsOptimized("토스 경력 평가", null, "경력", null, null, LocalDate.now(), PageRequest.of(0, 20)).getContent();
+        assertThat(results).extracting(JobPost::getId).containsExactly(required.getId());
+        assertThat(results.getFirst().getExperienceLabel()).isEqualTo("경력 2년 이상");
+    }
+
+    @Test
     void filtersByClassifiedExperienceRatherThanSyntheticUnrestrictedValue() {
         repository.save(JobPost.builder().sourcePlatform(SourcePlatform.GREENHOUSE).originalSn("exp-required")
                 .companyName("경력 분류 평가").title("개발자").experience("경력무관")

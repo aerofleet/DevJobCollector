@@ -134,7 +134,7 @@ const DetailPage = () => {
             </div>
             <div className="info-item">
               <span className="label">경력</span>
-              <span className="value">{(!job.experience || job.experience === '경력 확인 필요') && experienceWording ? `${experienceWording} (원문)` : job.experience || '경력 확인 필요'}</span>
+              <span className="value">{(!job.experience || job.experience === '경력 확인 필요') && experienceWording ? experienceWording : (job.experience || '경력 확인 필요').replace(/^경력\s+(?=\d)/, '')}</span>
             </div>
             {isPublicAlio && job.jobCategory && <div className="info-item"><span className="label">채용 분야</span><span className="value">{job.jobCategory}</span></div>}
             {isPublicAlio && job.hireType && <div className="info-item"><span className="label">고용 형태</span><span className="value">{job.hireType}</span></div>}

@@ -32,12 +32,14 @@ export function extractJobRequirements(content) {
   return result;
 }
 
-// Display the source wording, without converting a preference into a mandatory filter.
+// Present the explicit duration without displaying an entire qualification sentence.
 export function extractExperienceWording(requirements) {
   const candidates = requirements.required.filter(item =>
     /(?:\d{1,2}\s*년\s*이상[^.!?\n]{0,40}(?:경험|경력)|(?:경험|경력)[^.!?\n]{0,40}\d{1,2}\s*년\s*이상)/.test(item)
       && !/우대|선호|prefer/i.test(item));
-  return candidates.length === 1 ? candidates[0] : null;
+  if (candidates.length !== 1) return null;
+  const durations = [...candidates[0].matchAll(/(\d{1,2})\s*년\s*이상/g)];
+  return durations.length === 1 ? `${durations[0][1]}년 이상` : null;
 }
 
 // Preserve explicitly labelled source technology sections as written, without inferring individual tags.
