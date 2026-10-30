@@ -4,6 +4,14 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ExperienceClassificationTest {
+    @Test void separatesMandatoryYearsFromPreferredClause() {
+        String text = "Responsibilities\n• Advise on benefits\nQualifications & Experience Required\n• 10+ years of relevant employment-law experience; in-house experience strongly preferred.\n• Experience with compensation and benefits\nPay Range Transparency\n20+ years of experience";
+        var result = ExperienceClassification.classify("경력무관", "Counsel", text, false);
+        assertThat(result.label()).isEqualTo("경력 10년 이상");
+        assertThat(result.evidence()).contains("10+ years").doesNotContain("preferred");
+        assertThat(ExperienceClassification.classify(null, "Counsel", "Qualifications & Experience Required\n• 10+ years of experience strongly preferred.", false).category()).isEqualTo("UNKNOWN");
+        assertThat(ExperienceClassification.classify(null, "Counsel", "Qualifications & Experience Required\n• Experience with benefits\n• 5+ years of legal experience", false).label()).isEqualTo("경력 5년 이상");
+    }
     @Test void recognizesLookingForSomeoneWhoWithoutSuccessMeasureContamination() {
         String text = "What you’ll do\n- Manage engineers\nWe’re looking for someone who\n- Has at least 8 years of professional software development experience\n- Has at least 4 years of people management experience\nSuccess Measures\n- At least 20 years of experience would be unusual";
         var result = ExperienceClassification.classify("경력무관", "Engineering Manager", text, false);

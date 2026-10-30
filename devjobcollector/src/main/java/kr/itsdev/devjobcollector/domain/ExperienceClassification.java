@@ -35,11 +35,17 @@ public record ExperienceClassification(String category, String label, String evi
             boolean requiredHeading = REQUIRED.matcher(value).find();
             if (requiredHeading) { inRequired = true; }
             else if (value.matches("^#{1,6}\\s+.*")) { inRequired = false; continue; }
-            if (value.matches("(?i)^(?:PID\\s*-\\s*[A-Z]?\\d+|pay transparency.*|annual base salary.*|application limit.*|equal opportunity.*)$")) { inRequired = false; continue; }
-            if (OTHER.matcher(value).find()) { inRequired = false; continue; }
-            if (!inRequired || value.contains("우대") || value.contains("선호") || value.toLowerCase(Locale.ROOT).contains("preferred")
-                    || YEAR_RANGE.matcher(value).find()) continue;
-            Matcher range = MINIMUM_ENGLISH_RANGE.matcher(value);
+            if (value.matches("(?i)^(?:PID\\s*-\\s*[A-Z]?\\d+|pay transparency.*|pay range transparency.*|annual base salary.*|application limit.*|equal opportunity.*)$")) { inRequired = false; continue; }
+            boolean bullet = value.matches("^[-*•●▪◦‣·]\\s*.*");
+            if (!bullet && OTHER.matcher(value).find()) { inRequired = false; continue; }
+            if (!inRequired) continue;
+            String candidate = value;
+            String[] clauses = value.split(";", -1);
+            if (clauses.length == 2 && clauses[1].trim().toLowerCase(Locale.ROOT).matches(".*\\bstrongly preferred\\.?$")
+                    && !clauses[0].toLowerCase(Locale.ROOT).contains("preferred")) candidate = clauses[0].trim();
+            if (candidate.contains("우대") || candidate.contains("선호") || candidate.toLowerCase(Locale.ROOT).contains("preferred")
+                    || YEAR_RANGE.matcher(candidate).find()) continue;
+            Matcher range = MINIMUM_ENGLISH_RANGE.matcher(candidate);
             if (range.find()) {
                 int lower = Integer.parseInt(range.group(1));
                 int upper = Integer.parseInt(range.group(2));
@@ -47,10 +53,10 @@ public record ExperienceClassification(String category, String label, String evi
                     minimum = lower;
                     minimumRange = lower + "~" + upper;
                     minimumExplicit = true;
-                    evidence = value.length() > 500 ? value.substring(0, 500) : value;
+                    evidence = candidate.length() > 500 ? candidate.substring(0, 500) : candidate;
                 }
             }
-            Matcher match = YEAR.matcher(value);
+            Matcher match = YEAR.matcher(candidate);
             while (match.find()) {
                 Matcher number = NUMBER.matcher(match.group());
                 if (number.find()) {
@@ -58,10 +64,10 @@ public record ExperienceClassification(String category, String label, String evi
                     if (years > minimum) {
                         minimum = years;
                         minimumRange = null;
-                        evidence = value.length() > 500 ? value.substring(0, 500) : value;
-                        minimumExplicit = value.contains("이상") || value.contains("+")
-                                || value.toLowerCase(Locale.ROOT).contains("minimum")
-                                || value.toLowerCase(Locale.ROOT).contains("at least");
+                        evidence = candidate.length() > 500 ? candidate.substring(0, 500) : candidate;
+                        minimumExplicit = candidate.contains("이상") || candidate.contains("+")
+                                || candidate.toLowerCase(Locale.ROOT).contains("minimum")
+                                || candidate.toLowerCase(Locale.ROOT).contains("at least");
                     }
                 }
             }

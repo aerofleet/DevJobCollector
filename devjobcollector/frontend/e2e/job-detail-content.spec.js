@@ -150,3 +150,20 @@ test('MongoDB 공고의 자격 요건을 업무와 성공 기준에서 분리한
   await expect(requirements).not.toContainText('In 1 month');
   await expect(page.getByRole('heading', { name: '기술 스택' }).locator('..')).toContainText('Azure');
 });
+
+test('Databricks 공고의 필수·우대 경력을 업무와 급여에서 분리한다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/11129?*', route => route.fulfill({ json: {
+    ...jobDetail, id: 11129, sourcePlatform: 'GREENHOUSE', experience: '경력 10년 이상', techStacks: [],
+    applyQual: 'Responsibilities\n• Advise on compensation programs.\nQualifications & Experience Required\n• JD and state bar membership.\n• 10+ years of employment-law experience; in-house experience strongly preferred.\nPay Range Transparency\nThe salary varies by location.\nZone 2 Pay Range\n$197,800—$272,050 USD\nAbout Databricks\nCompany introduction.',
+  } }));
+  await page.goto('/job/11129');
+  const duties = page.getByRole('heading', { name: '담당 업무' }).locator('..');
+  const requirements = page.getByRole('heading', { name: '자격 조건' }).locator('..');
+  const preferred = page.getByRole('heading', { name: '우대 사항' }).locator('..');
+  await expect(duties).toContainText('Advise on compensation programs.');
+  await expect(duties).not.toContainText('10+ years');
+  await expect(requirements).toContainText('10+ years of employment-law experience');
+  await expect(requirements).not.toContainText('in-house experience strongly preferred');
+  await expect(preferred).toContainText('in-house experience strongly preferred');
+  await expect(page.locator('.info-item').filter({ hasText: '경력' }).locator('.value')).toHaveText('10년 이상');
+});

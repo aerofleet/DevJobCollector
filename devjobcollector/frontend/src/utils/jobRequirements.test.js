@@ -3,6 +3,17 @@ import assert from 'node:assert/strict';
 import { extractExperienceWording, extractJobDuties, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, formatJobLocation } from './jobRequirements.js';
 import { jobSourceLabel } from './jobSource.js';
 
+test('separates mixed required and preferred clauses from duties and pay information', () => {
+  const text = 'Responsibilities\n• Advise on compensation programs.\nQualifications & Experience Required\n• JD and state bar membership.\n• 10+ years of employment-law experience; in-house experience strongly preferred.\n• Experience advising on privacy is strongly preferred.\nPay Range Transparency\nThe salary varies by location.\nZone 2 Pay Range\n$197,800—$272,050 USD\nAbout Databricks\nCompany introduction.';
+  const requirements = extractJobRequirements(text);
+  assert.deepEqual(extractJobDuties(text), ['Advise on compensation programs.']);
+  assert.deepEqual(requirements.required, ['JD and state bar membership.', '10+ years of employment-law experience']);
+  assert.deepEqual(requirements.preferred, ['in-house experience strongly preferred.', 'Experience advising on privacy is strongly preferred.']);
+  assert.equal(extractExperienceWording(requirements), '10년 이상');
+  assert.equal(extractJobSalary(text), 'Zone 2 Pay Range $197,800—$272,050 USD');
+  assert.equal(extractJobSalary('compensation plans\nClear, audience-appropriate guidance.'), null);
+});
+
 test('separates MongoDB role qualifications from duties and success measures', () => {
   const text = 'What you’ll do\n• Manage and coach engineers\n• Drive service reliability\nWe’re looking for someone who\n• Has at least 8 years of professional software development experience\n• Has at least 4 years of people management experience and performance management\n• Has experience with at least one major cloud provider technology (AWS, Azure, GCP)\nSuccess Measures\n• In 1 month, learn the system\nAbout MongoDB\nMongoDB builds databases';
   const requirements = extractJobRequirements(text);

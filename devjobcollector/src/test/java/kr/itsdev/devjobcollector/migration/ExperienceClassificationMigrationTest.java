@@ -34,6 +34,31 @@ class ExperienceClassificationMigrationTest {
     @AfterAll static void cleanup() { flyway(null).clean(); }
     @BeforeEach void resetSchema() { flyway(null).clean(); }
 
+    @Test void backfillsMixedRequiredAndPreferredExperienceWithoutChangingReviewedRows() throws Exception {
+        flyway("37").migrate();
+        try (Connection c = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
+            c.setCatalog(SCHEMA);
+            try (var insert = c.prepareStatement("INSERT INTO job_posts (source_platform,original_sn,company_name,title,experience,apply_qual,start_date,end_date,original_url,is_active,reviewed_experience_category) VALUES ('GREENHOUSE',?,'Company','Role','경력무관',?,'2026-01-01','2030-01-01','https://example.com',1,?)")) {
+                String[] ids = {"legal:preferred", "legal:required", "legal:reviewed"};
+                String[] texts = {"Qualifications & Experience Required\n• 10+ years of experience strongly preferred.", "Qualifications & Experience Required\n• 10+ years of employment-law experience; in-house experience strongly preferred.", "Qualifications & Experience Required\n• 10+ years of employment-law experience; in-house experience strongly preferred."};
+                for (int i = 0; i < ids.length; i++) { insert.setString(1, ids[i]); insert.setString(2, texts[i]); insert.setString(3, i == 2 ? "ENTRY" : null); insert.executeUpdate(); }
+            }
+        }
+        flyway(null).migrate();
+        try (Connection c = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
+            c.setCatalog(SCHEMA);
+            try (var s = c.createStatement(); var rows = s.executeQuery("SELECT experience_category,experience_label FROM job_posts WHERE original_sn LIKE 'legal:%' ORDER BY original_sn")) {
+                assertThat(rows.next()).isTrue(); assertThat(rows.getString(1)).isEqualTo("UNKNOWN");
+                assertThat(rows.next()).isTrue(); assertThat(rows.getString(1)).isEqualTo("EXPERIENCED"); assertThat(rows.getString(2)).isEqualTo("경력 10년 이상");
+                assertThat(rows.next()).isTrue(); assertThat(rows.getString(1)).isEqualTo("UNKNOWN");
+            }
+        }
+    }
+
     @Test void backfillsLookingForExperienceAndPreservesReviewedValues() throws Exception {
         flyway("36").migrate();
         try (Connection c = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),
