@@ -3,6 +3,15 @@ import assert from 'node:assert/strict';
 import { extractExperienceWording, extractJobDuties, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, formatJobLocation } from './jobRequirements.js';
 import { jobSourceLabel } from './jobSource.js';
 
+test('separates MongoDB role qualifications from duties and success measures', () => {
+  const text = 'What you’ll do\n• Manage and coach engineers\n• Drive service reliability\nWe’re looking for someone who\n• Has at least 8 years of professional software development experience\n• Has at least 4 years of people management experience and performance management\n• Has experience with at least one major cloud provider technology (AWS, Azure, GCP)\nSuccess Measures\n• In 1 month, learn the system\nAbout MongoDB\nMongoDB builds databases';
+  const requirements = extractJobRequirements(text);
+  assert.deepEqual(extractJobDuties(text), ['Manage and coach engineers', 'Drive service reliability']);
+  assert.deepEqual(requirements.required, ['Has at least 8 years of professional software development experience', 'Has at least 4 years of people management experience and performance management', 'Has experience with at least one major cloud provider technology (AWS, Azure, GCP)']);
+  assert.deepEqual(extractMentionedTools(requirements), ['AWS', 'Azure', 'GCP']);
+  assert.equal(extractExperienceWording(requirements), null);
+});
+
 test('separates responsibilities, required skills, tools and Philippine salary', () => {
   const text = "What you'll do:\n• Resolve customer inquiries.\n• Investigate product issues.\nRequired Skills and Experience:\n• 2+ years of experience in customer support.\n• Proficiency with Salesforce Service Cloud, JIRA, or Amazon Connect.\nPID - P78871\nPay Transparency Notice: annual base salary.\nAnnual base salary range (excluding bonus):\n₱798,300—₱798,300 PHP\n• Application Limit: maximum 3 applications.";
   const requirements = extractJobRequirements(text);

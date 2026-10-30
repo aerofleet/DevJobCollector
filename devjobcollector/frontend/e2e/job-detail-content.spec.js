@@ -133,3 +133,20 @@ test('영문 공고의 업무와 자격, 기술, 급여를 분리한다', async 
   await expect(page.getByRole('heading', { name: '급여 정보' }).locator('..')).toContainText('₱798,300');
   await expect(page.locator('.info-item').filter({ hasText: '경력' }).locator('.value')).toHaveText('2년 이상');
 });
+
+test('MongoDB 공고의 자격 요건을 업무와 성공 기준에서 분리한다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/11130?*', route => route.fulfill({ json: {
+    ...jobDetail, id: 11130, sourcePlatform: 'GREENHOUSE', experience: '경력 8년 이상', techStacks: [],
+    applyQual: 'What you’ll do\n• Manage and coach engineers\nWe’re looking for someone who\n• Has at least 8 years of professional software development experience\n• Has at least 4 years of people management experience\n• Has experience with cloud technology (AWS, Azure, GCP)\nSuccess Measures\n• In 1 month, learn the system',
+  } }));
+  await page.goto('/job/11130');
+  const duties = page.getByRole('heading', { name: '담당 업무' }).locator('..');
+  const requirements = page.getByRole('heading', { name: '자격 조건' }).locator('..');
+  await expect(duties).toContainText('Manage and coach engineers');
+  await expect(duties).not.toContainText('8 years');
+  await expect(duties).not.toContainText('In 1 month');
+  await expect(requirements).toContainText('8 years of professional software development');
+  await expect(requirements).toContainText('4 years of people management');
+  await expect(requirements).not.toContainText('In 1 month');
+  await expect(page.getByRole('heading', { name: '기술 스택' }).locator('..')).toContainText('Azure');
+});
