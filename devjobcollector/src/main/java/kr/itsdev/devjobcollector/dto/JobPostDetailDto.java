@@ -27,6 +27,7 @@ public class JobPostDetailDto {
     private String hireType;
     private LocalDate startDate;
     private LocalDate endDate;
+    private String sourceDeadlineDisplay;
     private JobDeadlineEvidence.Result deadlineEvidence;
     private LocalDateTime createdAt;
     private String originalUrl;

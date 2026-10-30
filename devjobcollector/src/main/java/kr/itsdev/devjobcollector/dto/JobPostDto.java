@@ -23,6 +23,7 @@ public class JobPostDto {
     private String hireType;
     private LocalDate startDate;
     private LocalDate endDate;
+    private String sourceDeadlineDisplay;
     private String originalUrl;
     private boolean isActive;
     private List<TechStackDto> techStacks;

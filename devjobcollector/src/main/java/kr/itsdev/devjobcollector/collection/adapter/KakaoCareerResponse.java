@@ -28,6 +28,7 @@ record KakaoCareerResponse(
             String regDate,
             String uptDate,
             String endDate,
+            Boolean hidePostingPeriodFlag,
             boolean closeFlag,
             boolean privateFlag,
             String jobPart,

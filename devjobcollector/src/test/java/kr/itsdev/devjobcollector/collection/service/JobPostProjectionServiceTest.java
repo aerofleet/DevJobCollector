@@ -22,6 +22,22 @@ import static org.mockito.Mockito.when;
 
 class JobPostProjectionServiceTest {
 
+    @Test
+    void kakaoSourceDeadlineRequiresExplicitVisibleNullDate() {
+        assertThat(JobPostProjectionService.kakaoDeadlineDisplay(kakaoRaw("{\"endDate\":null,\"hidePostingPeriodFlag\":false}"))).isEqualTo("RECRUITMENT_END");
+        assertThat(JobPostProjectionService.kakaoDeadlineDisplay(kakaoRaw("{\"endDate\":null,\"hidePostingPeriodFlag\":true}"))).isEqualTo("HIDDEN");
+        assertThat(JobPostProjectionService.kakaoDeadlineDisplay(kakaoRaw("{\"endDate\":null}"))).isNull();
+        assertThat(JobPostProjectionService.kakaoDeadlineDisplay(kakaoRaw("{\"hidePostingPeriodFlag\":false}"))).isNull();
+        assertThat(JobPostProjectionService.kakaoDeadlineDisplay(kakaoRaw("{\"endDate\":\"invalid\",\"hidePostingPeriodFlag\":false}"))).isNull();
+        assertThat(JobPostProjectionService.kakaoDeadlineDisplay(kakaoRaw("invalid"))).isNull();
+    }
+
+    private static JobRawDto kakaoRaw(String raw) {
+        return new JobRawDto(SourceType.KAKAO, "S-4432", "Role", "Seoul", null, null,
+                "https://careers.kakao.com/jobs/S-4432", "https://careers.kakao.com/jobs/S-4432",
+                "description", null, null, "a".repeat(64), raw);
+    }
+
     private JobPostRepository repository;
     private JobPostProjectionService service;
 

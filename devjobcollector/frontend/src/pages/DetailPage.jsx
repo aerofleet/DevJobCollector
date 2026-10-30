@@ -144,10 +144,12 @@ const DetailPage = () => {
             </div>
             <div className="info-item">
               <span className="label">마감일</span>
-              <span className="value">{deadlineEvidence?.status === 'CONFLICT' || deadlineEvidence?.status === 'AMBIGUOUS' ? '마감일 원문 확인 필요' : job.endDate?.startsWith('9999-12-31') ? (deadlineEvidence?.status === 'PRESENT' ? `${deadlineEvidence.localDate.replaceAll('-', '.')} (본문 기준 · 원문 확인)` : '마감일 확인 필요') : formatDate(job.endDate)}</span>
+              <span className="value">{job.sourceDeadlineDisplay === 'HIDDEN' ? '마감일 확인 필요'
+                : deadlineEvidence?.status === 'CONFLICT' || deadlineEvidence?.status === 'AMBIGUOUS' || (job.sourceDeadlineDisplay === 'RECRUITMENT_END' && deadlineEvidence?.status === 'PRESENT') ? '마감일 원문 확인 필요'
+                  : job.endDate?.startsWith('9999-12-31') ? (job.sourceDeadlineDisplay === 'RECRUITMENT_END' ? '영입종료시' : deadlineEvidence?.status === 'PRESENT' ? `${deadlineEvidence.localDate.replaceAll('-', '.')} (본문 기준 · 원문 확인)` : '마감일 확인 필요') : formatDate(job.endDate)}</span>
             </div>
             <div className="info-item">
-              {daysRemaining !== null && daysRemaining >= 0 && (
+              {job.sourceDeadlineDisplay !== 'HIDDEN' && daysRemaining !== null && daysRemaining >= 0 && (
                 <span className='days-badge-d'>D-{daysRemaining}</span>
               )}
             </div>

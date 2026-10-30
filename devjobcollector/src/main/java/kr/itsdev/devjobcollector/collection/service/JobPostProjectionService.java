@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +20,7 @@ public class JobPostProjectionService {
 
     static final LocalDate OPEN_ENDED_DATE = LocalDate.of(9999, 12, 31);
     private static final ZoneId SERVICE_ZONE = ZoneId.of("Asia/Seoul");
+    private static final ObjectMapper SOURCE_MAPPER = new ObjectMapper();
 
     private final JobPostRepository jobPostRepository;
 
@@ -72,7 +75,23 @@ public class JobPostProjectionService {
                 sourceUrl,
                 rawJob.plainDescription(),
                 null);
+        if (rawJob.provider() == SourceType.KAKAO) {
+            jobPost.updateSourceDeadlineDisplay(kakaoDeadlineDisplay(rawJob));
+        }
         return jobPostRepository.save(jobPost);
+    }
+
+    static String kakaoDeadlineDisplay(JobRawDto job) {
+        if (job.rawPayload() == null) return null;
+        try {
+            var source = SOURCE_MAPPER.readTree(job.rawPayload());
+            var hidden = source.path("hidePostingPeriodFlag");
+            if (!hidden.isBoolean()) return null;
+            if (hidden.booleanValue()) return "HIDDEN";
+            var date = source.get("endDate");
+            if (date != null && date.isNull() && job.deadlineAt() == null) return "RECRUITMENT_END";
+        } catch (JsonProcessingException ignored) { }
+        return null;
     }
 
     private static SourcePlatform toPlatform(SourceType sourceType) {

@@ -83,6 +83,15 @@ public class JobPost {
     @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
 
+    @Column(name = "source_deadline_display", length = 32)
+    private String sourceDeadlineDisplay;
+
+    public void updateSourceDeadlineDisplay(String value) {
+        if (value != null && !value.equals("RECRUITMENT_END") && !value.equals("HIDDEN"))
+            throw new IllegalArgumentException("Unsupported deadline display value");
+        sourceDeadlineDisplay = value;
+    }
+
     @Column(name = "original_url", columnDefinition = "TEXT", nullable = false)
     private String originalUrl;
 

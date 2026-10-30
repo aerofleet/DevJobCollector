@@ -10,8 +10,10 @@ const JobCard = ({ job }) => {
   const [failedLogoUrl, setFailedLogoUrl] = useState(null);
 
 
-  const daysRemaining = getDaysRemaining(job.endDate);
-  const endDateLabel = job.endDate ? formatDate(job.endDate) : '미등록';
+  const daysRemaining = job.sourceDeadlineDisplay === 'HIDDEN' ? null : getDaysRemaining(job.endDate);
+  const endDateLabel = job.sourceDeadlineDisplay === 'HIDDEN' ? '확인 필요'
+    : job.sourceDeadlineDisplay === 'RECRUITMENT_END' && job.endDate?.startsWith('9999-12-31') ? '영입종료시'
+      : job.endDate ? formatDate(job.endDate) : '미등록';
   const logoUrl = getCompanyLogoUrl(job);
   const showLogo = logoUrl && failedLogoUrl !== logoUrl;
 

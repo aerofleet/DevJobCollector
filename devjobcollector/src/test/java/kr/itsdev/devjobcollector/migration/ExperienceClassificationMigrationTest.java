@@ -34,6 +34,30 @@ class ExperienceClassificationMigrationTest {
     @AfterAll static void cleanup() { flyway(null).clean(); }
     @BeforeEach void resetSchema() { flyway(null).clean(); }
 
+    @Test void kakaoDeadlineBackfillOnlyTouchesVerifiedPosting() throws Exception {
+        flyway("34").migrate();
+        try (Connection c = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
+            c.setCatalog(SCHEMA);
+            try (var s = c.createStatement()) {
+                s.executeUpdate("INSERT INTO job_posts (id,source_platform,original_sn,company_name,title,start_date,end_date,original_url,is_active) VALUES "
+                        + "(9439,'KAKAO','kakao-careers:S-4432','카카오','공고','2026-01-01','9999-12-31','https://careers.kakao.com/jobs/S-4432',1),"
+                        + "(9440,'KAKAO','kakao-careers:S-2','카카오','공고','2026-01-01','9999-12-31','https://careers.kakao.com/jobs/S-2',1)");
+            }
+        }
+        flyway(null).migrate();
+        try (Connection c = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
+            c.setCatalog(SCHEMA);
+            try (var s = c.createStatement(); var rows = s.executeQuery("SELECT source_deadline_display FROM job_posts WHERE id IN (9439,9440) ORDER BY id")) {
+                assertThat(rows.next()).isTrue(); assertThat(rows.getString(1)).isEqualTo("RECRUITMENT_END");
+                assertThat(rows.next()).isTrue(); assertThat(rows.getString(1)).isNull();
+            }
+        }
+    }
+
     @Test void migratesTossExperienceWithoutTreatingPreferredOrReviewedAsRequired() throws Exception {
         flyway("33").migrate();
         try (Connection c = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),

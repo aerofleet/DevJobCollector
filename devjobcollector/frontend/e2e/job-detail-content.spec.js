@@ -97,3 +97,22 @@ test('원문에 기술 목록이 있으면 등록 태그가 없어도 목록을 
   await page.goto('/job/11105');
   await expect(page.getByRole('heading', { name: '기술 스택' }).locator('..')).toContainText('코어: React, TypeScript, Next.js');
 });
+
+test('카카오 원문에서 확인한 영입종료시만 표시한다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/9439?*', route => route.fulfill({ json: {
+    ...jobDetail, id: 9439, sourcePlatform: 'KAKAO', endDate: '9999-12-31', sourceDeadlineDisplay: 'RECRUITMENT_END',
+    deadlineEvidence: { status: 'UNAVAILABLE' },
+  } }));
+  await page.goto('/job/9439');
+  await expect(page.locator('.info-item').filter({ hasText: '마감일' }).locator('.value')).toHaveText('영입종료시');
+});
+
+test('카카오 원문에서 기간이 숨겨진 경우 마감일을 단정하지 않는다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/9440?*', route => route.fulfill({ json: {
+    ...jobDetail, id: 9440, sourcePlatform: 'KAKAO', endDate: '2030-12-31', sourceDeadlineDisplay: 'HIDDEN',
+    deadlineEvidence: { status: 'PRESENT', localDate: '2030-12-31' },
+  } }));
+  await page.goto('/job/9440');
+  await expect(page.locator('.info-item').filter({ hasText: '마감일' }).locator('.value')).toHaveText('마감일 확인 필요');
+  await expect(page.locator('.days-badge-d')).toHaveCount(0);
+});
