@@ -37,6 +37,23 @@ class LeverAdapterTest {
         server.verify();
     }
 
+    @Test void preservesStructuredSalaryAndUnknownSourceFields() {
+        RestTemplate restTemplate = new RestTemplate();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
+        var adapter = new LeverAdapter(restTemplate, new ObjectMapper());
+        var target = new CompanySourceTarget(null, SourceType.LEVER, "example", "https://jobs.lever.co/example", CollectionTier.A);
+        server.expect(requestTo("https://api.lever.co/v0/postings/example?mode=json"))
+                .andRespond(withSuccess("""
+                        [{"id":"1","text":"Engineer","unknownSourceField":"preserve me",
+                          "salaryRange":{"min":100000.5,"max":150000,"currency":"AUD","interval":"per-year-salary"},
+                          "salaryDescriptionPlain":"Base pay; excludes bonus."}]
+                        """, MediaType.APPLICATION_JSON));
+        var job = adapter.fetchJobs(target, CollectionContext.now()).jobs().getFirst();
+        assertThat(job.plainDescription()).contains("Salary: AUD 100000.5 – 150000 (per-year-salary) — Base pay; excludes bonus.");
+        assertThat(job.rawPayload()).contains("unknownSourceField", "preserve me", "salaryRange");
+        server.verify();
+    }
+
     @Test
     void mapsMeasuredLeverFieldsToRawJob() {
         RestTemplate restTemplate = new RestTemplate();

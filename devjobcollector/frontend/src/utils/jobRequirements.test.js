@@ -3,6 +3,13 @@ import assert from 'node:assert/strict';
 import { extractJobRequirements, extractJobSalary, extractMentionedTools, formatJobLocation } from './jobRequirements.js';
 import { jobSourceLabel } from './jobSource.js';
 
+test('shows structured Lever salary with currency, interval, and conditions', () => {
+  const salary = 'Salary: AUD 100000.5 – 150000 (per-year-salary) — Base pay; excludes bonus.';
+  assert.equal(extractJobSalary(salary), salary);
+  assert.equal(extractJobSalary('Salary: AUD from 100000 (per-year-salary)'), 'Salary: AUD from 100000 (per-year-salary)');
+  assert.deepEqual(extractJobRequirements(`Preferred qualifications\n- Java\n${salary}\nAdditional information`), { required: [], preferred: ['Java'] });
+});
+
 test('preserves long salary statements with compensation context', () => {
   const statement = `The annual on target earnings range for this role is A$306,500–A$459,700. ${'Additional context. '.repeat(12)}This range applies to the primary location.`;
   assert.equal(extractJobSalary(`Compensation\n${statement}`), `Compensation ${statement}`);

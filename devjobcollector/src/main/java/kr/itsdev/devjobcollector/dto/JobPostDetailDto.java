@@ -33,6 +33,9 @@ public class JobPostDetailDto {
 
     // 상세 정보
     private String applyQual;
+    private String supplementalSalaryText;
+    private String supplementalSalarySourceUrl;
+    private LocalDateTime supplementalSalaryCheckedAt;
     private String processInfo;
     private String publicPreference;
     private String publicPreferenceConditions;

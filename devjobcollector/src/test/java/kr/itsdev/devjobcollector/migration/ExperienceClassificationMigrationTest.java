@@ -16,6 +16,9 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.test.util.ReflectionTestUtils;
 import kr.itsdev.devjobcollector.service.PublicDataApiClient;
 import kr.itsdev.devjobcollector.service.PublicJobDetailsBackfillService;
+import kr.itsdev.devjobcollector.service.StripeSalaryBackfill;
+import kr.itsdev.devjobcollector.service.StripeSalaryEvidenceService;
+import kr.itsdev.devjobcollector.service.StripeSalaryPageClient;
 import kr.itsdev.devjobcollector.dto.PublicDataDetailResponse;
 import kr.itsdev.devjobcollector.dto.PublicJobDto;
 import static org.mockito.Mockito.*;
@@ -33,6 +36,49 @@ class ExperienceClassificationMigrationTest {
     }
     @AfterAll static void cleanup() { flyway(null).clean(); }
     @BeforeEach void resetSchema() { flyway(null).clean(); }
+
+    @Test void stripeBackfillDryRunDoesNotWriteAndClaimSuppressesRetry() {
+        flyway(null).migrate();
+        var ds = new DriverManagerDataSource(System.getenv("DJC_MIGRATION_TEST_URL").replaceAll("/[^/?]*(\\?.*)?$", "/" + SCHEMA + "$1"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""));
+        var jdbc = new JdbcTemplate(ds);
+        jdbc.update("INSERT INTO job_posts (source_platform,original_sn,company_name,title,start_date,end_date,original_url,is_active) VALUES ('GREENHOUSE','stripe:8330801','Stripe','Engineer','2026-01-01','2030-01-01','https://stripe.com/jobs/search?gh_jid=8330801',1)");
+        var pages = mock(StripeSalaryPageClient.class);
+        var evidence = mock(StripeSalaryEvidenceService.class);
+        when(pages.fetch("8330801")).thenReturn(java.util.Optional.empty());
+        var batch = new StripeSalaryBackfill(jdbc, pages, evidence);
+        assertThat(batch.runBatch(false).unavailable()).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM job_posts WHERE supplemental_salary_attempted_at IS NOT NULL", Integer.class)).isZero();
+        assertThat(batch.runBatch(true).unavailable()).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM job_posts WHERE supplemental_salary_attempted_at IS NOT NULL", Integer.class)).isEqualTo(1);
+        assertThat(batch.runBatch(true).scanned()).isZero();
+        verifyNoInteractions(evidence);
+    }
+
+    @Test void salaryEvidenceMigrationKeepsExistingSourceData() throws Exception {
+        flyway("32").migrate();
+        try (Connection connection = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
+            connection.setCatalog(SCHEMA);
+            try (Statement statement = connection.createStatement()) {
+                statement.executeUpdate("INSERT INTO job_posts (source_platform,original_sn,company_name,title,apply_qual,start_date,end_date,original_url,is_active) VALUES ('GREENHOUSE','stripe:8330801','Stripe','Engineer','Original description','2026-01-01','2030-01-01','https://stripe.com/jobs/search?gh_jid=8330801',1)");
+            }
+        }
+        flyway(null).migrate();
+        try (Connection connection = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
+            connection.setCatalog(SCHEMA);
+            try (Statement statement = connection.createStatement(); ResultSet rs = statement.executeQuery("SELECT apply_qual,supplemental_salary_text,supplemental_salary_source_hash FROM job_posts WHERE original_sn='stripe:8330801'")) {
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(1)).isEqualTo("Original description");
+                assertThat(rs.getString(2)).isNull();
+                assertThat(rs.getString(3)).isNull();
+            }
+        }
+    }
 
     @Test void backfillsPublicDetailsAndRetriesFailuresWithoutTouchingOtherSources() throws Exception {
         flyway(null).migrate();

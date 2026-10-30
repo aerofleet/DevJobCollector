@@ -1,7 +1,7 @@
 package kr.itsdev.devjobcollector.collection.adapter;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.itsdev.devjobcollector.collection.domain.CollectionStatus;
 import kr.itsdev.devjobcollector.collection.domain.CompanySourceTarget;
@@ -51,9 +51,13 @@ public class LeverAdapter implements JobSourceAdapter {
 
         try {
             String rawResponse = restTemplate.getForObject(url, String.class);
-            List<LeverPostingResponse> sourceJobs = objectMapper.readValue(
-                    rawResponse, new TypeReference<List<LeverPostingResponse>>() {});
-            List<JobRawDto> jobs = sourceJobs.stream().map(this::toRawJob).toList();
+            JsonNode sourceJobs = objectMapper.readTree(rawResponse);
+            if (!sourceJobs.isArray()) return CollectionResult.failed(CollectionStatus.SCHEMA_CHANGED, SCHEMA_VERSION);
+            List<JobRawDto> jobs = new ArrayList<>();
+            for (JsonNode sourceJob : sourceJobs) {
+                LeverPostingResponse job = objectMapper.treeToValue(sourceJob, LeverPostingResponse.class);
+                jobs.add(toRawJob(job, sourceJob.toString()));
+            }
             CollectionStatus status = jobs.isEmpty() ? CollectionStatus.EMPTY_SUCCESS : CollectionStatus.SUCCESS;
             return new CollectionResult(status, jobs, jobs.size(), SCHEMA_VERSION,
                     !jobs.isEmpty(), ContentHash.sha256(rawResponse));
@@ -72,8 +76,7 @@ public class LeverAdapter implements JobSourceAdapter {
         }
     }
 
-    private JobRawDto toRawJob(LeverPostingResponse job) {
-        String rawPayload = writePayload(job);
+    private JobRawDto toRawJob(LeverPostingResponse job, String rawPayload) {
         LeverPostingResponse.Categories categories = job.categories();
         return new JobRawDto(
                 sourceType(),
@@ -104,6 +107,18 @@ public class LeverAdapter implements JobSourceAdapter {
                     .replaceAll("<[^>]+>", "")
                     .replaceAll("\\n[ ]*\\n+", "\n").trim());
         }
+        if (job.salaryRange() != null) {
+            var range = job.salaryRange();
+            if (range.min() != null || range.max() != null) {
+                String amount = range.min() == null ? "up to " + range.max().toPlainString()
+                        : range.max() == null ? "from " + range.min().toPlainString()
+                        : range.min().compareTo(range.max()) == 0 ? range.min().toPlainString()
+                        : range.min().toPlainString() + " – " + range.max().toPlainString();
+                addPart(parts, "Salary: " + (range.currency() == null ? "" : range.currency() + " ") + amount
+                        + (range.interval() == null ? "" : " (" + range.interval() + ")")
+                        + (job.salaryDescriptionPlain() == null || job.salaryDescriptionPlain().isBlank() ? "" : " — " + job.salaryDescriptionPlain().replaceAll("\\s+", " ").trim()));
+            }
+        }
         addPart(parts, job.salaryDescriptionPlain());
         addPart(parts, job.additionalPlain());
         return parts.isEmpty() ? null : String.join("\n", parts);
@@ -111,14 +126,6 @@ public class LeverAdapter implements JobSourceAdapter {
 
     private static void addPart(List<String> parts, String value) {
         if (value != null && !value.isBlank()) parts.add(value.trim());
-    }
-
-    private String writePayload(Object value) {
-        try {
-            return objectMapper.writeValueAsString(value);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to serialize Lever job", e);
-        }
     }
 
     private void requireTarget(CompanySourceTarget target) {

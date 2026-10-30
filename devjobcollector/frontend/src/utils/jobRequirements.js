@@ -24,7 +24,7 @@ export function extractJobRequirements(content) {
       section = /우대|preferred|nice to have|added plus|bonus points/i.test(heading[1]) ? 'preferred' : 'required';
       continue;
     }
-    if (OTHER_HEADING.test(line) || /^#\s*[A-Z]?\d+\b/i.test(line) || /^(?:position details|pay and benefits|at figma, one of our values|pay transparency|annual base salary|application limit|equal opportunity employer|accommodations|data privacy)\b/i.test(line) || /^[^:：]{1,80}[:：]$/.test(line)) { section = null; continue; }
+    if (OTHER_HEADING.test(line) || /^#\s*[A-Z]?\d+\b/i.test(line) || /^(?:position details|pay and benefits|salary\s*[:：]|compensation\s*[:：]|at figma, one of our values|pay transparency|annual base salary|application limit|equal opportunity employer|accommodations|data privacy)/i.test(line) || /^[^:：]{1,80}[:：]$/.test(line)) { section = null; continue; }
     if (!section) continue;
     const item = line.replace(/^[-*•●▪◦‣·]\s*/, '').replace(/^\d+[.)]\s*/, '').trim();
     if (item && !/^https?:\/\//i.test(item)) result[section].push(item);
@@ -38,7 +38,7 @@ export function extractJobSalary(content) {
     .replace(/&ndash;/gi, '–').replace(/&nbsp;|&#160;/gi, ' ')
     .replace(/<br\s*\/?\s*>|<\/(?:p|div|li|h[1-6])>/gi, '\n').replace(/<[^>]*>/g, '');
   const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  const amount = /(?:[$€£₹₩]\s*[\d,]+(?:\.\d+)?|\b(?:USD|INR|KRW|EUR|GBP)\s*[\d,]+|[\d,]+\s*(?:원|만원|억원|USD|INR|KRW|EUR|GBP))/i;
+  const amount = /(?:[$€£₹₩]\s*[\d,]+(?:\.\d+)?|\b(?:USD|AUD|CAD|INR|KRW|EUR|GBP)\s*(?:(?:from|up to)\s+)?[\d,]+|[\d,]+\s*(?:원|만원|억원|USD|AUD|CAD|INR|KRW|EUR|GBP))/i;
   for (let i = 0; i < lines.length; i++) {
     if (!/(?:salary|compensation|pay\s+range|급여|연봉|월급|시급)/i.test(lines[i])) continue;
     for (let j = i; j < Math.min(i + 5, lines.length); j++) {

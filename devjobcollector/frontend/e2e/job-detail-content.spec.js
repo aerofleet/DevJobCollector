@@ -28,9 +28,11 @@ test('공고 원문 대신 출처와 자격 조건을 표시하고 원문으로 
 
   await expect(page.getByText('출처 · Greenhouse')).toBeVisible();
   await expect(page.getByRole('heading', { name: '자격 조건' })).toBeVisible();
-  await expect(page.getByText('백엔드 개발 경력 3년 이상')).toBeVisible();
-  await expect(page.getByText('클라우드 운영 경험')).toBeVisible();
-  await expect(page.getByText('Java와 Spring 기반 서비스를 개발합니다.')).toHaveCount(0);
+  await expect(page.getByText('백엔드 개발 경력 3년 이상', { exact: true })).toBeVisible();
+  await expect(page.getByText('클라우드 운영 경험', { exact: true })).toBeVisible();
+  await expect(page.getByText('Java와 Spring 기반 서비스를 개발합니다.')).not.toBeVisible();
+  await page.getByText('수집된 공고 내용 전체 보기').click();
+  await expect(page.getByText('Java와 Spring 기반 서비스를 개발합니다.')).toBeVisible();
   await expect(page.getByRole('link', { name: '공고 원문 보기 ↗' })).toHaveAttribute('href', jobDetail.originalUrl);
   expect(await page.evaluate(() => window.__jobContentInjected)).toBeUndefined();
 });
@@ -62,4 +64,14 @@ test('알리오 공고의 제공된 지원 자격과 전형 방법을 전체 표
   await expect(page.getByRole('link', { name: '채용 공고.pdf' })).toHaveAttribute('href', 'https://example.com/notice.pdf');
   await expect(page.getByRole('link', { name: '공고 원문 보기 ↗' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: /지원하기/ })).toBeEnabled();
+});
+
+test('별도 원문에서 수집한 급여의 조건을 함께 표시한다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/44?*', route => route.fulfill({ json: {
+    ...jobDetail, id: 44, supplementalSalaryText: 'Annual OTE A$306,500 - A$459,700 for the primary location. Includes base salary and sales commissions.',
+  } }));
+  await page.goto('/job/44');
+  await expect(page.getByText(/Annual OTE A\$306,500/)).toBeVisible();
+  await expect(page.getByText(/primary location/)).toBeVisible();
+  await expect(page.getByText(/Includes base salary and sales commissions/)).toBeVisible();
 });

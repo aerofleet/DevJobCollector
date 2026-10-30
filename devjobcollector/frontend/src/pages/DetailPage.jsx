@@ -193,10 +193,22 @@ const DetailPage = () => {
         </section>
         <section className="detail-section">
           <h3>급여 정보</h3>
-          {salary ? <p>{salary}</p> : <p className="job-content-empty">급여 정보를 확인하지 못했어요. 원문을 확인해 주세요.</p>}
+          {salary && <p>{salary}</p>}
+          {job.supplementalSalaryText && <>
+            <p className="detail-source-note">원문 페이지에서 추가로 수집한 급여·복리후생 정보입니다. 최신 조건은 원문을 확인해 주세요.</p>
+            <StructuredJobContent content={job.supplementalSalaryText} />
+          </>}
+          {!salary && !job.supplementalSalaryText && <p className="job-content-empty">급여 정보를 확인하지 못했어요. 원문을 확인해 주세요.</p>}
           <p className="detail-source-note">일부 항목만 표시됩니다. 정확한 자격 조건과 상세 내용은 원문에서 확인해 주세요.</p>
           {originalUrl && <a className="detail-original-link" href={originalUrl} target="_blank" rel="noopener noreferrer">공고 원문 보기 ↗</a>}
         </section>
+        {job.applyQual && <section className="detail-section">
+          <details>
+            <summary>수집된 공고 내용 전체 보기</summary>
+            <p className="detail-source-note">수집된 내용이며 원문 전체와 다를 수 있습니다. 최신 내용은 공고 원문을 확인해 주세요.</p>
+            <StructuredJobContent content={job.applyQual} />
+          </details>
+        </section>}
         </>}
 
         <div className="action-buttons">
