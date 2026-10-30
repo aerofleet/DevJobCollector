@@ -5,6 +5,8 @@ function separateInlineBullets(text) {
     .replace(/[ \t]+·(?=\s)/g, '\n·');
 }
 const OTHER_HEADING = /^(?:#{1,6}\s+.+|[[【].+[\]】]|(?:주요\s*업무|담당\s*업무|업무\s*내용|조직\s*소개|근무\s*조건|복리\s*후생|전형\s*절차|채용\s*절차|접수\s*방법|기타\s*사항|responsibilities|benefits|success measures|about the (?:role|team)|hiring process)\s*[:：]?)$/i;
+const LABELED_REQUIREMENT_HEADING = /^[^\n•]{0,100}\((필수\s*(?:요건|사항|조건)|우대\s*(?:요건|사항|조건))\)\s*[:：]?$/;
+const KRAFTON_PROCESS_HEADING = /^.{0,80}전형\s*과정이\s*필요합니다[.!]?$/;
 
 // Recognize explicit sections only; unknown formats must not be presented as requirements.
 export function extractJobRequirements(content) {
@@ -24,12 +26,12 @@ export function extractJobRequirements(content) {
       result.preferred.push(preferredItem[1].trim());
       continue;
     }
-    const heading = line.match(HEADINGS) || line.match(/^(how do i know if the role is right for me)\?\s*$/i);
+    const heading = line.match(HEADINGS) || line.match(LABELED_REQUIREMENT_HEADING) || line.match(/^(how do i know if the role is right for me)\?\s*$/i);
     if (heading) {
       section = /우대|이런\s*경험이\s*있다면\s*더\s*좋아요|preferred|nice to have|added plus|bonus points/i.test(heading[1]) ? 'preferred' : 'required';
       continue;
     }
-    if (OTHER_HEADING.test(line) || /^(?:채용하고 싶은 사람|전형절차 및 기타사항|유의사항|전형\s*절차\s*및\s*안내\s*사항)\s*[:：]?$/i.test(line) || /^(?:#\s*[A-Z]?\d+|PID(?:\s*-\s*[A-Z]?\d+)?$)/i.test(line) || /^(?:position details|pay and benefits|compensation\s*&\s*benefits|pay range transparency|salary\s*[:：]|compensation\s*[:：]|at figma, one of our values|pay transparency|annual base salary|application limit|equal opportunity employer|accommodations|data privacy)/i.test(line) || /^[^:：]{1,80}[:：]$/.test(line)) { section = null; continue; }
+    if (OTHER_HEADING.test(line) || KRAFTON_PROCESS_HEADING.test(line) || /^(?:채용하고 싶은 사람|전형절차 및 기타사항|유의사항|전형\s*절차\s*및\s*안내\s*사항)\s*[:：]?$/i.test(line) || /^(?:#\s*[A-Z]?\d+|PID(?:\s*-\s*[A-Z]?\d+)?$)/i.test(line) || /^(?:position details|pay and benefits|compensation\s*&\s*benefits|pay range transparency|salary\s*[:：]|compensation\s*[:：]|at figma, one of our values|pay transparency|annual base salary|application limit|equal opportunity employer|accommodations|data privacy)/i.test(line) || /^[^:：]{1,80}[:：]$/.test(line)) { section = null; continue; }
     if (!section) continue;
     const item = line.replace(/^[-*•●▪◦‣·]\s*/, '').replace(/^\d+[.)]\s*/, '').trim();
     if (!item || /^https?:\/\//i.test(item)) continue;
@@ -87,9 +89,9 @@ export function extractJobDuties(content) {
   for (const [index, raw] of lines.entries()) {
     const line = raw.trim();
     if (!line) continue;
-    if (heading.test(line) || (/^the opportunity\s*:?$/i.test(line) && lines.slice(index + 1).some(next => /^how do i know if the role is right for me\?\s*$/i.test(next.trim())))) { inside = true; continue; }
+    if (heading.test(line) || /^우리\s*팀과\s*함께할\s*미션을\s*소개합니다[.!]?$/i.test(line) || (/^the opportunity\s*:?$/i.test(line) && lines.slice(index + 1).some(next => /^how do i know if the role is right for me\?\s*$/i.test(next.trim())))) { inside = true; continue; }
     if (/^how do i know if the role is right for me\?\s*$/i.test(line)) { inside = false; continue; }
-    if (HEADINGS.test(line) || OTHER_HEADING.test(line) || /^#{1,6}\s+/.test(line)
+    if (HEADINGS.test(line) || LABELED_REQUIREMENT_HEADING.test(line) || OTHER_HEADING.test(line) || KRAFTON_PROCESS_HEADING.test(line) || /^#{1,6}\s+/.test(line)
       || /^(?:전형\s*절차|토스로의\s*합류\s*여정|PID\s*-\s*[A-Z]?\d+|pay transparency|annual base salary|salary\s*[:：]|compensation\s*[:：])/i.test(line)
       || /^[^:：]{1,80}[:：]$/.test(line)) { inside = false; continue; }
     if (inside) items.push(line.replace(/^[-*•●▪◦‣·]\s*/, '').replace(/^\d+[.)]\s*/, '').trim());
@@ -130,4 +132,15 @@ export function extractMentionedTools(requirements) {
 export function formatJobLocation(location) {
   const parts = String(location || '').split(/[;•]/).map((part) => part.trim()).filter(Boolean);
   return parts.filter((part, index) => parts.findIndex((candidate) => candidate.toLocaleLowerCase() === part.toLocaleLowerCase()) === index).join(' · ');
+}
+
+// Use explicitly labelled source text when the structured field was not collected.
+export function extractJobEmploymentType(content) {
+  const match = String(content || '').match(/(?:^|\n)\s*고용\s*형태\s*[:：]?\s*\n\s*[-*•●▪◦‣·]?\s*([^\n]{1,100})/i);
+  return match ? match[1].trim() : null;
+}
+
+export function extractRollingDeadline(content) {
+  return /상시\s*채용으로\s*채용\s*완료\s*시\s*조기\s*마감될\s*수\s*있습니다/.test(String(content || ''))
+    ? '상시 채용 (채용 완료 시 조기 마감 가능)' : null;
 }

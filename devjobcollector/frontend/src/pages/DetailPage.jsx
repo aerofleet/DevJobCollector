@@ -8,7 +8,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import TechStackBadge from '../components/job/TechStackBadge';
 import StructuredJobContent from '../components/job/StructuredJobContent';
 import { jobSourceLabel } from '../utils/jobSource';
-import { extractExperienceWording, extractJobDuties, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, formatJobLocation } from '../utils/jobRequirements';
+import { extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatJobLocation } from '../utils/jobRequirements';
 import { formatDate } from '../utils/dateParser';
 import { getDaysRemaining } from '../utils/dateParser';
 import '../styles/DetailPage.css';
@@ -67,6 +67,8 @@ const DetailPage = () => {
   const isPublicAlio = job.sourcePlatform === 'PUBLIC_ALIO';
   const salary = extractJobSalary(job.applyQual);
   const deadlineEvidence = job.deadlineEvidence;
+  const employmentType = job.hireType || extractJobEmploymentType(job.applyQual);
+  const rollingDeadline = extractRollingDeadline(job.applyQual);
   const mentionedTools = extractMentionedTools(requirements);
   const sourceTechnology = extractJobTechnologySections(job.applyQual);
   const registeredTools = new Set((job.techStacks || []).map((tech) => tech.stackName?.trim().toLowerCase()));
@@ -137,7 +139,7 @@ const DetailPage = () => {
               <span className="value">{(!job.experience || job.experience === '경력 확인 필요') && experienceWording ? experienceWording : (job.experience || '경력 확인 필요').replace(/^경력\s+(?=\d)/, '')}</span>
             </div>
             {isPublicAlio && job.jobCategory && <div className="info-item"><span className="label">채용 분야</span><span className="value">{job.jobCategory}</span></div>}
-            {isPublicAlio && job.hireType && <div className="info-item"><span className="label">고용 형태</span><span className="value">{job.hireType}</span></div>}
+            {employmentType && <div className="info-item"><span className="label">고용 형태</span><span className="value">{employmentType}</span></div>}
             <div className="info-item">
               <span className="label">공고일 또는 수집일</span>
               <span className="value">{formatDate(job.startDate)}</span>
@@ -146,7 +148,7 @@ const DetailPage = () => {
               <span className="label">마감일</span>
               <span className="value">{job.sourceDeadlineDisplay === 'HIDDEN' ? '마감일 확인 필요'
                 : deadlineEvidence?.status === 'CONFLICT' || deadlineEvidence?.status === 'AMBIGUOUS' || (job.sourceDeadlineDisplay === 'RECRUITMENT_END' && deadlineEvidence?.status === 'PRESENT') ? '마감일 원문 확인 필요'
-                  : job.endDate?.startsWith('9999-12-31') ? (job.sourceDeadlineDisplay === 'RECRUITMENT_END' ? '영입종료시' : deadlineEvidence?.status === 'PRESENT' ? `${deadlineEvidence.localDate.replaceAll('-', '.')} (본문 기준 · 원문 확인)` : '마감일 확인 필요') : formatDate(job.endDate)}</span>
+                  : job.endDate?.startsWith('9999-12-31') ? (job.sourceDeadlineDisplay === 'RECRUITMENT_END' ? '영입종료시' : deadlineEvidence?.status === 'PRESENT' ? `${deadlineEvidence.localDate.replaceAll('-', '.')} (본문 기준 · 원문 확인)` : rollingDeadline || '마감일 확인 필요') : formatDate(job.endDate)}</span>
             </div>
             <div className="info-item">
               {job.sourceDeadlineDisplay !== 'HIDDEN' && daysRemaining !== null && daysRemaining >= 0 && (

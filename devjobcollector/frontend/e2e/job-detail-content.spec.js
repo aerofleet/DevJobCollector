@@ -205,3 +205,18 @@ test('역할 적합성 제목 아래의 필수 경력과 도구를 표시한다'
   await expect(page.getByRole('heading', { name: '자격 조건' }).locator('..')).not.toContainText('Insurance');
   await expect(page.getByRole('heading', { name: '기술 스택' }).locator('..')).toContainText('Python');
 });
+
+test('인턴 공고에서 업무와 자격 및 상시 채용을 구분한다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/11133?*', route => route.fulfill({ json: {
+    ...jobDetail, id: 11133, sourcePlatform: 'GREENHOUSE', experience: '경력 확인 필요', hireType: null, endDate: '9999-12-31', deadlineEvidence: { status: 'UNAVAILABLE' }, techStacks: [],
+    applyQual: '우리 팀과 함께할 미션을 소개합니다.\n• 산업 리서치\n이런 경험을 가진 분과 함께 성장하고 싶습니다! (필수요건)\n• 한국어/일본어 역량\n이런 경험들이 있다면 저희가 찾는 그 분입니다! (우대요건)\n• 영어 역량\n크래프톤의 도전에 함께 하기 위해 아래의 전형 과정이 필요합니다.\n• 상시 채용으로 채용 완료 시 조기 마감될 수 있습니다.\n고용형태\n• 인턴 (6개월, 정규직 전환 비대상)',
+  } }));
+  await page.goto('/job/11133');
+  await expect(page.getByRole('heading', { name: '담당 업무' }).locator('..')).toContainText('산업 리서치');
+  await expect(page.getByRole('heading', { name: '자격 조건' }).locator('..')).toContainText('한국어/일본어 역량');
+  await expect(page.getByRole('heading', { name: '우대 사항' }).locator('..')).toContainText('영어 역량');
+  await expect(page.getByRole('heading', { name: '우대 사항' }).locator('..')).not.toContainText('상시 채용');
+  await expect(page.locator('.info-item').filter({ hasText: '경력' }).locator('.value')).toHaveText('경력 확인 필요');
+  await expect(page.locator('.info-item').filter({ hasText: '고용 형태' }).locator('.value')).toHaveText('인턴 (6개월, 정규직 전환 비대상)');
+  await expect(page.locator('.info-item').filter({ hasText: '마감일' }).locator('.value')).toHaveText('상시 채용 (채용 완료 시 조기 마감 가능)');
+});

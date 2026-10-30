@@ -1,6 +1,19 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractExperienceWording, extractJobDuties, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, formatJobLocation } from './jobRequirements.js';
+import { extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatJobLocation } from './jobRequirements.js';
+
+test('extracts labeled Korean role sections, internship terms and rolling deadline', () => {
+  const text = '우리 팀과 함께할 미션을 소개합니다.\n• 산업 리서치\n• 일본 현지 통역\n이런 경험을 가진 분과 함께 성장하고 싶습니다! (필수요건)\n• 한국어/일본어 역량\n• 해외 출장 가능\n이런 경험들이 있다면 저희가 찾는 그 분입니다! (우대요건)\n• 영어 역량\n• 유학 경험\n크래프톤의 도전에 함께 하기 위해 아래의 전형 과정이 필요합니다.\n• 서류 전형\n• 상시 채용으로 채용 완료 시 조기 마감될 수 있습니다.\n고용형태\n• 인턴 (6개월, 정규직 전환 비대상)';
+  const req = extractJobRequirements(text);
+  assert.deepEqual(extractJobDuties(text), ['산업 리서치', '일본 현지 통역']);
+  assert.deepEqual(req.required, ['한국어/일본어 역량', '해외 출장 가능']);
+  assert.deepEqual(req.preferred, ['영어 역량', '유학 경험']);
+  assert.equal(extractExperienceWording(req), null);
+  assert.equal(extractJobEmploymentType(text), '인턴 (6개월, 정규직 전환 비대상)');
+  assert.equal(extractRollingDeadline(text), '상시 채용 (채용 완료 시 조기 마감 가능)');
+  assert.equal(extractRollingDeadline('상시 채용이 아닙니다.'), null);
+  assert.equal(extractJobEmploymentType('인턴 경험 우대'), null);
+});
 
 test('classifies role-fit requirements and years in a professional field', () => {
   const text = 'The Opportunity:\n• Develop forecasts\n• Build dashboards\nHow Do I Know if the Role is Right For Me?\n• 6+ years in analytics or strategy, ideally at a marketplace.\n• Proficient in SQL and Python\nCompensation & Benefits\n• 12+ years in analytics';
