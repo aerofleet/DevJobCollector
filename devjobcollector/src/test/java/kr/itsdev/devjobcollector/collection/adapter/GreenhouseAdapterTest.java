@@ -19,6 +19,21 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 class GreenhouseAdapterTest {
 
     @Test
+    void preservesEncodedSectionAndListBoundaries() {
+        RestTemplate client = new RestTemplate();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(client).build();
+        var adapter = new GreenhouseAdapter(client, new ObjectMapper());
+        var target = new CompanySourceTarget(null, SourceType.GREENHOUSE, "example", "https://example.com", CollectionTier.A);
+        server.expect(requestTo("https://boards-api.greenhouse.io/v1/boards/example/jobs?content=true"))
+                .andRespond(withSuccess("""
+                        {"jobs":[{"id":1,"title":"Engineer","content":"&lt;h2&gt;Minimum requirements&lt;/h2&gt;&lt;ul&gt;&lt;li&gt;Java&lt;/li&gt;&lt;li&gt;SQL&lt;/li&gt;&lt;/ul&gt;&lt;h2&gt;Position details&lt;/h2&gt;&lt;p&gt;Applications close: 30th November 2026&lt;/p&gt;"}]}
+                        """, MediaType.APPLICATION_JSON));
+        assertThat(adapter.fetchJobs(target, CollectionContext.now()).jobs().getFirst().plainDescription())
+                .isEqualTo("Minimum requirements\n• Java\n• SQL\nPosition details\nApplications close: 30th November 2026");
+        server.verify();
+    }
+
+    @Test
     void mapsMeasuredGreenhouseFieldsToRawJob() {
         RestTemplate restTemplate = new RestTemplate();
         MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();

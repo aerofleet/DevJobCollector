@@ -3,6 +3,16 @@ import assert from 'node:assert/strict';
 import { extractJobRequirements, extractJobSalary, extractMentionedTools, formatJobLocation } from './jobRequirements.js';
 import { jobSourceLabel } from './jobSource.js';
 
+test('preserves long requirements and stops before position details', () => {
+  const items = Array.from({ length: 15 }, (_, i) => `- Requirement ${i}`);
+  const longItem = 'x'.repeat(501);
+  const content = ['Minimum requirements', ...items, `- ${longItem}`, 'Preferred qualifications', '- Preferred item', 'Position details', 'Applications close: 30th November 2026'].join('\n');
+  const result = extractJobRequirements(content);
+  assert.equal(result.required.length, 16);
+  assert.equal(result.required[15], longItem);
+  assert.deepEqual(result.preferred, ['Preferred item']);
+});
+
 test('extracts only named requirement sections and stops at other headings', () => {
   const result = extractJobRequirements('주요 업무\n- 업무 내용\n[자격 요건]\n- Java 경험\n- SQL 경험\n우대사항\n• 클라우드 경험\n복리후생\n- 식대');
   assert.deepEqual(result, { required: ['Java 경험', 'SQL 경험'], preferred: ['클라우드 경험'] });

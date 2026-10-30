@@ -1,6 +1,7 @@
 package kr.itsdev.devjobcollector.service;
 
 import kr.itsdev.devjobcollector.domain.JobPost;
+import kr.itsdev.devjobcollector.domain.JobFile;
 import kr.itsdev.devjobcollector.domain.SourcePlatform;
 import kr.itsdev.devjobcollector.domain.TechStack;
 import kr.itsdev.devjobcollector.dto.PublicDataDetailResponse;
@@ -218,6 +219,13 @@ public class PublicDataCollectorService {
             if (jobPost == null) {
                 log.error("❌ 엔티티 변환 실패: {}", dto.getRecrutPblntSn());
                 return false;
+            }
+
+            jobPost.updatePublicDetails(dto.getPrefCn(), dto.getPrefCondCn(), dto.getDisqlfcRsn());
+            if (dto.getFiles() != null) for (var file : dto.getFiles()) {
+                if (file != null && file.isValid() && file.getAtchFileNm().length() <= 255) {
+                    jobPost.addFile(JobFile.builder().fileName(file.getAtchFileNm()).fileUrl(file.getUrl()).build());
+                }
             }
 
             if (dto.getNcsCdNmLst() != null && !dto.getNcsCdNmLst().isEmpty()) {

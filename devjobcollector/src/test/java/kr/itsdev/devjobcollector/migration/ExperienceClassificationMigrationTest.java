@@ -11,6 +11,14 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.test.util.ReflectionTestUtils;
+import kr.itsdev.devjobcollector.service.PublicDataApiClient;
+import kr.itsdev.devjobcollector.service.PublicJobDetailsBackfillService;
+import kr.itsdev.devjobcollector.dto.PublicDataDetailResponse;
+import kr.itsdev.devjobcollector.dto.PublicJobDto;
+import static org.mockito.Mockito.*;
 
 @EnabledIfEnvironmentVariable(named = "DJC_MIGRATION_TEST_URL", matches = ".+")
 class ExperienceClassificationMigrationTest {
@@ -25,6 +33,35 @@ class ExperienceClassificationMigrationTest {
     }
     @AfterAll static void cleanup() { flyway(null).clean(); }
     @BeforeEach void resetSchema() { flyway(null).clean(); }
+
+    @Test void backfillsPublicDetailsAndRetriesFailuresWithoutTouchingOtherSources() throws Exception {
+        flyway(null).migrate();
+        var ds = new DriverManagerDataSource(System.getenv("DJC_MIGRATION_TEST_URL"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""));
+        var jdbc = new JdbcTemplate(ds);
+        // Set the schema per connection, since JdbcTemplate opens a new connection for each statement.
+        ds.setUrl(System.getenv("DJC_MIGRATION_TEST_URL").replaceAll("/[^/?]*(\\?.*)?$", "/" + SCHEMA + "$1"));
+        jdbc.update("INSERT INTO job_posts (source_platform,original_sn,company_name,title,start_date,end_date,original_url,is_active) VALUES "
+                + "('PUBLIC_ALIO','good','기관','공고','2026-01-01','2030-01-01','https://example.com',1),"
+                + "('PUBLIC_ALIO','bad','기관','공고','2026-01-01','2030-01-01','https://example.com',1),"
+                + "('GREENHOUSE','other','기관','공고','2026-01-01','2030-01-01','https://example.com',1)");
+        var api = mock(PublicDataApiClient.class);
+        var dto = PublicJobDto.builder().recrutPblntSn("good").prefCn("우대 내용").disqlfcRsn("결격 사유").build();
+        var response = new PublicDataDetailResponse(200, "ok", 1, dto);
+        when(api.fetchJobDetail("good")).thenReturn(response);
+        when(api.fetchJobDetail("bad")).thenReturn(null);
+        var backfill = new PublicJobDetailsBackfillService(jdbc, api);
+        ReflectionTestUtils.setField(backfill, "collectionEnabled", true);
+        backfill.backfill();
+        assertThat(jdbc.queryForObject("SELECT public_preference FROM job_posts WHERE original_sn='good'", String.class)).isEqualTo("우대 내용");
+        assertThat(jdbc.queryForObject("SELECT public_disqualification FROM job_posts WHERE original_sn='good'", String.class)).isEqualTo("결격 사유");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM job_posts WHERE original_sn='bad' AND public_details_checked_at IS NULL AND public_details_attempted_at IS NOT NULL", Integer.class)).isEqualTo(1);
+        backfill.backfill();
+        verify(api, times(1)).fetchJobDetail("good");
+        verify(api, times(1)).fetchJobDetail("bad");
+        verify(api, never()).fetchJobDetail("other");
+    }
 
     @Test void reclassifiesExpertiseWithoutOverwritingReviewedRows() throws Exception {
         flyway("30").migrate();

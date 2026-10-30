@@ -57,6 +57,15 @@ public class PublicJobDto {
     @JsonProperty("scrnprcdrMthdExpln")
     private String scrnprcdrMthdExpln;  // 전형 방법 (Detail API용)
 
+    @JsonProperty("prefCn")
+    private String prefCn;
+
+    @JsonProperty("prefCondCn")
+    private String prefCondCn;
+
+    @JsonProperty("disqlfcRsn")
+    private String disqlfcRsn;
+
     @JsonProperty("files")
     @Builder.Default
     private List<FileDto> files = new ArrayList<>();        // 첨부파일 목록
