@@ -25,6 +25,7 @@ export default function JobsPage() {
   const [aiHistory, setAiHistory] = useState([]);
   const [aiConfirmed, setAiConfirmed] = useState(false);
   const [reviewDraft, setReviewDraft] = useState(null);
+  const [salaryPreview, setSalaryPreview] = useState(null);
 
   const load = useCallback(async () => {
     setError('');
@@ -40,7 +41,7 @@ export default function JobsPage() {
 
   const selectJob = async (id) => {
     setError(''); setReason(''); setNewEndDate(''); setPendingStatus(null);
-    setAiPreview(null); setAiResult(null); setAiHistory([]); setAiConfirmed(false); setReviewDraft(null);
+    setAiPreview(null); setAiResult(null); setAiHistory([]); setAiConfirmed(false); setReviewDraft(null); setSalaryPreview(null);
     try {
       const job = (await adminApi.job(id)).data;
       if (job.sourcePlatform === 'COMPANY_DIRECT') {
@@ -49,6 +50,14 @@ export default function JobsPage() {
       setSelected(job);
     }
     catch (cause) { setError(cause.message); }
+  };
+
+  const previewSalary = async () => {
+    if (!selected || busy) return;
+    setBusy(true); setError(''); setSalaryPreview(null);
+    try { setSalaryPreview(await adminRequest(`/jobs/${selected.id}/stripe-salary/preview`)); }
+    catch (cause) { setError(cause.message); }
+    finally { setBusy(false); }
   };
 
   const applyAiReview = async () => {
@@ -176,6 +185,19 @@ export default function JobsPage() {
         <div><dt>원본</dt><dd><a href={selected.originalUrl} target="_blank" rel="noreferrer">원본 공고 확인</a></dd></div></dl>
       {selected.sourcePlatform === 'COMPANY_DIRECT' && <p>기업 직접 등록 공고입니다. 이 화면에서 처리한 내용은 기업 공고 검수의 처리 이력에도 기록됩니다.</p>}
       {selected.companyJob?.state === 'DELETED' && <p>삭제 처리된 공고입니다. 공고와 감사 기록은 보존되며 수정·재게시할 수 없습니다.</p>}
+      {admin.role !== 'REVIEWER' && selected.sourcePlatform === 'GREENHOUSE' && selected.originalUrl?.startsWith('https://stripe.com/') &&
+        <section className="moderation-form" aria-label="급여 원문 미리보기">
+          <h3>급여 원문 미리보기</h3>
+          <p>Stripe 원문과 기존 급여 정보를 비교합니다. 확인만 하며 공고를 변경하지 않습니다.</p>
+          <button type="button" className="secondary-button" disabled={busy} onClick={previewSalary}>급여 원문 확인</button>
+          {salaryPreview && <div>
+            <p>상태: {salaryPreview.status === 'PRESENT' ? '원문 확인됨' : '원문 확인 불가'}</p>
+            <p>기존 정보: {salaryPreview.previousText || '없음'}</p>
+            {salaryPreview.paragraphs?.map((paragraph, index) => <p key={index}>{paragraph}</p>)}
+            <p>원본 해시: {salaryPreview.sourceHash || '없음'}</p>
+            <a href={salaryPreview.sourceUrl} target="_blank" rel="noreferrer">Stripe 원문 열기</a>
+          </div>}
+        </section>}
       {admin.role !== 'REVIEWER' && <section className="moderation-form" aria-label="AI 공고 조건 검토">
         <h3>AI 공고 조건 검토</h3>
         <p>경력·근무지 제안을 원문과 비교하고 검토한 조건을 검색 필터에 반영할 수 있습니다.</p>
