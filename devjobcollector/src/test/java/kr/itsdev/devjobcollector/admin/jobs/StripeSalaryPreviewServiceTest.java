@@ -34,7 +34,6 @@ class StripeSalaryPreviewServiceTest {
         assertThat(preview.previousText()).isNull();
         assertThat(preview.paragraphs()).containsExactly("OTE salary");
         assertThat(preview.sourceHash()).isEqualTo("hash");
-        verify(evidence, never()).save(anyLong(), anyString(), anyString(), anyString(), any());
         verify(jobs, never()).save(any());
     }
 

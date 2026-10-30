@@ -98,19 +98,6 @@ public class JobPost {
     @Column(name = "supplemental_salary_checked_at")
     private LocalDateTime supplementalSalaryCheckedAt;
 
-    public void recordSupplementalSalary(String text, String sourceUrl, String sourceHash, LocalDateTime checkedAt) {
-        if (text == null || text.isBlank() || sourceUrl == null || sourceUrl.isBlank()
-                || sourceHash == null || !sourceHash.matches("[0-9a-f]{64}") || checkedAt == null) {
-            throw new IllegalArgumentException("Supplemental salary requires source evidence");
-        }
-        if (supplementalSalaryCheckedAt != null && !checkedAt.isAfter(supplementalSalaryCheckedAt)) {
-            throw new IllegalArgumentException("Supplemental salary evidence is not newer");
-        }
-        this.supplementalSalaryText = text;
-        this.supplementalSalarySourceUrl = sourceUrl;
-        this.supplementalSalarySourceHash = sourceHash;
-        this.supplementalSalaryCheckedAt = checkedAt;
-    }
 
     @Column(name = "process_info", columnDefinition = "LONGTEXT")
     private String processInfo;
