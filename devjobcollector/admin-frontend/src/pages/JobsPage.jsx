@@ -26,6 +26,8 @@ export default function JobsPage() {
   const [aiConfirmed, setAiConfirmed] = useState(false);
   const [reviewDraft, setReviewDraft] = useState(null);
   const [salaryPreview, setSalaryPreview] = useState(null);
+  const [salaryConfirmed, setSalaryConfirmed] = useState(false);
+  const [salaryApplied, setSalaryApplied] = useState(false);
 
   const load = useCallback(async () => {
     setError('');
@@ -41,7 +43,7 @@ export default function JobsPage() {
 
   const selectJob = async (id) => {
     setError(''); setReason(''); setNewEndDate(''); setPendingStatus(null);
-    setAiPreview(null); setAiResult(null); setAiHistory([]); setAiConfirmed(false); setReviewDraft(null); setSalaryPreview(null);
+    setAiPreview(null); setAiResult(null); setAiHistory([]); setAiConfirmed(false); setReviewDraft(null); setSalaryPreview(null); setSalaryConfirmed(false); setSalaryApplied(false);
     try {
       const job = (await adminApi.job(id)).data;
       if (job.sourcePlatform === 'COMPANY_DIRECT') {
@@ -54,9 +56,21 @@ export default function JobsPage() {
 
   const previewSalary = async () => {
     if (!selected || busy) return;
-    setBusy(true); setError(''); setSalaryPreview(null);
+    setBusy(true); setError(''); setSalaryPreview(null); setSalaryConfirmed(false); setSalaryApplied(false);
     try { setSalaryPreview(await adminRequest(`/jobs/${selected.id}/stripe-salary/preview`)); }
     catch (cause) { setError(cause.message); }
+    finally { setBusy(false); }
+  };
+
+  const applySalary = async () => {
+    if (!selected || !salaryPreview || !salaryConfirmed || busy) return;
+    setBusy(true); setError('');
+    try {
+      const result = await adminRequest(`/jobs/${selected.id}/stripe-salary/apply`, {
+        method: 'POST', body: JSON.stringify({ expectedVersion: salaryPreview.jobVersion, sourceHash: salaryPreview.sourceHash }),
+      });
+      setSelected({ ...selected, version: result.version }); setSalaryPreview(null); setSalaryConfirmed(false); setSalaryApplied(true);
+    } catch (cause) { setError(cause.status === 409 ? '공고 또는 원문이 변경되었습니다. 원문을 다시 확인해 주세요.' : cause.message); }
     finally { setBusy(false); }
   };
 
@@ -188,7 +202,7 @@ export default function JobsPage() {
       {admin.role !== 'REVIEWER' && selected.sourcePlatform === 'GREENHOUSE' && selected.originalUrl?.startsWith('https://stripe.com/') &&
         <section className="moderation-form" aria-label="급여 원문 미리보기">
           <h3>급여 원문 미리보기</h3>
-          <p>Stripe 원문과 기존 급여 정보를 비교합니다. 확인만 하며 공고를 변경하지 않습니다.</p>
+          <p>Stripe 원문과 기존 급여 정보를 비교하고 확인한 내용을 공고에 반영합니다.</p>
           <button type="button" className="secondary-button" disabled={busy} onClick={previewSalary}>급여 원문 확인</button>
           {salaryPreview && <div>
             <p>상태: {salaryPreview.status === 'PRESENT' ? '원문 확인됨' : '원문 확인 불가'}</p>
@@ -196,7 +210,12 @@ export default function JobsPage() {
             {salaryPreview.paragraphs?.map((paragraph, index) => <p key={index}>{paragraph}</p>)}
             <p>원본 해시: {salaryPreview.sourceHash || '없음'}</p>
             <a href={salaryPreview.sourceUrl} target="_blank" rel="noreferrer">Stripe 원문 열기</a>
+            {salaryPreview.status === 'PRESENT' && <div>
+              <label><input type="checkbox" checked={salaryConfirmed} onChange={event => setSalaryConfirmed(event.target.checked)} /> 기존 정보와 원문 급여 조건을 확인했습니다.</label>
+              <button type="button" className="primary-button" disabled={!salaryConfirmed || busy} onClick={applySalary}>확인한 급여 반영</button>
+            </div>}
           </div>}
+          {salaryApplied && <p role="status">확인한 급여 정보를 공고에 반영했습니다.</p>}
         </section>}
       {admin.role !== 'REVIEWER' && <section className="moderation-form" aria-label="AI 공고 조건 검토">
         <h3>AI 공고 조건 검토</h3>
