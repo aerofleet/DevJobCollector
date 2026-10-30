@@ -43,7 +43,7 @@ export function extractJobSalary(content) {
     if (!/(?:salary|compensation|pay\s+range|급여|연봉|월급|시급)/i.test(lines[i])) continue;
     for (let j = i; j < Math.min(i + 5, lines.length); j++) {
       if (j > i && /^(?:application limit|equal opportunity|our commitment|우대|자격)/i.test(lines[j])) break;
-      if (amount.test(lines[j]) && lines[j].length <= 180) {
+      if (amount.test(lines[j])) {
         const label = j > i && /(?:salary|compensation|pay\s+range|급여|연봉|월급|시급)/i.test(lines[j - 1]) && lines[j - 1].length <= 100 ? lines[j - 1] : lines[i].length <= 100 ? lines[i] : /base salary/i.test(lines[i]) ? '기본급' : '급여';
         const scope = j > i && /^(?:US based applicants only)$/i.test(lines[j - 1]) ? lines[j - 1] : null;
         return [label, scope, lines[j]].filter((line, k, arr) => line && arr.indexOf(line) === k).join(' ');

@@ -21,6 +21,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.ArrayList;
+import org.springframework.web.util.HtmlUtils;
 
 @Slf4j
 @Component
@@ -82,12 +84,33 @@ public class LeverAdapter implements JobSourceAdapter {
                 categories == null ? null : categories.team(),
                 job.hostedUrl(),
                 job.applyUrl(),
-                job.descriptionPlain(),
+                description(job),
                 job.createdAt() == null ? null : Instant.ofEpochMilli(job.createdAt()),
                 null,
                 ContentHash.sha256(rawPayload),
                 rawPayload
         );
+    }
+
+    private static String description(LeverPostingResponse job) {
+        List<String> parts = new ArrayList<>();
+        addPart(parts, job.descriptionPlain());
+        if (job.lists() != null) for (var list : job.lists()) {
+            if (list == null) continue;
+            addPart(parts, list.text());
+            addPart(parts, list.content() == null ? null : HtmlUtils.htmlUnescape(list.content())
+                    .replaceAll("(?i)<li(?:\\s[^>]*)?>", "\n• ")
+                    .replaceAll("(?i)<br\\s*/?>|</(?:p|div|li)\\s*>", "\n")
+                    .replaceAll("<[^>]+>", "")
+                    .replaceAll("\\n[ ]*\\n+", "\n").trim());
+        }
+        addPart(parts, job.salaryDescriptionPlain());
+        addPart(parts, job.additionalPlain());
+        return parts.isEmpty() ? null : String.join("\n", parts);
+    }
+
+    private static void addPart(List<String> parts, String value) {
+        if (value != null && !value.isBlank()) parts.add(value.trim());
     }
 
     private String writePayload(Object value) {

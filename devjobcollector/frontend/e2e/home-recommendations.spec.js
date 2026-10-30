@@ -154,13 +154,13 @@ test('추천 링크는 선택한 저장 분석을 직접 연다', async ({ page 
   expect(state.writes).toBe(0);
 });
 
-test('상시채용 마감일은 공통 카드 형식으로 표시한다', async ({ page }) => {
+test('미확인 마감일은 상시채용으로 추정하지 않는다', async ({ page }) => {
   await mock(page);
   await page.route('**/home-recommendations', route => route.fulfill({ json: { ...result(8), recommendations: [{ ...job, endDate: '9999-12-31' }] } }));
   await page.goto('/');
   const card = page.locator('.personal-job-grid .job-card');
-  await expect(card.getByText('채용시마감', { exact: true })).toBeVisible();
-  await expect(card.getByText('마감일: 채용 시 마감', { exact: true })).toBeVisible();
+  await expect(card.getByText('채용시마감', { exact: true })).toHaveCount(0);
+  await expect(card.getByText('마감일: 확인 필요', { exact: true })).toBeVisible();
   await expect(card).not.toContainText('9999');
 });
 

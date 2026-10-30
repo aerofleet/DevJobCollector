@@ -5,6 +5,7 @@ import lombok.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import kr.itsdev.devjobcollector.service.JobDeadlineEvidence;
 
 /**
  * 채용 공고 상세 조회용 DTO
@@ -26,6 +27,7 @@ public class JobPostDetailDto {
     private String hireType;
     private LocalDate startDate;
     private LocalDate endDate;
+    private JobDeadlineEvidence.Result deadlineEvidence;
     private LocalDateTime createdAt;
     private String originalUrl;
 

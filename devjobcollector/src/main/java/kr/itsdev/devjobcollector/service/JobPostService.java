@@ -158,6 +158,7 @@ public class JobPostService {
             .startDate(jobPost.getStartDate())
             .endDate(jobPost.getEndDate())
             .createdAt(jobPost.getCreatedAt())
+            .deadlineEvidence(JobDeadlineEvidence.resolve(jobPost.getEndDate(), jobPost.getApplyQual()))
             .originalUrl(jobPost.getOriginalUrl())
             .applyQual(jobPost.getApplyQual())
             .processInfo(jobPost.getProcessInfo())

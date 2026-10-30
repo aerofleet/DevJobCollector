@@ -11,6 +11,8 @@ record LeverPostingResponse(
         String hostedUrl,
         String applyUrl,
         String descriptionPlain,
+        String additionalPlain,
+        String salaryDescriptionPlain,
         Long createdAt,
         String workplaceType,
         Categories categories,

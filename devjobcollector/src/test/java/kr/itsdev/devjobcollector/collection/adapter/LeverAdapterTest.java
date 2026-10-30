@@ -19,6 +19,25 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 class LeverAdapterTest {
 
     @Test
+    void retainsSeparateListsAndAdditionalText() {
+        RestTemplate restTemplate = new RestTemplate();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
+        var adapter = new LeverAdapter(restTemplate, new ObjectMapper());
+        var target = new CompanySourceTarget(null, SourceType.LEVER, "example", "https://jobs.lever.co/example", CollectionTier.A);
+        server.expect(requestTo("https://api.lever.co/v0/postings/example?mode=json"))
+                .andRespond(withSuccess("""
+                        [{"id":"1","text":"Engineer","descriptionPlain":"Introduction",
+                          "lists":[{"text":"Minimum requirements","content":"<ul><li>Java</li><li>SQL</li></ul>"},
+                                   {"text":"Preferred qualifications","content":"<ul><li>Python</li></ul>"}],
+                          "salaryDescriptionPlain":"Salary: USD 100,000 per year",
+                          "additionalPlain":"Additional information"}]
+                        """, MediaType.APPLICATION_JSON));
+        assertThat(adapter.fetchJobs(target, CollectionContext.now()).jobs().getFirst().plainDescription())
+                .isEqualTo("Introduction\nMinimum requirements\n• Java\n• SQL\nPreferred qualifications\n• Python\nSalary: USD 100,000 per year\nAdditional information");
+        server.verify();
+    }
+
+    @Test
     void mapsMeasuredLeverFieldsToRawJob() {
         RestTemplate restTemplate = new RestTemplate();
         MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();

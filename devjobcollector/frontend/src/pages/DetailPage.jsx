@@ -64,6 +64,7 @@ const DetailPage = () => {
   const requirements = extractJobRequirements(job.applyQual);
   const isPublicAlio = job.sourcePlatform === 'PUBLIC_ALIO';
   const salary = extractJobSalary(job.applyQual);
+  const deadlineEvidence = job.deadlineEvidence;
   const mentionedTools = extractMentionedTools(requirements);
   const registeredTools = new Set((job.techStacks || []).map((tech) => tech.stackName?.trim().toLowerCase()));
   const additionalTools = mentionedTools.filter((name) => !registeredTools.has(name.toLowerCase()));
@@ -140,7 +141,7 @@ const DetailPage = () => {
             </div>
             <div className="info-item">
               <span className="label">마감일</span>
-              <span className="value">{job.endDate?.startsWith('9999-12-31') ? '마감일 미제공' : formatDate(job.endDate)}</span>
+              <span className="value">{deadlineEvidence?.status === 'CONFLICT' || deadlineEvidence?.status === 'AMBIGUOUS' ? '마감일 원문 확인 필요' : job.endDate?.startsWith('9999-12-31') ? (deadlineEvidence?.status === 'PRESENT' ? `${deadlineEvidence.localDate.replaceAll('-', '.')} (본문 기준 · 원문 확인)` : '마감일 확인 필요') : formatDate(job.endDate)}</span>
             </div>
             <div className="info-item">
               {daysRemaining !== null && daysRemaining >= 0 && (

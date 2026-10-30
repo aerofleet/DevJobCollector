@@ -15,7 +15,7 @@ export const isOpenEndedDate = (dateString) => {
  */
 export const formatDate = (dateString) => {
   if (!dateString) return '-';
-  if (isOpenEndedDate(dateString)) return '채용 시 마감';
+  if (isOpenEndedDate(dateString)) return '확인 필요';
 
   const date = new Date(dateString);
   const year = date.getFullYear();
