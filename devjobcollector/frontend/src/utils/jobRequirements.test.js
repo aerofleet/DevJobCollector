@@ -3,6 +3,22 @@ import assert from 'node:assert/strict';
 import { extractExperienceWording, extractJobDuties, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, formatJobLocation } from './jobRequirements.js';
 import { jobSourceLabel } from './jobSource.js';
 
+test('separates responsibilities, required skills, tools and Philippine salary', () => {
+  const text = "What you'll do:\n• Resolve customer inquiries.\n• Investigate product issues.\nRequired Skills and Experience:\n• 2+ years of experience in customer support.\n• Proficiency with Salesforce Service Cloud, JIRA, or Amazon Connect.\nPID - P78871\nPay Transparency Notice: annual base salary.\nAnnual base salary range (excluding bonus):\n₱798,300—₱798,300 PHP\n• Application Limit: maximum 3 applications.";
+  const requirements = extractJobRequirements(text);
+  assert.deepEqual(extractJobDuties(text), ['Resolve customer inquiries.', 'Investigate product issues.']);
+  assert.deepEqual(requirements.required, ['2+ years of experience in customer support.', 'Proficiency with Salesforce Service Cloud, JIRA, or Amazon Connect.']);
+  assert.deepEqual(requirements.preferred, []);
+  assert.equal(extractExperienceWording(requirements), '2년 이상');
+  assert.deepEqual(extractMentionedTools(requirements), ['JIRA', 'Salesforce Service Cloud', 'Amazon Connect']);
+  assert.equal(extractJobSalary(text), 'Annual base salary range (excluding bonus): ₱798,300—₱798,300 PHP');
+});
+
+test('stops responsibilities at unfamiliar labeled sections', () => {
+  assert.deepEqual(extractJobDuties("What you'll do:\n- Build services\nTools used:\n- Java\nPay transparency:\n$100,000"), ['Build services']);
+  assert.equal(extractExperienceWording(extractJobRequirements('Preferred qualifications:\n- 2+ years of experience')), null);
+});
+
 test('extracts Toss qualifications and preferred experience without pulling in the recruitment process', () => {
   const text = '# 합류하면 함께 할 업무예요\n- 자금 집행\n# 이런 분과 함께하고 싶어요\n- 자금 오퍼레이션 업무를 2년 이상 경험하신 분이면 좋아요\n- SAP 실무 경험을 반드시 갖추신 분\n# 이런 경험이 있다면 더 좋아요\n- 자금 프로세스 개선 경험\n# 토스로의 합류 여정\n- 서류 접수';
   const result = extractJobRequirements(text);

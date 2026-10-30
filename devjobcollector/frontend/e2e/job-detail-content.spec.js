@@ -116,3 +116,20 @@ test('카카오 원문에서 기간이 숨겨진 경우 마감일을 단정하�
   await expect(page.locator('.info-item').filter({ hasText: '마감일' }).locator('.value')).toHaveText('마감일 확인 필요');
   await expect(page.locator('.days-badge-d')).toHaveCount(0);
 });
+
+test('영문 공고의 업무와 자격, 기술, 급여를 분리한다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/11128?*', route => route.fulfill({ json: {
+    ...jobDetail, id: 11128, sourcePlatform: 'GREENHOUSE', experience: '경력 확인 필요', techStacks: [],
+    applyQual: "What you'll do:\n• Resolve customer inquiries.\n• Investigate product issues.\nRequired Skills and Experience:\n• 2+ years of experience in customer support.\n• Proficiency with Salesforce Service Cloud, JIRA, or Amazon Connect.\nPID - P78871\nPay Transparency Notice: annual base salary.\nAnnual base salary range (excluding bonus):\n₱798,300—₱798,300 PHP\n• Application Limit: maximum 3 applications.",
+  } }));
+  await page.goto('/job/11128');
+  const duties = page.getByRole('heading', { name: '담당 업무' }).locator('..');
+  await expect(duties).toContainText('Resolve customer inquiries.');
+  await expect(duties).not.toContainText('2+ years of experience');
+  await expect(duties).not.toContainText('Salesforce');
+  await expect(duties).not.toContainText('₱798,300');
+  await expect(page.getByRole('heading', { name: '자격 조건' }).locator('..')).toContainText('2+ years of experience');
+  await expect(page.getByRole('heading', { name: '기술 스택' }).locator('..')).toContainText('Salesforce Service Cloud');
+  await expect(page.getByRole('heading', { name: '급여 정보' }).locator('..')).toContainText('₱798,300');
+  await expect(page.locator('.info-item').filter({ hasText: '경력' }).locator('.value')).toHaveText('2년 이상');
+});

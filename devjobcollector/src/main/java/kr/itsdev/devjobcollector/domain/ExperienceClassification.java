@@ -12,7 +12,7 @@ public record ExperienceClassification(String category, String label, String evi
     private static final Pattern YEAR_RANGE = Pattern.compile("\\d{1,2}\\s*(?:년\\s*)?[~～–-]\\s*\\d{1,2}\\s*년");
     private static final Pattern MINIMUM_ENGLISH_RANGE = Pattern.compile("(?i)\\b(?:minimum of|minimum|at least)\\s+(\\d{1,2})\\s*[-–~]\\s*(\\d{1,2})\\s*years?\\b[^\\n]{0,100}\\bexperience\\b");
     private static final Pattern PREFERRED = Pattern.compile("(?i)우대\\s*(?:사항|요건|조건)|preferred\\s*(?:[:：]|qualifications|requirements)|nice to have|^(?:#{1,6}\\s*)?이런\\s*경험이\\s*있다면\\s*더\\s*좋아요\\s*[:：]?$|^while not required,?\\s*it['’]s an added plus if you also have\\s*[:：]?$");
-    private static final Pattern REQUIRED = Pattern.compile("(?i)자격\\s*(?:요건|조건)|지원\\s*(?:자격|조건)|필수\\s*(?:요건|사항|조건)|^(?:#{1,6}\\s*)?이런\\s*분과\\s*함께하고\\s*싶어요\\s*[:：]?$|(?:minimum\\s+)?requirements|qualifications|^we['’]d love to hear from you if you have\\s*[:：]?$|^your expertise\\s*[:：]?$");
+    private static final Pattern REQUIRED = Pattern.compile("(?i)자격\\s*(?:요건|조건)|지원\\s*(?:자격|조건)|필수\\s*(?:요건|사항|조건)|^(?:#{1,6}\\s*)?이런\\s*분과\\s*함께하고\\s*싶어요\\s*[:：]?$|^(?:#{1,6}\\s*)?required\\s+skills(?:\\s+and\\s+experience)?\\s*[:：]?$|(?:minimum\\s+)?requirements|qualifications|^we['’]d love to hear from you if you have\\s*[:：]?$|^your expertise\\s*[:：]?$");
     private static final Pattern OTHER = Pattern.compile("(?i)주요\\s*업무|담당\\s*업무|업무\\s*내용|복리\\s*후생|근무\\s*조건|전형\\s*절차|접수\\s*방법|responsibilities|benefits|about the (?:role|team)");
 
     public static ExperienceClassification classify(String source, String title, String description, boolean direct) {
@@ -35,6 +35,7 @@ public record ExperienceClassification(String category, String label, String evi
             boolean requiredHeading = REQUIRED.matcher(value).find();
             if (requiredHeading) { inRequired = true; }
             else if (value.matches("^#{1,6}\\s+.*")) { inRequired = false; continue; }
+            if (value.matches("(?i)^(?:PID\\s*-\\s*[A-Z]?\\d+|pay transparency.*|annual base salary.*|application limit.*|equal opportunity.*)$")) { inRequired = false; continue; }
             if (OTHER.matcher(value).find()) { inRequired = false; continue; }
             if (!inRequired || value.contains("우대") || value.contains("선호") || value.toLowerCase(Locale.ROOT).contains("preferred")
                     || YEAR_RANGE.matcher(value).find()) continue;
