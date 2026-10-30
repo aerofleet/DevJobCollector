@@ -34,6 +34,32 @@ class ExperienceClassificationMigrationTest {
     @AfterAll static void cleanup() { flyway(null).clean(); }
     @BeforeEach void resetSchema() { flyway(null).clean(); }
 
+    @Test void backfillsExplicitCareerCategoryOnlyInUnreviewedRequiredSection() throws Exception {
+        flyway("38").migrate();
+        try (Connection c = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
+            c.setCatalog(SCHEMA);
+            try (var insert = c.prepareStatement("INSERT INTO job_posts (source_platform,original_sn,company_name,title,experience,apply_qual,start_date,end_date,original_url,is_active,reviewed_experience_category) VALUES ('COMPANY_PAGE',?,'Company','Role','경력 확인 필요',?,'2026-01-01','2030-01-01','https://example.com',1,?)")) {
+                String text = "Required Skills ﻿· 경력구분 : 무관 (신입 및 경력) · 석사 학위 또는 5년 이상의 연구/개발 경력\nPreferred Skills ﻿· 로봇 경험";
+                insert.setString(1, "naver:required"); insert.setString(2, text); insert.setString(3, null); insert.executeUpdate();
+                insert.setString(1, "naver:reviewed"); insert.setString(2, text); insert.setString(3, "ENTRY"); insert.executeUpdate();
+                insert.setString(1, "naver:preferred"); insert.setString(2, "Preferred Skills\n· 경력구분 : 무관"); insert.setString(3, null); insert.executeUpdate();
+            }
+        }
+        flyway(null).migrate();
+        try (Connection c = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"),
+                System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
+            c.setCatalog(SCHEMA);
+            try (var s = c.createStatement(); var rows = s.executeQuery("SELECT experience_category,experience_label FROM job_posts WHERE original_sn LIKE 'naver:%' ORDER BY original_sn")) {
+                assertThat(rows.next()).isTrue(); assertThat(rows.getString(1)).isEqualTo("UNKNOWN");
+                assertThat(rows.next()).isTrue(); assertThat(rows.getString(1)).isEqualTo("ANY"); assertThat(rows.getString(2)).isEqualTo("경력무관");
+                assertThat(rows.next()).isTrue(); assertThat(rows.getString(1)).isEqualTo("UNKNOWN");
+            }
+        }
+    }
+
     @Test void backfillsMixedRequiredAndPreferredExperienceWithoutChangingReviewedRows() throws Exception {
         flyway("37").migrate();
         try (Connection c = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),

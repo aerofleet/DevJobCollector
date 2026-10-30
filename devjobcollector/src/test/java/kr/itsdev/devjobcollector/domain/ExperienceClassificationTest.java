@@ -4,6 +4,14 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ExperienceClassificationTest {
+    @org.junit.jupiter.api.Test void recognizesExplicitUnrestrictedCareerAndAlternativeDegree() {
+        String text = "Required Skills ﻿· 경력구분 : 무관 (신입 및 경력) · ※ 석사/박사 학위 소지 또는 5년 이상의 연구/개발 경력 · Python 개발\nPreferred Skills ﻿· 10년 이상 경력";
+        var actual = ExperienceClassification.classify(null, "Engineer", text, false);
+        assertThat(actual.category()).isEqualTo("ANY");
+        assertThat(actual.label()).isEqualTo("경력무관");
+        assertThat(ExperienceClassification.classify(null, "Engineer", "Required Skills\n· 석사 학위 또는 5년 이상의 개발 경력", false).category()).isEqualTo("UNKNOWN");
+        assertThat(ExperienceClassification.classify(null, "Engineer", "Preferred Skills\n· 경력구분 : 무관", false).category()).isEqualTo("UNKNOWN");
+    }
     @Test void separatesMandatoryYearsFromPreferredClause() {
         String text = "Responsibilities\n• Advise on benefits\nQualifications & Experience Required\n• 10+ years of relevant employment-law experience; in-house experience strongly preferred.\n• Experience with compensation and benefits\nPay Range Transparency\n20+ years of experience";
         var result = ExperienceClassification.classify("경력무관", "Counsel", text, false);

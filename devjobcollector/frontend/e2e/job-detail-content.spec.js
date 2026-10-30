@@ -167,3 +167,18 @@ test('Databricks 공고의 필수·우대 경력을 업무와 급여에서 분�
   await expect(preferred).toContainText('in-house experience strongly preferred');
   await expect(page.locator('.info-item').filter({ hasText: '경력' }).locator('.value')).toHaveText('10년 이상');
 });
+
+test('한 줄로 수집된 네이버형 공고의 업무와 자격을 분리한다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/10152?*', route => route.fulfill({ json: {
+    ...jobDetail, id: 10152, sourcePlatform: 'COMPANY_PAGE', experience: '경력무관', techStacks: [],
+    applyQual: "What You'll Do ﻿· 데이터 수집·정제 파이프라인 구축 ﻿· 로봇 제어 연구\nRequired Skills ﻿· 경력구분 : 무관 (신입 및 경력) · 석사/박사 학위 소지 또는 5년 이상의 연구/개발 경력 · C++, Python, ROS2, PyTorch, JAX 전문성\nPreferred Skills ﻿· MuJoCo, Isaac Sim 사용 경험\n채용하고 싶은 사람 ﻿· 소통하는 사람",
+  } }));
+  await page.goto('/job/10152');
+  await expect(page.getByRole('heading', { name: '담당 업무' }).locator('..')).toContainText('데이터 수집·정제 파이프라인');
+  await expect(page.getByRole('heading', { name: '담당 업무' }).locator('..')).not.toContainText('5년 이상');
+  await expect(page.getByRole('heading', { name: '자격 조건' }).locator('..')).toContainText('학위 소지 또는 5년 이상');
+  await expect(page.getByRole('heading', { name: '우대 사항' }).locator('..')).toContainText('MuJoCo');
+  await expect(page.getByRole('heading', { name: '우대 사항' }).locator('..')).not.toContainText('소통하는 사람');
+  await expect(page.getByRole('heading', { name: '기술 스택' }).locator('..')).toContainText('ROS2');
+  await expect(page.locator('.info-item').filter({ hasText: '경력' }).locator('.value')).toHaveText('경력무관');
+});

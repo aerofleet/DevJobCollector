@@ -1,6 +1,18 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractExperienceWording, extractJobDuties, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, formatJobLocation } from './jobRequirements.js';
+
+test('separates inline NAVER-style sections and preserves alternative qualifications', () => {
+  const text = "What You'll Do ﻿· 데이터 수집·정제 파이프라인 구축 ﻿· 로봇 제어 연구\n\nRequired Skills ﻿· 경력구분 : 무관 (신입 및 경력) · ※ 석사/박사 학위 소지 또는 5년 이상의 연구/개발 경력 · C++, Python, ROS2, PyTorch, JAX 전문성\n\nPreferred Skills ﻿· LeRobot 활용 경험 ﻿· MuJoCo, Isaac Sim 사용 경험\n\n채용하고 싶은 사람 ﻿· 소통하는 사람\n\n전형절차 및 기타사항 ﻿· 서류전형";
+  const result = extractJobRequirements(text);
+  assert.deepEqual(extractJobDuties(text), ['데이터 수집·정제 파이프라인 구축', '로봇 제어 연구']);
+  assert.equal(result.required.length, 3);
+  assert.equal(result.preferred.length, 2);
+  assert.match(result.required[1], /학위 소지 또는 5년/);
+  assert.equal(extractExperienceWording(result), '경력무관');
+  assert.deepEqual(extractMentionedTools(result), ['Python', 'C++', 'ROS2', 'PyTorch', 'JAX', 'LeRobot', 'MuJoCo', 'Isaac Sim']);
+  assert.equal(extractExperienceWording(extractJobRequirements('자격 조건\n- 석사 학위 또는 5년 이상의 개발 경력')), null);
+});
 import { jobSourceLabel } from './jobSource.js';
 
 test('separates mixed required and preferred clauses from duties and pay information', () => {
