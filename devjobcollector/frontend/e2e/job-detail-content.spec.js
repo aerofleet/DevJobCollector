@@ -80,9 +80,10 @@ test('별도 원문에서 수집한 급여의 조건을 함께 표시한다', as
 test('토스형 공고의 자격과 우대 경험을 구분해 표시한다', async ({ page }) => {
   await page.route('**/api/v1/jobs/11108?*', route => route.fulfill({ json: {
     ...jobDetail, id: 11108, companyName: '토스', sourcePlatform: 'COMPANY_PAGE', originalUrl: 'https://toss.im/career/job-detail?job_id=8099818003',
-    endDate: '9999-12-31', applyQual: '# 합류하면 함께 할 업무예요\n- 자금 집행\n# 이런 분과 함께하고 싶어요\n- 자금 오퍼레이션 업무를 2년 이상 경험하신 분이면 좋아요\n- SAP 실무 경험을 반드시 갖추신 분\n# 이런 경험이 있다면 더 좋아요\n- 자금 프로세스 개선 경험\n# 토스로의 합류 여정\n- 서류 접수',
+    endDate: '9999-12-31', experience: '경력 확인 필요', applyQual: '# 합류하면 함께 할 업무예요\n- 자금 집행\n# 이런 분과 함께하고 싶어요\n- 자금 오퍼레이션 업무를 2년 이상 경험하신 분이면 좋아요\n- SAP 실무 경험을 반드시 갖추신 분\n# 이런 경험이 있다면 더 좋아요\n- 자금 프로세스 개선 경험\n# 토스로의 합류 여정\n- 서류 접수',
   } }));
   await page.goto('/job/11108');
+  await expect(page.locator('.info-item').filter({ hasText: '경력' })).toContainText('자금 오퍼레이션 업무를 2년 이상 경험하신 분이면 좋아요 (원문)');
   await expect(page.getByRole('heading', { name: '자격 조건' }).locator('..')).toContainText('자금 오퍼레이션 업무를 2년 이상');
   await expect(page.getByRole('heading', { name: '우대 사항' }).locator('..')).toContainText('자금 프로세스 개선 경험');
   await expect(page.getByRole('heading', { name: '우대 사항' }).locator('..')).not.toContainText('서류 접수');

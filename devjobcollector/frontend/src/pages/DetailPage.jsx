@@ -8,7 +8,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import TechStackBadge from '../components/job/TechStackBadge';
 import StructuredJobContent from '../components/job/StructuredJobContent';
 import { jobSourceLabel } from '../utils/jobSource';
-import { extractJobDuties, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, formatJobLocation } from '../utils/jobRequirements';
+import { extractExperienceWording, extractJobDuties, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, formatJobLocation } from '../utils/jobRequirements';
 import { formatDate } from '../utils/dateParser';
 import { getDaysRemaining } from '../utils/dateParser';
 import '../styles/DetailPage.css';
@@ -62,6 +62,7 @@ const DetailPage = () => {
 
   const daysRemaining = getDaysRemaining(job.endDate);
   const requirements = extractJobRequirements(job.applyQual);
+  const experienceWording = extractExperienceWording(requirements);
   const duties = extractJobDuties(job.applyQual);
   const isPublicAlio = job.sourcePlatform === 'PUBLIC_ALIO';
   const salary = extractJobSalary(job.applyQual);
@@ -133,7 +134,7 @@ const DetailPage = () => {
             </div>
             <div className="info-item">
               <span className="label">경력</span>
-              <span className="value">{job.experience || '경력 확인 필요'}</span>
+              <span className="value">{(!job.experience || job.experience === '경력 확인 필요') && experienceWording ? `${experienceWording} (원문)` : job.experience || '경력 확인 필요'}</span>
             </div>
             {isPublicAlio && job.jobCategory && <div className="info-item"><span className="label">채용 분야</span><span className="value">{job.jobCategory}</span></div>}
             {isPublicAlio && job.hireType && <div className="info-item"><span className="label">고용 형태</span><span className="value">{job.hireType}</span></div>}

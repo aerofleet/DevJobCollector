@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractJobDuties, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, formatJobLocation } from './jobRequirements.js';
+import { extractExperienceWording, extractJobDuties, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, formatJobLocation } from './jobRequirements.js';
 import { jobSourceLabel } from './jobSource.js';
 
 test('extracts Toss qualifications and preferred experience without pulling in the recruitment process', () => {
@@ -8,8 +8,15 @@ test('extracts Toss qualifications and preferred experience without pulling in t
   const result = extractJobRequirements(text);
   assert.deepEqual(extractJobDuties(text), ['자금 집행']);
   assert.deepEqual(result, { required: ['자금 오퍼레이션 업무를 2년 이상 경험하신 분이면 좋아요', 'SAP 실무 경험을 반드시 갖추신 분'], preferred: ['자금 프로세스 개선 경험'] });
+  assert.equal(extractExperienceWording(result), '자금 오퍼레이션 업무를 2년 이상 경험하신 분이면 좋아요');
   assert.deepEqual(extractMentionedTools(result), ['SAP']);
   assert.deepEqual(extractJobRequirements('# 지원 조건\n- 서울 근무 가능\n# 전형 일정\n- 지원 접수 마감').required, ['서울 근무 가능']);
+});
+
+test('does not turn preferred or competing experience claims into a headline', () => {
+  assert.equal(extractExperienceWording(extractJobRequirements('우대사항\n- 개발 경력 3년 이상')), null);
+  assert.equal(extractExperienceWording(extractJobRequirements('자격 요건\n- 개발 경력 3년 이상\n- 운영 경력 5년 이상')), null);
+  assert.equal(extractExperienceWording(extractJobRequirements('자격 요건\n- 개발 경력 3년 이상 우대')), null);
 });
 
 test('stops Coupang preferred requirements at recruitment information', () => {
