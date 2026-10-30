@@ -134,6 +134,17 @@ export function formatJobLocation(location) {
   return parts.filter((part, index) => parts.findIndex((candidate) => candidate.toLocaleLowerCase() === part.toLocaleLowerCase()) === index).join(' · ');
 }
 
+// Omit parenthetical details only from compact summary values, retaining source content elsewhere.
+export function formatInfoGridValue(value) {
+  let result = String(value ?? '');
+  let previous;
+  do {
+    previous = result;
+    result = result.replace(/\([^()]*\)|（[^（）]*）/g, '');
+  } while (result !== previous);
+  return result.replace(/\s+/g, ' ').trim();
+}
+
 // Use explicitly labelled source text when the structured field was not collected.
 export function extractJobEmploymentType(content) {
   const match = String(content || '').match(/(?:^|\n)\s*고용\s*형태\s*[:：]?\s*\n\s*[-*•●▪◦‣·]?\s*([^\n]{1,100})/i);

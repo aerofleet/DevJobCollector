@@ -8,7 +8,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import TechStackBadge from '../components/job/TechStackBadge';
 import StructuredJobContent from '../components/job/StructuredJobContent';
 import { jobSourceLabel } from '../utils/jobSource';
-import { extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatJobLocation } from '../utils/jobRequirements';
+import { extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from '../utils/jobRequirements';
 import { formatDate } from '../utils/dateParser';
 import { getDaysRemaining } from '../utils/dateParser';
 import '../styles/DetailPage.css';
@@ -69,6 +69,10 @@ const DetailPage = () => {
   const deadlineEvidence = job.deadlineEvidence;
   const employmentType = job.hireType || extractJobEmploymentType(job.applyQual);
   const rollingDeadline = extractRollingDeadline(job.applyQual);
+  const usesRollingDeadline = job.sourceDeadlineDisplay !== 'HIDDEN' && job.sourceDeadlineDisplay !== 'RECRUITMENT_END'
+    && job.endDate?.startsWith('9999-12-31') && (!deadlineEvidence || deadlineEvidence.status === 'UNAVAILABLE') && rollingDeadline;
+  const inferredDeadline = job.endDate?.startsWith('9999-12-31') && deadlineEvidence?.status === 'PRESENT'
+    && job.sourceDeadlineDisplay !== 'HIDDEN' && job.sourceDeadlineDisplay !== 'RECRUITMENT_END';
   const mentionedTools = extractMentionedTools(requirements);
   const sourceTechnology = extractJobTechnologySections(job.applyQual);
   const registeredTools = new Set((job.techStacks || []).map((tech) => tech.stackName?.trim().toLowerCase()));
@@ -132,14 +136,14 @@ const DetailPage = () => {
           <div className="info-grid">
             <div className="info-item">
               <span className="label">위치</span>
-              <span className="value">{formatJobLocation(job.location) || '위치 미정'}</span>
+              <span className="value">{formatJobLocation(formatInfoGridValue(job.location)) || '위치 미정'}</span>
             </div>
             <div className="info-item">
               <span className="label">경력</span>
-              <span className="value">{(!job.experience || job.experience === '경력 확인 필요') && experienceWording ? experienceWording : (job.experience || '경력 확인 필요').replace(/^경력\s+(?=\d)/, '')}</span>
+              <span className="value">{formatInfoGridValue((!job.experience || job.experience === '경력 확인 필요') && experienceWording ? experienceWording : (job.experience || '경력 확인 필요').replace(/^경력\s+(?=\d)/, '')) || '경력 확인 필요'}</span>
             </div>
-            {isPublicAlio && job.jobCategory && <div className="info-item"><span className="label">채용 분야</span><span className="value">{job.jobCategory}</span></div>}
-            {employmentType && <div className="info-item"><span className="label">고용 형태</span><span className="value">{employmentType}</span></div>}
+            {isPublicAlio && formatInfoGridValue(job.jobCategory) && <div className="info-item"><span className="label">채용 분야</span><span className="value">{formatInfoGridValue(job.jobCategory)}</span></div>}
+            {formatInfoGridValue(employmentType) && <div className="info-item"><span className="label">고용 형태</span><span className="value">{formatInfoGridValue(employmentType)}</span></div>}
             <div className="info-item">
               <span className="label">공고일 또는 수집일</span>
               <span className="value">{formatDate(job.startDate)}</span>
@@ -148,7 +152,7 @@ const DetailPage = () => {
               <span className="label">마감일</span>
               <span className="value">{job.sourceDeadlineDisplay === 'HIDDEN' ? '마감일 확인 필요'
                 : deadlineEvidence?.status === 'CONFLICT' || deadlineEvidence?.status === 'AMBIGUOUS' || (job.sourceDeadlineDisplay === 'RECRUITMENT_END' && deadlineEvidence?.status === 'PRESENT') ? '마감일 원문 확인 필요'
-                  : job.endDate?.startsWith('9999-12-31') ? (job.sourceDeadlineDisplay === 'RECRUITMENT_END' ? '영입종료시' : deadlineEvidence?.status === 'PRESENT' ? `${deadlineEvidence.localDate.replaceAll('-', '.')} (본문 기준 · 원문 확인)` : rollingDeadline || '마감일 확인 필요') : formatDate(job.endDate)}</span>
+                  : job.endDate?.startsWith('9999-12-31') ? (job.sourceDeadlineDisplay === 'RECRUITMENT_END' ? '영입종료시' : deadlineEvidence?.status === 'PRESENT' ? deadlineEvidence.localDate.replaceAll('-', '.') : formatInfoGridValue(rollingDeadline) || '마감일 확인 필요') : formatDate(job.endDate)}</span>
             </div>
             <div className="info-item">
               {job.sourceDeadlineDisplay !== 'HIDDEN' && daysRemaining !== null && daysRemaining >= 0 && (
@@ -156,6 +160,8 @@ const DetailPage = () => {
               )}
             </div>
           </div>
+          {usesRollingDeadline && <p className="detail-source-note">채용 완료 시 조기 마감될 수 있습니다.</p>}
+          {inferredDeadline && <p className="detail-source-note">본문에서 확인한 날짜입니다. 공고 원문을 확인해 주세요.</p>}
         </section>
 
         <section className="detail-section">

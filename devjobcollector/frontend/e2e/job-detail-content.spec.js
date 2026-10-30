@@ -217,6 +217,20 @@ test('인턴 공고에서 업무와 자격 및 상시 채용을 구분한다', a
   await expect(page.getByRole('heading', { name: '우대 사항' }).locator('..')).toContainText('영어 역량');
   await expect(page.getByRole('heading', { name: '우대 사항' }).locator('..')).not.toContainText('상시 채용');
   await expect(page.locator('.info-item').filter({ hasText: '경력' }).locator('.value')).toHaveText('경력 확인 필요');
-  await expect(page.locator('.info-item').filter({ hasText: '고용 형태' }).locator('.value')).toHaveText('인턴 (6개월, 정규직 전환 비대상)');
-  await expect(page.locator('.info-item').filter({ hasText: '마감일' }).locator('.value')).toHaveText('상시 채용 (채용 완료 시 조기 마감 가능)');
+  await expect(page.locator('.info-item').filter({ hasText: '고용 형태' }).locator('.value')).toHaveText('인턴');
+  await expect(page.locator('.info-item').filter({ hasText: '마감일' }).locator('.value')).toHaveText('상시 채용');
+  await expect(page.getByText('채용 완료 시 조기 마감될 수 있습니다.', { exact: true })).toBeVisible();
+  await page.getByText('수집된 공고 내용 전체 보기').click();
+  await expect(page.getByText('인턴 (6개월, 정규직 전환 비대상)', { exact: false })).toBeVisible();
+});
+
+test('요약 정보의 괄호 설명을 제외하고 본문 근거 안내는 유지한다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/11155?*', route => route.fulfill({ json: {
+    ...jobDetail, id: 11155, sourcePlatform: 'PUBLIC_ALIO', location: '서울 (강남)', experience: '경력 2년 이상 (협의)', jobCategory: '개발 (백엔드)', hireType: '계약직 (6개월)', endDate: '9999-12-31', deadlineEvidence: { status: 'PRESENT', localDate: '2026-11-30' },
+  } }));
+  await page.goto('/job/11155');
+  for (const [label, value] of [['위치', '서울'], ['경력', '2년 이상'], ['채용 분야', '개발'], ['고용 형태', '계약직'], ['마감일', '2026.11.30']]) {
+    await expect(page.locator('.info-item').filter({ hasText: label }).locator('.value')).toHaveText(value);
+  }
+  await expect(page.getByText('본문에서 확인한 날짜입니다. 공고 원문을 확인해 주세요.')).toBeVisible();
 });

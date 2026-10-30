@@ -1,6 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatJobLocation } from './jobRequirements.js';
+import { extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
+
+test('removes parenthetical details only from compact summary values', () => {
+  assert.equal(formatInfoGridValue('인턴 (6개월, 정규직 전환 비대상)'), '인턴');
+  assert.equal(formatInfoGridValue('서울 (강남 (역삼)) · 부산 （해운대）'), '서울 · 부산');
+  assert.equal(formatInfoGridValue('경력 2년 이상(협의 가능)'), '경력 2년 이상');
+  assert.equal(formatInfoGridValue('(확인 필요)'), '');
+  assert.equal(formatInfoGridValue('서울 (미완성'), '서울 (미완성');
+});
 
 test('extracts labeled Korean role sections, internship terms and rolling deadline', () => {
   const text = '우리 팀과 함께할 미션을 소개합니다.\n• 산업 리서치\n• 일본 현지 통역\n이런 경험을 가진 분과 함께 성장하고 싶습니다! (필수요건)\n• 한국어/일본어 역량\n• 해외 출장 가능\n이런 경험들이 있다면 저희가 찾는 그 분입니다! (우대요건)\n• 영어 역량\n• 유학 경험\n크래프톤의 도전에 함께 하기 위해 아래의 전형 과정이 필요합니다.\n• 서류 전형\n• 상시 채용으로 채용 완료 시 조기 마감될 수 있습니다.\n고용형태\n• 인턴 (6개월, 정규직 전환 비대상)';
