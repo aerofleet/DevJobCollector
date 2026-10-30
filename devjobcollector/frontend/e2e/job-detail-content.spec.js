@@ -182,3 +182,13 @@ test('한 줄로 수집된 네이버형 공고의 업무와 자격을 분리한�
   await expect(page.getByRole('heading', { name: '기술 스택' }).locator('..')).toContainText('ROS2');
   await expect(page.locator('.info-item').filter({ hasText: '경력' }).locator('.value')).toHaveText('경력무관');
 });
+
+test('최소 경력 영문 표현을 경력 요약에 표시한다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/11149?*', route => route.fulfill({ json: {
+    ...jobDetail, id: 11149, sourcePlatform: 'GREENHOUSE', experience: '경력 5년 이상',
+    applyQual: 'What we’re looking for:\n• Minimum 5 years experience scoping and conducting product research, ideally in ad tech\nRelocation Statement:\nNot eligible.',
+  } }));
+  await page.goto('/job/11149');
+  await expect(page.locator('.info-item').filter({ hasText: '경력' }).locator('.value')).toHaveText('5년 이상');
+  await expect(page.getByRole('heading', { name: '자격 조건' }).locator('..')).toContainText('Minimum 5 years experience');
+});

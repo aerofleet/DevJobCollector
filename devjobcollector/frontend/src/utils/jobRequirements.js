@@ -49,12 +49,14 @@ export function extractJobRequirements(content) {
 export function extractExperienceWording(requirements) {
   const candidates = requirements.required.filter(item =>
     (/(?:\d{1,2}\s*년\s*이상[^.!?\n]{0,40}(?:경험|경력)|(?:경험|경력)[^.!?\n]{0,40}\d{1,2}\s*년\s*이상)/.test(item)
-      || /\b\d{1,2}\+\s*years?\b[^.!?\n]{0,80}\bexperience\b/i.test(item))
+      || /\b\d{1,2}\+\s*years?\b[^.!?\n]{0,80}\bexperience\b/i.test(item)
+      || /\b(?:minimum(?: of)?|at least)\s+\d{1,2}\s+years?\b[^.!?\n]{0,80}\bexperience\b/i.test(item))
       && !/우대|선호|prefer|(?:학위|석사|박사)[^.!?\n]{0,80}(?:또는|혹은)[^.!?\n]{0,80}\d{1,2}\s*년/i.test(item));
   if (candidates.length === 0 && requirements.required.some(item => /경력\s*구분\s*[:：]\s*무관/.test(item))) return '경력무관';
   if (candidates.length !== 1) return null;
   const durations = [...candidates[0].matchAll(/(\d{1,2})\s*년\s*이상/g)];
   const english = [...candidates[0].matchAll(/\b(\d{1,2})\+\s*years?\b/gi)];
+  english.push(...candidates[0].matchAll(/\b(?:minimum(?: of)?|at least)\s+(\d{1,2})\s+years?\b(?=[^.!?\n]{0,80}\bexperience\b)/gi));
   if (durations.length + english.length !== 1) return null;
   return `${(durations[0] || english[0])[1]}년 이상`;
 }

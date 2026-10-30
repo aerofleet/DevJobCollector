@@ -4,6 +4,14 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ExperienceClassificationTest {
+    @Test void recognizesMinimumExperienceInLookingForSection() {
+        String text = "What we’re looking for:\n• Minimum 5 years experience scoping and conducting product research, ideally in ad tech\nRelocation Statement:\n• Minimum 10 years experience";
+        var result = ExperienceClassification.classify(null, "Researcher", text, false);
+        assertThat(result.category()).isEqualTo("EXPERIENCED");
+        assertThat(result.label()).isEqualTo("경력 5년 이상");
+        assertThat(ExperienceClassification.classify(null, "Researcher", "What we're looking for:\n• Minimum 5 years experience preferred", false).category()).isEqualTo("UNKNOWN");
+        assertThat(ExperienceClassification.classify(null, "Researcher", "What we're looking for:\n• Communication\nRelocation Statement:\n• Minimum 10 years experience", false).category()).isEqualTo("UNKNOWN");
+    }
     @org.junit.jupiter.api.Test void recognizesExplicitUnrestrictedCareerAndAlternativeDegree() {
         String text = "Required Skills ﻿· 경력구분 : 무관 (신입 및 경력) · ※ 석사/박사 학위 소지 또는 5년 이상의 연구/개발 경력 · Python 개발\nPreferred Skills ﻿· 10년 이상 경력";
         var actual = ExperienceClassification.classify(null, "Engineer", text, false);
