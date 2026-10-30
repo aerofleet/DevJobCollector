@@ -1,7 +1,10 @@
 // Pilot regression set based on examples supplied by the user. This is not a representative quality estimate.
-import { extractJobRequirements, extractJobSalary, extractMentionedTools, formatJobLocation } from '../src/utils/jobRequirements.js';
+import { extractJobDuties, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, formatJobLocation } from '../src/utils/jobRequirements.js';
 
 const cases = [
+  { id: 11108, checks: { required: '자금 오퍼레이션', preferred: '자금 흐름', tools: 'SAP', duties: '출금' } },
+  { id: 11107, checks: { required: '근무 가능' } },
+  { id: 11105, checks: { technology: 'TypeScript' } },
   { id: 9413, checks: { required: '객체지향', preferred: 'PostgreSQL', tools: 'PostgreSQL' } },
   { id: 9415, checks: { required: 'Java/Kotlin', tools: 'Kotlin' } },
   { id: 10383, checks: { required: 'Native iOS', preferred: 'E-commerce', tools: 'iOS' } },
@@ -23,7 +26,8 @@ for (const entry of cases) {
     const sections = extractJobRequirements(job.applyQual);
     const values = { required: sections.required.join('\n'), preferred: sections.preferred.join('\n'),
       salary: extractJobSalary(job.applyQual) || '', tools: extractMentionedTools(sections).join(', '),
-      experience: job.experience || '', location: formatJobLocation(job.location) };
+      experience: job.experience || '', location: formatJobLocation(job.location),
+      technology: extractJobTechnologySections(job.applyQual).join('\n'), duties: extractJobDuties(job.applyQual).join('\n') };
     for (const [field, expected] of Object.entries(entry.checks)) {
       totals[field] ??= { passed: 0, total: 0 };
       totals[field].total++;

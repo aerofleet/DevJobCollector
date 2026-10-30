@@ -8,7 +8,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import TechStackBadge from '../components/job/TechStackBadge';
 import StructuredJobContent from '../components/job/StructuredJobContent';
 import { jobSourceLabel } from '../utils/jobSource';
-import { extractJobRequirements, extractJobSalary, extractMentionedTools, formatJobLocation } from '../utils/jobRequirements';
+import { extractJobDuties, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, formatJobLocation } from '../utils/jobRequirements';
 import { formatDate } from '../utils/dateParser';
 import { getDaysRemaining } from '../utils/dateParser';
 import '../styles/DetailPage.css';
@@ -62,10 +62,12 @@ const DetailPage = () => {
 
   const daysRemaining = getDaysRemaining(job.endDate);
   const requirements = extractJobRequirements(job.applyQual);
+  const duties = extractJobDuties(job.applyQual);
   const isPublicAlio = job.sourcePlatform === 'PUBLIC_ALIO';
   const salary = extractJobSalary(job.applyQual);
   const deadlineEvidence = job.deadlineEvidence;
   const mentionedTools = extractMentionedTools(requirements);
+  const sourceTechnology = extractJobTechnologySections(job.applyQual);
   const registeredTools = new Set((job.techStacks || []).map((tech) => tech.stackName?.trim().toLowerCase()));
   const additionalTools = mentionedTools.filter((name) => !registeredTools.has(name.toLowerCase()));
   let originalUrl = null;
@@ -159,7 +161,8 @@ const DetailPage = () => {
             ))}
           </div>
           {additionalTools.length > 0 && <><p className="job-content-empty">원문 자격·우대 항목에 언급된 기술 및 도구</p><div className="tech-stack">{additionalTools.map((name) => <TechStackBadge key={name} tech={{ stackName: name }} />)}</div></>}
-          {!job.techStacks?.length && !additionalTools.length && <p className="job-content-empty">{isPublicAlio ? '등록된 기술 스택이 없습니다.' : '등록된 기술 스택이 없습니다. 원문을 확인해 주세요.'}</p>}
+          {sourceTechnology.length > 0 && <><p className="detail-source-note">원문에 명시된 기술 정보</p><ul>{sourceTechnology.map((line, index) => <li key={index}>{line}</li>)}</ul></>}
+          {!job.techStacks?.length && !additionalTools.length && !sourceTechnology.length && <p className="job-content-empty">{isPublicAlio ? '등록된 기술 스택이 없습니다.' : '등록된 기술 스택이 없습니다. 원문을 확인해 주세요.'}</p>}
         </section>
 
         {isPublicAlio ? <>
@@ -181,6 +184,9 @@ const DetailPage = () => {
             return <li key={file.id}>{href ? <a href={href} target="_blank" rel="noopener noreferrer">{file.fileName || '첨부파일'}</a> : (file.fileName || '첨부파일')}</li>;
           })}</ul></section>}
         </> : <>
+        {duties.length > 0 && <section className="detail-section">
+          <h3>담당 업무</h3><ul>{duties.map((item, index) => <li key={index}>{item}</li>)}</ul>
+        </section>}
         <section className="detail-section">
           <h3>자격 조건</h3>
           {requirements.required.length ? <ul>{requirements.required.map((item, index) => <li key={index}>{item}</li>)}</ul>

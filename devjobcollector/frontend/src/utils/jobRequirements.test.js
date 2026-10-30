@@ -1,7 +1,27 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractJobRequirements, extractJobSalary, extractMentionedTools, formatJobLocation } from './jobRequirements.js';
+import { extractJobDuties, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, formatJobLocation } from './jobRequirements.js';
 import { jobSourceLabel } from './jobSource.js';
+
+test('extracts Toss qualifications and preferred experience without pulling in the recruitment process', () => {
+  const text = '# 합류하면 함께 할 업무예요\n- 자금 집행\n# 이런 분과 함께하고 싶어요\n- 자금 오퍼레이션 업무를 2년 이상 경험하신 분이면 좋아요\n- SAP 실무 경험을 반드시 갖추신 분\n# 이런 경험이 있다면 더 좋아요\n- 자금 프로세스 개선 경험\n# 토스로의 합류 여정\n- 서류 접수';
+  const result = extractJobRequirements(text);
+  assert.deepEqual(extractJobDuties(text), ['자금 집행']);
+  assert.deepEqual(result, { required: ['자금 오퍼레이션 업무를 2년 이상 경험하신 분이면 좋아요', 'SAP 실무 경험을 반드시 갖추신 분'], preferred: ['자금 프로세스 개선 경험'] });
+  assert.deepEqual(extractMentionedTools(result), ['SAP']);
+  assert.deepEqual(extractJobRequirements('# 지원 조건\n- 서울 근무 가능\n# 전형 일정\n- 지원 접수 마감').required, ['서울 근무 가능']);
+});
+
+test('stops Coupang preferred requirements at recruitment information', () => {
+  const result = extractJobRequirements('자격 요건\n• 학사 이상\n우대 사항\n• SQL 경험\n전형 절차 및 안내 사항\n전형절차\n• 서류 전형\n참고사항\n• 조기 마감 가능');
+  assert.deepEqual(result, { required: ['학사 이상'], preferred: ['SQL 경험'] });
+});
+
+test('preserves source technology section lines and stops at the next heading', () => {
+  const text = '# 토스가 사용하는 기술\n- 코어: React, TypeScript, Next.js\n- 상태 관리: Tanstack Query, Jotai\n# 토스로의 합류 여정\n- 서류 접수';
+  assert.deepEqual(extractJobTechnologySections(text), ['코어: React, TypeScript, Next.js', '상태 관리: Tanstack Query, Jotai']);
+  assert.deepEqual(extractJobTechnologySections('# 업무\n- React를 사용해요'), []);
+});
 
 test('shows structured Lever salary with currency, interval, and conditions', () => {
   const salary = 'Salary: AUD 100000.5 – 150000 (per-year-salary) — Base pay; excludes bonus.';

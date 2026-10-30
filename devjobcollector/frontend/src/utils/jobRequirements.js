@@ -1,4 +1,4 @@
-const HEADINGS = /^(?:#{1,6}\s*)?[[【]?(자격\s*(?:요건|조건)|지원\s*자격|필수\s*요건|우대\s*사항|우대\s*요건|preferred qualifications|preferred requirements|minimum requirements|nice to haves?|bonus points|while not required,?\s*it['’]s an added plus if you also have|we['’]d love to hear from you if you have|your expertise|what you(?:['’]ll| will)?\s+(?:bring|need)|what we(?:['’]re| are) looking for|what we look for in you(?:\s*\(i\.?e\.?\s*,?\s*job requirements\))?|qualifications|requirements)[\]】]?[\s:：-]*$/i;
+const HEADINGS = /^(?:#{1,6}\s*)?[[【]?(자격\s*(?:요건|조건)|지원\s*(?:자격|조건)|필수\s*(?:요건|사항|조건)|우대\s*(?:사항|요건|조건)|이런\s*분과\s*함께하고\s*싶어요|이런\s*경험이\s*있다면\s*더\s*좋아요|preferred qualifications|preferred requirements|minimum requirements|nice to haves?|bonus points|while not required,?\s*it['’]s an added plus if you also have|we['’]d love to hear from you if you have|your expertise|what you(?:['’]ll| will)?\s+(?:bring|need)|what we(?:['’]re| are) looking for|what we look for in you(?:\s*\(i\.?e\.?\s*,?\s*job requirements\))?|qualifications|requirements)[\]】]?[\s:：-]*$/i;
 const OTHER_HEADING = /^(?:#{1,6}\s+.+|[[【].+[\]】]|(?:주요\s*업무|담당\s*업무|업무\s*내용|조직\s*소개|근무\s*조건|복리\s*후생|전형\s*절차|채용\s*절차|접수\s*방법|기타\s*사항|responsibilities|benefits|about the (?:role|team)|hiring process)\s*[:：]?)$/i;
 
 // Recognize explicit sections only; unknown formats must not be presented as requirements.
@@ -21,15 +21,47 @@ export function extractJobRequirements(content) {
     }
     const heading = line.match(HEADINGS);
     if (heading) {
-      section = /우대|preferred|nice to have|added plus|bonus points/i.test(heading[1]) ? 'preferred' : 'required';
+      section = /우대|이런\s*경험이\s*있다면\s*더\s*좋아요|preferred|nice to have|added plus|bonus points/i.test(heading[1]) ? 'preferred' : 'required';
       continue;
     }
-    if (OTHER_HEADING.test(line) || /^#\s*[A-Z]?\d+\b/i.test(line) || /^(?:position details|pay and benefits|salary\s*[:：]|compensation\s*[:：]|at figma, one of our values|pay transparency|annual base salary|application limit|equal opportunity employer|accommodations|data privacy)/i.test(line) || /^[^:：]{1,80}[:：]$/.test(line)) { section = null; continue; }
+    if (OTHER_HEADING.test(line) || /^전형\s*절차\s*및\s*안내\s*사항\s*[:：]?$/i.test(line) || /^#\s*[A-Z]?\d+\b/i.test(line) || /^(?:position details|pay and benefits|salary\s*[:：]|compensation\s*[:：]|at figma, one of our values|pay transparency|annual base salary|application limit|equal opportunity employer|accommodations|data privacy)/i.test(line) || /^[^:：]{1,80}[:：]$/.test(line)) { section = null; continue; }
     if (!section) continue;
     const item = line.replace(/^[-*•●▪◦‣·]\s*/, '').replace(/^\d+[.)]\s*/, '').trim();
     if (item && !/^https?:\/\//i.test(item)) result[section].push(item);
   }
   return result;
+}
+
+// Preserve explicitly labelled source technology sections as written, without inferring individual tags.
+export function extractJobTechnologySections(content) {
+  const lines = String(content || '').replace(/\r\n?/g, '\n').split('\n');
+  const items = [];
+  let inside = false;
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (/^#{1,6}\s*(?:토스가\s*사용하는\s*기술|기술\s*스택|사용\s*기술|tech(?:nology)?\s*stack)\s*[:：]?$/i.test(line)) { inside = true; continue; }
+    if (/^#{1,6}\s+/.test(line)) { inside = false; continue; }
+    if (inside && line) items.push(line.replace(/^[-*•●▪◦‣·]\s*/, '').trim());
+  }
+  return items;
+}
+
+export function extractJobDuties(content) {
+  const lines = String(content || '').replace(/&nbsp;|&#160;/gi, ' ').replace(/&amp;/gi, '&')
+    .replace(/<br\s*\/?>/gi, '\n').replace(/<li(?:\s[^>]*)?>/gi, '\n• ')
+    .replace(/<\/(?:p|div|li|h[1-6])>/gi, '\n').replace(/<[^>]*>/g, '')
+    .replace(/\r\n?/g, '\n').replace(/\s*◆\s*/g, '\n').replace(/[ \t]+-[ \t]+/g, '\n- ').split('\n');
+  const heading = /^(?:#{1,6}\s*)?[[【]?(?:주요\s*업무|담당\s*업무|업무\s*내용|합류하면\s*함께\s*할\s*업무예요|합류하면\s*함께할\s*업무예요|responsibilities|what you(?:['’]ll| will) do)[\]】]?[\s:：-]*$/i;
+  const items = [];
+  let inside = false;
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+    if (heading.test(line)) { inside = true; continue; }
+    if (HEADINGS.test(line) || OTHER_HEADING.test(line) || /^#{1,6}\s+/.test(line) || /^(?:전형\s*절차|토스로의\s*합류\s*여정)/.test(line)) { inside = false; continue; }
+    if (inside) items.push(line.replace(/^[-*•●▪◦‣·]\s*/, '').replace(/^\d+[.)]\s*/, '').trim());
+  }
+  return items;
 }
 
 // Only return an amount when the source explicitly labels it as salary or pay.
@@ -56,7 +88,7 @@ export function extractJobSalary(content) {
 // Show only recognizable tool names explicitly mentioned in qualification sections.
 export function extractMentionedTools(requirements) {
   const text = [...requirements.required, ...requirements.preferred].join(' ');
-  const tools = ['Google apps', 'JIRA', 'Salesforce Service Cloud', 'Amazon Connect', 'LibreChat', 'Gemini', 'Glean', 'Java', 'Kotlin', 'JavaScript', 'TypeScript', 'Python', 'React', 'Spring', 'iOS', 'SQL', 'Excel', 'RDBMS', 'NoSQL', 'PostgreSQL', 'MongoDB', 'Docker', 'Kubernetes', 'AWS', 'IaC', 'CI/CD'];
+  const tools = ['Google apps', 'JIRA', 'Salesforce Service Cloud', 'Amazon Connect', 'LibreChat', 'Gemini', 'Glean', 'Java', 'Kotlin', 'JavaScript', 'TypeScript', 'Python', 'React', 'Spring', 'iOS', 'SQL', 'Excel', 'SAP', 'RDBMS', 'NoSQL', 'PostgreSQL', 'MongoDB', 'Docker', 'Kubernetes', 'AWS', 'IaC', 'CI/CD'];
   const matches = tools.filter((name) => new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text));
   if (/\b(?:large language models?|LLMs?)\b/i.test(text)) matches.push('LLM');
   return matches;
