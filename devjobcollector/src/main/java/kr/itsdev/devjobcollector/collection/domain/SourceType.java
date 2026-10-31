@@ -5,6 +5,7 @@ public enum SourceType {
     GREENHOUSE,
     LEVER,
     SARAMIN,
+    WORK24,
     TOSS_CAREERS,
     NAVER_CAREERS,
     WOOWAHAN,

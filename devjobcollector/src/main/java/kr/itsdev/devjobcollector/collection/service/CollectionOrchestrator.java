@@ -131,7 +131,7 @@ public class CollectionOrchestrator {
 
         if (successfulResponse(result.status())) {
             persistSuccessfulResult(run, target, result, finishedAt);
-            if (result.closureEvaluationAllowed()) {
+            if (run.isClosureEvaluationAllowed() && target.getProvider() != SourceType.WORK24) {
                 reconcileMissingOccurrences(target, result.jobs());
             }
             target.recordSuccess(finishedAt, httpStatus, result.schemaVersion(), finishedAt.plus(SUCCESS_INTERVAL));
@@ -146,6 +146,7 @@ public class CollectionOrchestrator {
             snapshotRepository.save(new JobRawSnapshot(
                     run, target, job.provider(), job.sourceJobId(), job.sourceUrl(), 200,
                     result.responseHash(), job.rawPayload(), fetchedAt));
+            if (job.provider() == SourceType.WORK24) continue;
             JobPost jobPost = projectionService.upsert(target, job);
             upsertOccurrence(target, job, jobPost.getId(), fetchedAt);
         }

@@ -71,6 +71,11 @@ data-api:
     service-key: ${API_SERVICE_KEY}
 
 collection:
+  work24:
+    enabled: ${WORK24_COLLECTION_ENABLED:false}
+    access-key: ${WORK24_ACCESS_KEY:}
+    page-size: ${WORK24_PAGE_SIZE:100}
+    max-pages: ${WORK24_MAX_PAGES:10}
   company-page:
     user-agent: ${COMPANY_PAGE_USER_AGENT:DevJobCollector/1.0 (+https://itsdev.kr)}
     max-description-length: ${COMPANY_PAGE_MAX_DESCRIPTION_LENGTH:20000}
@@ -85,6 +90,12 @@ collection:
     poll-delay-ms: ${ATS_COLLECTION_POLL_DELAY_MS:600000}
     closure-miss-threshold: ${ATS_COLLECTION_CLOSURE_MISS_THRESHOLD:2}
     targets:
+      - enabled: ${WORK24_TARGET_ENABLED:false}
+        company-name: 고용24 직종별 수집
+        provider: WORK24
+        source-identifier: ${WORK24_OCCUPATION_CODES:}
+        careers-url: https://www.work24.go.kr/
+        collection-tier: B
       # ── 기존 타겟 ──
       - enabled: true
         company-name: GitLab
