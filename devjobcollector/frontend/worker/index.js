@@ -1,4 +1,5 @@
 import { jobPath } from '../src/utils/jobPath.js';
+import { jobPosting, jsonLd } from './jobPosting.js';
 const SITE = 'https://djc.itsdev.kr';
 const API = 'https://djc-api.itsdev.kr/api/v1';
 const publicPages = ['/', '/jobs', '/terms', '/privacy'];
@@ -33,12 +34,13 @@ export function metadata(path, job) {
   };
 }
 
-export function renderHtml(html, path, meta) {
+export function renderHtml(html, path, meta, structuredJob = null) {
   const e = escapeHtml;
   let result = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${e(meta.title)}</title>`)
     .replace(/<meta name="description"[^>]*>/, `<meta name="description" content="${e(meta.description)}" />`);
   if (path !== '/') result = result.replace(/<div id="root">[\s\S]*?<!--\/prerender--><\/div>/, '<div id="root"></div>');
   return result.replace('</head>', `
+    ${structuredJob ? `<script type="application/ld+json">${jsonLd(structuredJob)}</script>` : ''}
     <link rel="canonical" href="${e(meta.canonical)}" />
     <meta name="robots" content="${meta.index ? 'index,follow' : 'noindex,follow'}" />
     <meta property="og:type" content="website" /><meta property="og:locale" content="ko_KR" />
@@ -109,7 +111,7 @@ export default {
       const html = await asset.text();
       const meta = metadata(path, job);
       if (status === 404) meta.index = false;
-      return new Response(request.method === 'HEAD' ? null : renderHtml(html, path, meta), { status, headers: {
+      return new Response(request.method === 'HEAD' ? null : renderHtml(html, path, meta, jobPosting(job)), { status, headers: {
         'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store',
         'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'strict-origin-when-cross-origin',
       } });
