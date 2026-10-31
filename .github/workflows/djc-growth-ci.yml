@@ -34,7 +34,7 @@ jobs:
           DJC_MIGRATION_TEST_URL: jdbc:mysql://127.0.0.1:33306/devjob?serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true
           DJC_MIGRATION_TEST_USERNAME: root
           DJC_MIGRATION_TEST_PASSWORD: growth-test-only
-        run: bash ./gradlew test --tests 'kr.itsdev.devjobcollector.growth.*' --tests 'kr.itsdev.devjobcollector.repository.JobSearchRepositoryIntegrationTest' --console=plain
+        run: bash ./gradlew test --tests 'kr.itsdev.devjobcollector.growth.*' --tests 'kr.itsdev.devjobcollector.repository.JobSearchRepositoryIntegrationTest' --tests 'kr.itsdev.devjobcollector.company.CompanyJobIntegrationTest' --tests 'kr.itsdev.devjobcollector.company.jobs.CompanyJobContentTest' --tests 'kr.itsdev.devjobcollector.migration.CompanyJobV12MigrationTest' --console=plain
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -44,7 +44,7 @@ jobs:
         working-directory: devjobcollector/frontend
         run: |
           npm ci
-          node --test worker/seo.test.mjs
+          node --test worker/seo.test.mjs worker/jobPosting.test.mjs
           npm run lint
           npm run build
       - name: Built homepage hydration
