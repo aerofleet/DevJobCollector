@@ -46,16 +46,18 @@ const JobGridSkeleton = () => (
 );
 
 const JobsResults = ({ filters, listKey, restorePosition }) => {
-  const [jobs, setJobs] = useState([]);
-  const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalElements, setTotalElements] = useState(null);
+  const [jobs, setJobs] = useState(() => restorePosition?.jobs ?? []);
+  const [page, setPage] = useState(() => restorePosition?.page ?? 0);
+  const [totalPages, setTotalPages] = useState(() => restorePosition?.totalPages ?? 0);
+  const [totalElements, setTotalElements] = useState(() => restorePosition?.totalElements ?? null);
   const [retryAttempt, setRetryAttempt] = useState(0);
-  const [initialLoading, setInitialLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(!restorePosition);
+  const [refreshing, setRefreshing] = useState(Boolean(restorePosition));
   const [errorMessage, setErrorMessage] = useState('');
   const requestVersion = useRef(0);
   const loadingMore = useRef(false);
   const pendingPosition = useRef(restorePosition);
+  const restoring = useRef(restorePosition);
 
   const fetchPage = useCallback(
     (pageToLoad = 0) => searchJobs(filters, pageToLoad, PAGE_SIZE),
@@ -66,11 +68,14 @@ const JobsResults = ({ filters, listKey, restorePosition }) => {
     let disposed = false;
     const loadInitialData = async () => {
       const version = ++requestVersion.current;
-      setInitialLoading(true);
-      setJobs([]);
-      setPage(0);
-      setTotalPages(0);
-      setTotalElements(null);
+      const snapshot = restoring.current;
+      if (!snapshot) {
+        setInitialLoading(true);
+        setJobs([]);
+        setPage(0);
+        setTotalPages(0);
+        setTotalElements(null);
+      } else setRefreshing(true);
       setErrorMessage('');
       try {
         const data = await fetchPage(0);
@@ -78,7 +83,7 @@ const JobsResults = ({ filters, listKey, restorePosition }) => {
         const maxPages = data.totalPages ?? data.page?.totalPages ?? 0;
         const restoredJobs = [...(data.content ?? [])];
         let loadedPages = 1;
-        const targetPages = Math.min(pendingPosition.current?.page ?? 1, maxPages);
+        const targetPages = Math.min(snapshot?.page ?? 1, maxPages);
         while (loadedPages < targetPages) {
           const next = await fetchPage(loadedPages);
           if (disposed || version !== requestVersion.current) return;
@@ -89,12 +94,13 @@ const JobsResults = ({ filters, listKey, restorePosition }) => {
         setTotalPages(maxPages);
         setTotalElements(data.totalElements ?? data.page?.totalElements ?? 0);
         setPage(loadedPages);
+        restoring.current = null;
       } catch (error) {
         if (disposed || version !== requestVersion.current) return;
         setErrorMessage('공고를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
         console.error('공고 초기 로드 실패:', error);
       } finally {
-        if (!disposed && version === requestVersion.current) setInitialLoading(false);
+        if (!disposed && version === requestVersion.current) { setInitialLoading(false); setRefreshing(false); }
       }
     };
 
@@ -153,7 +159,7 @@ const JobsResults = ({ filters, listKey, restorePosition }) => {
     }
   }, [fetchPage, initialLoading, page, totalPages]);
 
-  const { loading } = useInfiniteScroll(loadMoreData, 280, !initialLoading && !errorMessage);
+  const { loading } = useInfiniteScroll(loadMoreData, 280, !initialLoading && !refreshing && !errorMessage);
 
   return (
     <>
@@ -166,7 +172,7 @@ const JobsResults = ({ filters, listKey, restorePosition }) => {
         <div className="all-jobs-grid im-content">
           {jobs.map((job) => <JobCard key={job.id} job={job} onOpen={(event) => {
             if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
-              saveJobListPosition({ key: listKey, page, scrollY: window.scrollY });
+              saveJobListPosition({ key: listKey, page, totalPages, totalElements, jobs, scrollY: window.scrollY });
             }
           }} />)}
         </div>

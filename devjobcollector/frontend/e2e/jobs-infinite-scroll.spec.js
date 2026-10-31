@@ -24,7 +24,11 @@ const respond = (route, content, page, totalPages = 3) => route.fulfill({
 });
 
 test('상세에서 돌아가면 필터와 추가로 불러온 목록 및 스크롤 위치를 복원한다', async ({ page }) => {
-  await page.route('**/api/v1/jobs/search**', route => {
+  let blockRefresh = false;
+  let releaseRefresh;
+  const refreshGate = new Promise(resolve => { releaseRefresh = resolve; });
+  await page.route('**/api/v1/jobs/search**', async route => {
+    if (blockRefresh) await refreshGate;
     const requestedPage = Number(new URL(route.request().url()).searchParams.get('page') ?? 0);
     return respond(route, makeJobs(requestedPage * 12 + 1, 12), requestedPage, 3);
   });
@@ -40,10 +44,13 @@ test('상세에서 돌아가면 필터와 추가로 불러온 목록 및 스크�
   const before = await page.evaluate(() => window.scrollY);
   await target.click();
   await expect(page).toHaveURL(/\/job\/20$/);
+  blockRefresh = true;
   await page.getByRole('button', { name: '← 돌아가기' }).click();
   await expect(page).toHaveURL(/\/jobs\?keyword=backend$/);
   await expect.poll(() => page.locator('.all-jobs-grid .job-card').count()).toBeGreaterThanOrEqual(24);
   await expect.poll(async () => Math.abs((await page.evaluate(() => window.scrollY)) - before)).toBeLessThan(5);
+  await expect(page.getByRole('status', { name: '공고 불러오는 중' })).toHaveCount(0);
+  releaseRefresh();
 });
 
 test('랜딩 하단 링크로 이동해 초기 로딩 중 scroll이 발생해도 다음 페이지를 불러온다', async ({ page }) => {
