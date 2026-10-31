@@ -10,7 +10,7 @@ export function jobPosting(job, now = new Date()) {
   // DJC approval date is not necessarily the employer's original posting date.
   if (!job || job.sourcePlatform !== 'COMPANY_DIRECT' || job.active === false || job.isActive === false
       || (job.active !== true && job.isActive !== true)) return null;
-  if (job.originalPostedDateVerified !== true || job.completeDescriptionVerified !== true) return null;
+  if (job.originalPostedDateConfirmed !== true || job.completeDescriptionConfirmed !== true) return null;
   const title = typeof job.title === 'string' ? job.title.trim() : '';
   const company = typeof job.companyName === 'string' ? job.companyName.trim() : '';
   const description = typeof job.applyQual === 'string' ? job.applyQual.trim() : '';

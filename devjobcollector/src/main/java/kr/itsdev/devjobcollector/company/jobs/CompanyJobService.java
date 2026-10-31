@@ -181,6 +181,7 @@ public class CompanyJobService {
             jdbc.update("INSERT INTO tech_stacks (stack_name) VALUES (?) ON DUPLICATE KEY UPDATE stack_name=stack_name", name);
             post.addTechStack(stacks.findByStackName(name).orElseThrow());
         }
+        post.updateSearchEvidence(c.getOriginalPostedDate(), c.isCompleteDescriptionConfirmed());
         post.changeModerationStatus(JobModerationStatus.ACTIVE);
         job.publish(posts.saveAndFlush(post));
     }

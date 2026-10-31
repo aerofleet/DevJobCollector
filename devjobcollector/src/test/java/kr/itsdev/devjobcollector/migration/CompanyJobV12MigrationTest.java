@@ -32,6 +32,12 @@ class CompanyJobV12MigrationTest {
         assertThat(scalar("SELECT source_platform FROM job_posts WHERE original_sn='v12-preserve'")).isEqualTo("SARAMIN");
         assertThat(scalar("SELECT COUNT(*) FROM flyway_schema_history WHERE version='12' AND success=1")).isEqualTo("1");
     }
+    @Test void upgradeFromV35DoesNotInventSearchEvidenceForExistingJobs() throws Exception {
+        flyway("35").migrate();
+        execute("INSERT INTO job_posts (source_platform, original_sn, company_name, title, start_date, end_date, original_url, is_active) VALUES ('COMPANY_DIRECT','seo-existing','기업','기존 공고','2026-01-01','2030-12-31','https://example.com/jobs',true)");
+        flyway(null).migrate();
+        assertThat(scalar("SELECT COUNT(*) FROM job_posts WHERE original_sn='seo-existing' AND original_posted_date IS NULL AND complete_description_confirmed=0")).isEqualTo("1");
+    }
     private static Connection connection() throws SQLException {
         Connection c=DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"),
                 System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME","root"),System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD",""));

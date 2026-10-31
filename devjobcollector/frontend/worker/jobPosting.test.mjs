@@ -5,8 +5,8 @@ import worker from './index.js';
 
 const now = new Date('2026-10-31T12:00:00Z');
 const job = { id: 9, sourcePlatform: 'COMPANY_DIRECT', active: true, title: 'Developer', companyName: 'Example',
-  location: '서울', startDate: '2026-10-10', originalPostedDate: '2026-10-01', originalPostedDateVerified: true,
-  completeDescriptionVerified: true, endDate: '2026-11-30', originalUrl: 'https://example.com/apply',
+  location: '서울', startDate: '2026-10-10', originalPostedDate: '2026-10-01', originalPostedDateConfirmed: true,
+  completeDescriptionConfirmed: true, endDate: '2026-11-30', originalUrl: 'https://example.com/apply',
   applyQual: 'Build services\nRequired: Java' };
 
 test('valid employer post uses truthful publication date, region and full description', () => {
@@ -20,13 +20,13 @@ test('valid employer post uses truthful publication date, region and full descri
 test('excludes unverified, expired, inactive or incomplete source data', () => {
   for (const changes of [
     { sourcePlatform: 'GREENHOUSE' }, { active: false }, { location: 'Remote' }, { location: '서울 또는 미국' },
-    { originalPostedDate: '2026-02-30' }, { originalPostedDateVerified: false }, { completeDescriptionVerified: false },
+    { originalPostedDate: '2026-02-30' }, { originalPostedDateConfirmed: false }, { completeDescriptionConfirmed: false },
     { endDate: '2026-10-30' }, { applyQual: '' },
     { originalUrl: 'javascript:alert(1)' }, { companyName: '' },
   ]) assert.equal(jobPosting({ ...job, ...changes }, now), null);
   const currentApiShape = { ...job };
-  delete currentApiShape.originalPostedDateVerified;
-  delete currentApiShape.completeDescriptionVerified;
+  delete currentApiShape.originalPostedDateConfirmed;
+  delete currentApiShape.completeDescriptionConfirmed;
   assert.equal(jobPosting(currentApiShape, now), null);
 });
 test('JSON-LD cannot close script element with untrusted text', () => {

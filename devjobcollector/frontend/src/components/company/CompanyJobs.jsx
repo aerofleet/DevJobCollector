@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { companyJobsApi } from '../../api/companyJobsApi';
 import '../../styles/CompanyJobs.css';
 
-const EMPTY = { title: '', jobCategory: '', experience: '', location: '', hireType: '', techStacks: '', description: '', endDate: '', applyUrl: '' };
-const editableContent = (content) => Object.fromEntries(Object.keys(EMPTY).map((key) => [key, content?.[key] ?? '']));
+const EMPTY = { title: '', jobCategory: '', experience: '', location: '', hireType: '', techStacks: '', description: '', endDate: '', applyUrl: '', originalPostedDate: '', completeDescriptionConfirmed: false };
+const editableContent = (content) => Object.fromEntries(Object.keys(EMPTY).map((key) => [key, content?.[key] ?? EMPTY[key]]));
 const STATES = { DRAFT: '임시저장', IN_REVIEW: '검수 대기', CHANGES_REQUESTED: '수정 요청', PUBLISHED: '승인 완료', CLOSED: '마감', SUSPENDED: '게시 중단', DELETED: '삭제됨' };
 const LIVE = { UNPUBLISHED: '미게시', ACTIVE: '게시 중', CLOSED: '마감', HIDDEN: '게시 중단' };
 const FIELDS = [['title', '공고 제목'], ['jobCategory', '직무'], ['experience', '경력'], ['location', '근무지'], ['hireType', '고용형태'], ['techStacks', '기술스택 (쉼표로 구분)'], ['endDate', '마감일'], ['applyUrl', '지원 URL (https)']];
@@ -38,7 +38,7 @@ export default function CompanyJobs({ company }) {
     event.preventDefault(); if (busy) return;
     setBusy(true); setError(''); setNotice('');
     try {
-      const content = { ...form, endDate: form.endDate || null };
+      const content = { ...form, endDate: form.endDate || null, originalPostedDate: form.originalPostedDate || null };
       const saved = editor.id ? await companyJobsApi.edit(company.companyId, editor.id, editor.version, content)
         : await companyJobsApi.create(company.companyId, content);
       setEditor(saved); setForm(editableContent(saved.content)); setNotice('임시저장했습니다. 목록에서 바로 검수를 요청할 수 있습니다.'); await load();
@@ -68,6 +68,14 @@ export default function CompanyJobs({ company }) {
           onChange={(e) => setForm({ ...form, [key]: e.target.value })} /></label>)}</div>
         <label htmlFor="cj-description">상세내용 (일반 텍스트)<textarea id="cj-description" rows={10} maxLength={20000} value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
+        <label htmlFor="cj-originalPostedDate">최초 공고 게시일 (선택)
+          <input id="cj-originalPostedDate" type="date" value={form.originalPostedDate} onChange={(e) => setForm({ ...form, originalPostedDate: e.target.value })} />
+        </label>
+        <label htmlFor="cj-completeDescriptionConfirmed">
+          <input id="cj-completeDescriptionConfirmed" type="checkbox" checked={form.completeDescriptionConfirmed}
+            onChange={(e) => setForm({ ...form, completeDescriptionConfirmed: e.target.checked })} />
+          상세내용에 업무, 자격, 근무 조건 등 공고의 전체 내용을 포함했음을 확인합니다.
+        </label>
         <div className="company-job-actions"><button type="submit">{busy ? '저장 중…' : '임시저장'}</button>
           <button type="button" onClick={() => setPreview(!preview)}>미리보기</button>
           <button type="button" onClick={() => setEditor(null)}>편집 닫기</button></div>

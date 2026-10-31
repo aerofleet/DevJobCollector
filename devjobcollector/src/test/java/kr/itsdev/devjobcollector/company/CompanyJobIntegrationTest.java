@@ -87,6 +87,19 @@ class CompanyJobIntegrationTest {
         assertThat(approved.publishedJobId()).isEqualTo(p.publishedJobId());
         assertThat(posts.findById(p.publishedJobId()).orElseThrow().getTitle()).isEqualTo("수정된 공고");
     }
+    @Test void searchEvidenceChangesOnlyAfterApproval() {
+        var published = publish();
+        var evidence = new CompanyJobContent.Input("수정 공고", "backend", "신입", "서울", "정규직", "Java", "업무와 자격", LocalDate.now().plusDays(10), "https://example.com/jobs", LocalDate.now().minusDays(2), true);
+        var edited = service.edit("owner", company.getId(), published.id(), published.version(), evidence);
+        var live = posts.findById(published.publishedJobId()).orElseThrow();
+        assertThat(live.getOriginalPostedDate()).isNull();
+        assertThat(live.isCompleteDescriptionConfirmed()).isFalse();
+        var submitted = service.submit("owner", company.getId(), edited.id(), edited.version());
+        service.review(submitted.id(), submitted.version(), "APPROVE", "확인", ADMIN);
+        live = posts.findById(published.publishedJobId()).orElseThrow();
+        assertThat(live.getOriginalPostedDate()).isEqualTo(LocalDate.now().minusDays(2));
+        assertThat(live.isCompleteDescriptionConfirmed()).isTrue();
+    }
     @Test void closeImmediatelyRemovesPublicVisibility() {
         var p=publish(); var closed=service.close("owner",company.getId(),p.id(),p.version());
         assertThat(closed.liveStatus()).isEqualTo("CLOSED");

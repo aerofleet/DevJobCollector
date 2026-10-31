@@ -25,4 +25,19 @@ class CompanyJobContentTest {
         assertThatThrownBy(() -> CompanyJobContent.from(input("개발자", "https://example.com/jobs", LocalDate.now().minusDays(1)))
                 .validateSubmission(LocalDate.now())).hasMessageContaining("JOB_REQUIRED_FIELDS");
     }
+    @Test void searchEvidenceIsOptionalAndRejectsFutureOriginalDates() {
+        var today = LocalDate.of(2026, 10, 31);
+        var valid = CompanyJobContent.from(new CompanyJobContent.Input("개발자", "backend", "신입", "서울", "정규직", "Java", "업무와 자격", today.plusDays(5), "https://example.com/jobs", today.minusDays(10), true));
+        assertThat(valid.getOriginalPostedDate()).isEqualTo(today.minusDays(10));
+        assertThat(valid.isCompleteDescriptionConfirmed()).isTrue();
+        assertThatCode(() -> valid.validateSubmission(today)).doesNotThrowAnyException();
+        var invalid = CompanyJobContent.from(new CompanyJobContent.Input("개발자", "backend", "신입", "서울", "정규직", "Java", "업무와 자격", today.plusDays(5), "https://example.com/jobs", today.plusDays(1), true));
+        assertThatThrownBy(() -> invalid.validateSubmission(today)).hasMessageContaining("JOB_INVALID_POSTED_DATE");
+    }
+    @Test void optionalSearchFieldsDeserializeFromCompanyForm() throws Exception {
+        var mapper = new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules();
+        var input = mapper.readValue("{\"title\":\"Dev\",\"originalPostedDate\":\"2026-10-01\",\"completeDescriptionConfirmed\":true}", CompanyJobContent.Input.class);
+        assertThat(input.originalPostedDate()).isEqualTo(LocalDate.of(2026, 10, 1));
+        assertThat(input.completeDescriptionConfirmed()).isTrue();
+    }
 }

@@ -83,6 +83,16 @@ public class JobPost {
     @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
 
+    @Column(name = "original_posted_date")
+    private LocalDate originalPostedDate;
+    @Column(name = "complete_description_confirmed", nullable = false)
+    private boolean completeDescriptionConfirmed;
+
+    public void updateSearchEvidence(LocalDate postedDate, boolean descriptionConfirmed) {
+        this.originalPostedDate = postedDate;
+        this.completeDescriptionConfirmed = descriptionConfirmed;
+    }
+
     @Column(name = "source_deadline_display", length = 32)
     private String sourceDeadlineDisplay;
 

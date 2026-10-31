@@ -39,7 +39,7 @@ test('기업 공고 작성 미리보기 임시저장 검수요청 마감', async
   await page.screenshot({ path: `.codex/company-job-editor-${test.info().project.name}.png`, fullPage: true });
   await page.getByRole('button', { name: '임시저장', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('임시저장했습니다');
-  expect(state.writes[0]).toEqual(content);
+  expect(state.writes[0]).toEqual({ ...content, originalPostedDate: null, completeDescriptionConfirmed: false });
   await expect(page.getByRole('button', { name: '편집 닫기' })).toBeVisible();
   await expect(page.getByRole('button', { name: '검수 요청', exact: true })).toBeEnabled();
   await page.getByRole('button', { name: '검수 요청', exact: true }).click();
@@ -70,6 +70,16 @@ test('저장된 초안은 편집 중에도 제출 가능하고 미저장 변경�
   await expect(page.locator('.company-job-status')).toContainText('검수 대기');
   expect(state.submissions).toEqual([{ expectedVersion: 4 }]);
   expect(state.jobs[0].content.title).toBe('수정한 공고');
+});
+test('최초 게시일과 공고 전체 내용 확인을 선택해 저장한다', async ({ page }) => {
+  const state = await setup(page, {}, [{ id: 1, content, state: 'DRAFT', liveStatus: 'UNPUBLISHED', version: 3, views: 0, applyClicks: 0 }]);
+  await page.goto('/company');
+  await page.getByRole('button', { name: '수정', exact: true }).click();
+  await page.getByLabel('최초 공고 게시일 (선택)').fill('2026-10-01');
+  await page.getByLabel('상세내용에 업무, 자격, 근무 조건 등 공고의 전체 내용을 포함했음을 확인합니다.').check();
+  await page.getByRole('button', { name: '임시저장', exact: true }).click();
+  await expect.poll(() => state.jobs[0].content.originalPostedDate).toBe('2026-10-01');
+  expect(state.jobs[0].content.completeDescriptionConfirmed).toBe(true);
 });
 test('VIEWER는 목록만 조회한다', async ({ page }) => {
   await setup(page, { role: 'VIEWER' }); await page.goto('/company');

@@ -21,13 +21,20 @@ public class CompanyJobContent {
     @Column(length = 1000) private String techStacks;
     @Column(columnDefinition = "LONGTEXT") private String description;
     private LocalDate endDate;
+    private LocalDate originalPostedDate;
+    @Column(nullable = false) private boolean completeDescriptionConfirmed;
     @Column(length = 2000) private String applyUrl;
 
     public record Input(@Size(max=255) String title, @Size(max=255) String jobCategory,
             @Size(max=255) String experience, @Size(max=255) String location,
             @Size(max=255) String hireType, @Size(max=1000) String techStacks,
             @Size(max=20000) String description, LocalDate endDate,
-            @Size(max=2000) String applyUrl) {}
+            @Size(max=2000) String applyUrl, LocalDate originalPostedDate, Boolean completeDescriptionConfirmed) {
+        public Input(String title, String jobCategory, String experience, String location, String hireType,
+                     String techStacks, String description, LocalDate endDate, String applyUrl) {
+            this(title, jobCategory, experience, location, hireType, techStacks, description, endDate, applyUrl, null, false);
+        }
+    }
 
     public static CompanyJobContent from(Input input) {
         CompanyJobContent c = new CompanyJobContent();
@@ -35,11 +42,16 @@ public class CompanyJobContent {
         c.experience = clean(input.experience()); c.location = clean(input.location());
         c.hireType = clean(input.hireType()); c.techStacks = clean(input.techStacks());
         c.description = clean(input.description()); c.endDate = input.endDate();
+        c.originalPostedDate = input.originalPostedDate();
+        c.completeDescriptionConfirmed = Boolean.TRUE.equals(input.completeDescriptionConfirmed());
         c.applyUrl = clean(input.applyUrl());
         return c;
     }
 
     public void validateSubmission(LocalDate today) {
+        if (originalPostedDate != null && (originalPostedDate.isAfter(today) || (endDate != null && originalPostedDate.isAfter(endDate)))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "JOB_INVALID_POSTED_DATE");
+        }
         if (title.isBlank() || jobCategory.isBlank() || experience.isBlank()
                 || location.isBlank() || hireType.isBlank() || description.isBlank()
                 || techStacks.isBlank() || endDate == null || endDate.isBefore(today)) {
