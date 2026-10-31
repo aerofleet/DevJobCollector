@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import MainPage from './pages/MainPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -8,6 +8,7 @@ import Header from './pages/Header';
 import MemberSessionProvider from './contexts/MemberSessionProvider';
 import ScrollReveals from './motion/ScrollReveals';
 import GrowthAnalytics from './components/common/GrowthAnalytics';
+import { clearJobListPosition } from './utils/jobListPosition';
 
 const AllJobsPage = lazy(() => import('./pages/AllJobsPage'));
 const DetailPage = lazy(() => import('./pages/DetailPage'));
@@ -38,6 +39,10 @@ class RouteErrorBoundary extends React.Component {
 const AppRoutes = () => {
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    if (location.pathname !== '/jobs' && !/^\/job\/[^/]+$/.test(location.pathname)) clearJobListPosition();
+  }, [location.pathname]);
 
   const handleSearch = (keyword = '') => {
     const query = keyword.trim() ? `?keyword=${encodeURIComponent(keyword.trim())}` : '';

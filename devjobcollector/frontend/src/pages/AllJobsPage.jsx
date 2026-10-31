@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Link, useLocation, useNavigationType, useSearchParams } from 'react-router-dom';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { searchJobs } from '../api/jobApi';
 import JobCard from '../components/job/JobCard';
@@ -10,6 +10,7 @@ import MultiSelectFilter from '../components/job/MultiSelectFilter';
 import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import '../styles/AllJobsPage.css';
 import { JOB_ROLES, JOB_ROLE_GROUPS, QUICK_JOB_ROLES, TECH_STACK_GROUPS } from '../data/jobFilters';
+import { clearJobListPosition, getJobListPosition, saveJobListPosition } from '../utils/jobListPosition';
 
 const PAGE_SIZE = 12;
 
@@ -44,7 +45,7 @@ const JobGridSkeleton = () => (
   </div>
 );
 
-const JobsResults = ({ filters }) => {
+const JobsResults = ({ filters, listKey, restorePosition }) => {
   const [jobs, setJobs] = useState([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -53,6 +54,8 @@ const JobsResults = ({ filters }) => {
   const [initialLoading, setInitialLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const requestVersion = useRef(0);
+  const loadingMore = useRef(false);
+  const pendingPosition = useRef(restorePosition);
 
   const fetchPage = useCallback(
     (pageToLoad = 0) => searchJobs(filters, pageToLoad, PAGE_SIZE),
@@ -72,10 +75,20 @@ const JobsResults = ({ filters }) => {
       try {
         const data = await fetchPage(0);
         if (disposed || version !== requestVersion.current) return;
-        setJobs(data.content ?? []);
-        setTotalPages(data.totalPages ?? data.page?.totalPages ?? 0);
+        const maxPages = data.totalPages ?? data.page?.totalPages ?? 0;
+        const restoredJobs = [...(data.content ?? [])];
+        let loadedPages = 1;
+        const targetPages = Math.min(pendingPosition.current?.page ?? 1, maxPages);
+        while (loadedPages < targetPages) {
+          const next = await fetchPage(loadedPages);
+          if (disposed || version !== requestVersion.current) return;
+          restoredJobs.push(...(next.content ?? []));
+          loadedPages += 1;
+        }
+        setJobs(restoredJobs);
+        setTotalPages(maxPages);
         setTotalElements(data.totalElements ?? data.page?.totalElements ?? 0);
-        setPage(1);
+        setPage(loadedPages);
       } catch (error) {
         if (disposed || version !== requestVersion.current) return;
         setErrorMessage('공고를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
@@ -102,9 +115,25 @@ const JobsResults = ({ filters }) => {
     };
   }, [fetchPage, retryAttempt]);
 
+  useLayoutEffect(() => {
+    if (!initialLoading && !errorMessage && pendingPosition.current) {
+      const position = pendingPosition.current;
+      window.scrollTo(0, position.scrollY);
+      const frame = window.requestAnimationFrame(() => {
+        window.scrollTo(0, position.scrollY);
+        clearJobListPosition();
+      });
+      pendingPosition.current = null;
+      return () => window.cancelAnimationFrame(frame);
+    }
+    return undefined;
+  }, [initialLoading, errorMessage, jobs]);
+
   const loadMoreData = useCallback(async () => {
+    if (loadingMore.current) return true;
     if (initialLoading || page >= totalPages) return false;
 
+    loadingMore.current = true;
     try {
       const version = requestVersion.current;
       const data = await fetchPage(page);
@@ -119,6 +148,8 @@ const JobsResults = ({ filters }) => {
       setErrorMessage('추가 공고를 불러오지 못했습니다. 네트워크 상태를 확인해주세요.');
       console.error('공고 추가 로드 실패:', error);
       return false;
+    } finally {
+      loadingMore.current = false;
     }
   }, [fetchPage, initialLoading, page, totalPages]);
 
@@ -133,7 +164,11 @@ const JobsResults = ({ filters }) => {
 
       {initialLoading ? <JobGridSkeleton /> : (
         <div className="all-jobs-grid im-content">
-          {jobs.map((job) => <JobCard key={job.id} job={job} />)}
+          {jobs.map((job) => <JobCard key={job.id} job={job} onOpen={(event) => {
+            if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
+              saveJobListPosition({ key: listKey, page, scrollY: window.scrollY });
+            }
+          }} />)}
         </div>
       )}
 
@@ -156,10 +191,16 @@ const JobsResults = ({ filters }) => {
 };
 
 const AllJobsPage = () => {
+  const location = useLocation();
+  const navigationType = useNavigationType();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const resultKey = searchParams.toString();
   const filters = useMemo(() => getFilters(new URLSearchParams(resultKey)), [resultKey]);
+  const restorePosition = useMemo(() => {
+    if (navigationType !== 'POP') return null;
+    return getJobListPosition(location.key);
+  }, [location.key, navigationType]);
 
   const updateParams = (updates) => {
     const nextParams = new URLSearchParams(searchParams);
@@ -264,7 +305,7 @@ const AllJobsPage = () => {
         )}
       </section>
 
-      <JobsResults key={resultKey} filters={filters} />
+      <JobsResults key={resultKey} filters={filters} listKey={location.key} restorePosition={restorePosition} />
     </main>
   );
 };

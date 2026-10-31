@@ -6,7 +6,7 @@ import { getCompanyInitials, getCompanyLogoUrl } from '../../utils/companyLogo';
 import { jobSourceLabel } from '../../utils/jobSource';
 import '../../styles/JobCard.css';
 
-const JobCard = ({ job }) => {
+const JobCard = ({ job, onOpen }) => {
   const [failedLogoUrl, setFailedLogoUrl] = useState(null);
 
 
@@ -18,7 +18,7 @@ const JobCard = ({ job }) => {
   const showLogo = logoUrl && failedLogoUrl !== logoUrl;
 
   return (
-    <Link className='job-card im-card' data-motion-reveal="" to={`/job/${job.id}`}>
+    <Link className='job-card im-card' data-motion-reveal="" to={`/job/${job.id}`} onClick={onOpen}>
       {/* 썸네일 영역 */}
       <div className='job-thumbnail'>
         {showLogo ? (

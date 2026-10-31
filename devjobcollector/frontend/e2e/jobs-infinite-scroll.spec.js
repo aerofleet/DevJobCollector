@@ -23,6 +23,29 @@ const respond = (route, content, page, totalPages = 3) => route.fulfill({
   }),
 });
 
+test('상세에서 돌아가면 필터와 추가로 불러온 목록 및 스크롤 위치를 복원한다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/search**', route => {
+    const requestedPage = Number(new URL(route.request().url()).searchParams.get('page') ?? 0);
+    return respond(route, makeJobs(requestedPage * 12 + 1, 12), requestedPage, 3);
+  });
+  await page.route('**/api/v1/jobs/20?*', route => route.fulfill({ json: {
+    ...makeJobs(20, 1)[0], sourcePlatform: 'GREENHOUSE', originalUrl: 'https://example.com/job/20',
+  } }));
+  await page.goto('/jobs?keyword=backend');
+  await expect(page.locator('.all-jobs-grid .job-card')).toHaveCount(12);
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await expect.poll(() => page.locator('.all-jobs-grid .job-card').count()).toBeGreaterThanOrEqual(24);
+  const target = page.locator('.all-jobs-grid .job-card').filter({ hasText: '백엔드 개발자 20' });
+  await target.scrollIntoViewIfNeeded();
+  const before = await page.evaluate(() => window.scrollY);
+  await target.click();
+  await expect(page).toHaveURL(/\/job\/20$/);
+  await page.getByRole('button', { name: '← 돌아가기' }).click();
+  await expect(page).toHaveURL(/\/jobs\?keyword=backend$/);
+  await expect.poll(() => page.locator('.all-jobs-grid .job-card').count()).toBeGreaterThanOrEqual(24);
+  await expect.poll(async () => Math.abs((await page.evaluate(() => window.scrollY)) - before)).toBeLessThan(5);
+});
+
 test('랜딩 하단 링크로 이동해 초기 로딩 중 scroll이 발생해도 다음 페이지를 불러온다', async ({ page }) => {
   let releaseInitialJobs;
   const initialJobsGate = new Promise((resolve) => {
