@@ -5,7 +5,19 @@ const publicPages = ['/', '/jobs', '/terms', '/privacy'];
 const appPages = [...publicPages, '/login', '/signup', '/oauth/callback', '/member', '/my-devjobs', '/resumes', '/resume', '/resume-analysis', '/company'];
 export const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const text = (value) => String(value ?? '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
-const xml = (body) => new Response(`<?xml version="1.0" encoding="UTF-8"?>${body}`, { headers: { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'no-store' } });
+const xml = (body, cacheControl = 'public, max-age=300, s-maxage=1800') => new Response(`<?xml version="1.0" encoding="UTF-8"?>${body}`, { headers: { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': cacheControl, 'X-Content-Type-Options': 'nosniff' } });
+
+function lastModified(job) {
+  for (const value of [job.updatedAt, job.modifiedAt]) {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2}))?$/.test(value)) continue;
+    const day = value.slice(0, 10);
+    const dayDate = new Date(`${day}T00:00:00Z`);
+    if (!Number.isFinite(dayDate.getTime()) || dayDate.toISOString().slice(0, 10) !== day) continue;
+    const date = new Date(value);
+    if (Number.isFinite(date.getTime()) && date.getTime() <= Date.now()) return value.length === 10 ? value : date.toISOString();
+  }
+  return null;
+}
 
 async function api(path) {
   return fetch(`${API}${path}`, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(5000) });
@@ -43,20 +55,33 @@ export function renderHtml(html, path, meta) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname;
     if (!['GET', 'HEAD'].includes(request.method)) return new Response('Method not allowed', { status: 405 });
     if (path === '/robots.txt') return new Response(`User-agent: *\nAllow: /\nSitemap: ${SITE}/sitemap.xml\n`, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
     try {
-      if (path === '/sitemap-pages.xml') return xml(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${publicPages.map((p) => `<url><loc>${SITE}${p}</loc></url>`).join('')}</urlset>`);
+      const sitemap = ['/sitemap.xml', '/sitemap-pages.xml', '/sitemap-jobs.xml'].includes(path);
+      const cache = sitemap && request.method === 'GET' ? globalThis.caches?.default : null;
+      if (cache) {
+        const cached = await cache.match(request).catch(() => null);
+        if (cached) return cached;
+      }
+      const sendSitemap = (response) => {
+        if (cache && response.ok) {
+          const store = cache.put(request, response.clone()).catch(() => {});
+          if (ctx?.waitUntil) ctx.waitUntil(store);
+        }
+        return request.method === 'HEAD' ? new Response(null, { status: response.status, headers: response.headers }) : response;
+      };
+      if (path === '/sitemap-pages.xml') return sendSitemap(xml(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${publicPages.map((p) => `<url><loc>${SITE}${p}</loc></url>`).join('')}</urlset>`, 'public, max-age=3600, s-maxage=86400'));
       if (path === '/sitemap.xml') {
         const response = await api('/jobs/active?size=1&page=0');
         if (!response.ok) throw new Error('Job index unavailable');
         const data = await response.json();
         const total = data.totalElements ?? data.page?.totalElements;
         if (!Number.isSafeInteger(total) || total < 0 || total > 25000000) throw new Error('Invalid job count');
-        return xml(`<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>${SITE}/sitemap-pages.xml</loc></sitemap>${Array.from({ length: Math.ceil(total / 500) }, (_, page) => `<sitemap><loc>${SITE}/sitemap-jobs.xml?page=${page}</loc></sitemap>`).join('')}</sitemapindex>`);
+        return sendSitemap(xml(`<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>${SITE}/sitemap-pages.xml</loc></sitemap>${Array.from({ length: Math.ceil(total / 500) }, (_, page) => `<sitemap><loc>${SITE}/sitemap-jobs.xml?page=${page}</loc></sitemap>`).join('')}</sitemapindex>`));
       }
       if (path === '/sitemap-jobs.xml') {
         const page = url.searchParams.get('page') || '0';
@@ -65,7 +90,7 @@ export default {
         if (!response.ok) throw new Error('Job sitemap unavailable');
         const data = await response.json();
         if (!Array.isArray(data.content)) throw new Error('Invalid job page');
-        return xml(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${data.content.filter((job) => Number.isSafeInteger(job.id) && job.id > 0).map((job) => `<url><loc>${SITE}${jobPath(job.id, job.title)}</loc></url>`).join('')}</urlset>`);
+        return sendSitemap(xml(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${data.content.filter((job) => Number.isSafeInteger(job.id) && job.id > 0).map((job) => { const modified = lastModified(job); return `<url><loc>${SITE}${jobPath(job.id, job.title)}</loc>${modified ? `<lastmod>${modified}</lastmod>` : ''}</url>`; }).join('')}</urlset>`));
       }
       let job;
       let status = 200;

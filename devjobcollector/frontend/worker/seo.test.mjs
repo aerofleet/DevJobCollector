@@ -5,6 +5,7 @@ import worker, { metadata, renderHtml } from './index.js';
 const html = '<html><head><title>old</title><meta name="description" content="old" /></head><body><div id="root"><h1>home</h1><!--/prerender--></div></body></html>';
 const env = { ASSETS: { fetch: async () => new Response(html) } };
 const request = (path) => new Request(`https://djc.itsdev.kr${path}`);
+globalThis.caches ??= undefined;
 test('metadata escapes untrusted job content and strips query from canonical', () => {
   const result = renderHtml(html, '/job/7', metadata('/job/7', { title: '개발자 " onload="x <script>bad</script>', companyName: 'A&B' }));
   assert.ok(result.includes('&quot;'));
@@ -70,5 +71,49 @@ test('sitemap and canonical use the same title URL', async (t) => {
   const response = await worker.fetch(request(path), env);
   assert.equal(response.status, 200);
   assert.ok((await response.text()).includes(`rel="canonical" href="https://djc.itsdev.kr${path}"`));
+});
+
+test('sitemap emits only valid past modification dates, not publication or collection dates', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => Response.json({ content: [
+    { id: 1, title: 'A', updatedAt: '2025-03-04T10:00:00+09:00' },
+    { id: 2, title: 'B', modifiedAt: '2025-03-04' },
+    { id: 3, title: 'C', updatedAt: '2025-02-30', startDate: '2025-01-01' },
+    { id: 4, title: 'D', updatedAt: '2999-01-01', collectedAt: '2025-01-01' },
+    { id: 5, title: 'E', updatedAt: '2025-03-04T10:00:00', lastSeenAt: '2025-01-01' },
+  ] }));
+  const response = await worker.fetch(request('/sitemap-jobs.xml?page=0'), env);
+  const body = await response.text();
+  assert.ok(body.includes('<lastmod>2025-03-04T01:00:00.000Z</lastmod>'));
+  assert.ok(body.includes('<lastmod>2025-03-04</lastmod>'));
+  assert.equal((body.match(/<lastmod>/g) || []).length, 2);
+  assert.equal(response.headers.get('Cache-Control'), 'public, max-age=300, s-maxage=1800');
+});
+
+test('sitemap cache stores successful GET responses and serves later hits', async (t) => {
+  const stored = new Map();
+  let calls = 0;
+  t.mock.method(globalThis, 'fetch', async () => { calls++; return Response.json({ totalElements: 1 }); });
+  t.mock.property(globalThis, 'caches', { default: {
+    match: async (cacheRequest) => stored.get(cacheRequest.url)?.clone(),
+    put: async (cacheRequest, response) => { stored.set(cacheRequest.url, response.clone()); },
+  } });
+  const pending = [];
+  const ctx = { waitUntil: (promise) => pending.push(promise) };
+  const first = await worker.fetch(request('/sitemap.xml'), env, ctx);
+  await Promise.all(pending);
+  const second = await worker.fetch(request('/sitemap.xml'), env, ctx);
+  assert.equal(calls, 1);
+  assert.equal(await first.text(), await second.text());
+  assert.equal((await worker.fetch(request('/sitemap-pages.xml'), env)).headers.get('Cache-Control'), 'public, max-age=3600, s-maxage=86400');
+});
+
+test('upstream errors remain no-store and are never cached', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => { throw new Error('offline'); });
+  let writes = 0;
+  t.mock.property(globalThis, 'caches', { default: { match: async () => undefined, put: async () => { writes++; } } });
+  const response = await worker.fetch(request('/sitemap-jobs.xml?page=0'), env);
+  assert.equal(response.status, 503);
+  assert.equal(response.headers.get('Cache-Control'), 'no-store');
+  assert.equal(writes, 0);
 });
 
