@@ -1,4 +1,5 @@
-﻿import React, { useState } from 'react';
+import { jobPath } from '../../utils/jobPath';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import TechStackBadge from './TechStackBadge';
 import { formatDate, getDaysRemaining } from '../../utils/dateParser';
@@ -18,7 +19,7 @@ const JobCard = ({ job, onOpen }) => {
   const showLogo = logoUrl && failedLogoUrl !== logoUrl;
 
   return (
-    <Link className='job-card im-card' data-motion-reveal="" to={`/job/${job.id}`} onClick={onOpen}>
+    <Link className='job-card im-card' data-motion-reveal="" to={jobPath(job.id, job.title)} onClick={onOpen}>
       {/* 썸네일 영역 */}
       <div className='job-thumbnail'>
         {showLogo ? (

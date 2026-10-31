@@ -37,7 +37,7 @@ test('job sitemap only contains valid public job IDs', async (t) => {
 });
 test('job metadata is in raw HTML and query credentials never enter canonical', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => Response.json({ id: 7, title: 'Java 개발자', companyName: '기업' }));
-  const body = await (await worker.fetch(request('/job/7?token=secret'), env)).text();
+  const body = await (await worker.fetch(request('/job/7/java-%EA%B0%9C%EB%B0%9C%EC%9E%90?token=secret'), env)).text();
   assert.ok(body.includes('Java 개발자'));
   assert.ok(body.includes('og:image'));
   assert.ok(!body.includes('secret'));
@@ -54,3 +54,21 @@ test('upstream outage does not publish an empty successful sitemap', async (t) =
   assert.equal(response.status, 503);
   assert.equal(response.headers.get('Retry-After'), '60');
 });
+
+test('legacy and outdated job URLs redirect to the title URL', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => Response.json({ id: 7, title: 'Java \uac1c\ubc1c\uc790', companyName: 'Company' }));
+  for (const path of ['/job/7', '/job/7/old-title']) {
+    const response = await worker.fetch(request(path), env);
+    assert.equal(response.status, 301);
+    assert.equal(response.headers.get('Location'), 'https://djc.itsdev.kr/job/7/java-%EA%B0%9C%EB%B0%9C%EC%9E%90');
+  }
+});
+test('sitemap and canonical use the same title URL', async (t) => {
+  t.mock.method(globalThis, 'fetch', async (url) => Response.json(url.includes('/active?') ? { content: [{ id: 7, title: 'Java \uac1c\ubc1c\uc790' }] } : { id: 7, title: 'Java \uac1c\ubc1c\uc790' }));
+  const path = '/job/7/java-%EA%B0%9C%EB%B0%9C%EC%9E%90';
+  assert.ok((await (await worker.fetch(request('/sitemap-jobs.xml'), env)).text()).includes(path));
+  const response = await worker.fetch(request(path), env);
+  assert.equal(response.status, 200);
+  assert.ok((await response.text()).includes(`rel="canonical" href="https://djc.itsdev.kr${path}"`));
+});
+

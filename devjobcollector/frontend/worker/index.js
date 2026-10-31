@@ -1,3 +1,4 @@
+import { jobPath } from '../src/utils/jobPath.js';
 const SITE = 'https://djc.itsdev.kr';
 const API = 'https://djc-api.itsdev.kr/api/v1';
 const publicPages = ['/', '/jobs', '/terms', '/privacy'];
@@ -64,15 +65,20 @@ export default {
         if (!response.ok) throw new Error('Job sitemap unavailable');
         const data = await response.json();
         if (!Array.isArray(data.content)) throw new Error('Invalid job page');
-        return xml(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${data.content.filter((job) => Number.isSafeInteger(job.id) && job.id > 0).map((job) => `<url><loc>${SITE}/job/${job.id}</loc></url>`).join('')}</urlset>`);
+        return xml(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${data.content.filter((job) => Number.isSafeInteger(job.id) && job.id > 0).map((job) => `<url><loc>${SITE}${jobPath(job.id, job.title)}</loc></url>`).join('')}</urlset>`);
       }
       let job;
       let status = 200;
-      if (/^\/job\/\d+$/.test(path)) {
-        const response = await api(`/jobs/${path.split('/').pop()}`);
+      const jobMatch = path.match(/^\/job\/(\d+)(?:\/[^/]+)?$/);
+      if (jobMatch) {
+        const response = await api(`/jobs/${jobMatch[1]}`);
         if (response.status === 404) status = 404;
         else if (!response.ok) throw new Error('Job unavailable');
-        else job = await response.json();
+        else {
+          job = await response.json();
+          const canonicalPath = jobPath(jobMatch[1], job.title);
+          if (path !== canonicalPath) return Response.redirect(`${SITE}${canonicalPath}${url.search}`, 301);
+        }
       } else if (!appPages.includes(path)) status = 404;
       const asset = await env.ASSETS.fetch(new Request(new URL('/', request.url), request));
       const html = await asset.text();

@@ -1,3 +1,4 @@
+import { jobPath } from '../utils/jobPath';
 import { getAccessToken } from '../utils/accessToken';
 import { trackGrowth } from '../utils/growthAnalytics';
 import React, { useState, useEffect, useRef } from 'react';
@@ -35,6 +36,8 @@ const DetailPage = () => {
       const data = await fetchJobDetail(id);
       if (cancelled) return;
       setJob(data);
+      const canonicalPath = jobPath(id, data.title);
+      if (window.location.pathname !== canonicalPath) navigate(`${canonicalPath}${window.location.search}${window.location.hash}`, { replace: true });
       if (!viewEvent.current.tracked) { trackGrowth('JOB_VIEW', id); viewEvent.current.tracked = true; }
       if (data.sourcePlatform === 'COMPANY_DIRECT') {
         recordJobEngagement(id, 'VIEW', eventId).catch(() => {});
@@ -54,7 +57,7 @@ const DetailPage = () => {
   
   loadJobDetail();
   return () => { cancelled = true; };
-  }, [id]);
+  }, [id, navigate]);
 
   if (loading) return <LoadingSpinner />;
   if (error) return <div className="error-message">{error}</div>;
@@ -230,7 +233,7 @@ const DetailPage = () => {
 
         <div className="action-buttons">
           <button type="button" className="save-job-button im-button" onClick={async () => {
-            const url = `${window.location.origin}/job/${id}`;
+            const url = `${window.location.origin}${jobPath(id, job.title)}`;
             try {
               if (navigator.share) await navigator.share({ title: `${job.title} | 데브잡스`, url });
               else { await navigator.clipboard.writeText(url); setActivityMessage('공고 링크를 복사했습니다.'); }

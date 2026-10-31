@@ -55,7 +55,7 @@ test('공유는 쿼리와 인증 정보 없는 공고 URL만 복사한다', asyn
   await page.goto('/job/7?token=secret&utm_source=velog');
   await page.getByRole('button', { name: '공고 공유' }).click();
   await expect(page.getByRole('status')).toContainText('공고 링크를 복사했습니다.');
-  expect(await page.evaluate(() => window.copiedUrl)).toBe('http://127.0.0.1:4174/job/7');
+  expect(await page.evaluate(() => window.copiedUrl)).toBe('http://127.0.0.1:4174/job/7/java-%EA%B0%9C%EB%B0%9C%EC%9E%90');
   await expect.poll(() => events.filter((e) => e.kind === 'SHARE').length).toBe(1);
 });
 test('수집 장애가 공고 탐색을 막지 않고 동일 eventId로 재시도한다', async ({ page }) => {
@@ -67,3 +67,4 @@ test('수집 장애가 공고 탐색을 막지 않고 동일 eventId로 재시�
   await expect.poll(() => events.length).toBe(2);
   expect(events[0].eventId).toBe(events[1].eventId);
 });
+

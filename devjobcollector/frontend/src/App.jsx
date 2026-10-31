@@ -59,6 +59,7 @@ const AppRoutes = () => {
         <Route path="/" element={<MainPage onSearch={handleSearch} />} />
         <Route path="/jobs" element={<AllJobsPage />} />
         <Route path="/job/:id" element={<DetailPage />} />
+        <Route path="/job/:id/:slug" element={<DetailPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/terms" element={<TermsPage />} />

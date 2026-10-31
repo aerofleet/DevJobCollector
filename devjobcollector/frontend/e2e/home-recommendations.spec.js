@@ -72,7 +72,7 @@ test('추천 근거·이력서 전환·제외 저장·모바일 배치', async (
   await expect(section.getByRole('button', { name: '추천 근거 보기' })).toBeFocused();
   expect(state.writes).toBe(0);
   await expect(section.getByText('마감일: 2026.12.31')).toBeVisible();
-  await expect(section.locator('.job-card')).toHaveAttribute('href', '/job/17');
+  await expect(section.locator('.job-card')).toHaveAttribute('href', '/job/17/%EB%B0%B1%EC%97%94%EB%93%9C-%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4');
   await expect(section.getByRole('link', { name: '이력서 분석 · AI 코칭' })).toHaveCount(0);
   await expect(section.getByRole('link', { name: '현재 이력서로 새로 분석 →' })).toHaveCount(0);
   await section.getByText('추천 기준 변경', { exact: true }).click();
@@ -102,7 +102,7 @@ test('보충 공고는 AI 검토로 표시하지 않고 공고로 직접 연결�
   await mock(page, { supplemented: true });
   await page.goto('/');
   const section = page.getByRole('region', { name: '내 이력서로 찾는 추천 포지션' });
-  await expect(section.locator('.job-card')).toHaveAttribute('href', '/job/17');
+  await expect(section.locator('.job-card')).toHaveAttribute('href', '/job/17/%EB%B0%B1%EC%97%94%EB%93%9C-%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4');
   await section.getByText('추천 근거 보기', { exact: true }).click();
   const dialog = page.getByRole('dialog', { name: '추천 근거' });
   await expect(dialog.getByRole('region', { name: '추천 조건' })).toContainText('Java');
@@ -207,7 +207,7 @@ test('연관 공고는 검토 전 상태를 구분하고 더 보기로 표시한
   await expect(related.getByText('AI 적합성 검토 전 · 공고 요건 확인 필요')).toHaveCount(12);
   await related.getByRole('button', { name: '연관 공고 더 보기' }).click();
   await expect(related.locator('.job-card')).toHaveCount(13);
-  await expect(related.locator('.job-card').last()).toHaveAttribute('href', '/job/42');
+  await expect(related.locator('.job-card').last()).toHaveAttribute('href', '/job/42/%EB%B0%B1%EC%97%94%EB%93%9C-%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4');
 });
 
 test('추천 모달은 요건별 상태와 인용을 묶고 본문만 스크롤하며 포커스를 유지한다', async ({ page }) => {
