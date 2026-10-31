@@ -2,6 +2,16 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
 
+test('separates repeated PagerDuty qualification sections and stops before salary and workplace text', () => {
+  const text = '<p>PREFERRED QUALIFICATIONS</p><ul><li>Experience in GTM strategy and operations</li></ul><p>BASIC QUALIFICATIONS</p><ul><li>10+ years in management consulting or sales</li><li>Bachelor\'s degree in Business</li></ul><p>PREFERRED QUALIFICATIONS</p><ul><li>MBA or equivalent advanced degree</li><li>Salesforce, Tableau, Anaplan, Gong, Snowflake</li></ul><p>The base salary range for this position is 147,000 - 222,000 USD. This role may also be eligible for bonus.</p><p>PagerDuty is a flexible, hybrid workplace.</p><p>Where we work</p><p>Atlanta office two times per week.</p>';
+  assert.deepEqual(extractJobRequirements(text), {
+    required: ['10+ years in management consulting or sales', "Bachelor's degree in Business"],
+    preferred: ['Experience in GTM strategy and operations', 'MBA or equivalent advanced degree', 'Salesforce, Tableau, Anaplan, Gong, Snowflake'],
+  });
+  assert.match(extractJobSalary(text), /147,000 - 222,000 USD/);
+  assert.deepEqual(extractJobRequirements('Basic qualifications\n• Required experience\nPreferred qualifications\n• Preferred experience\nThe base salary range for this position is 100,000 USD\nCompany information'), { required: ['Required experience'], preferred: ['Preferred experience'] });
+});
+
 test('removes parenthetical details only from compact summary values', () => {
   assert.equal(formatInfoGridValue('인턴 (6개월, 정규직 전환 비대상)'), '인턴');
   assert.equal(formatInfoGridValue('서울 (강남 (역삼)) · 부산 （해운대）'), '서울 · 부산');
