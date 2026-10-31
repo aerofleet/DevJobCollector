@@ -2,6 +2,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
 
+test('recognizes total engineering experience with a management minimum without adding them', () => {
+  const text = 'Minimum requirements\n• 10+ total years of engineering experience with a minimal 4 years of management experience.\nPreferred qualifications\n• Domain knowledge in payments';
+  assert.equal(extractExperienceWording(extractJobRequirements(text)), '10년 이상');
+  assert.equal(extractExperienceWording(extractJobRequirements('Preferred qualifications\n• 10+ total years of engineering experience with a minimal 4 years of management experience.')), null);
+  assert.equal(extractExperienceWording(extractJobRequirements('Minimum requirements\n• 10+ total years of engineering experience or a minimal 4 years of management experience.')), null);
+});
+
 test('separates repeated PagerDuty qualification sections and stops before salary and workplace text', () => {
   const text = '<p>PREFERRED QUALIFICATIONS</p><ul><li>Experience in GTM strategy and operations</li></ul><p>BASIC QUALIFICATIONS</p><ul><li>10+ years in management consulting or sales</li><li>Bachelor\'s degree in Business</li></ul><p>PREFERRED QUALIFICATIONS</p><ul><li>MBA or equivalent advanced degree</li><li>Salesforce, Tableau, Anaplan, Gong, Snowflake</li></ul><p>The base salary range for this position is 147,000 - 222,000 USD. This role may also be eligible for bonus.</p><p>PagerDuty is a flexible, hybrid workplace.</p><p>Where we work</p><p>Atlanta office two times per week.</p>';
   assert.deepEqual(extractJobRequirements(text), {

@@ -49,12 +49,19 @@ export function extractJobRequirements(content) {
 
 // Present the explicit duration without displaying an entire qualification sentence.
 export function extractExperienceWording(requirements) {
+  // An explicitly total engineering tenure may include a separate management minimum.
+  const totalEngineering = requirements.required.flatMap(item => {
+    const match = item.match(/^(\d{1,2})\+\s+total years? of engineering experience with (?:a )?(?:minimum|minimal|at least)\s+\d{1,2}\s+years? of management experience\.?$/i);
+    return match ? [match[1]] : [];
+  });
   const candidates = requirements.required.filter(item =>
     (/(?:\d{1,2}\s*년\s*이상[^.!?\n]{0,40}(?:경험|경력)|(?:경험|경력)[^.!?\n]{0,40}\d{1,2}\s*년\s*이상)/.test(item)
       || /\b\d{1,2}\+\s*years?\b[^.!?\n]{0,80}\bexperience\b/i.test(item)
       || /\b(?:minimum(?: of)?|at least)\s+\d{1,2}\s+years?\b[^.!?\n]{0,80}\bexperience\b/i.test(item)
       || /\b\d{1,2}\+\s+years?\s+in\s+(?!school\b|college\b|university\b|education\b)[a-z]/i.test(item))
       && !/우대|선호|prefer|(?:학위|석사|박사)[^.!?\n]{0,80}(?:또는|혹은)[^.!?\n]{0,80}\d{1,2}\s*년/i.test(item));
+  if (candidates.length === 0 && totalEngineering.length === 1) return `${totalEngineering[0]}년 이상`;
+  if (totalEngineering.length > 0) return null;
   if (candidates.length === 0 && requirements.required.some(item => /경력\s*구분\s*[:：]\s*무관/.test(item))) return '경력무관';
   if (candidates.length !== 1) return null;
   const durations = [...candidates[0].matchAll(/(\d{1,2})\s*년\s*이상/g)];
