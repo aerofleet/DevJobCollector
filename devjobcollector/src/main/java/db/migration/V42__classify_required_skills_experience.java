@@ -9,7 +9,7 @@ import org.flywaydb.core.api.migration.Context;
 import org.springframework.web.util.HtmlUtils;
 
 /** Backfill only unknown, unreviewed postings with an explicit skills-and-experience heading. */
-public class V36__classify_required_skills_experience extends BaseJavaMigration {
+public class V42__classify_required_skills_experience extends BaseJavaMigration {
     private static final Pattern HEADING = Pattern.compile("(?im)^\\s*(?:#{1,6}\\s*)?required\\s+skills(?:\\s+and\\s+experience)?\\s*[:：]?\\s*$");
     @Override public void migrate(Context context) throws Exception {
         long afterId = 0;
