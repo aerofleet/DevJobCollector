@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 const token = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0IiwiZXhwIjo0MTAyNDQ0ODAwfQ.test';
 const history = [8, 7].map(id => ({ id, status: 'COMPLETED_LOCAL', resumeId: 11, resumeTitle: `이력서 ${id}`, createdAt: '2026-10-24' }));
-const job = { jobId: 17, title: '백엔드 엔지니어', companyName: '합성 기업', location: '서울', experience: '1~3년', endDate: '2026-12-31', matchPoints: ['Java', 'Spring Boot'], missingPoints: [] };
+const job = { jobId: 17, title: '백엔드 엔지니어', companyName: '합성 기업', location: '서울', experience: '1~3년', endDate: '2026-12-31', mentionedTechStacks: ['Java', 'Spring', 'Kubernetes'], matchPoints: ['Java', 'Spring Boot'], missingPoints: [] };
 const result = id => ({ id, resumeId: 11, createdAt: '2026-10-24', detectedSkills: ['java'], derivedPreferences: {}, improvements: [], recommendations: [job],
   review: { findings: [], observations: {}, score: {} },
   aiReview: id === 8 ? { status: 'COMPLETED', findings: [], strengths: [], gaps: [], jobs: [{ jobId: 17, relevance: 'RELATED', lead_with: 'API 운영 경험을 앞세우세요.', gap: '담당 범위를 확인하세요.', criteria: [] }] } : null });
@@ -56,6 +56,7 @@ test('추천 근거·이력서 전환·제외 저장·모바일 배치', async (
   const state = await mock(page);
   await page.goto('/');
   const section = page.getByRole('region', { name: '내 이력서로 찾는 추천 포지션' });
+  await expect(section.locator('.job-card .tech-badge')).toHaveText(['Java', 'Spring', 'Kubernetes']);
   const reasonButton = section.getByRole('button', { name: '추천 근거 보기' });
   const excludeButton = section.getByRole('button', { name: '백엔드 엔지니어 추천 제외' });
   const reasonBounds = await reasonButton.boundingBox();

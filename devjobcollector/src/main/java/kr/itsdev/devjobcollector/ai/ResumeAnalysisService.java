@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
 import kr.itsdev.devjobcollector.security.service.CurrentMemberService;
+import kr.itsdev.devjobcollector.service.JobMentionedTechnologies;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -267,7 +268,7 @@ public class ResumeAnalysisService {
             var ids = ranked.stream().map(LocalRecommendationEngine.Recommendation::jobId).toList();
             var args = new ArrayList<Object>(ids);
             args.add(today);
-            jdbc.queryForList("SELECT id,title,company_name,job_category,COALESCE(reviewed_location,location) AS location,experience_label AS experience,end_date,hire_type,source_platform,LEFT(apply_qual,5000) qualifications FROM job_posts WHERE id IN ("
+            jdbc.queryForList("SELECT id,title,company_name,job_category,COALESCE(reviewed_location,location) AS location,experience_label AS experience,end_date,hire_type,source_platform,LEFT(apply_qual,5000) qualifications,apply_qual AS technology_content FROM job_posts WHERE id IN ("
                     + String.join(",", Collections.nCopies(ids.size(), "?"))
                     + ") AND is_active=1 AND moderation_status='ACTIVE' AND (end_date IS NULL OR end_date>=?)", args.toArray())
                     .forEach(row -> metadata.put(((Number) row.get("id")).longValue(), row));
@@ -288,6 +289,7 @@ public class ResumeAnalysisService {
             item.put("hireType", Objects.toString(job.get("hire_type"), ""));
             item.put("sourcePlatform", Objects.toString(job.get("source_platform"), ""));
             item.set("techStacks", mapper.valueToTree(stacks.getOrDefault(recommendation.jobId(), List.of())));
+            item.set("mentionedTechStacks", mapper.valueToTree(JobMentionedTechnologies.from((String) job.get("technology_content"))));
             item.put("supplemented", !originalIds.contains(recommendation.jobId()));
             String value = feedback.get(recommendation.jobId());
             if (value != null) item.put("feedback", value);

@@ -66,13 +66,15 @@ class ResumeAnalysisIntegrationTest {
         try {
             for (int i = 0; i < 10; i++) {
                 long job = seedJob(); ids.add(job);
-                jdbc.update("UPDATE job_posts SET title='Back-end Engineer',job_category='기타' WHERE id=?", job);
+                jdbc.update("UPDATE job_posts SET title='Back-end Engineer',job_category='기타',apply_qual='Java Spring Kubernetes AWS' WHERE id=?", job);
             }
             long id = create(UUID.randomUUID().toString(), prefs);
             String original = jdbc.queryForObject("SELECT result_json FROM ai_analysis_request WHERE id=?", String.class, id);
             var first = service.currentRecommendations("owner", id);
             assertThat(first.path("recommendations")).hasSize(4);
             assertThat(first.path("relatedRecommendations")).hasSize(6);
+            assertThat(first.path("recommendations").get(0).path("mentionedTechStacks").toString()).contains("Java", "Spring", "Kubernetes", "AWS");
+            assertThat(first.path("relatedRecommendations").get(0).path("mentionedTechStacks").toString()).contains("Java", "Kubernetes");
             long closed = first.path("recommendations").get(0).path("jobId").asLong();
             jdbc.update("UPDATE job_posts SET end_date=DATE_SUB(CURRENT_DATE,INTERVAL 1 DAY) WHERE id=?", closed);
             var refreshed = service.currentRecommendations("owner", id);
