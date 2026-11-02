@@ -73,13 +73,17 @@ export function extractExperienceWording(requirements) {
 
 // Preserve explicitly labelled source technology sections as written, without inferring individual tags.
 export function extractJobTechnologySections(content) {
-  const lines = String(content || '').replace(/\r\n?/g, '\n').split('\n');
+  const lines = String(content || '').replace(/\r\n?/g, '\n')
+    .replace(/<br\s*\/?>/gi, '\n').replace(/<li(?:\s[^>]*)?>/gi, '\n• ')
+    .replace(/<h[1-6](?:\s[^>]*)?>/gi, '\n# ').replace(/<\/(?:p|div|li|h[1-6])>/gi, '\n')
+    .replace(/<[^>]*>/g, '').replace(/&amp;/gi, '&').split('\n');
   const items = [];
   let inside = false;
   for (const raw of lines) {
     const line = raw.trim();
-    if (/^#{1,6}\s*(?:토스가\s*사용하는\s*기술|기술\s*스택|사용\s*기술|tech(?:nology)?\s*stack)\s*[:：]?$/i.test(line)) { inside = true; continue; }
+    if (/^(?:#{1,6}\s*)?(?:.{1,30}(?:가|에서)\s*사용하는\s*기술|기술\s*스택|사용\s*기술|tech(?:nology)?\s*stack|technologies used)\s*[:：]?$/i.test(line)) { inside = true; continue; }
     if (/^#{1,6}\s+/.test(line)) { inside = false; continue; }
+    if (inside && (HEADINGS.test(line) || OTHER_HEADING.test(line) || /^(?:꼭\s*확인해\s*주세요|토스로의\s*합류\s*여정|전형\s*절차)\s*[:：]?$/i.test(line))) { inside = false; continue; }
     if (inside && line) items.push(line.replace(/^[-*•●▪◦‣·]\s*/, '').trim());
   }
   return items;
@@ -128,9 +132,9 @@ export function extractJobSalary(content) {
 }
 
 // Show only recognizable tool names explicitly mentioned in qualification sections.
-export function extractMentionedTools(requirements) {
-  const text = [...requirements.required, ...requirements.preferred].join(' ');
-  const tools = ['Google apps', 'JIRA', 'Salesforce Service Cloud', 'Amazon Connect', 'LibreChat', 'Gemini', 'Glean', 'Java', 'Kotlin', 'JavaScript', 'TypeScript', 'Python', 'C++', 'ROS2', 'PyTorch', 'JAX', 'LeRobot', 'MuJoCo', 'Isaac Sim', 'React', 'Spring', 'iOS', 'SQL', 'Excel', 'SAP', 'RDBMS', 'NoSQL', 'PostgreSQL', 'MongoDB', 'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP', 'IaC', 'CI/CD'];
+export function extractMentionedTools(requirements, content = '') {
+  const text = [...requirements.required, ...requirements.preferred, String(content || '').replace(/<[^>]*>/g, ' ')].join(' ');
+  const tools = ['Google apps', 'JIRA', 'Salesforce Service Cloud', 'Amazon Connect', 'LibreChat', 'Gemini', 'Glean', 'Java', 'Kotlin', 'JavaScript', 'TypeScript', 'Python', 'C++', 'ROS2', 'PyTorch', 'JAX', 'LeRobot', 'MuJoCo', 'Isaac Sim', 'React', 'Spring', 'JPA', 'Hibernate', 'Gradle', 'Jenkins', 'Git', 'Istio', 'Kafka', 'Elastic', 'InfluxData', 'Grafana', 'Memcached', 'Cloud Native', 'iOS', 'SQL', 'Excel', 'SAP', 'RDBMS', 'NoSQL', 'PostgreSQL', 'MongoDB', 'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP', 'IaC', 'CI/CD'];
   const matches = tools.filter((name) => new RegExp(`(?<![\\w+])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w+])`, 'i').test(text));
   if (/\b(?:large language models?|LLMs?)\b/i.test(text)) matches.push('LLM');
   return matches;

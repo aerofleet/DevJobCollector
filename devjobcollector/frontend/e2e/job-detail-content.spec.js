@@ -42,6 +42,8 @@ test('모바일에서도 핵심 항목과 하단 액션을 화면 너비 안에 
   test.skip(testInfo.project.name !== 'mobile-360', '모바일 프로젝트 전용 평가');
   await page.goto('/job/42');
 
+  await expect(page.getByRole('heading', { name: '자격 조건' })).toBeVisible();
+  await expect(page.locator('.action-buttons')).toBeVisible();
   const contentBox = await page.getByRole('heading', { name: '자격 조건' }).boundingBox();
   const actionBox = await page.locator('.action-buttons').boundingBox();
   expect(contentBox.x).toBeGreaterThanOrEqual(0);
@@ -96,6 +98,18 @@ test('원문에 기술 목록이 있으면 등록 태그가 없어도 목록을 
   } }));
   await page.goto('/job/11105');
   await expect(page.getByRole('heading', { name: '기술 스택' }).locator('..')).toContainText('코어: React, TypeScript, Next.js');
+});
+
+test('토스 985 형식의 기술 목록과 본문 기술을 표시한다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/985?*', route => route.fulfill({ json: {
+    ...jobDetail, id: 985, techStacks: [], applyQual: '# 합류하게 될 팀에 대해 알려드려요\n- Kubernetes와 Cloud Native 에코 시스템을 활용해요.\n# 이력서는 이렇게 작성하시는 걸 추천해요\n- Kubernetes + Istio 기반 운영 경험\n- CI/CD 서버 운영 경험\n- AWS 클라우드 서비스 운영 경험\n# 토스에서 사용하는 기술\n- Java Spring Framework, JPA/Hibernate, Gradle\n- Jenkins, Git, Docker, Kubernetes + Istio\n- Kafka, Elastic, InfluxData, Grafana, Memcached\n# 꼭 확인해주세요\n- 기타 안내',
+  } }));
+  await page.goto('/job/985');
+  const section = page.getByRole('heading', { name: '기술 스택' }).locator('..');
+  for (const name of ['Java', 'Spring', 'JPA', 'Hibernate', 'Gradle', 'Jenkins', 'Git', 'Docker', 'Kubernetes', 'Istio', 'Kafka', 'Elastic', 'InfluxData', 'Grafana', 'Memcached', 'Cloud Native', 'AWS', 'CI/CD']) {
+    await expect(section.getByText(name, { exact: true })).toBeVisible();
+  }
+  await expect(section).not.toContainText('기타 안내');
 });
 
 test('카카오 원문에서 확인한 영입종료시만 표시한다', async ({ page }) => {
