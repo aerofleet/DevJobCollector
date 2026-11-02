@@ -6,6 +6,17 @@ import { confirmContentReview, previewContentReview, getContentReview, requestCo
 
 const sectionNames = { projects: '프로젝트', experience: '경력', careerProfile: '지원 방향', techStack: '기술 스택', introduction: '간단소개', education: '학력', training: '교육이력', activities: '기타사항', coverLetter: '자기소개서' };
 const location = item => `${item.label || '저장된 자료'} · ${item.page ? `${item.page}쪽` : sectionNames[item.section] || item.section || '위치 미확인'}`;
+const groupPreviewSources = preview => {
+  const references = new Map(preview.sources.map(ref => [ref.id, ref]));
+  const groups = new Map();
+  for (const source of preview.payload.sources) {
+    const ref = references.get(source.sourceId);
+    const key = ref ? JSON.stringify([ref.label || '', ref.section || '', ref.page ?? null]) : `missing:${source.sourceId}`;
+    if (!groups.has(key)) groups.set(key, { key, label: location(ref || {}), sources: [] });
+    groups.get(key).sources.push(source);
+  }
+  return [...groups.values()];
+};
 const errorMessage = error => {
   const code = error.response?.data?.code;
   if (['ANALYSIS_INPUT_CHANGED', 'PREVIEW_CHANGED'].includes(code)) return '이력서나 추천 자료가 변경되었습니다. 새 분석 결과에서 전송 내용을 다시 확인해 주세요.';
@@ -49,8 +60,11 @@ export default function ResumeContentReview({ result, disabled, onResult }) {
         <h4>전송 내용 미리보기</h4>
         <p>아래 텍스트와 공고 정보가 OpenAI로 전송됩니다. 이름·연락처는 자동 마스킹했어요. 전송 전에 본문에 남은 개인정보를 확인하고, 필요한 부분은 이력서에서 수정해 주세요.</p>
         <details open><summary>이력서·첨부 자료 {preview.payload.sources.length}개 구간</summary>
-          {preview.payload.sources.map(source => { const ref = preview.sources.find(item => item.id === source.sourceId); return <label key={source.sourceId}>
-            {location(ref || {})}<textarea readOnly value={source.text} aria-label={`${source.sourceId} 전송 내용`} /></label>; })}
+          <p className="analysis-note">같은 항목의 구간을 묶어 표시합니다. 각 구간의 내용은 변경되지 않습니다.</p>
+          {groupPreviewSources(preview).map(group => <label key={group.key}>
+            {group.label} <span className="analysis-note">({group.sources.map(source => source.sourceId).join(', ')})</span>
+            <textarea readOnly rows={Math.min(12, Math.max(3, group.sources.length * 2))} value={group.sources.map(source => source.text).join('\n\n')} aria-label={`${group.label} 전송 내용`} />
+          </label>)}
         </details>
         <details><summary>추천 후보 공고 {preview.payload.jobs.length}개</summary>
           {preview.payload.jobs.map(job => <textarea key={job.slot} readOnly value={job.text} aria-label={`공고 ${job.slot + 1} 전송 내용`} />)}

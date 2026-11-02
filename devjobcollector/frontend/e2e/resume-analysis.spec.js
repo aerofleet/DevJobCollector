@@ -326,8 +326,8 @@ test('AI 내용 분석은 전송 미리보기 동의 후 실행하고 수정안�
     if (path.endsWith('/resume-analyses')) return route.fulfill({ json: [{ id: 8, resumeTitle: '저장된 분석', createdAt: '2026-10-22' }] });
     if (path.endsWith('/resume-analyses/8')) return route.fulfill({ json: { ...result, aiReview: state } });
     if (path.endsWith('/content-review/preview')) return route.fulfill({ json: { consentVersion: 'openai-content-review-v1', previewHash: 'a'.repeat(64),
-      sources: [{ id: 'S1', label: '저장된 이력서', section: '프로젝트 1' }, { id: 'S2', label: 'portfolio.pdf', page: 2 }],
-      payload: { sources: [{ sourceId: 'S1', text: 'Java API를 개발했습니다.' }, { sourceId: 'S2', text: '테스트를 작성했습니다.' }], jobs: [{ slot: 0, text: 'Java API 개발' }] } } });
+      sources: [{ id: 'S1', label: '저장된 이력서', section: '프로젝트 1' }, { id: 'S2', label: 'portfolio.pdf', page: 2 }, { id: 'S3', label: '저장된 이력서', section: '프로젝트 1' }, { id: 'S4', label: '저장된 이력서', section: '프로젝트 2' }],
+      payload: { sources: [{ sourceId: 'S1', text: 'Java API를 개발했습니다.' }, { sourceId: 'S2', text: '테스트를 작성했습니다.' }, { sourceId: 'S3', text: 'Redis를 운영했습니다.' }, { sourceId: 'S4', text: '별도 프로젝트입니다.' }], jobs: [{ slot: 0, text: 'Java API 개발' }] } } });
     if (path.endsWith('/content-review')) {
       if (req.method() === 'POST') {
         aiCalls++;
@@ -345,8 +345,9 @@ test('AI 내용 분석은 전송 미리보기 동의 후 실행하고 수정안�
   await page.getByRole('button', { name: /저장된 분석 ·/ }).click();
   const panel = page.getByRole('region', { name: 'AI 내용 분석', exact: true });
   await panel.getByRole('button', { name: 'AI에 전송할 내용 확인' }).click();
-  await expect(panel.getByLabel('S1 전송 내용')).toHaveValue('Java API를 개발했습니다.');
-  await expect(panel.getByLabel('S2 전송 내용')).toHaveValue('테스트를 작성했습니다.');
+  await expect(panel.getByLabel('저장된 이력서 · 프로젝트 1 전송 내용')).toHaveValue('Java API를 개발했습니다.\n\nRedis를 운영했습니다.');
+  await expect(panel.getByLabel('portfolio.pdf · 2쪽 전송 내용')).toHaveValue('테스트를 작성했습니다.');
+  await expect(panel.getByLabel('저장된 이력서 · 프로젝트 2 전송 내용')).toHaveValue('별도 프로젝트입니다.');
   const submit = panel.getByRole('button', { name: '동의하고 AI 내용 분석' });
   await expect(submit).toBeDisabled(); expect(aiCalls).toBe(0);
   await panel.getByRole('checkbox').check(); await submit.click();
