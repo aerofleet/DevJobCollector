@@ -127,7 +127,7 @@ export const searchJobs = async (filters = {}, page = 0, size = 10) => {
 };
 
 export const searchCompanyNames = async (query = '') => {
-  const response = await apiClient.get('/jobs/companies', { params: { query: query.trim() } });
+  const response = await apiClient.get('/jobs/companies', { params: { query: query.trim(), ...freshQuery() } });
   return response.data;
 };
 

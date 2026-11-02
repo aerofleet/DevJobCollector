@@ -40,7 +40,9 @@ test('회사명을 검색해 복수 선택하고 URL과 API에 정확히 전달�
 test('회사 필터가 첫 번째이며 60개 이후 회사도 표시하고 검색한다', async ({ page }) => {
   const names = Array.from({ length: 75 }, (_, index) => `회사 ${String(index).padStart(3, '0')}`);
   await page.route('**/api/v1/jobs/companies**', route => route.fulfill({ json: names }));
+  const catalogRequest = page.waitForRequest(req => new URL(req.url()).pathname.endsWith('/jobs/companies'));
   await page.goto('/jobs');
+  expect(new URL((await catalogRequest).url()).searchParams.has('_fresh')).toBe(true);
   await openFilters(page);
   await expect(page.locator('.detail-filters .multi-filter').first().locator('summary')).toHaveAttribute('aria-label', '회사명');
   await page.getByLabel('회사명', { exact: true }).click();
