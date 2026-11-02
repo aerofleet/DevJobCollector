@@ -139,6 +139,7 @@ public class JobPostService {
             .originalUrl(jobPost.getOriginalUrl())
             .isActive(jobPost.isActive())
             .techStacks(convertTechStacks(jobPost))
+            .mentionedTechStacks(JobMentionedTechnologies.from(jobPost.getApplyQual()))
             .matchedSnippet(JobSearchSnippet.from(jobPost, keyword))
             .build();
     }

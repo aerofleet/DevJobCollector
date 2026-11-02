@@ -23,6 +23,16 @@ const respond = (route, content, page, totalPages = 3) => route.fulfill({
   }),
 });
 
+test('공고 카드에 등록 태그와 본문 기술을 중복 없이 표시한다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/search**', route => respond(route, [{
+    ...makeJobs(985, 1)[0], techStacks: [{ id: 1, stackName: 'Docker' }],
+    mentionedTechStacks: ['Docker', 'Kubernetes', 'AWS', 'CI/CD'],
+  }], 0, 1));
+  await page.goto('/jobs');
+  const card = page.locator('.all-jobs-grid .job-card').first();
+  await expect(card.locator('.tech-badge')).toHaveText(['Docker', 'Kubernetes', 'AWS', 'CI/CD']);
+});
+
 test('상세에서 돌아가면 필터와 추가로 불러온 목록 및 스크롤 위치를 복원한다', async ({ page }) => {
   let blockRefresh = false;
   let releaseRefresh;

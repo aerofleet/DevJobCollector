@@ -17,6 +17,8 @@ const JobCard = ({ job, onOpen }) => {
       : job.endDate ? formatDate(job.endDate) : '미등록';
   const logoUrl = getCompanyLogoUrl(job);
   const showLogo = logoUrl && failedLogoUrl !== logoUrl;
+  const registered = new Set((job.techStacks || []).map(tech => tech.stackName?.trim().toLowerCase()));
+  const mentioned = [...new Set((job.mentionedTechStacks || []).filter(name => name && !registered.has(name.trim().toLowerCase())))];
 
   return (
     <Link className='job-card im-card' data-motion-reveal="" to={jobPath(job.id, job.title)} onClick={onOpen}>
@@ -68,6 +70,7 @@ const JobCard = ({ job, onOpen }) => {
           {job.techStacks?.map((tech) => (
             <TechStackBadge key={tech.id} tech={tech} />
           ))}
+          {mentioned.map(name => <TechStackBadge key={name} tech={{ stackName: name }} />)}
         </div>
 
         {/* 지역 + 경력 */}
