@@ -116,7 +116,7 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
                 .where(jobPost.isActive.isTrue(), jobPost.moderationStatus.eq(JobModerationStatus.ACTIVE),
                         jobPost.endDate.goe(today), jobPost.companyName.isNotNull(), jobPost.companyName.ne(""),
                         query == null || query.isBlank() ? null : jobPost.companyName.containsIgnoreCase(query))
-                .orderBy(jobPost.companyName.asc()).limit(30).fetch();
+                .orderBy(jobPost.companyName.asc()).fetch();
     }
 
     @SuppressWarnings("null") // Stream/JPA nullness inference noise

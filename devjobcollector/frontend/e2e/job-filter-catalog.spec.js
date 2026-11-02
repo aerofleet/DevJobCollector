@@ -37,6 +37,24 @@ test('회사명을 검색해 복수 선택하고 URL과 API에 정확히 전달�
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
+test('회사 필터가 첫 번째이며 60개 이후 회사도 표시하고 검색한다', async ({ page }) => {
+  const names = Array.from({ length: 75 }, (_, index) => `회사 ${String(index).padStart(3, '0')}`);
+  await page.route('**/api/v1/jobs/companies**', route => route.fulfill({ json: names }));
+  await page.goto('/jobs');
+  await openFilters(page);
+  await expect(page.locator('.detail-filters .multi-filter').first().locator('summary')).toHaveAttribute('aria-label', '회사명');
+  await page.getByLabel('회사명', { exact: true }).click();
+  const menu = page.getByRole('group', { name: '회사명 선택' });
+  await expect(menu.getByLabel('회사 000', { exact: true })).toBeVisible();
+  await expect(menu.getByLabel('회사 074', { exact: true })).toHaveCount(0);
+  await menu.getByRole('button', { name: '회사 더 보기' }).click();
+  await expect(menu.getByLabel('회사 074', { exact: true })).toBeVisible();
+  await menu.getByLabel('회사명 검색').fill('회사 074');
+  await menu.getByLabel('회사 074', { exact: true }).click();
+  await expect(menu.getByLabel('회사 074', { exact: true })).toBeChecked();
+  expect(new URL(page.url()).searchParams.getAll('company')).toEqual(['회사 074']);
+});
+
 test('multiple selections preserve URL, API, individual removal and history', async ({ page }) => {
   await page.goto('/jobs');
   await openFilters(page);

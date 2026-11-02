@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 
-export default function MultiSelectFilter({ label, groups, values, onChange, onQueryChange, status, hint }) {
+export default function MultiSelectFilter({ label, groups, values, onChange, status, hint, pageSize }) {
   const root = useRef(null);
   const [query, setQuery] = useState('');
+  const [visibleLimit, setVisibleLimit] = useState(pageSize || Infinity);
   useEffect(() => {
     // Close after the click, so collapsing an inline mobile menu does not move
     // the next control between pointer-down and pointer-up.
     const closeOutside = event => {
-      if (root.current && !root.current.contains(event.target)) root.current.open = false;
+      if (root.current && !event.composedPath().includes(root.current)) root.current.open = false;
     };
     document.addEventListener('click', closeOutside);
     return () => document.removeEventListener('click', closeOutside);
@@ -28,7 +29,7 @@ export default function MultiSelectFilter({ label, groups, values, onChange, onQ
       <span className="multi-filter-value">{values.length ? `${selected[0]?.label ?? values[0]}${values.length > 1 ? ` 외 ${values.length - 1}개` : ''}` : '전체'}</span>
     </summary>
     <div className="multi-filter-menu" role="group" aria-label={`${label} 선택`}>
-      <input type="search" aria-label={`${label} 검색`} placeholder="항목 검색" value={query} onChange={event => { setQuery(event.target.value); onQueryChange?.(event.target.value); }} />
+      <input type="search" aria-label={`${label} 검색`} placeholder="항목 검색" value={query} onChange={event => { setQuery(event.target.value); setVisibleLimit(pageSize || Infinity); }} />
       {hint && <p className="filter-selection-help">{hint}</p>}
       {status && <p role="status">{status}</p>}
       <button type="button" onClick={() => onChange([])}>선택 해제</button>
@@ -37,12 +38,14 @@ export default function MultiSelectFilter({ label, groups, values, onChange, onQ
           const visible = group.options.filter(option => option.label.toLowerCase().includes(query.trim().toLowerCase()));
           return visible.length > 0 && <fieldset key={group.label}>
             <legend>{group.label}</legend>
-            {visible.map(option => <label key={option.value}>
+            {visible.slice(0, visibleLimit).map(option => <label key={option.value}>
               <input type="checkbox" checked={values.includes(option.value)} onChange={() => toggle(option.value)} />
               {option.label}
             </label>)}
           </fieldset>;
         })}
+        {pageSize && groups.some(group => group.options.filter(option => option.label.toLowerCase().includes(query.trim().toLowerCase())).length > visibleLimit)
+          && <button type="button" onClick={() => setVisibleLimit(limit => limit + pageSize)}>회사 더 보기</button>}
         {!status && !options.some(option => option.label.toLowerCase().includes(query.trim().toLowerCase())) && <p>일치하는 항목이 없습니다.</p>}
       </div>
     </div>

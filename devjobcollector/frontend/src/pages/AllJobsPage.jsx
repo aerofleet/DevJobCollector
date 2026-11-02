@@ -202,9 +202,8 @@ const AllJobsPage = () => {
   const navigationType = useNavigationType();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
-  const [companyQuery, setCompanyQuery] = useState('');
   const [companies, setCompanies] = useState([]);
-  const [companyStatus, setCompanyStatus] = useState('');
+  const [companyStatus, setCompanyStatus] = useState('회사명을 불러오는 중입니다.');
   const resultKey = searchParams.toString();
   const filters = useMemo(() => getFilters(new URLSearchParams(resultKey)), [resultKey]);
   const restorePosition = useMemo(() => {
@@ -214,14 +213,11 @@ const AllJobsPage = () => {
 
   useEffect(() => {
     let active = true;
-    const timer = window.setTimeout(() => {
-      setCompanyStatus('회사명을 불러오는 중입니다.');
-      searchCompanyNames(companyQuery).then(names => {
-        if (active) { setCompanies(Array.isArray(names) ? names : []); setCompanyStatus(''); }
-      }).catch(() => { if (active) { setCompanies([]); setCompanyStatus('회사명을 불러오지 못했습니다. 다시 검색해 주세요.'); } });
-    }, companyQuery ? 250 : 0);
-    return () => { active = false; window.clearTimeout(timer); };
-  }, [companyQuery]);
+    searchCompanyNames().then(names => {
+      if (active) { setCompanies(Array.isArray(names) ? names : []); setCompanyStatus(''); }
+    }).catch(() => { if (active) { setCompanies([]); setCompanyStatus('회사명을 불러오지 못했습니다. 페이지를 새로고침해 주세요.'); } });
+    return () => { active = false; };
+  }, []);
 
   const updateParams = (updates) => {
     const nextParams = new URLSearchParams(searchParams);
@@ -296,9 +292,9 @@ const AllJobsPage = () => {
 
           <p className="filter-selection-help">여러 항목을 선택할 수 있습니다. 같은 필터에서는 하나라도 일치하는 공고를 표시합니다.</p>
           <div className="detail-filters">
+            <MultiSelectFilter label="회사명" groups={[{ label: '회사', options: [...new Set([...filters.company, ...companies])].map(value => ({ value, label: value })) }]} values={filters.company} onChange={company => { if (company.length <= 30) updateParams({ company }); }} status={companyStatus} hint="회사명을 검색하거나 더 보기로 찾아 선택하세요. 최대 30개까지 선택할 수 있습니다." pageSize={60} />
             <MultiSelectFilter label="직무 상세" groups={JOB_ROLE_GROUPS.map(group => ({ ...group, options: group.options.map(([value, label]) => ({ value, label })) }))} values={filters.jobCategory} onChange={jobCategory => updateParams({ jobCategory })} />
             <MultiSelectFilter label="기술 스택" groups={TECH_STACK_GROUPS.map(group => ({ ...group, options: group.options.map(value => ({ value, label: value })) }))} values={filters.techStack} onChange={techStack => updateParams({ techStack })} />
-            <MultiSelectFilter label="회사명" groups={[{ label: '회사', options: [...new Set([...filters.company, ...companies])].map(value => ({ value, label: value })) }]} values={filters.company} onChange={company => { if (company.length <= 30) updateParams({ company }); }} onQueryChange={setCompanyQuery} status={companyStatus} hint="회사명을 검색해 선택하세요. 검색 결과와 선택은 각각 최대 30개입니다." />
             <label>
               <span>경력</span>
               <select value={filters.experience} onChange={(event) => updateParams({ experience: event.target.value })}>

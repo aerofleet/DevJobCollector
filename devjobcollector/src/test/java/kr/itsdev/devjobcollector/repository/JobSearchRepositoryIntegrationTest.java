@@ -56,6 +56,28 @@ class JobSearchRepositoryIntegrationTest {
     }
 
     @Test
+    void companyCatalogIncludesAllActiveCompaniesBeyondFirstThirty() {
+        for (int i = 0; i < 75; i++) {
+            String name = "카탈로그 검증 회사 " + String.format("%03d", i);
+            repository.save(JobPost.builder().sourcePlatform(SourcePlatform.GREENHOUSE).originalSn("catalog-" + i)
+                    .companyName(name).title("Backend Engineer").startDate(LocalDate.now())
+                    .endDate(LocalDate.now().plusDays(30)).originalUrl("https://example.com/job").build());
+        }
+        var expired = repository.save(JobPost.builder().sourcePlatform(SourcePlatform.GREENHOUSE).originalSn("catalog-expired")
+                .companyName("카탈로그 검증 마감").title("Backend Engineer").startDate(LocalDate.now().minusDays(2))
+                .endDate(LocalDate.now().minusDays(1)).originalUrl("https://example.com/job").build());
+        var hidden = repository.save(JobPost.builder().sourcePlatform(SourcePlatform.GREENHOUSE).originalSn("catalog-hidden")
+                .companyName("카탈로그 검증 숨김").title("Backend Engineer").startDate(LocalDate.now())
+                .endDate(LocalDate.now().plusDays(30)).originalUrl("https://example.com/job").build());
+        hidden.changeModerationStatus(kr.itsdev.devjobcollector.domain.JobModerationStatus.HIDDEN);
+        entityManager.flush(); entityManager.clear();
+        assertThat(repository.findCompanyNames("카탈로그 검증", LocalDate.now()))
+                .hasSize(75).contains("카탈로그 검증 회사 000", "카탈로그 검증 회사 074")
+                .doesNotContain(expired.getCompanyName(), "카탈로그 검증 숨김");
+        assertThat(repository.findCompanyNames("", LocalDate.now())).contains("카탈로그 검증 회사 074");
+    }
+
+    @Test
     void companySelectionsUseExactOrAndShareCountFilters() {
         for (String name : List.of("테스트 컴퍼니 A", "테스트 컴퍼니 B", "테스트 컴퍼니 A 자회사", "Comma, Inc.")) {
             repository.save(JobPost.builder().sourcePlatform(SourcePlatform.GREENHOUSE).originalSn("company-filter-" + name)
