@@ -41,7 +41,7 @@ const AppRoutes = () => {
   const location = useLocation();
 
   useEffect(() => {
-    if (location.pathname !== '/jobs' && !/^\/job\/[^/]+$/.test(location.pathname)) clearJobListPosition();
+    if (location.pathname !== '/jobs' && !/^\/job\/[^/]+(?:\/[^/]+)?\/?$/.test(location.pathname)) clearJobListPosition();
   }, [location.pathname]);
 
   const handleSearch = (keyword = '') => {

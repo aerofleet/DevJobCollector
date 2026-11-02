@@ -49,11 +49,11 @@ test('상세에서 돌아가면 필터와 추가로 불러온 목록 및 스크�
   await expect(page.locator('.all-jobs-grid .job-card')).toHaveCount(12);
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   await expect.poll(() => page.locator('.all-jobs-grid .job-card').count()).toBeGreaterThanOrEqual(24);
-  const target = page.locator('.all-jobs-grid .job-card').filter({ hasText: '백엔드 개발자 20' });
+  const target = page.locator('.all-jobs-grid .job-card').filter({ hasText: '백엔드 개발자 20' }).first();
   await target.scrollIntoViewIfNeeded();
   const before = await page.evaluate(() => window.scrollY);
   await target.click();
-  await expect(page).toHaveURL(/\/job\/20$/);
+  await expect(page).toHaveURL(/\/job\/20(?:\/[^/?#]+)?$/);
   blockRefresh = true;
   await page.getByRole('button', { name: '← 돌아가기' }).click();
   await expect(page).toHaveURL(/\/jobs\?keyword=backend$/);
