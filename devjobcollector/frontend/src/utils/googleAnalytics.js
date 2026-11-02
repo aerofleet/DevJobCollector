@@ -3,12 +3,26 @@ import { analyticsConsent, analyticsPage } from './growthAnalytics';
 const MEASUREMENT_ID = 'G-CWT9EYZSQF';
 let configured = false;
 let lastPage;
+let consentInitialized = false;
+let lastConsent;
+const deniedConsent = { analytics_storage: 'denied', ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' };
 
 export function updateGoogleAnalytics() {
   let googleConsent = false;
   try { googleConsent = localStorage.getItem('djc-google-analytics-consent') === 'granted'; } catch { /* Restricted storage. */ }
   const enabled = analyticsConsent() === 'granted' && googleConsent && !navigator.globalPrivacyControl && navigator.doNotTrack !== '1';
-  window[`ga-disable-${MEASUREMENT_ID}`] = !enabled;
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = window.gtag || function () { window.dataLayer.push(arguments); };
+  if (!consentInitialized) {
+    window.gtag('consent', 'default', { ...deniedConsent });
+    consentInitialized = true;
+  }
+  if (enabled) window[`ga-disable-${MEASUREMENT_ID}`] = false;
+  if (lastConsent !== enabled) {
+    window.gtag('consent', 'update', { ...deniedConsent, analytics_storage: enabled ? 'granted' : 'denied' });
+    lastConsent = enabled;
+  }
+  if (!enabled) window[`ga-disable-${MEASUREMENT_ID}`] = true;
   if (!enabled) {
     lastPage = undefined;
     // Remove first-party GA cookies at the current host and parent-domain scope.
@@ -25,8 +39,6 @@ export function updateGoogleAnalytics() {
   const page = analyticsPage();
   const pageLocation = `${location.origin}/${page === 'home' ? '' : page}`;
   if (!configured) {
-    window.dataLayer = window.dataLayer || [];
-    window.gtag = window.gtag || function () { window.dataLayer.push(arguments); };
     window.gtag('js', new Date());
     window.gtag('config', MEASUREMENT_ID, {
       send_page_view: false, page_location: pageLocation, page_referrer: '',

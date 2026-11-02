@@ -1,17 +1,18 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useLocation } from 'react-router-dom';
-import { analyticsConsent, setAnalyticsConsent, subscribeAnalyticsConsent, trackGrowthPage } from '../../utils/growthAnalytics';
+import { analyticsConsentSnapshot, setAnalyticsConsent, subscribeAnalyticsConsent, trackGrowthPage } from '../../utils/growthAnalytics';
 import { updateGoogleAnalytics } from '../../utils/googleAnalytics';
 import '../../styles/GrowthAnalytics.css';
 
 export default function GrowthAnalytics() {
   const location = useLocation();
-  const consent = useSyncExternalStore(subscribeAnalyticsConsent, analyticsConsent, () => null);
+  const consentSnapshot = useSyncExternalStore(subscribeAnalyticsConsent, analyticsConsentSnapshot, () => ':');
+  const consent = consentSnapshot.split(':')[0];
   const [open, setOpen] = useState(false);
   useEffect(() => {
     trackGrowthPage();
     updateGoogleAnalytics();
-  }, [location.pathname, location.search, consent]);
+  }, [location.pathname, location.search, consentSnapshot]);
   const choose = (value) => { setAnalyticsConsent(value); setOpen(false); };
   return <aside className="growth-consent" aria-label="이용 통계 설정">
     <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}>이용 통계 {consent === 'granted' ? '허용 중' : '설정'}</button>

@@ -23,17 +23,23 @@ test('Google Analytics는 동의 후 안전한 페이지 경로만 수동 기록
   await setup(page);
   await page.route('https://www.googletagmanager.com/gtag/js**', route => route.fulfill({ status: 200, contentType: 'text/javascript', body: '' }));
   await page.goto('/jobs?keyword=private%40example.com&token=secret');
+  const initial = await page.evaluate(() => window.dataLayer.map(args => Array.from(args)));
+  expect(initial[0]).toEqual(['consent', 'default', { analytics_storage: 'denied', ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' }]);
   await page.getByRole('button', { name: '이용 통계 설정' }).click();
   await page.getByRole('button', { name: '통계 수집 허용' }).click();
   await expect(page.locator('script[src*="G-CWT9EYZSQF"]')).toHaveCount(1);
   const calls = await page.evaluate(() => window.dataLayer.map(args => Array.from(args)));
   const views = calls.filter(args => args[0] === 'event' && args[1] === 'page_view');
+  expect(calls.findIndex(args => args[0] === 'consent' && args[1] === 'update' && args[2].analytics_storage === 'granted')).toBeLessThan(calls.findIndex(args => args[0] === 'config'));
+  expect(calls.find(args => args[0] === 'consent' && args[1] === 'update' && args[2].analytics_storage === 'granted')[2]).toMatchObject({ ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' });
   expect(views).toHaveLength(1);
   expect(views[0][2].page_location).toBe('http://127.0.0.1:4174/jobs');
   expect(JSON.stringify(calls)).not.toMatch(/secret|private%40|private@/);
   await page.getByRole('button', { name: '이용 통계 허용 중' }).click();
   await page.getByRole('button', { name: '거부 / 철회' }).click();
   expect(await page.evaluate(() => window['ga-disable-G-CWT9EYZSQF'])).toBe(true);
+  const after = await page.evaluate(() => window.dataLayer.map(args => Array.from(args)));
+  expect(after.at(-1)).toEqual(['consent', 'update', { analytics_storage: 'denied', ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' }]);
 });
 
 test('기존 자체 통계 동의만으로 Google 태그를 불러오지 않는다', async ({ page }) => {
@@ -41,6 +47,10 @@ test('기존 자체 통계 동의만으로 Google 태그를 불러오지 않는�
   await page.goto('/terms');
   await expect(page.getByRole('heading', { name: '데브잡스 이용약관', exact: true })).toBeVisible();
   await expect(page.locator('script[src*="googletagmanager.com/gtag/js"]')).toHaveCount(0);
+  await page.route('https://www.googletagmanager.com/gtag/js**', route => route.fulfill({ status: 200, contentType: 'text/javascript', body: '' }));
+  await page.getByRole('button', { name: '이용 통계 허용 중' }).click();
+  await page.getByRole('button', { name: '통계 수집 허용' }).click();
+  await expect(page.locator('script[src*="G-CWT9EYZSQF"]')).toHaveCount(1);
 });
 test('동의 후 채널을 보존하고 검색어·토큰·이메일을 전송하지 않는다', async ({ page }) => {
   const events = await setup(page, 'granted');

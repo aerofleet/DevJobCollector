@@ -10,6 +10,10 @@ export function analyticsConsent() {
   try { return localStorage.getItem(CONSENT); } catch { return 'denied'; }
 }
 
+export function analyticsConsentSnapshot() {
+  try { return `${localStorage.getItem(CONSENT) || ''}:${localStorage.getItem(GOOGLE_CONSENT) || ''}`; } catch { return 'denied:denied'; }
+}
+
 export function subscribeAnalyticsConsent(onChange) {
   const changed = () => { onChange(); };
   const storage = (event) => {
