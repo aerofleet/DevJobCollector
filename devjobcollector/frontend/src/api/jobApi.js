@@ -114,13 +114,20 @@ export const searchJobs = async (filters = {}, page = 0, size = 10) => {
       experience: normalizedFilters.experience || undefined,
       jobCategory: (Array.isArray(normalizedFilters.jobCategory) ? normalizedFilters.jobCategory.join(',') : normalizedFilters.jobCategory) || undefined,
       techStack: (Array.isArray(normalizedFilters.techStack) ? normalizedFilters.techStack.join(',') : normalizedFilters.techStack) || undefined,
+      company: normalizedFilters.company?.length ? normalizedFilters.company : undefined,
       sortBy: normalizedFilters.sortBy || 'createdAt',
       direction: normalizedFilters.direction || 'DESC',
       page,
       size,
       ...freshQuery(),
     },
+    paramsSerializer: { indexes: null },
   });
+  return response.data;
+};
+
+export const searchCompanyNames = async (query = '') => {
+  const response = await apiClient.get('/jobs/companies', { params: { query: query.trim() } });
   return response.data;
 };
 

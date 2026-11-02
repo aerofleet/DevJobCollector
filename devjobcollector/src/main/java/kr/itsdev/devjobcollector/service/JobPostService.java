@@ -65,6 +65,7 @@ public class JobPostService {
             String experience,
             String jobCategory,
             String techStackName,
+            List<String> companies,
             Pageable pageable
     ) {
         log.info("채용 공고 검색: keyword={}, location={}, experience={}, jobCategory={}, techStack={}, page={}, size={}",
@@ -75,8 +76,12 @@ public class JobPostService {
         deactivateExpiredPosts();
         return jobSearchMetrics.record(keyword, () ->
                 jobPostRepository.searchByAllFieldsOptimized(
-                                keyword, location, experience, jobCategory, techStackName, today, pageable)
+                                keyword, location, experience, jobCategory, techStackName, companies, today, pageable)
                         .map(jobPost -> convertToDto(jobPost, keyword)));
+    }
+
+    public List<String> findCompanyNames(String query) {
+        return jobPostRepository.findCompanyNames(query, LocalDate.now());
     }
 
     /**

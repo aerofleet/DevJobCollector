@@ -15,7 +15,7 @@ public interface JobPostRepositoryCustom {
     /**
      * 전체 필드 통합 검색 (COUNT 쿼리 최적화)
      */
-    Page<JobPost> searchByAllFieldsOptimized(
+    default Page<JobPost> searchByAllFieldsOptimized(
             String keyword,
             String location,
             String experience,
@@ -23,7 +23,12 @@ public interface JobPostRepositoryCustom {
             String techStackName,
             LocalDate today,
             Pageable pageable
-    );
+    ) { return searchByAllFieldsOptimized(keyword, location, experience, jobCategory, techStackName, List.of(), today, pageable); }
+
+    Page<JobPost> searchByAllFieldsOptimized(String keyword, String location, String experience, String jobCategory,
+            String techStackName, List<String> companies, LocalDate today, Pageable pageable);
+
+    List<String> findCompanyNames(String query, LocalDate today);
 
     /**
      * 기술 스택 다중 검색 (COUNT 최적화)

@@ -14,6 +14,11 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.CacheControl;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.Arrays;
+import java.util.List;
 
 
 @Slf4j
@@ -59,6 +64,7 @@ public class JobPostController {
         @RequestParam(name = "experience", required = false) String experience,
         @RequestParam(name = "jobCategory", required = false) String jobCategory,
         @RequestParam(name = "techStack", required = false) String techStack,
+        HttpServletRequest request,
         @RequestParam(name = "page", defaultValue = "0") int page,
         @RequestParam(name = "size", defaultValue = "20") int size,
         @RequestParam(name = "sortBy", defaultValue = "createdAt") String sortBy,
@@ -76,12 +82,22 @@ public class JobPostController {
 
         Pageable pageable = PageRequest.of(page, size, sort);
 
+        String[] selectedCompanies = request.getParameterValues("company");
+        if (selectedCompanies != null && (selectedCompanies.length > 30 || Arrays.stream(selectedCompanies).anyMatch(name -> name.length() > 150)))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "INVALID_COMPANY_FILTER");
+        List<String> companies = selectedCompanies == null ? List.of() : Arrays.stream(selectedCompanies).map(String::trim).filter(name -> !name.isEmpty()).distinct().toList();
         Page<JobPostDto> results = jobPostService.searchJobPosts(
-                keyword, location, experience, jobCategory, techStack, pageable);
+                keyword, location, experience, jobCategory, techStack, companies, pageable);
         log.info("검색 결과: {} 건", results.getTotalElements());
 
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(results);
     }   
+
+    @GetMapping("/companies")
+    public ResponseEntity<List<String>> companies(@RequestParam(name = "query", defaultValue = "") String query) {
+        if (query.length() > 150) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "INVALID_COMPANY_QUERY");
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(jobPostService.findCompanyNames(query.trim()));
+    }
 
         /**
      * 활성 채용공고만 조회 (마감일이 지나지 않은 공고)

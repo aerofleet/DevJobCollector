@@ -9,6 +9,32 @@ async function openFilters(page) {
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/v1/jobs/search**', route => route.fulfill({ json: { content: [], totalElements: 0, totalPages: 0 } }));
+  await page.route('**/api/v1/jobs/companies**', route => route.fulfill({ json: ['토스', '카카오', 'ACME, Inc.'] }));
+});
+
+test('회사명을 검색해 복수 선택하고 URL과 API에 정확히 전달한다', async ({ page }) => {
+  await page.goto('/jobs?techStack=Java');
+  await openFilters(page);
+  await page.getByLabel('회사명', { exact: true }).click();
+  const companies = page.getByRole('group', { name: '회사명 선택' });
+  await companies.getByLabel('토스', { exact: true }).click();
+  await expect(companies.getByLabel('토스', { exact: true })).toBeChecked();
+  await companies.getByLabel('회사명 검색').fill('ACME');
+  const request = page.waitForRequest(req => {
+    const url = new URL(req.url());
+    return url.pathname.endsWith('/jobs/search') && url.searchParams.getAll('company').join('|') === '토스|ACME, Inc.';
+  });
+  await companies.getByLabel('ACME, Inc.', { exact: true }).click();
+  await expect(companies.getByLabel('ACME, Inc.', { exact: true })).toBeChecked();
+  const sent = new URL((await request).url());
+  expect(sent.searchParams.get('techStack')).toBe('Java');
+  expect(new URL(page.url()).searchParams.getAll('company')).toEqual(['토스', 'ACME, Inc.']);
+  await page.reload();
+  await openFilters(page);
+  await expect(page.getByRole('button', { name: '토스 해제' })).toBeVisible();
+  await page.getByRole('button', { name: 'ACME, Inc. 해제' }).click();
+  expect(new URL(page.url()).searchParams.getAll('company')).toEqual(['토스']);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
 test('multiple selections preserve URL, API, individual removal and history', async ({ page }) => {

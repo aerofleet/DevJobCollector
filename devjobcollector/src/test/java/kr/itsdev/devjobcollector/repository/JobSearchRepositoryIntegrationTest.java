@@ -56,6 +56,25 @@ class JobSearchRepositoryIntegrationTest {
     }
 
     @Test
+    void companySelectionsUseExactOrAndShareCountFilters() {
+        for (String name : List.of("테스트 컴퍼니 A", "테스트 컴퍼니 B", "테스트 컴퍼니 A 자회사", "Comma, Inc.")) {
+            repository.save(JobPost.builder().sourcePlatform(SourcePlatform.GREENHOUSE).originalSn("company-filter-" + name)
+                    .companyName(name).title("Backend Engineer").experience("경력무관").location("서울")
+                    .startDate(LocalDate.now()).endDate(LocalDate.now().plusDays(30)).originalUrl("https://example.com/job").build());
+        }
+        entityManager.flush(); entityManager.clear();
+        var selected = repository.searchByAllFieldsOptimized("", "서울", null, "backend", null,
+                List.of("테스트 컴퍼니 A", "Comma, Inc."), LocalDate.now(), PageRequest.of(0, 1));
+        assertThat(selected.getTotalElements()).isEqualTo(2);
+        assertThat(selected.getContent()).hasSize(1);
+        assertThat(repository.searchByAllFieldsOptimized("", "서울", null, "backend", null,
+                List.of("테스트 컴퍼니 A", "Comma, Inc."), LocalDate.now(), PageRequest.of(0, 10)).getContent())
+                .extracting(JobPost::getCompanyName).containsExactlyInAnyOrder("테스트 컴퍼니 A", "Comma, Inc.");
+        assertThat(repository.findCompanyNames("테스트 컴퍼니", LocalDate.now()))
+                .contains("테스트 컴퍼니 A", "테스트 컴퍼니 B", "테스트 컴퍼니 A 자회사");
+    }
+
+    @Test
     void filtersByReviewedExperienceAndLocationAndRevertsAfterSourceChange() {
         var job = repository.save(JobPost.builder().sourcePlatform(SourcePlatform.GREENHOUSE).originalSn("review-filter")
                 .companyName("검토 평가 기업").title("Sales Director").experience("경력무관").location("Remote")

@@ -40,6 +40,7 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
             String experience,
             String jobCategory,
             String techStackName,
+            List<String> companies,
             LocalDate today,
             Pageable pageable
     ) {
@@ -57,7 +58,8 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
                         locationCondition(location),
                         experienceCondition(experience),
                         jobRoleCondition(jobCategory),
-                        techStackCondition(techStackName)
+                        techStackCondition(techStackName),
+                        companyCondition(companies)
                 )
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize());
@@ -97,10 +99,24 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
                         locationCondition(location),
                         experienceCondition(experience),
                         jobRoleCondition(jobCategory),
-                        techStackCondition(techStackName)
+                        techStackCondition(techStackName),
+                        companyCondition(companies)
                 );
 
         return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchOne);
+    }
+
+    private BooleanExpression companyCondition(List<String> companies) {
+        return companies == null || companies.isEmpty() ? null : jobPost.companyName.in(companies);
+    }
+
+    @Override
+    public List<String> findCompanyNames(String query, LocalDate today) {
+        return queryFactory.select(jobPost.companyName).distinct().from(jobPost)
+                .where(jobPost.isActive.isTrue(), jobPost.moderationStatus.eq(JobModerationStatus.ACTIVE),
+                        jobPost.endDate.goe(today), jobPost.companyName.isNotNull(), jobPost.companyName.ne(""),
+                        query == null || query.isBlank() ? null : jobPost.companyName.containsIgnoreCase(query))
+                .orderBy(jobPost.companyName.asc()).limit(30).fetch();
     }
 
     @SuppressWarnings("null") // Stream/JPA nullness inference noise

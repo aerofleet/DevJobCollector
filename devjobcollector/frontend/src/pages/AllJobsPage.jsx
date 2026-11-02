@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigationType, useSearchParams } from 'react-router-dom';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
-import { searchJobs } from '../api/jobApi';
+import { searchCompanyNames, searchJobs } from '../api/jobApi';
 import JobCard from '../components/job/JobCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import MotionFilter from '../motion/MotionFilter';
@@ -32,6 +32,7 @@ const getFilters = (searchParams) => {
     keyword: searchParams.get('keyword') ?? '',
     jobCategory: [...new Set(searchParams.getAll('jobCategory').flatMap(value => value.split(',')).map(value => value.trim()).filter(Boolean))],
     techStack: [...new Set(searchParams.getAll('techStack').flatMap(value => value.split(',')).map(value => value.trim()).filter(Boolean))],
+    company: [...new Set(searchParams.getAll('company').map(value => value.trim()).filter(Boolean))],
     experience: searchParams.get('experience') ?? '',
     location: [...new Set(searchParams.getAll('location').flatMap(value => value.split(',')).map(value => value.trim()).filter(Boolean))],
     sortBy: sort.sortBy,
@@ -201,6 +202,9 @@ const AllJobsPage = () => {
   const navigationType = useNavigationType();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const [companyQuery, setCompanyQuery] = useState('');
+  const [companies, setCompanies] = useState([]);
+  const [companyStatus, setCompanyStatus] = useState('');
   const resultKey = searchParams.toString();
   const filters = useMemo(() => getFilters(new URLSearchParams(resultKey)), [resultKey]);
   const restorePosition = useMemo(() => {
@@ -208,9 +212,25 @@ const AllJobsPage = () => {
     return getJobListPosition(location.key);
   }, [location.key, navigationType]);
 
+  useEffect(() => {
+    let active = true;
+    const timer = window.setTimeout(() => {
+      setCompanyStatus('회사명을 불러오는 중입니다.');
+      searchCompanyNames(companyQuery).then(names => {
+        if (active) { setCompanies(Array.isArray(names) ? names : []); setCompanyStatus(''); }
+      }).catch(() => { if (active) { setCompanies([]); setCompanyStatus('회사명을 불러오지 못했습니다. 다시 검색해 주세요.'); } });
+    }, companyQuery ? 250 : 0);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [companyQuery]);
+
   const updateParams = (updates) => {
     const nextParams = new URLSearchParams(searchParams);
     Object.entries(updates).forEach(([key, value]) => {
+      if (key === 'company') {
+        nextParams.delete(key);
+        value.forEach(company => nextParams.append(key, company));
+        return;
+      }
       const serialized = Array.isArray(value) ? value.join(',') : value;
       if (serialized) nextParams.set(key, serialized);
       else nextParams.delete(key);
@@ -236,6 +256,7 @@ const AllJobsPage = () => {
     filters.keyword && { key: 'keyword', label: `검색: ${filters.keyword}` },
     ...filters.jobCategory.map(value => ({ key: 'jobCategory', value, label: JOB_ROLES.find(role => role.value === value)?.label ?? value })),
     ...filters.techStack.map(value => ({ key: 'techStack', value, label: value })),
+    ...filters.company.map(value => ({ key: 'company', value, label: value })),
     filters.experience && { key: 'experience', label: filters.experience },
     ...filters.location.map(value => ({ key: 'location', value, label: locationLabel(value) })),
   ].filter(Boolean);
@@ -277,6 +298,7 @@ const AllJobsPage = () => {
           <div className="detail-filters">
             <MultiSelectFilter label="직무 상세" groups={JOB_ROLE_GROUPS.map(group => ({ ...group, options: group.options.map(([value, label]) => ({ value, label })) }))} values={filters.jobCategory} onChange={jobCategory => updateParams({ jobCategory })} />
             <MultiSelectFilter label="기술 스택" groups={TECH_STACK_GROUPS.map(group => ({ ...group, options: group.options.map(value => ({ value, label: value })) }))} values={filters.techStack} onChange={techStack => updateParams({ techStack })} />
+            <MultiSelectFilter label="회사명" groups={[{ label: '회사', options: [...new Set([...filters.company, ...companies])].map(value => ({ value, label: value })) }]} values={filters.company} onChange={company => { if (company.length <= 30) updateParams({ company }); }} onQueryChange={setCompanyQuery} status={companyStatus} hint="회사명을 검색해 선택하세요. 검색 결과와 선택은 각각 최대 30개입니다." />
             <label>
               <span>경력</span>
               <select value={filters.experience} onChange={(event) => updateParams({ experience: event.target.value })}>

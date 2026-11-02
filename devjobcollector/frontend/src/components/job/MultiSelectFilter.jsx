@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-export default function MultiSelectFilter({ label, groups, values, onChange }) {
+export default function MultiSelectFilter({ label, groups, values, onChange, onQueryChange, status, hint }) {
   const root = useRef(null);
   const [query, setQuery] = useState('');
   useEffect(() => {
@@ -28,7 +28,9 @@ export default function MultiSelectFilter({ label, groups, values, onChange }) {
       <span className="multi-filter-value">{values.length ? `${selected[0]?.label ?? values[0]}${values.length > 1 ? ` 외 ${values.length - 1}개` : ''}` : '전체'}</span>
     </summary>
     <div className="multi-filter-menu" role="group" aria-label={`${label} 선택`}>
-      <input type="search" aria-label={`${label} 검색`} placeholder="항목 검색" value={query} onChange={event => setQuery(event.target.value)} />
+      <input type="search" aria-label={`${label} 검색`} placeholder="항목 검색" value={query} onChange={event => { setQuery(event.target.value); onQueryChange?.(event.target.value); }} />
+      {hint && <p className="filter-selection-help">{hint}</p>}
+      {status && <p role="status">{status}</p>}
       <button type="button" onClick={() => onChange([])}>선택 해제</button>
       <div className="multi-filter-options">
         {groups.map(group => {
@@ -41,7 +43,7 @@ export default function MultiSelectFilter({ label, groups, values, onChange }) {
             </label>)}
           </fieldset>;
         })}
-        {!options.some(option => option.label.toLowerCase().includes(query.trim().toLowerCase())) && <p>일치하는 항목이 없습니다.</p>}
+        {!status && !options.some(option => option.label.toLowerCase().includes(query.trim().toLowerCase())) && <p>일치하는 항목이 없습니다.</p>}
       </div>
     </div>
   </details>;

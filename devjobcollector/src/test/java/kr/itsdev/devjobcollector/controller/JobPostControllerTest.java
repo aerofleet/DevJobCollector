@@ -45,21 +45,22 @@ class JobPostControllerTest {
 
     @Test
     void forwardsMultipleSelectionsIncludingSpecialCharacterStacks() throws Exception {
-        when(jobPostService.searchJobPosts(any(), any(), any(), any(), any(), any(Pageable.class)))
+        when(jobPostService.searchJobPosts(any(), any(), any(), any(), any(), any(), any(Pageable.class)))
                 .thenReturn(Page.empty());
         mockMvc.perform(get("/api/v1/jobs/search")
                         .param("location", "서울,일본,Remote")
                         .param("jobCategory", "backend,frontend")
+                        .param("company", "토스", "ACME, Inc.")
                         .param("techStack", "C++,C#,Java"))
                 .andExpect(status().isOk());
         verify(jobPostService).searchJobPosts(any(), eq("서울,일본,Remote"), any(),
-                eq("backend,frontend"), eq("C++,C#,Java"), any(Pageable.class));
+                eq("backend,frontend"), eq("C++,C#,Java"), eq(java.util.List.of("토스", "ACME, Inc.")), any(Pageable.class));
     }
 
     @Test
     void forwardsExplorerFiltersAndDeadlineSort() throws Exception {
         when(jobPostService.searchJobPosts(
-                any(), any(), any(), any(), any(), any(Pageable.class)))
+                any(), any(), any(), any(), any(), any(), any(Pageable.class)))
                 .thenReturn(Page.empty());
 
         mockMvc.perform(get("/api/v1/jobs/search")
@@ -77,7 +78,7 @@ class JobPostControllerTest {
 
         var pageableCaptor = org.mockito.ArgumentCaptor.forClass(Pageable.class);
         verify(jobPostService).searchJobPosts(
-                eq("플랫폼"), eq("서울"), eq("경력"), eq("backend"), eq("Java"),
+                eq("플랫폼"), eq("서울"), eq("경력"), eq("backend"), eq("Java"), eq(java.util.List.of()),
                 pageableCaptor.capture());
 
         Pageable pageable = pageableCaptor.getValue();
@@ -85,5 +86,14 @@ class JobPostControllerTest {
         assertThat(pageable.getPageSize()).isEqualTo(12);
         assertThat(pageable.getSort().getOrderFor("endDate")).isNotNull();
         assertThat(pageable.getSort().getOrderFor("endDate").isAscending()).isTrue();
+    }
+
+    @Test
+    void companySearchRejectsExcessiveSelectionsAndReturnsCatalog() throws Exception {
+        when(jobPostService.findCompanyNames("토스")).thenReturn(java.util.List.of("토스"));
+        mockMvc.perform(get("/api/v1/jobs/companies").param("query", "토스"))
+                .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"));
+        mockMvc.perform(get("/api/v1/jobs/search").param("company", java.util.Collections.nCopies(31, "회사").toArray(String[]::new)))
+                .andExpect(status().isBadRequest());
     }
 }
