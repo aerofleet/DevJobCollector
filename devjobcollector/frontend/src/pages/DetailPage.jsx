@@ -76,7 +76,7 @@ const DetailPage = () => {
     && job.endDate?.startsWith('9999-12-31') && (!deadlineEvidence || deadlineEvidence.status === 'UNAVAILABLE') && rollingDeadline;
   const inferredDeadline = job.endDate?.startsWith('9999-12-31') && deadlineEvidence?.status === 'PRESENT'
     && job.sourceDeadlineDisplay !== 'HIDDEN' && job.sourceDeadlineDisplay !== 'RECRUITMENT_END';
-  const mentionedTools = extractMentionedTools(requirements);
+  const mentionedTools = extractMentionedTools(requirements, job.applyQual);
   const sourceTechnology = extractJobTechnologySections(job.applyQual);
   const registeredTools = new Set((job.techStacks || []).map((tech) => tech.stackName?.trim().toLowerCase()));
   const additionalTools = mentionedTools.filter((name) => !registeredTools.has(name.toLowerCase()));
@@ -174,7 +174,7 @@ const DetailPage = () => {
               <TechStackBadge key={tech.id} tech={tech} />
             ))}
           </div>
-          {additionalTools.length > 0 && <><p className="job-content-empty">원문 자격·우대 항목에 언급된 기술 및 도구</p><div className="tech-stack">{additionalTools.map((name) => <TechStackBadge key={name} tech={{ stackName: name }} />)}</div></>}
+          {additionalTools.length > 0 && <><p className="job-content-empty">공고 본문에 언급된 기술 및 도구</p><div className="tech-stack">{additionalTools.map((name) => <TechStackBadge key={name} tech={{ stackName: name }} />)}</div></>}
           {sourceTechnology.length > 0 && <><p className="detail-source-note">원문에 명시된 기술 정보</p><ul>{sourceTechnology.map((line, index) => <li key={index}>{line}</li>)}</ul></>}
           {!job.techStacks?.length && !additionalTools.length && !sourceTechnology.length && <p className="job-content-empty">{isPublicAlio ? '등록된 기술 스택이 없습니다.' : '등록된 기술 스택이 없습니다. 원문을 확인해 주세요.'}</p>}
         </section>

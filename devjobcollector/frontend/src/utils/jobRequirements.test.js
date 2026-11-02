@@ -2,6 +2,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
 
+test('shows tools from the whole posting and preserves explicit technology lists', () => {
+  const text = '# 팀 소개\nKubernetes와 Cloud Native 활용\n# 이력서 추천\nAWS와 CI/CD 서버 운영\n# 토스에서 사용하는 기술\n- Java Spring Framework, JPA/Hibernate, Gradle\n- Jenkins, Git, Docker, Kubernetes + Istio\n- Kafka, Elastic, InfluxData, Grafana, Memcached\n# 꼭 확인해주세요\n기타 안내';
+  assert.deepEqual(extractJobTechnologySections(text), ['Java Spring Framework, JPA/Hibernate, Gradle', 'Jenkins, Git, Docker, Kubernetes + Istio', 'Kafka, Elastic, InfluxData, Grafana, Memcached']);
+  const tools = extractMentionedTools(extractJobRequirements(text), text);
+  for (const name of ['Java', 'Spring', 'JPA', 'Hibernate', 'Gradle', 'Jenkins', 'Git', 'Docker', 'Kubernetes', 'Istio', 'Kafka', 'Elastic', 'InfluxData', 'Grafana', 'Memcached', 'AWS', 'CI/CD']) assert.ok(tools.includes(name), name);
+  assert.deepEqual(extractMentionedTools({ required: [], preferred: [] }, 'JavaScript와 GitLab 사용'), ['JavaScript']);
+  assert.deepEqual(extractJobTechnologySections('<h3>기술 스택</h3><ul><li>UnknownTool, FooDB</li></ul><h3>복리후생</h3><p>휴가</p>'), ['UnknownTool, FooDB']);
+});
+
 test('recognizes total engineering experience with a management minimum without adding them', () => {
   const text = 'Minimum requirements\n• 10+ total years of engineering experience with a minimal 4 years of management experience.\nPreferred qualifications\n• Domain knowledge in payments';
   assert.equal(extractExperienceWording(extractJobRequirements(text)), '10년 이상');
