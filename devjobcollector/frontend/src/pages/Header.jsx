@@ -5,6 +5,7 @@ import { useScrollDirection } from '../hooks/useScrollDirection';
 import '../styles/Header.css';
 import { useMemberSession } from '../contexts/memberSession';
 import { clearAccessToken } from '../utils/accessToken';
+import { clearJobListPosition } from '../utils/jobListPosition';
 
 const Header = ({ onSearch }) => {
   const location = useLocation();
@@ -24,6 +25,13 @@ const Header = ({ onSearch }) => {
   const isAuthenticated = Boolean(token);
 
   const isMobile = () => window.innerWidth <= 768;
+
+  const openJobsAtTop = (event) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    clearJobListPosition();
+    setIsMenuOpen(false);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  };
 
   const isActivePath = (path) => {
     if (path === '/') {
@@ -168,7 +176,7 @@ const Header = ({ onSearch }) => {
         {/* 네비게이션 */}
         <nav className={`nav ${isNavVisible ? 'nav-visible' : 'nav-hidden'}`} aria-label="Main navigation">
           <ul className="nav-left">
-            <li><Link to="/jobs">개발자 채용</Link></li>
+            <li><Link to="/jobs" onClick={openJobsAtTop}>개발자 채용</Link></li>
             <li><Link to={isAuthenticated ? '/resumes' : '/resume'}>이력서</Link></li>
             <li><a href="/#discovery-title">테마별 채용</a></li>
             <li><Link to="/company">기업 서비스</Link></li>
@@ -207,7 +215,7 @@ const Header = ({ onSearch }) => {
           </div>
 
           <ul className="mobile-menu-list">
-            <li><Link onClick={() => setIsMenuOpen(false)} className={isActivePath('/jobs') ? 'active' : ''} to="/jobs">개발자 채용</Link></li>
+            <li><Link onClick={openJobsAtTop} className={isActivePath('/jobs') ? 'active' : ''} to="/jobs">개발자 채용</Link></li>
             <li><Link onClick={() => setIsMenuOpen(false)} className={isActivePath('/resumes') || isActivePath('/resume') ? 'active' : ''} to={isAuthenticated ? '/resumes' : '/resume'}>이력서</Link></li>
             <li><a onClick={() => setIsMenuOpen(false)} href="/#discovery-title">테마별 채용</a></li>
             <li><Link onClick={() => setIsMenuOpen(false)} className={isActivePath('/company') ? 'active' : ''} to="/company">기업 서비스</Link></li>
@@ -230,7 +238,7 @@ const Header = ({ onSearch }) => {
       </div>
 
       <nav className="mobile-tabbar" aria-label="모바일 빠른 메뉴">
-        <Link className={`mobile-tab-link ${isActivePath('/jobs') ? 'active' : ''}`} to="/jobs">채용</Link>
+        <Link onClick={openJobsAtTop} className={`mobile-tab-link ${isActivePath('/jobs') ? 'active' : ''}`} to="/jobs">채용</Link>
         <Link className={`mobile-tab-link ${isActivePath('/resumes') || isActivePath('/resume') ? 'active' : ''}`} to={isAuthenticated ? '/resumes' : '/resume'}>이력서</Link>
         <Link className={`mobile-tab-link ${isActivePath(isAuthenticated ? '/my-devjobs' : '/login') ? 'active' : ''}`} to={isAuthenticated ? '/my-devjobs' : '/login'}>{isAuthenticated ? 'MY' : '로그인'}</Link>
         <button

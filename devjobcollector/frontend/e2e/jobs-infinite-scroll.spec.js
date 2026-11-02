@@ -33,6 +33,22 @@ test('공고 카드에 등록 태그와 본문 기술을 중복 없이 표시한
   await expect(card.locator('.tech-badge')).toHaveText(['Docker', 'Kubernetes', 'AWS', 'CI/CD']);
 });
 
+test('개발자 채용 메뉴는 목록 중간에서 눌러도 상단으로 이동한다', async ({ page }, testInfo) => {
+  await page.route('**/api/v1/jobs/search**', route => respond(route, makeJobs(1, 12), 0, 1));
+  await page.goto('/jobs?keyword=backend');
+  await expect(page.locator('.all-jobs-grid .job-card')).toHaveCount(12);
+  await page.evaluate(() => window.scrollTo(0, 900));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
+  if (testInfo.project.name === 'mobile-360' || testInfo.project.name === 'tablet-768') {
+    await page.getByRole('navigation', { name: '모바일 빠른 메뉴' }).getByRole('link', { name: '채용', exact: true }).click();
+  } else {
+    await page.evaluate(() => window.scrollBy(0, -150));
+    await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: '개발자 채용' }).click();
+  }
+  await expect(page).toHaveURL(/\/jobs$/);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+});
+
 test('상세에서 돌아가면 필터와 추가로 불러온 목록 및 스크롤 위치를 복원한다', async ({ page }) => {
   let blockRefresh = false;
   let releaseRefresh;
