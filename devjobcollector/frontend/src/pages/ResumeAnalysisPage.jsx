@@ -2,7 +2,7 @@ import ResumeCoachingSummary from '../components/member/ResumeCoachingSummary';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import MemberSidebar from '../components/member/MemberSidebar';
-import ResumeEvidenceReport, { JobEvidence } from '../components/member/ResumeEvidenceReport';
+import ResumeEvidenceReport, { JobEvidenceDetails } from '../components/member/ResumeEvidenceReport';
 import ResumeWritingSuggestions from '../components/member/ResumeWritingSuggestions';
 import ResumeContentReview, { AiJobReview } from '../components/member/ResumeContentReview';
 import { listResumes } from '../api/resumeApi';
@@ -269,7 +269,7 @@ export default function ResumeAnalysisPage() {
                 return review && result.aiReview.version !== 'content-review-v11-evidence-policy'
                   ? { ...review, decision: review.decision === 'INSUFFICIENT_INFORMATION' ? review.decision : 'REVIEW_REQUIRED', decisionReason: '새 기준으로 재검토가 필요합니다.', relevance: 'REVIEW_NEEDED', lead_with: '', gap: '' } : review;
               })()} />
-              <details><summary>기술 매칭 살펴보기</summary><JobEvidence job={job} review={result.review} /></details>
+              <JobEvidenceDetails job={job} skills={result.detectedSkills || Object.keys(result.review?.skillEvidence || {})} />
               {currentExplanation?.jobs?.find((item) => item.jobId === job.jobId)?.highlights?.length > 0 &&
                 <div><strong><span className="evidence-badge evidence-badge-ai">AI 판단</span> AI가 선택한 추천 근거</strong><ul>{currentExplanation.jobs.find((item) => item.jobId === job.jobId).highlights.map((text) =>
                   <li key={text}>{text}</li>)}</ul></div>}

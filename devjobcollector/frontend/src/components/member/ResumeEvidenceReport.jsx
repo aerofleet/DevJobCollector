@@ -1,4 +1,7 @@
 import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { fetchJobDetail } from '../../api/jobApi';
+import { extractJobTechnologySections, extractMentionedTools } from '../../utils/jobRequirements';
 
 const statuses = { APPLIED: '반영했어요', NOT_APPLICABLE: '해당 없음', INCORRECT: '이 지적이 틀렸어요' };
 const sections = { careerProfile: '지원 방향', projects: '프로젝트', experience: '경력', techStack: '기술 스택', introduction: '간단소개', education: '학력', training: '교육이력', activities: '기타사항', coverLetter: '자기소개서' };
@@ -59,11 +62,49 @@ export default function ResumeEvidenceReport({ result, busy, onFeedback }) {
   </div>;
 }
 
-export function JobEvidence({ job, review }) {
-  return <div className="job-evidence"><span className="evidence-badge">공고 데이터</span>
-    <p className="analysis-note">{job.skillEvidenceSource === 'JOB_TITLE' ? '공고 제목' : '수집된 기술 태그'}와 자료의 기술명을 대조했습니다. 필수·우대 요건 구분과 실제 지원 자격은 공고 원문에서 확인해 주세요.</p>
-    <ul>{job.matchPoints.map((skill) => <li key={skill}><strong>{skill}</strong><span>자료에서 확인</span>
-      <small>{review?.skillEvidence?.[skill]?.map(evidenceLocation).join(' / ') || '이 결과에 저장된 위치 정보 없음'}</small></li>)}
-      {job.missingPoints.map((skill) => <li key={skill}><strong>{skill}</strong><span>자료에서 미확인</span><small>보유하지 않았다는 뜻은 아닙니다.</small></li>)}</ul>
+const normalizeTechnology = value => {
+  const name = String(value || '').toLowerCase().replace(/[\s_-]/g, '');
+  return ({ 'springboot': 'springboot', '스프링부트': 'springboot', js: 'javascript', ts: 'typescript',
+    'node.js': 'nodejs', 'react.js': 'react', reactjs: 'react', postgres: 'postgresql', oraclecloudinfrastructure: 'oci' })[name] || name;
+};
+
+export function JobEvidenceDetails({ job, skills }) {
+  const [open, setOpen] = useState(false);
+  return <details onToggle={event => setOpen(event.currentTarget.open)}><summary>기술 매칭 살펴보기</summary>
+    {open && <JobEvidence job={job} skills={skills} />}
+  </details>;
+}
+
+export function JobEvidence({ job, skills = [] }) {
+  const [detail, setDetail] = useState(null);
+  const [state, setState] = useState('loading');
+  useEffect(() => {
+    let active = true;
+    fetchJobDetail(job.jobId).then(value => { if (active) { setDetail(value); setState('ready'); } })
+      .catch(() => { if (active) setState('error'); });
+    return () => { active = false; };
+  }, [job.jobId]);
+  if (state === 'loading') return <p className="analysis-note" role="status">공고 기술 정보를 확인하고 있어요.</p>;
+  const registered = detail?.techStacks?.map(tech => tech.stackName).filter(Boolean) || [];
+  const mentioned = detail ? extractMentionedTools({ required: [], preferred: [] }, detail.applyQual) : [];
+  const currentNames = [...registered, ...mentioned];
+  const stored = state === 'error' || (!currentNames.length && ((job.matchPoints?.length || 0) + (job.missingPoints?.length || 0) > 0));
+  const names = stored ? [...(job.matchPoints || []), ...(job.missingPoints || [])] : currentNames;
+  const distinct = [...new Map(names.filter(Boolean).map(name => [normalizeTechnology(name), name])).values()];
+  const resumeSkills = new Set(skills.map(normalizeTechnology));
+  const matched = stored ? job.matchPoints || [] : distinct.filter(name => resumeSkills.has(normalizeTechnology(name)));
+  const unconfirmed = stored ? job.missingPoints || [] : distinct.filter(name => !resumeSkills.has(normalizeTechnology(name)));
+  const sourceLines = detail ? extractJobTechnologySections(detail.applyQual) : [];
+  return <div className="job-evidence">
+    {stored ? <p className="analysis-note" role="status">현재 공고에서 비교할 기술을 확인하지 못해 저장된 분석 결과를 표시합니다.</p>
+      : state === 'error' ? <p className="analysis-note" role="status">현재 공고를 불러오지 못했습니다.</p>
+        : <p className="analysis-note">현재 공고의 등록 태그·본문 기술명과 분석 당시 자료를 이름으로 비교했어요.</p>}
+    {distinct.length > 0 && <><div className="job-evidence-group"><strong>자료에서 확인 <span>{matched.length}개</span></strong>
+      {matched.length ? <ul className="job-evidence-tags">{matched.map(name => <li key={name} className="job-evidence-tag matched">{name}</li>)}</ul> : <p className="analysis-note">일치하는 기술명이 확인되지 않았어요.</p>}</div>
+    <div className="job-evidence-group"><strong>자료에서 미확인 <span>{unconfirmed.length}개</span></strong>
+      {unconfirmed.length ? <ul className="job-evidence-tags">{unconfirmed.map(name => <li key={name} className="job-evidence-tag">{name}</li>)}</ul> : <p className="analysis-note">비교할 미확인 기술명이 없어요.</p>}</div></>}
+    {!distinct.length && <p className="analysis-note">비교할 공고 기술 정보를 찾지 못했어요. 공고 원문을 확인해 주세요.</p>}
+    {sourceLines.length > 0 && <details><summary>공고의 기술 목록 원문</summary><ul className="job-evidence-source">{sourceLines.map((line, index) => <li key={index}>{line}</li>)}</ul></details>}
+    <p className="analysis-note">미확인은 기술을 보유하지 않았다는 뜻이 아닙니다. 필수·우대 여부는 공고 원문에서 확인해 주세요.</p>
   </div>;
 }

@@ -1,5 +1,28 @@
 import { expect, test } from '@playwright/test';
 
+test('기술 매칭은 공고 기술과 분석 자료를 태그로 비교한다', async ({ page }) => {
+  let detailRequests = 0;
+  await page.addInitScript(() => localStorage.setItem('accessToken', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0IiwiZXhwIjo0MTAyNDQ0ODAwfQ.test'));
+  await page.route('**/api/v1/**', route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('/members/me')) return route.fulfill({ json: { id: 1, name: '회원', role: 'USER', profileStatus: 'ACTIVE' } });
+    if (path.endsWith('/resume-analyses')) return route.fulfill({ json: [{ id: 8, resumeTitle: '분석', createdAt: '2026-10-23' }] });
+    if (path.endsWith('/resume-analyses/8')) return route.fulfill({ json: { id: 8, resumeId: 11, detectedSkills: ['java', 'redis'], improvements: [], recommendations: [{ jobId: 17, title: '백엔드 개발자', companyName: '기업', matchPoints: [], missingPoints: [] }] } });
+    if (path === '/api/v1/jobs/17') { detailRequests++; return route.fulfill({ json: { id: 17, techStacks: [], applyQual: '# 토스에서 사용하는 기술\n- Java, Redis, Kafka, UnknownTool\n# 전형 절차\n- 면접' } }); }
+    return route.fulfill({ json: [] });
+  });
+  await page.goto('/resume-analysis');
+  await page.getByRole('button', { name: /분석 ·/ }).click();
+  expect(detailRequests).toBe(0);
+  await page.getByText('기술 매칭 살펴보기').click();
+  const comparison = page.locator('.job-evidence');
+  await expect(comparison.locator('.matched')).toHaveText(['Java', 'Redis']);
+  await expect(comparison.locator('.job-evidence-tag:not(.matched)')).toHaveText(['Kafka']);
+  await comparison.getByText('공고의 기술 목록 원문').click();
+  await expect(comparison.getByText('Java, Redis, Kafka, UnknownTool')).toBeVisible();
+  expect(detailRequests).toBeGreaterThanOrEqual(1);
+});
+
 test('코칭 결과 순서·지역 표시·확인 답변 저장과 취소', async ({ page }) => {
   const base = 'API를 개발해 실패율을 65%에서 0%로 낮췄습니다.';
   const finding = { id: 'rewrite', quote: 'API를 개발했습니다.', label: '경험.pdf', page: 1, problem: '역할과 성과를 함께 보여주세요.',

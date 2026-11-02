@@ -112,10 +112,13 @@
 .evidence-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .evidence-chips span { background: #fff; border: 1px solid #dde3d4; border-radius: 5px; padding: 5px 8px; font-size: 12px; overflow-wrap: anywhere; max-width: 100%; }
 .evidence-empty { padding: 22px; border: 1px dashed #d9ddcf; border-radius: 10px; }
-.job-evidence ul { list-style: none; padding: 0; margin: 12px 0 20px; }
-.job-evidence li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px 12px; border-top: 1px solid #edf0e8; padding: 12px 0; font-size: 13px; overflow-wrap: anywhere; }
-.job-evidence li > span { color: #5e6d50; }
-.job-evidence li > small { grid-column: 1 / -1; color: #6c7565; line-height: 1.6; }
+.job-evidence-group { margin: 14px 0; }
+.job-evidence-group > strong { font-size: 13px; color: #343f30; }
+.job-evidence-group > strong span { color: #6d7565; font-weight: 500; }
+.job-evidence .job-evidence-tags { list-style: none; display: flex; flex-wrap: wrap; gap: 7px; padding: 0; margin: 8px 0; }
+.job-evidence-tag { border: 1px solid #ddd8e5; background: #f7f5f8; border-radius: 999px; padding: 5px 10px; font-size: 13px; overflow-wrap: anywhere; max-width: 100%; }
+.job-evidence-tag.matched { background: #edf5e7; border-color: #b5c9a5; color: #365a27; }
+.job-evidence-source { padding-left: 20px; font-size: 13px; overflow-wrap: anywhere; }
 .evidence-browse { display: inline-block; margin: 0 0 20px; color: #4d6439; }
 .analysis-explanation { border: 1px solid #ded7ed; border-radius: 12px; padding: 20px; margin: 20px 0; background: #fbfaff; }
 .analysis-explanation h3 { margin-top: 0; }
