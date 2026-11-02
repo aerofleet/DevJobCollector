@@ -52,7 +52,7 @@ SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=0 \
     --tests kr.itsdev.devjobcollector.career.CareerRepositoryIntegrationTest \
     --tests kr.itsdev.devjobcollector.career.CareerActivityConcurrencyIntegrationTest \
     --tests kr.itsdev.devjobcollector.career.ResumeServiceIntegrationTest \
-    --tests kr.itsdev.devjobcollector.ai.ResumeAnalysisIntegrationTest \
+    --tests kr.itsdev.devjobcollector.ai.ResumeAnalysisIntegrationTest.liveRecommendationsRefillBeyondOriginalFiveWithoutChangingAnalysisOrCallingAi \
     --tests kr.itsdev.devjobcollector.company.CompanyRepositoryIntegrationTest \
     --tests kr.itsdev.devjobcollector.company.CompanyMembershipConcurrencyIntegrationTest \
     --tests kr.itsdev.devjobcollector.company.CompanySignupTransactionIntegrationTest \
