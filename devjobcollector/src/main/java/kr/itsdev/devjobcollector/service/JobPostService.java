@@ -36,12 +36,9 @@ public class JobPostService {
     /**
      * 채용 공고 목록 조회 (페이징)
      */
-    @Transactional(readOnly = false)
     @SuppressWarnings("null") // Stream.toList nullness noise from JDT
     public Page<JobPostDto> getJobPosts(Pageable pageable) {
         log.info("채용 공고 목록 조회: page={}, size={}", pageable.getPageNumber(), pageable.getPageSize());
-
-        deactivateExpiredPosts();
 
         LocalDate today = LocalDate.now();
         Slice<JobPost> slice = jobPostRepository.findActiveAndNotExpiredSlice(today, pageable);
@@ -57,7 +54,6 @@ public class JobPostService {
      * - keyword 없으면 활성 공고 전체 반환
      * - 마감일 지난 공고 제외
      */
-    @Transactional(readOnly = false)
     @SuppressWarnings("null") // Stream.toList nullness noise from JDT
     public Page<JobPostDto> searchJobPosts(
             String keyword,
@@ -73,7 +69,6 @@ public class JobPostService {
                 pageable.getPageNumber(), pageable.getPageSize());
 
         LocalDate today = LocalDate.now();
-        deactivateExpiredPosts();
         return jobSearchMetrics.record(keyword, () ->
                 jobPostRepository.searchByAllFieldsOptimized(
                                 keyword, location, experience, jobCategory, techStackName, companies, today, pageable)

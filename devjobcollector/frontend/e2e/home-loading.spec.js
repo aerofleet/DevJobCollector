@@ -56,13 +56,27 @@ test.describe('홈 공고 로딩 최적화', () => {
   });
 
   test('전체 실패 — 오류 메시지 표시, 허위 0건 아님', async ({ page }) => {
+    let searchCalls = 0;
     await page.route('**/api/v1/jobs/search**', (route) =>
-      route.fulfill({ status: 500, json: { error: 'server error' } })
+      { searchCalls += 1; return route.fulfill({ status: 500, json: { error: 'server error' } }); }
     );
 
     await page.goto('/');
     await expect(page.getByText('추천 공고를 불러오지 못했습니다')).toBeVisible();
     await expect(page.getByText('현재 노출할 공고가 없습니다')).toHaveCount(0);
+    expect(searchCalls).toBe(1);
+  });
+
+  test('응답이 지연되면 재시도 없이 오류를 표시한다', async ({ page }) => {
+    let calls = 0;
+    await page.route('**/api/v1/jobs/search**', async (route) => {
+      calls += 1;
+      await new Promise(resolve => setTimeout(resolve, 10000));
+      await route.abort().catch(() => {});
+    });
+    await page.goto('/');
+    await expect(page.getByText('추천 공고를 불러오지 못했습니다')).toBeVisible({ timeout: 9500 });
+    expect(calls).toBe(1);
   });
 
   test('StrictMode 중복 요청 방지 (useRef)', async ({ page }) => {

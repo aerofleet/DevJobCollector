@@ -49,7 +49,7 @@ apiClient.interceptors.response.use(
     const config = error.config;
     const retryCount = config?.metadata?.retryCount ?? 0;
 
-    if (config && retryCount < 2 && shouldRetry(error)) {
+    if (config && retryCount < (config.maxRetries ?? 2) && shouldRetry(error)) {
       config.metadata.retryCount = retryCount + 1;
       const backoff = 600 * (retryCount + 1);
       await sleep(backoff);
@@ -86,7 +86,7 @@ const isDeveloperJob = (job) => {
 };
 
 export const fetchRandomDeveloperJobs = async (count = 8) => {
-  const data = await searchJobs('개발', 0, 120);
+  const data = await searchJobs('개발', 0, 120, { timeout: 8000, maxRetries: 0 });
   const candidates = (data.content ?? []).filter(isDeveloperJob);
   const uniqueJobs = new Map();
   candidates.forEach((job) => uniqueJobs.set(job.id, job));
@@ -105,9 +105,10 @@ export const fetchRandomDeveloperJobs = async (count = 8) => {
 };
 
 // 채용공고 검색
-export const searchJobs = async (filters = {}, page = 0, size = 10) => {
+export const searchJobs = async (filters = {}, page = 0, size = 10, requestOptions = {}) => {
   const normalizedFilters = typeof filters === 'string' ? { keyword: filters } : filters;
   const response = await apiClient.get('/jobs/search', {
+    ...requestOptions,
     params: {
       keyword: normalizedFilters.keyword?.trim() || '',
       location: (Array.isArray(normalizedFilters.location) ? normalizedFilters.location.join(',') : normalizedFilters.location) || undefined,

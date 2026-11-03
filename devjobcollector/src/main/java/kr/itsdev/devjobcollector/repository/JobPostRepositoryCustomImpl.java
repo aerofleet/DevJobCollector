@@ -19,6 +19,9 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import com.querydsl.jpa.JPAExpressions;
 
@@ -45,11 +48,9 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
             Pageable pageable
     ) {
         List<List<String>> keywordTerms = JobSearchKeyword.termGroups(keyword);
-        JPAQuery<JobPost> contentQuery = queryFactory
-                .selectFrom(jobPost)
-                .distinct()
-                .leftJoin(jobPost.postTags, postTag).fetchJoin()
-                .leftJoin(postTag.techStack, techStack).fetchJoin()
+        JPAQuery<Long> contentQuery = queryFactory
+                .select(jobPost.id)
+                .from(jobPost)
                 .where(
                         jobPost.isActive.eq(true),
                         jobPost.moderationStatus.eq(JobModerationStatus.ACTIVE),
@@ -86,7 +87,15 @@ public class JobPostRepositoryCustomImpl implements JobPostRepositoryCustom {
             contentQuery.orderBy(ascending ? jobPost.createdAt.asc() : jobPost.createdAt.desc());
         }
 
-        List<JobPost> content = contentQuery.fetch();
+        contentQuery.orderBy(jobPost.id.desc());
+        List<Long> ids = contentQuery.fetch();
+        Map<Long, JobPost> fetched = ids.isEmpty() ? Map.of() : queryFactory
+                .selectFrom(jobPost).distinct()
+                .leftJoin(jobPost.postTags, postTag).fetchJoin()
+                .leftJoin(postTag.techStack, techStack).fetchJoin()
+                .where(jobPost.id.in(ids)).fetch().stream()
+                .collect(Collectors.toMap(JobPost::getId, Function.identity(), (first, duplicate) -> first));
+        List<JobPost> content = ids.stream().map(fetched::get).filter(java.util.Objects::nonNull).toList();
 
         JPAQuery<Long> countQuery = queryFactory
                 .select(jobPost.countDistinct())

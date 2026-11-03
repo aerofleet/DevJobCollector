@@ -42,6 +42,29 @@ class JobSearchRepositoryIntegrationTest {
     @Autowired EntityManager entityManager;
     @Autowired JdbcTemplate jdbcTemplate;
 
+    @Test
+    void keywordPaginationKeepsStableOrderAndAllTags() {
+        TechStack java = techStackRepository.save(TechStack.builder().stackName("paging-java").build());
+        TechStack spring = techStackRepository.save(TechStack.builder().stackName("paging-spring").build());
+        for (int i = 0; i < 7; i++) {
+            JobPost job = saveJob("pagination-case-" + i, "pagination-sentinel 개발자", null, null, "정규직");
+            job.addTechStack(java);
+            job.addTechStack(spring);
+        }
+        entityManager.flush();
+        entityManager.clear();
+        var first = repository.searchByAllFieldsOptimized("pagination-sentinel", null, null, null, null,
+                LocalDate.now(), PageRequest.of(0, 3));
+        var second = repository.searchByAllFieldsOptimized("pagination-sentinel", null, null, null, null,
+                LocalDate.now(), PageRequest.of(1, 3));
+        assertThat(first.getTotalElements()).isEqualTo(7);
+        assertThat(second.getTotalElements()).isEqualTo(7);
+        assertThat(first.getContent()).hasSize(3).allSatisfy(job -> assertThat(job.getPostTags()).hasSize(2));
+        assertThat(second.getContent()).hasSize(3).allSatisfy(job -> assertThat(job.getPostTags()).hasSize(2));
+        assertThat(first.getContent()).extracting(JobPost::getId)
+                .doesNotContainAnyElementsOf(second.getContent().stream().map(JobPost::getId).toList());
+    }
+
     @DynamicPropertySource
     static void dataSourceProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", () -> System.getenv("DJC_MIGRATION_TEST_URL"));
