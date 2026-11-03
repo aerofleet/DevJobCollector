@@ -2,6 +2,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
 
+test('extracts Discord counsel requirements and separates bonus qualifications without inventing tools', () => {
+  const text = `What you'll be doing:\n• Negotiate API and SDK integration agreements.\nWhat you should have:\n• A JD and active membership in good standing with at least one U.S. state bar.\n• At least 4 years of commercial transactional experience, with a combination of top law firm and/or in-house experience at a technology company preferred.\n• Experience drafting and negotiating complex commercial agreements.\nBonus points:\n• Familiarity with payments, virtual currency, or subscription and bundling arrangements.\nThe base salary range for this full-time position is listed below.`;
+  const result = extractJobRequirements(text);
+  assert.equal(result.required.length, 3);
+  assert.match(result.required[1], /At least 4 years/);
+  assert.deepEqual(result.preferred, ['Familiarity with payments, virtual currency, or subscription and bundling arrangements.']);
+  assert.deepEqual(extractMentionedTools(result, text), []);
+});
+
 test('shows tools from the whole posting and preserves explicit technology lists', () => {
   const text = '# 팀 소개\nKubernetes와 Cloud Native 활용\n# 이력서 추천\nAWS와 CI/CD 서버 운영\n# 토스에서 사용하는 기술\n- Java Spring Framework, JPA/Hibernate, Gradle\n- Jenkins, Git, Docker, Kubernetes + Istio\n- Kafka, Elastic, InfluxData, Grafana, Memcached\n# 꼭 확인해주세요\n기타 안내';
   assert.deepEqual(extractJobTechnologySections(text), ['Java Spring Framework, JPA/Hibernate, Gradle', 'Jenkins, Git, Docker, Kubernetes + Istio', 'Kafka, Elastic, InfluxData, Grafana, Memcached']);

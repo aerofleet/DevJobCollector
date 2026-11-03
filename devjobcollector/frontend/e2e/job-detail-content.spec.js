@@ -23,6 +23,18 @@ test.beforeEach(async ({ page }) => {
   }));
 });
 
+test('Discord 법무 공고의 필수·우대 조건을 구분하고 기술 스택을 추측하지 않는다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/11686?*', route => route.fulfill({ json: {
+    ...jobDetail, id: 11686, title: 'Associate Commercial Counsel', companyName: 'Discord', experience: '경력 4년 이상',
+    applyQual: "What you'll be doing:\n• Negotiate API and SDK integration agreements.\nWhat you should have:\n• A JD and active membership in good standing with at least one U.S. state bar.\n• At least 4 years of commercial transactional experience, with a combination of top law firm and/or in-house experience at a technology company preferred.\nBonus points:\n• Familiarity with payments, virtual currency, or subscription and bundling arrangements.\nThe base salary range for this full-time position is listed below.",
+  } }));
+  await page.goto('/job/11686');
+  await expect(page.getByRole('heading', { name: '자격 조건' }).locator('..')).toContainText('At least 4 years of commercial transactional experience');
+  await expect(page.getByRole('heading', { name: '자격 조건' }).locator('..')).toContainText('U.S. state bar');
+  await expect(page.getByRole('heading', { name: '우대 사항' }).locator('..')).toContainText('virtual currency');
+  await expect(page.getByRole('heading', { name: '기술 스택' }).locator('..')).toContainText('등록된 기술 스택이 없습니다');
+});
+
 test('공고 원문 대신 출처와 자격 조건을 표시하고 원문으로 연결한다', async ({ page }) => {
   await page.goto('/job/42');
 
