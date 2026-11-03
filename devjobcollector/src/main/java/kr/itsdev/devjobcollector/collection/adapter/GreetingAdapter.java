@@ -75,7 +75,9 @@ public class GreetingAdapter implements JobSourceAdapter {
         JsonNode openings = null;
         for (JsonNode query : queries) {
             JsonNode key = query.path("queryKey");
-            if (key.isTextual() && key.asText().equals("openings")) {
+            if ((key.isTextual() && key.asText().equals("openings"))
+                    || (key.isArray() && key.size() == 1 && key.get(0).isTextual()
+                    && key.get(0).asText().equals("openings"))) {
                 if (openings != null) return CollectionResult.failed(CollectionStatus.SCHEMA_CHANGED, VERSION);
                 openings = query.path("state").path("data");
             }

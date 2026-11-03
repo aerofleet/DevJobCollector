@@ -8,7 +8,7 @@ class GreetingAdapterTest {
     @Test void collectsPublishedListAndPermitsClosureOnlyWhenRenderedListMatches() throws Exception {
         String html = """
             <a data-testid="공고_아이템" href="/ko/o/123">개발자</a>
-            <script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{"dehydratedState":{"queries":[{"queryKey":"openings","state":{"data":[{"deploy":true,"openingId":123,"title":"개발자","openDate":"2026-01-01T00:00:00Z","dueDate":"2026-12-01T00:00:00Z"}]}}]}}}}</script>
+            <script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{"dehydratedState":{"queries":[{"queryKey":["openings"],"state":{"data":[{"deploy":true,"openingId":123,"title":"개발자","openDate":"2026-01-01T00:00:00Z","dueDate":"2026-12-01T00:00:00Z"}]}}]}}}}</script>
             """;
         var result = GreetingAdapter.parseList(html, "https://nuua.career.greetinghr.com", "User-agent: *\nAllow: /");
         assertThat(result.status()).isEqualTo(CollectionStatus.SUCCESS);
