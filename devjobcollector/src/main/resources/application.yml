@@ -104,6 +104,49 @@ collection:
         source-identifier: "22"
         careers-url: https://www.saramin.co.kr/zf_user/jobs/list/job-category
         collection-tier: B
+      # 국내 스타트업의 공개 채용 원본 (Lever)
+      - enabled: ${GREETING_DISCOVERY_ENABLED:true}
+        company-name: 누아
+        provider: GREETING
+        source-identifier: nuua
+        careers-url: https://nuua.career.greetinghr.com/ko/home
+        collection-tier: B
+      - enabled: ${GREETING_DISCOVERY_ENABLED:true}
+        company-name: 트립비토즈
+        provider: GREETING
+        source-identifier: tripbtoz
+        careers-url: https://tripbtoz.career.greetinghr.com/ko/career
+        collection-tier: B
+      - enabled: ${GREETING_DISCOVERY_ENABLED:true}
+        company-name: 레디포스트
+        provider: GREETING
+        source-identifier: readypost
+        careers-url: https://readypost.career.greetinghr.com/ko/guide
+        collection-tier: B
+      - enabled: true
+        company-name: 프렌들리AI
+        provider: ASHBY
+        source-identifier: friendliai
+        careers-url: https://jobs.ashbyhq.com/friendliai
+        collection-tier: B
+      - enabled: true
+        company-name: 케이론
+        provider: ASHBY
+        source-identifier: Cheiron
+        careers-url: https://jobs.ashbyhq.com/Cheiron
+        collection-tier: B
+      - enabled: true
+        company-name: 채널코퍼레이션
+        provider: LEVER
+        source-identifier: zoyi
+        careers-url: https://jobs.lever.co/zoyi
+        collection-tier: A
+      - enabled: true
+        company-name: 가우스랩스
+        provider: LEVER
+        source-identifier: gausslabs
+        careers-url: https://jobs.lever.co/gausslabs
+        collection-tier: A
       - enabled: ${TOSS_COLLECTION_ENABLED:false}
         company-name: 토스 커뮤니티
         provider: TOSS_CAREERS

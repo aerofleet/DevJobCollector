@@ -98,6 +98,8 @@ public class JobPostProjectionService {
         return switch (sourceType) {
             case GREENHOUSE -> SourcePlatform.GREENHOUSE;
             case LEVER -> SourcePlatform.LEVER;
+            case ASHBY -> SourcePlatform.COMPANY_PAGE;
+            case GREETING -> SourcePlatform.COMPANY_PAGE;
             case SARAMIN -> SourcePlatform.SARAMIN;
             case TOSS_CAREERS -> SourcePlatform.COMPANY_PAGE;
             case NAVER_CAREERS -> SourcePlatform.COMPANY_PAGE;

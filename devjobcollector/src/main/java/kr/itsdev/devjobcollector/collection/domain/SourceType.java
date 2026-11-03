@@ -4,6 +4,7 @@ public enum SourceType {
     PUBLIC_ALIO,
     GREENHOUSE,
     LEVER,
+    ASHBY,
     SARAMIN,
     TOSS_CAREERS,
     NAVER_CAREERS,
