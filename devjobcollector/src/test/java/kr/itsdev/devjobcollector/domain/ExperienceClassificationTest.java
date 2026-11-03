@@ -4,6 +4,15 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ExperienceClassificationTest {
+    @Test void distinguishesRequiredYearsFromPreferredExperienceMix() {
+        String requirement = "At least 4 years of commercial transactional experience, with a combination of top law firm and/or in-house experience at a technology company preferred.";
+        var result = ExperienceClassification.classify("경력무관", "Associate Commercial Counsel",
+                "What you should have:\n• " + requirement + "\nBonus points:\n• 9+ years of experience", false);
+        assertThat(result.label()).isEqualTo("경력 4년 이상");
+        assertThat(result.evidence()).contains("At least 4 years").doesNotContain("preferred");
+        assertThat(ExperienceClassification.classify(null, "Counsel", "What you should have:\n• At least 4 years of commercial experience preferred.", false).category()).isEqualTo("UNKNOWN");
+        assertThat(ExperienceClassification.classify(null, "Counsel", "Preferred qualifications:\n• " + requirement, false).category()).isEqualTo("UNKNOWN");
+    }
     @Test void recognizesYearsInFieldWithinRoleFitSection() {
         String text = "How Do I Know if the Role is Right For Me?\n• 6+ years in analytics or strategy, ideally at a marketplace.\nCompensation & Benefits\n• 12+ years in analytics";
         var result = ExperienceClassification.classify(null, "Manager", text, false);

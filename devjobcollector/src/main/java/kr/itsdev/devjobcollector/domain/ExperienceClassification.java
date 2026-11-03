@@ -34,8 +34,9 @@ public record ExperienceClassification(String category, String label, String evi
         String unrestrictedEvidence = null;
         for (String line : text.split("\\R")) {
             String value = line.trim();
-            if (PREFERRED.matcher(value).find()) { inRequired = false; continue; }
-            boolean requiredHeading = REQUIRED.matcher(value).find() || value.matches("(?i)^how do i know if the role is right for me\\?\\s*$");
+            if (PREFERRED.matcher(value).find() || value.matches("(?i)^bonus points\\s*[:：]?$")) { inRequired = false; continue; }
+            boolean requiredHeading = REQUIRED.matcher(value).find() || value.matches("(?i)^how do i know if the role is right for me\\?\\s*$")
+                    || value.matches("(?i)^what you should have\\s*[:：]?$");
             if (requiredHeading) { inRequired = true; }
             else if (value.matches("^#{1,6}\\s+.*")) { inRequired = false; continue; }
             if (value.matches("(?i)^(?:PID\\s*-\\s*[A-Z]?\\d+|pay transparency.*|pay range transparency.*|compensation\\s*&\\s*benefits.*|annual base salary.*|application limit.*|equal opportunity.*|relocation statement\\s*[:：]?|in-office requirement statement\\s*[:：]?)$")) { inRequired = false; continue; }
@@ -45,6 +46,8 @@ public record ExperienceClassification(String category, String label, String evi
             Matcher explicitUnrestricted = Pattern.compile("경력\\s*구분\\s*[:：]\\s*무관").matcher(value);
             if (explicitUnrestricted.find()) unrestrictedEvidence = explicitUnrestricted.group();
             String candidate = value;
+            // A required minimum may be followed by a separate preferred mix of experience.
+            candidate = candidate.replaceFirst("(?i),\\s+with a combination of\\s+[^.;]+\\bpreferred\\.?$", "");
             String[] clauses = value.split(";", -1);
             if (clauses.length == 2 && clauses[1].trim().toLowerCase(Locale.ROOT).matches(".*\\bstrongly preferred\\.?$")
                     && !clauses[0].toLowerCase(Locale.ROOT).contains("preferred")) candidate = clauses[0].trim();

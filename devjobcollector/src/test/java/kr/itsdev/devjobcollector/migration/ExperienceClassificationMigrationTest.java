@@ -34,6 +34,28 @@ class ExperienceClassificationMigrationTest {
     @AfterAll static void cleanup() { flyway(null).clean(); }
     @BeforeEach void resetSchema() { flyway(null).clean(); }
 
+    @Test void backfillsShouldHaveMinimumWithoutOverwritingReviewedOrPreferredOnly() throws Exception {
+        flyway("41").migrate();
+        try (Connection c = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"), System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"), System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
+            c.setCatalog(SCHEMA);
+            try (var insert = c.prepareStatement("INSERT INTO job_posts (source_platform,original_sn,company_name,title,experience,apply_qual,start_date,end_date,original_url,is_active,reviewed_experience_category) VALUES ('GREENHOUSE',?,'Discord','Counsel','경력무관',?,'2026-01-01','2030-01-01','https://example.com',1,?)")) {
+                String required = "What you should have:\n• At least 4 years of commercial transactional experience, with a combination of top law firm and/or in-house experience at a technology company preferred.";
+                insert.setString(1, "should:required"); insert.setString(2, required); insert.setString(3, null); insert.executeUpdate();
+                insert.setString(1, "should:reviewed"); insert.setString(2, required); insert.setString(3, "ENTRY"); insert.executeUpdate();
+                insert.setString(1, "should:preferred"); insert.setString(2, "What you should have:\n• At least 4 years of experience preferred."); insert.setString(3, null); insert.executeUpdate();
+            }
+        }
+        flyway(null).migrate();
+        try (Connection c = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"), System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"), System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
+            c.setCatalog(SCHEMA);
+            try (var s = c.createStatement(); var rows = s.executeQuery("SELECT experience_category,experience_label FROM job_posts WHERE original_sn LIKE 'should:%' ORDER BY original_sn")) {
+                assertThat(rows.next()).isTrue(); assertThat(rows.getString(1)).isEqualTo("UNKNOWN");
+                assertThat(rows.next()).isTrue(); assertThat(rows.getString(1)).isEqualTo("EXPERIENCED"); assertThat(rows.getString(2)).isEqualTo("경력 4년 이상");
+                assertThat(rows.next()).isTrue(); assertThat(rows.getString(1)).isEqualTo("UNKNOWN");
+            }
+        }
+    }
+
     @Test void backfillsRoleFitExperienceOnlyForUnreviewedRecords() throws Exception {
         flyway("40").migrate();
         try (Connection c = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"), System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"), System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
