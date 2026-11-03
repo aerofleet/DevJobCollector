@@ -136,6 +136,12 @@ collection:
         careers-url: https://jobs.ashbyhq.com/Cheiron
         collection-tier: B
       - enabled: true
+        company-name: 트웰브랩스
+        provider: ASHBY
+        source-identifier: twelve-labs
+        careers-url: https://jobs.ashbyhq.com/twelve-labs
+        collection-tier: B
+      - enabled: true
         company-name: 채널코퍼레이션
         provider: LEVER
         source-identifier: zoyi
