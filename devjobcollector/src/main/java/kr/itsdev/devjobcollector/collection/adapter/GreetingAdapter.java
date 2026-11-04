@@ -30,7 +30,7 @@ import java.util.Map;
 /** Collects the public openings displayed on a configured Greeting career page. */
 @Component
 public class GreetingAdapter implements JobSourceAdapter {
-    public static final String VERSION = "greeting-openings-v2";
+    public static final String VERSION = "greeting-openings-v3";
     private static final String USER_AGENT = "DevJobCollector/1.0 (+https://itsdev.kr)";
     private static final int MAX_BYTES = 2_000_000;
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -65,7 +65,9 @@ public class GreetingAdapter implements JobSourceAdapter {
             for (JobRawDto job : listing.jobs()) {
                 try {
                     Thread.sleep(250);
-                    String detail = get(URI.create(job.sourceUrl()));
+                    String detailPath = "/ko/o/" + job.sourceJobId();
+                    if (!allowed(robots, detailPath)) { incomplete = true; continue; }
+                    String detail = get(URI.create(origin + detailPath));
                     JobRawDto enrichedJob = detail == null ? null : parseDetail(job, detail);
                     if (enrichedJob == null) incomplete = true;
                     else enriched.add(enrichedJob);
