@@ -2,6 +2,18 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
 
+test('extracts Cheiron square-marker sections and source-mentioned tools', () => {
+  const text = "■ What You'll Do\n - Build backend services with Python, FastAPI, and Postgres\n■ Requirements\n - 2+ years of experience shipping production backend systems\n - Active use of Claude Code and Cursor\n■ Nice to Have\n - Experience with LangGraph and RAG\n - Experience on AWS, Terraform, and Kubernetes\n■ Benefits & Perks\n - Health insurance\n■ Interview Process\nScreening";
+  const result = extractJobRequirements(text);
+  assert.equal(result.required.length, 2);
+  assert.equal(result.preferred.length, 2);
+  assert.ok(!result.preferred.some(item => /Health insurance|Screening/.test(item)));
+  assert.deepEqual(extractJobDuties(text), ['Build backend services with Python, FastAPI, and Postgres']);
+  const tools = extractMentionedTools(result, text);
+  for (const name of ['Python', 'FastAPI', 'PostgreSQL', 'RAG', 'LangGraph', 'AWS', 'Terraform', 'Kubernetes', 'Claude', 'Cursor']) assert.ok(tools.includes(name), name);
+  assert.equal(extractJobSalary(text), null);
+});
+
 test('extracts FriendliAI preferred experience without including benefits', () => {
   const text = 'QUALIFICATIONS\n- 3+ years of professional Python engineering building libraries, SDKs, or developer tools used in production.\nPREFERRED EXPERIENCE\n- Maintainer or significant OSS contributor in Python libraries.\n- Containers & local dev tooling (Docker); familiarity with Kubernetes basics.\nBENEFITS\n- Flexible working hours';
   const result = extractJobRequirements(text);

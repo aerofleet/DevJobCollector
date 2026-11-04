@@ -23,6 +23,20 @@ test.beforeEach(async ({ page }) => {
   }));
 });
 
+test('Cheiron 공고의 필수·우대 조건과 본문 기술을 표시한다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/11542?*', route => route.fulfill({ json: {
+    ...jobDetail, id: 11542, title: 'Backend Engineer, Applied Agents (Los Altos)', companyName: '케이론',
+    location: 'Los Altos', experience: '경력 2년 이상', techStacks: [],
+    applyQual: "■ What You'll Do\n- Build backend services with Python, FastAPI, and Postgres\n■ Requirements\n- 2+ years of experience shipping and operating production backend systems\n■ Nice to Have\n- Experience with LangGraph and RAG\n■ Benefits & Perks\n- Health insurance",
+  } }));
+  await page.goto('/job/11542');
+  await expect(page.getByRole('heading', { name: '자격 조건' }).locator('..')).toContainText('2+ years of experience');
+  await expect(page.getByRole('heading', { name: '우대 사항' }).locator('..')).toContainText('LangGraph and RAG');
+  await expect(page.getByRole('heading', { name: '우대 사항' }).locator('..')).not.toContainText('Health insurance');
+  const stack = page.getByRole('heading', { name: '기술 스택' }).locator('..');
+  for (const tool of ['Python', 'FastAPI', 'PostgreSQL', 'LangGraph', 'RAG']) await expect(stack).toContainText(tool);
+});
+
 test('Discord 법무 공고의 필수·우대 조건을 구분하고 기술 스택을 추측하지 않는다', async ({ page }) => {
   await page.route('**/api/v1/jobs/11686?*', route => route.fulfill({ json: {
     ...jobDetail, id: 11686, title: 'Associate Commercial Counsel', companyName: 'Discord', experience: '경력 4년 이상',

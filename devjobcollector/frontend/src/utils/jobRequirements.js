@@ -1,10 +1,10 @@
 const HEADINGS = /^(?:#{1,6}\s*)?[[【]?(자격\s*(?:요건|조건)|지원\s*(?:자격|조건)|필수\s*(?:요건|사항|조건)|우대\s*(?:사항|요건|조건)|이런\s*분과\s*함께하고\s*싶어요|이런\s*경험이\s*있다면\s*더\s*좋아요|preferred (?:qualifications|requirements|skills)|basic qualifications|required skills(?:\s+and\s+experience)?|minimum requirements|nice to haves?|bonus points|while not required,?\s*it['’]s an added plus if you also have|we['’]d love to hear from you if you have|we(?:['’]re| are) looking for someone who|your expertise|what you should have|what you(?:['’]ll| will)?\s+(?:bring|need)|what we(?:['’]re| are) looking for|what we look for in you(?:\s*\(i\.?e\.?\s*,?\s*job requirements\))?|qualifications(?:\s*(?:&|and)\s*experience\s+required)?|requirements)[\]】]?[\s:：-]*$/i;
 // Some sources serialize a heading and bullet list into a single line.
 function separateInlineBullets(text) {
-  return text.replace(/\ufeff/g, '').replace(/^(\s*(?:what you(?:['’]ll| will) do|required skills|preferred skills|채용하고 싶은 사람|전형절차 및 기타사항|유의사항))\s+(?=·\s)/gim, '$1\n')
+  return text.replace(/\ufeff/g, '').replace(/^[ \t]*■[ \t]*/gm, '').replace(/^(\s*(?:what you(?:['’]ll| will) do|required skills|preferred skills|채용하고 싶은 사람|전형절차 및 기타사항|유의사항))\s+(?=·\s)/gim, '$1\n')
     .replace(/[ \t]+·(?=\s)/g, '\n·');
 }
-const OTHER_HEADING = /^(?:#{1,6}\s+.+|[[【].+[\]】]|(?:주요\s*업무|담당\s*업무|업무\s*내용|조직\s*소개|근무\s*조건|복리\s*후생|혜택\s*및\s*복지|전형\s*절차|채용\s*(?:절차|프로세스)|접수\s*방법|기타\s*사항|responsibilities|benefits|success measures|about the (?:role|team)|hiring process)\s*[:：]?)$/i;
+const OTHER_HEADING = /^(?:#{1,6}\s+.+|[[【].+[\]】]|(?:주요\s*업무|담당\s*업무|업무\s*내용|조직\s*소개|근무\s*조건|복리\s*후생|혜택\s*및\s*복지|전형\s*절차|채용\s*(?:절차|프로세스)|접수\s*방법|기타\s*사항|responsibilities|benefits(?:\s*&\s*perks)?|success measures|about the (?:role|team)|hiring process|interview process)\s*[:：]?)$/i;
 const LABELED_REQUIREMENT_HEADING = /^[^\n•]{0,100}\((필수\s*(?:요건|사항|조건)|우대\s*(?:요건|사항|조건))\)\s*[:：]?$/;
 const KRAFTON_PROCESS_HEADING = /^.{0,80}전형\s*과정이\s*필요합니다[.!]?$/;
 
@@ -136,10 +136,11 @@ export function extractMentionedTools(requirements, content = '') {
   const text = [...requirements.required, ...requirements.preferred, String(content || '').replace(/<[^>]*>/g, ' ')].join(' ');
   const tools = ['Google apps', 'JIRA', 'Salesforce Service Cloud', 'Amazon Connect', 'LibreChat', 'Gemini', 'Glean', 'Java', 'Kotlin', 'JavaScript', 'TypeScript', 'Python', 'C++', 'ROS2', 'PyTorch', 'JAX', 'LeRobot', 'MuJoCo', 'Isaac Sim', 'React', 'Spring', 'Spring Boot', 'Spring Cloud', 'JPA', 'Hibernate', 'Gradle', 'Jenkins', 'Git', 'GitHub Actions', 'Istio', 'Kafka', 'Elastic', 'Elasticsearch', 'InfluxData', 'Grafana', 'Prometheus', 'Thanos', 'Memcached', 'Redis', 'RabbitMQ', 'MySQL', 'OCI', 'Cloudflare Tunnel', 'Nginx', 'Node.js', 'NestJS', 'Nest.js', 'gRPC', 'WebSocket', 'ArgoCD', 'GoCD', 'Vault', 'Podman', 'Containerd', 'Hadoop', 'Cloud Native', 'iOS', 'SQL', 'Excel', 'SAP', 'RDBMS', 'NoSQL', 'PostgreSQL', 'MongoDB', 'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP', 'IaC', 'CI/CD'];
   const matches = tools.filter((name) => new RegExp(`(?<![\\w+])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w+])`, 'i').test(text));
-  for (const name of ['LangChain', 'LangGraph', 'Terraform', 'OpenAI', 'Claude']) {
+  for (const name of ['LangChain', 'LangGraph', 'Terraform', 'OpenAI', 'Claude', 'FastAPI', 'RAG', 'Cursor']) {
     if (new RegExp(`(?<![\\w])${name}(?![\\w])`, 'i').test(text)) matches.push(name);
   }
   if (/(?:[,/]\s*Go\b|\bGo(?:lang)?\s*(?:언어|개발|programming|developer))/i.test(text)) matches.push('Go');
+  if (/\bPostgres\b/i.test(text) && !matches.includes('PostgreSQL')) matches.push('PostgreSQL');
   if (/\b(?:large language models?|LLMs?)\b/i.test(text)) matches.push('LLM');
   return matches;
 }
