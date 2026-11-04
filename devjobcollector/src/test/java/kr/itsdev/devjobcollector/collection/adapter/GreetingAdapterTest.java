@@ -10,6 +10,11 @@ import java.time.Instant;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class GreetingAdapterTest {
+    @Test void capturesBracketedNuuaSections() {
+        String html = "<p>회사 소개</p><p>[주요업무]</p><p>• LangChain 개발</p><p>[자격요건]</p><p>• 3년 이상의 백엔드 경험</p><p>[우대사항]</p><p>• Python 경험</p>";
+        assertThat(GreetingAdapter.extractRelevantText(html))
+                .contains("[주요업무]", "LangChain", "[자격요건]", "[우대사항]").doesNotContain("회사 소개");
+    }
     @Test void schemaUpgradeSchedulesARefreshButCurrentVersionRetainsItsSchedule() {
         var target = new CompanySourceTarget(null, "누아", SourceType.GREETING, "nuua", "https://nuua.career.greetinghr.com/ko/home", CollectionTier.B);
         target.activate();

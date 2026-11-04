@@ -2,6 +2,17 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
 
+test('extracts bracketed Nuua AI agent qualifications and mentioned tools', () => {
+  const text = '[주요업무]\n• LangChain, LangGraph, OpenAI, Claude 및 Terraform 활용\n[자격요건]\n• 3년 이상의 백엔드 개발 및 운영 경험\n• C++, Python, Java, Go, Javascript 등 언어 무관\n[우대사항]\n• Python 기반 웹 프레임워크 활용 역량\n[혜택 및 복지]\n• 장기 근속 여행지원금';
+  const requirements = extractJobRequirements(text);
+  assert.equal(requirements.required.length, 2);
+  assert.deepEqual(requirements.preferred, ['Python 기반 웹 프레임워크 활용 역량']);
+  const tools = extractMentionedTools(requirements, text);
+  for (const name of ['LangChain', 'LangGraph', 'Terraform', 'OpenAI', 'Claude', 'C++', 'Python', 'Java', 'Go', 'JavaScript']) assert.ok(tools.includes(name), name);
+  assert.equal(extractJobSalary(text), null);
+  assert.ok(!extractMentionedTools({ required: [], preferred: [] }, 'We go to the office').includes('Go'));
+});
+
 test('stops Nuua preferred qualifications before benefits and recruiting process', () => {
   const text = '자격요건\n• 개발 경력 3년 이상\n• Java, Spring Framework 개발 경험\n우대사항\n• 예약 플랫폼 연동 개발 경험\n혜택 및 복지\n• 장기 근속자 여행지원금 100만원\n채용 프로세스\n• 서류심사 → 면접';
   const requirements = extractJobRequirements(text);

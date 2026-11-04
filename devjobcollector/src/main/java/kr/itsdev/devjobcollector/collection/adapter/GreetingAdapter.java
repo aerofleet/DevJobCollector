@@ -30,7 +30,7 @@ import java.util.Map;
 /** Collects the public openings displayed on a configured Greeting career page. */
 @Component
 public class GreetingAdapter implements JobSourceAdapter {
-    public static final String VERSION = "greeting-openings-v3";
+    public static final String VERSION = "greeting-openings-v4";
     private static final String USER_AGENT = "DevJobCollector/1.0 (+https://itsdev.kr)";
     private static final int MAX_BYTES = 2_000_000;
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -148,7 +148,7 @@ public class GreetingAdapter implements JobSourceAdapter {
         for (String line : text.split("\\R")) {
             String value = line.trim();
             if (value.isEmpty()) continue;
-            if (value.matches("(?i)^(?:주요\\s*업무|담당\\s*업무|업무\\s*내용|자격\\s*요건|지원\\s*자격|필수\\s*(?:요건|사항|조건)|우대\\s*(?:요건|사항|조건)|급여\\s*(?:정보|조건)?|연봉|채용\\s*프로세스|채용\\s*절차|혜택\\s*및\\s*복지)\\s*[:：]?$")) collecting = true;
+            if (value.matches("(?i)^[\\[【]?(?:주요\\s*업무|담당\\s*업무|업무\\s*내용|자격\\s*요건|지원\\s*자격|필수\\s*(?:요건|사항|조건)|우대\\s*(?:요건|사항|조건)|급여\\s*(?:정보|조건)?|연봉|채용\\s*프로세스|채용\\s*절차|혜택\\s*및\\s*복지)[\\]】]?\\s*[:：]?$")) collecting = true;
             if (collecting) result.append(value).append('\n');
             if (result.length() >= 20000) break;
         }
