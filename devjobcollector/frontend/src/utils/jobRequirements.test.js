@@ -2,6 +2,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
 
+test('extracts Kakao duties, required qualifications and preferred qualifications', () => {
+  const text = '조직 소개\n생성 모델 연구\n업무내용\n- 모델 학습\n- 추론 최적화\n자격요건\n- 석사 이상 혹은 관련 프로젝트 경험\n- Python 및 PyTorch 경험\n우대사항\n- GPU 분산 학습 경험';
+  const result = extractJobRequirements(text);
+  assert.equal(result.required.length, 2);
+  assert.deepEqual(result.preferred, ['GPU 분산 학습 경험']);
+  assert.deepEqual(extractJobDuties(text), ['모델 학습', '추론 최적화']);
+  assert.deepEqual(extractMentionedTools(result, text), ['Python', 'PyTorch']);
+});
+
 test('separates Tripbtoz preferred conditions from working conditions and benefits', () => {
   const text = '주요업무\n고객 문의 응대\n자격요건\n고객 서비스 분야에서 2년 이상 경험\n기본적인 IT 활용 능력(Google Workspace, Slack 등)\n우대사항\n여행, 호텔, OTA 분야 경험\n근무조건 및 근무환경\n근무형태 : 정규직(수습기간 3개월_급여100%)\n혜택 및 복지\n트립캐시 연 50만원';
   const result = extractJobRequirements(text);

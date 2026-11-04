@@ -2,6 +2,7 @@ package kr.itsdev.devjobcollector.collection.service;
 
 import kr.itsdev.devjobcollector.collection.config.AtsCollectionProperties;
 import kr.itsdev.devjobcollector.collection.adapter.GreetingAdapter;
+import kr.itsdev.devjobcollector.collection.adapter.KakaoCareerAdapter;
 import kr.itsdev.devjobcollector.collection.domain.SourceType;
 import kr.itsdev.devjobcollector.collection.domain.CollectionTier;
 import kr.itsdev.devjobcollector.collection.domain.CompanySourceTarget;
@@ -58,6 +59,9 @@ public class AtsTargetRegistry implements ApplicationRunner {
         }
         if (configured.provider() == SourceType.GREETING) {
             target.requestCollectionForSchema(GreetingAdapter.VERSION);
+        }
+        if (configured.provider() == SourceType.KAKAO) {
+            target.requestCollectionForSchema(KakaoCareerAdapter.SCHEMA_VERSION);
         }
         targetRepository.save(target);
         log.info("ATS target registered: provider={}, identifier={}, company={}, status={}",

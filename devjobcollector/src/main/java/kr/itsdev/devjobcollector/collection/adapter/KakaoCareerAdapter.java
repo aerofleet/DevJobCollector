@@ -18,6 +18,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.HtmlUtils;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.jsoup.Jsoup;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -32,7 +33,7 @@ import java.util.List;
 public class KakaoCareerAdapter implements JobSourceAdapter {
 
     private static final String BASE_URL = "https://careers.kakao.com/public/api/job-list";
-    private static final String SCHEMA_VERSION = "kakao-careers-public-v1-2026-10";
+    public static final String SCHEMA_VERSION = "kakao-careers-public-v2-2026-11";
     private static final int MAX_PAGES = 20;
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private static final List<String> JOB_PARTS = List.of(
@@ -136,11 +137,11 @@ public class KakaoCareerAdapter implements JobSourceAdapter {
                 job.jobOfferTitle(),
                 job.locationName(),
                 job.employeeTypeName(),
-                null,
+                experienceFromTitle(job.jobOfferTitle()),
                 team,
                 sourceUrl,
                 sourceUrl,
-                toPlainText(job.introduction()),
+                description(job),
                 parseInstant(job.regDate()),
                 parseInstant(job.uptDate()),
                 parseDeadlineInstant(job.endDate()),
@@ -149,13 +150,33 @@ public class KakaoCareerAdapter implements JobSourceAdapter {
         );
     }
 
+    static String description(KakaoCareerResponse.Job job) {
+        List<String> parts = new ArrayList<>();
+        appendSection(parts, "조직 소개", job.introduction());
+        appendSection(parts, "업무내용", job.workContentDesc());
+        appendSection(parts, "자격요건", job.qualification());
+        return parts.isEmpty() ? null : String.join("\n", parts);
+    }
+
+    static String experienceFromTitle(String title) {
+        return title != null && title.matches(".*[\\(\\[]\\s*신입\\s*[/·,]\\s*경력\\s*[\\)\\]].*") ? "신입·경력" : null;
+    }
+
+    private static void appendSection(List<String> parts, String heading, String html) {
+        String content = toPlainText(html);
+        if (content != null && !content.isBlank()) parts.add(heading + "\n" + content);
+    }
+
     private static String toPlainText(String html) {
         if (html == null || html.isBlank()) {
             return null;
         }
-        return HtmlUtils.htmlUnescape(html.replaceAll("<[^>]+>", " "))
-                .replaceAll("\\s+", " ")
-                .trim();
+        String decoded = HtmlUtils.htmlUnescape(HtmlUtils.htmlUnescape(html))
+                .replaceAll("(?i)<br\\s*/?>|</(?:p|div|li|h[1-6])\\s*>", "\n")
+                .replaceAll("(?i)<li(?:\\s[^>]*)?>", "\n• ");
+        return Jsoup.parse(decoded).body().wholeText().replace('\u00a0', ' ')
+                .replaceAll("(?m)^[ \\t]*\\*\\*[ \\t]*◆[ \\t]*(우대사항|우대요건|우대조건)[ \\t]*\\*\\*[ \\t]*$", "$1")
+                .replaceAll("(?m)[ \\t]+$", "").replaceAll("\\n{3,}", "\n\n").trim();
     }
 
     private static Instant parseInstant(String value) {
