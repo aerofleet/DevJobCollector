@@ -34,6 +34,27 @@ class ExperienceClassificationMigrationTest {
     @AfterAll static void cleanup() { flyway(null).clean(); }
     @BeforeEach void resetSchema() { flyway(null).clean(); }
 
+    @Test void correctsOnlyWoowahanApiLinks() throws Exception {
+        flyway("43").migrate();
+        try (Connection c = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"), System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"), System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
+            c.setCatalog(SCHEMA);
+            try (var insert = c.prepareStatement("INSERT INTO job_posts (source_platform,original_sn,company_name,title,start_date,end_date,original_url,is_active) VALUES (?,?, 'Company','Job','2026-01-01','2030-01-01',?,1)")) {
+                insert.setString(1, "WOOWAHAN"); insert.setString(2, "url:api"); insert.setString(3, "https://career.woowahan.com/w1/recruits/R2611003"); insert.executeUpdate();
+                insert.setString(1, "WOOWAHAN"); insert.setString(2, "url:custom"); insert.setString(3, "https://example.com/custom"); insert.executeUpdate();
+                insert.setString(1, "GREENHOUSE"); insert.setString(2, "url:other"); insert.setString(3, "https://career.woowahan.com/w1/recruits/R2611003"); insert.executeUpdate();
+            }
+        }
+        flyway(null).migrate();
+        try (Connection c = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"), System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"), System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
+            c.setCatalog(SCHEMA);
+            try (var s = c.createStatement(); var rows = s.executeQuery("SELECT original_url FROM job_posts WHERE original_sn LIKE 'url:%' ORDER BY original_sn")) {
+                assertThat(rows.next()).isTrue(); assertThat(rows.getString(1)).isEqualTo("https://career.woowahan.com/recruitment/R2611003/detail");
+                assertThat(rows.next()).isTrue(); assertThat(rows.getString(1)).isEqualTo("https://example.com/custom");
+                assertThat(rows.next()).isTrue(); assertThat(rows.getString(1)).isEqualTo("https://career.woowahan.com/w1/recruits/R2611003");
+            }
+        }
+    }
+
     @Test void backfillsProfessionalEngineeringMinimumAndPreservesReviewedOrPreferredOnly() throws Exception {
         flyway("42").migrate();
         try (Connection c = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"), System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"), System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {

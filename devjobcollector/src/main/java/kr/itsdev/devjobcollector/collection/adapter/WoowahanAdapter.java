@@ -158,7 +158,7 @@ public class WoowahanAdapter implements JobSourceAdapter {
         String employmentType = resolveCode(EMPLOYMENT_TYPE_NAMES, recruit.employmentType());
         String experience = buildExperience(recruit);
         String description = toPlainText(recruit.recruitContents());
-        String sourceUrl = "https://career.woowahan.com/w1/recruits/" + recruit.recruitNumber();
+        String sourceUrl = "https://career.woowahan.com/recruitment/" + recruit.recruitNumber() + "/detail";
 
         return new JobRawDto(
                 sourceType(),
