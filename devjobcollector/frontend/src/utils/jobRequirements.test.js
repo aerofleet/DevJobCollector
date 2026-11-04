@@ -12,6 +12,7 @@ test('extracts Cheiron square-marker sections and source-mentioned tools', () =>
   const tools = extractMentionedTools(result, text);
   for (const name of ['Python', 'FastAPI', 'PostgreSQL', 'RAG', 'LangGraph', 'AWS', 'Terraform', 'Kubernetes', 'Claude', 'Cursor']) assert.ok(tools.includes(name), name);
   assert.equal(extractJobSalary(text), null);
+  assert.deepEqual(extractMentionedTools({ required: [], preferred: [] }, 'Move the cursor to the next page and use a rag.'), []);
 });
 
 test('extracts FriendliAI preferred experience without including benefits', () => {

@@ -136,9 +136,11 @@ export function extractMentionedTools(requirements, content = '') {
   const text = [...requirements.required, ...requirements.preferred, String(content || '').replace(/<[^>]*>/g, ' ')].join(' ');
   const tools = ['Google apps', 'JIRA', 'Salesforce Service Cloud', 'Amazon Connect', 'LibreChat', 'Gemini', 'Glean', 'Java', 'Kotlin', 'JavaScript', 'TypeScript', 'Python', 'C++', 'ROS2', 'PyTorch', 'JAX', 'LeRobot', 'MuJoCo', 'Isaac Sim', 'React', 'Spring', 'Spring Boot', 'Spring Cloud', 'JPA', 'Hibernate', 'Gradle', 'Jenkins', 'Git', 'GitHub Actions', 'Istio', 'Kafka', 'Elastic', 'Elasticsearch', 'InfluxData', 'Grafana', 'Prometheus', 'Thanos', 'Memcached', 'Redis', 'RabbitMQ', 'MySQL', 'OCI', 'Cloudflare Tunnel', 'Nginx', 'Node.js', 'NestJS', 'Nest.js', 'gRPC', 'WebSocket', 'ArgoCD', 'GoCD', 'Vault', 'Podman', 'Containerd', 'Hadoop', 'Cloud Native', 'iOS', 'SQL', 'Excel', 'SAP', 'RDBMS', 'NoSQL', 'PostgreSQL', 'MongoDB', 'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP', 'IaC', 'CI/CD'];
   const matches = tools.filter((name) => new RegExp(`(?<![\\w+])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w+])`, 'i').test(text));
-  for (const name of ['LangChain', 'LangGraph', 'Terraform', 'OpenAI', 'Claude', 'FastAPI', 'RAG', 'Cursor']) {
+  for (const name of ['LangChain', 'LangGraph', 'Terraform', 'OpenAI', 'Claude', 'FastAPI']) {
     if (new RegExp(`(?<![\\w])${name}(?![\\w])`, 'i').test(text)) matches.push(name);
   }
+  if (/\bRAG\b/.test(text)) matches.push('RAG');
+  if (/\bCursor\b/.test(text)) matches.push('Cursor');
   if (/(?:[,/]\s*Go\b|\bGo(?:lang)?\s*(?:언어|개발|programming|developer))/i.test(text)) matches.push('Go');
   if (/\bPostgres\b/i.test(text) && !matches.includes('PostgreSQL')) matches.push('PostgreSQL');
   if (/\b(?:large language models?|LLMs?)\b/i.test(text)) matches.push('LLM');
