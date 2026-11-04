@@ -128,6 +128,9 @@
 .multi-filter-options legend { float: none; width: auto; font-size: 12px; color: #77727f; margin-bottom: 6px; }
 .detail-filters .multi-filter-options label { display: flex; align-items: center; gap: 8px; min-height: 38px; padding: 6px 2px; font-size: 13px; cursor: pointer; }
 .multi-filter-options input { accent-color: #6c4dff; flex: 0 0 auto; }
+.multi-filter-options .multi-filter-load-more { display: block; width: 100%; min-height: 40px; padding: 8px 12px; border: 1px solid #dcd4fa; border-radius: 8px; background: #f5f2ff; color: #5c40de; font-size: 13px; font-weight: 600; cursor: pointer; }
+.multi-filter-options .multi-filter-load-more:hover { background: #ebe5ff; border-color: #a999f4; }
+.multi-filter-options .multi-filter-load-more:focus-visible { outline: 2px solid #7659f4; outline-offset: -2px; }
 @media (max-width: 640px) {
   .multi-filter-menu { position: static; width: 100%; max-width: 100%; margin-top: 6px; }
   .multi-filter summary { scroll-margin-block: 80px; }

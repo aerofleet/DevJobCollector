@@ -45,7 +45,7 @@ export default function MultiSelectFilter({ label, groups, values, onChange, sta
           </fieldset>;
         })}
         {pageSize && groups.some(group => group.options.filter(option => option.label.toLowerCase().includes(query.trim().toLowerCase())).length > visibleLimit)
-          && <button type="button" onClick={() => setVisibleLimit(limit => limit + pageSize)}>회사 더 보기</button>}
+          && <button className="multi-filter-load-more" type="button" onClick={() => setVisibleLimit(limit => limit + pageSize)}>회사 더 보기</button>}
         {!status && !options.some(option => option.label.toLowerCase().includes(query.trim().toLowerCase())) && <p>일치하는 항목이 없습니다.</p>}
       </div>
     </div>
