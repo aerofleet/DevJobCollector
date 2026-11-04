@@ -1,6 +1,8 @@
 package kr.itsdev.devjobcollector.collection.service;
 
 import kr.itsdev.devjobcollector.collection.config.AtsCollectionProperties;
+import kr.itsdev.devjobcollector.collection.adapter.GreetingAdapter;
+import kr.itsdev.devjobcollector.collection.domain.SourceType;
 import kr.itsdev.devjobcollector.collection.domain.CollectionTier;
 import kr.itsdev.devjobcollector.collection.domain.CompanySourceTarget;
 import kr.itsdev.devjobcollector.collection.domain.TargetStatus;
@@ -53,6 +55,9 @@ public class AtsTargetRegistry implements ApplicationRunner {
         target.updateMetadata(configured.companyName(), configured.careersUrl(), tier(configured));
         if (target.getStatus() == TargetStatus.DISCOVERED || target.getStatus() == TargetStatus.VERIFYING) {
             target.activate();
+        }
+        if (configured.provider() == SourceType.GREETING) {
+            target.requestCollectionForSchema(GreetingAdapter.VERSION);
         }
         targetRepository.save(target);
         log.info("ATS target registered: provider={}, identifier={}, company={}, status={}",

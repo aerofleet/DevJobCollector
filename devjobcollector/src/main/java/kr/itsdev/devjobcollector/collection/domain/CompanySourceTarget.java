@@ -117,6 +117,13 @@ public class CompanySourceTarget {
         return companyName == null || companyName.isBlank() ? sourceIdentifier : companyName;
     }
 
+    public void requestCollectionForSchema(String version) {
+        if (isCollectable() && !java.util.Objects.equals(schemaVersion, version)) {
+            nextCollectAt = null;
+            updatedAt = Instant.now();
+        }
+    }
+
     public void recordSuccess(Instant checkedAt, Integer httpStatus, String schemaVersion, Instant nextCollectAt) {
         this.lastSuccessAt = checkedAt;
         this.lastCheckedAt = checkedAt;
