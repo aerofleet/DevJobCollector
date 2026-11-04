@@ -4,7 +4,7 @@ function separateInlineBullets(text) {
   return text.replace(/\ufeff/g, '').replace(/^(\s*(?:what you(?:['’]ll| will) do|required skills|preferred skills|채용하고 싶은 사람|전형절차 및 기타사항|유의사항))\s+(?=·\s)/gim, '$1\n')
     .replace(/[ \t]+·(?=\s)/g, '\n·');
 }
-const OTHER_HEADING = /^(?:#{1,6}\s+.+|[[【].+[\]】]|(?:주요\s*업무|담당\s*업무|업무\s*내용|조직\s*소개|근무\s*조건|복리\s*후생|전형\s*절차|채용\s*절차|접수\s*방법|기타\s*사항|responsibilities|benefits|success measures|about the (?:role|team)|hiring process)\s*[:：]?)$/i;
+const OTHER_HEADING = /^(?:#{1,6}\s+.+|[[【].+[\]】]|(?:주요\s*업무|담당\s*업무|업무\s*내용|조직\s*소개|근무\s*조건|복리\s*후생|혜택\s*및\s*복지|전형\s*절차|채용\s*(?:절차|프로세스)|접수\s*방법|기타\s*사항|responsibilities|benefits|success measures|about the (?:role|team)|hiring process)\s*[:：]?)$/i;
 const LABELED_REQUIREMENT_HEADING = /^[^\n•]{0,100}\((필수\s*(?:요건|사항|조건)|우대\s*(?:요건|사항|조건))\)\s*[:：]?$/;
 const KRAFTON_PROCESS_HEADING = /^.{0,80}전형\s*과정이\s*필요합니다[.!]?$/;
 
