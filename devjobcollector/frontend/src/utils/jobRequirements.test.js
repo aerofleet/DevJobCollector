@@ -2,6 +2,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
 
+test('stops Nuua preferred qualifications before benefits and recruiting process', () => {
+  const text = '자격요건\n• 개발 경력 3년 이상\n• Java, Spring Framework 개발 경험\n우대사항\n• 예약 플랫폼 연동 개발 경험\n혜택 및 복지\n• 장기 근속자 여행지원금 100만원\n채용 프로세스\n• 서류심사 → 면접';
+  const requirements = extractJobRequirements(text);
+  assert.deepEqual(requirements.required, ['개발 경력 3년 이상', 'Java, Spring Framework 개발 경험']);
+  assert.deepEqual(requirements.preferred, ['예약 플랫폼 연동 개발 경험']);
+  assert.deepEqual(extractMentionedTools(requirements, text), ['Java', 'Spring']);
+  assert.equal(extractJobSalary(text), null);
+});
+
 test('extracts Discord counsel requirements and separates bonus qualifications without inventing tools', () => {
   const text = `What you'll be doing:\n• Negotiate API and SDK integration agreements.\nWhat you should have:\n• A JD and active membership in good standing with at least one U.S. state bar.\n• At least 4 years of commercial transactional experience, with a combination of top law firm and/or in-house experience at a technology company preferred.\n• Experience drafting and negotiating complex commercial agreements.\nBonus points:\n• Familiarity with payments, virtual currency, or subscription and bundling arrangements.\nThe base salary range for this full-time position is listed below.`;
   const result = extractJobRequirements(text);
