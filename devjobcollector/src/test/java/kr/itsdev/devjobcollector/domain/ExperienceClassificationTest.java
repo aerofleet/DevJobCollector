@@ -4,6 +4,14 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ExperienceClassificationTest {
+    @Test void distinguishesProfessionalEngineeringMinimumFromPreferredExperience() {
+        String requirement = "3+ years of professional Python engineering building libraries, SDKs, or developer tools used in production.";
+        var result = ExperienceClassification.classify("경력무관", "Python Engineer", "QUALIFICATIONS\n- " + requirement + "\nPREFERRED EXPERIENCE\n- 8+ years of experience", false);
+        assertThat(result.label()).isEqualTo("경력 3년 이상");
+        assertThat(result.evidence()).contains(requirement);
+        assertThat(ExperienceClassification.classify(null, "Python Engineer", "PREFERRED EXPERIENCE\n- " + requirement, false).category()).isEqualTo("UNKNOWN");
+        assertThat(ExperienceClassification.classify(null, "Python Engineer", "QUALIFICATIONS\n- " + requirement + " preferred.", false).category()).isEqualTo("UNKNOWN");
+    }
     @Test void distinguishesRequiredYearsFromPreferredExperienceMix() {
         String requirement = "At least 4 years of commercial transactional experience, with a combination of top law firm and/or in-house experience at a technology company preferred.";
         var result = ExperienceClassification.classify("경력무관", "Associate Commercial Counsel",

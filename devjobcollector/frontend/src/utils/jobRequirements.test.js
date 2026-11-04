@@ -2,6 +2,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
 
+test('extracts FriendliAI preferred experience without including benefits', () => {
+  const text = 'QUALIFICATIONS\n- 3+ years of professional Python engineering building libraries, SDKs, or developer tools used in production.\nPREFERRED EXPERIENCE\n- Maintainer or significant OSS contributor in Python libraries.\n- Containers & local dev tooling (Docker); familiarity with Kubernetes basics.\nBENEFITS\n- Flexible working hours';
+  const result = extractJobRequirements(text);
+  assert.equal(result.required.length, 1);
+  assert.deepEqual(result.preferred, ['Maintainer or significant OSS contributor in Python libraries.', 'Containers & local dev tooling (Docker); familiarity with Kubernetes basics.']);
+});
+
 test('extracts bracketed Nuua AI agent qualifications and mentioned tools', () => {
   const text = '[주요업무]\n• LangChain, LangGraph, OpenAI, Claude 및 Terraform 활용\n[자격요건]\n• 3년 이상의 백엔드 개발 및 운영 경험\n• C++, Python, Java, Go, Javascript 등 언어 무관\n[우대사항]\n• Python 기반 웹 프레임워크 활용 역량\n[혜택 및 복지]\n• 장기 근속 여행지원금';
   const requirements = extractJobRequirements(text);
