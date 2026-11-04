@@ -2,6 +2,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
 
+test('extracts Woowahan duties, qualifications and office tools', () => {
+  const text = '[업무내용]\n- 상품 등록\n[지원자격]\n- 오피스툴(Google Sheets, Excel 등) 활용 역량\n[우대사항]\n- 유통사 AMD 경험';
+  const requirements = extractJobRequirements(text);
+  assert.deepEqual(extractJobDuties(text), ['상품 등록']);
+  assert.deepEqual(requirements.required, ['오피스툴(Google Sheets, Excel 등) 활용 역량']);
+  assert.deepEqual(requirements.preferred, ['유통사 AMD 경험']);
+  assert.deepEqual(extractMentionedTools(requirements, text), ['Google Sheets', 'Excel']);
+});
+
 test('extracts Kakao duties, required qualifications and preferred qualifications', () => {
   const text = '조직 소개\n생성 모델 연구\n업무내용\n- 모델 학습\n- 추론 최적화\n자격요건\n- 석사 이상 혹은 관련 프로젝트 경험\n- Python 및 PyTorch 경험\n우대사항\n- GPU 분산 학습 경험';
   const result = extractJobRequirements(text);

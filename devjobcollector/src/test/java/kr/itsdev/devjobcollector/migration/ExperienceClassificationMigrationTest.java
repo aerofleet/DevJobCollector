@@ -34,6 +34,24 @@ class ExperienceClassificationMigrationTest {
     @AfterAll static void cleanup() { flyway(null).clean(); }
     @BeforeEach void resetSchema() { flyway(null).clean(); }
 
+    @Test void updatesWoowahanAmdDetails() throws Exception {
+        flyway("44").migrate();
+        try (Connection c = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"), System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"), System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
+            c.setCatalog(SCHEMA);
+            try (var s = c.createStatement()) {
+                s.executeUpdate("INSERT INTO job_posts (source_platform,original_sn,company_name,title,job_category,experience,start_date,end_date,original_url,is_active) VALUES ('WOOWAHAN','woowahan:R2611003','Company','AMD','인사','경력무관','2026-01-01','2030-01-01','https://example.com',1)");
+            }
+            flyway(null).migrate();
+            try (var s = c.createStatement(); var rows = s.executeQuery("SELECT job_category,experience,experience_category,apply_qual FROM job_posts WHERE original_sn='woowahan:R2611003'")) {
+                org.assertj.core.api.Assertions.assertThat(rows.next()).isTrue();
+                org.assertj.core.api.Assertions.assertThat(rows.getString(1)).isNull();
+                org.assertj.core.api.Assertions.assertThat(rows.getString(2)).isEqualTo("신입·경력");
+                org.assertj.core.api.Assertions.assertThat(rows.getString(3)).isEqualTo("BOTH");
+                org.assertj.core.api.Assertions.assertThat(rows.getString(4)).contains("[지원자격]\n- 오피스툴", "[우대사항]\n- 온·오프라인");
+            }
+        }
+    }
+
     @Test void correctsOnlyWoowahanApiLinks() throws Exception {
         flyway("43").migrate();
         try (Connection c = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"), System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"), System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {

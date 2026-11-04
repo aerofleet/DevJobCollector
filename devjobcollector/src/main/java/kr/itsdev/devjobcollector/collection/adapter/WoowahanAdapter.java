@@ -16,8 +16,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.HtmlUtils;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.jsoup.Jsoup;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -51,7 +51,6 @@ public class WoowahanAdapter implements JobSourceAdapter {
             Map.entry("BA005007", "서비스기획"),
             Map.entry("BA005008", "개발"),
             Map.entry("BA005009", "데이터"),
-            Map.entry("BA005010", "인사"),
             Map.entry("BA005011", "재무"),
             Map.entry("BA005012", "법무"),
             Map.entry("BA005013", "물류"),
@@ -156,8 +155,8 @@ public class WoowahanAdapter implements JobSourceAdapter {
         String rawPayload = writePayload(recruit);
         String jobGroup = resolveCode(JOB_GROUP_NAMES, recruit.jobGroup());
         String employmentType = resolveCode(EMPLOYMENT_TYPE_NAMES, recruit.employmentType());
-        String experience = buildExperience(recruit);
         String description = toPlainText(recruit.recruitContents());
+        String experience = buildExperience(recruit, description);
         String sourceUrl = "https://career.woowahan.com/recruitment/" + recruit.recruitNumber() + "/detail";
 
         return new JobRawDto(
@@ -180,7 +179,10 @@ public class WoowahanAdapter implements JobSourceAdapter {
         );
     }
 
-    private static String buildExperience(WoowahanRecruitResponse.Recruit recruit) {
+    private static String buildExperience(WoowahanRecruitResponse.Recruit recruit, String description) {
+        if (description != null && description.matches("(?s).*구분\\s*[:：]\\s*신입\\s*[/·,]\\s*경력.*")) {
+            return "신입·경력";
+        }
         String careerType = resolveCode(CAREER_TYPE_NAMES, recruit.careerType());
         int min = recruit.careerRestrictionMinYears();
         int max = recruit.careerRestrictionMaxYears();
@@ -207,9 +209,10 @@ public class WoowahanAdapter implements JobSourceAdapter {
         if (html == null || html.isBlank()) {
             return null;
         }
-        return HtmlUtils.htmlUnescape(html.replaceAll("<[^>]+>", " "))
-                .replaceAll("\\s+", " ")
-                .trim();
+        String formatted = html.replaceAll("(?i)<br\\s*/?>|</(?:p|div|li|h[1-6])\\s*>", "\n")
+                .replaceAll("(?i)<li(?:\\s[^>]*)?>", "\n• ");
+        return Jsoup.parse(formatted).body().wholeText().replace('\u00a0', ' ')
+                .replaceAll("(?m)[ \\t]+$", "").replaceAll("\\n{3,}", "\n\n").trim();
     }
 
     private static Instant parseInstant(String value) {
