@@ -2,6 +2,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
 
+test('separates Tripbtoz preferred conditions from working conditions and benefits', () => {
+  const text = '주요업무\n고객 문의 응대\n자격요건\n고객 서비스 분야에서 2년 이상 경험\n기본적인 IT 활용 능력(Google Workspace, Slack 등)\n우대사항\n여행, 호텔, OTA 분야 경험\n근무조건 및 근무환경\n근무형태 : 정규직(수습기간 3개월_급여100%)\n혜택 및 복지\n트립캐시 연 50만원';
+  const result = extractJobRequirements(text);
+  assert.deepEqual(result.preferred, ['여행, 호텔, OTA 분야 경험']);
+  assert.deepEqual(extractMentionedTools(result, text), ['Google Workspace', 'Slack']);
+  assert.equal(extractJobSalary(text), null);
+});
+
 test('extracts Cheiron square-marker sections and source-mentioned tools', () => {
   const text = "■ What You'll Do\n - Build backend services with Python, FastAPI, and Postgres\n■ Requirements\n - 2+ years of experience shipping production backend systems\n - Active use of Claude Code and Cursor\n■ Nice to Have\n - Experience with LangGraph and RAG\n - Experience on AWS, Terraform, and Kubernetes\n■ Benefits & Perks\n - Health insurance\n■ Interview Process\nScreening";
   const result = extractJobRequirements(text);

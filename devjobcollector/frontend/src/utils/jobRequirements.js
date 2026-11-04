@@ -4,7 +4,7 @@ function separateInlineBullets(text) {
   return text.replace(/\ufeff/g, '').replace(/^[ \t]*■[ \t]*/gm, '').replace(/^(\s*(?:what you(?:['’]ll| will) do|required skills|preferred skills|채용하고 싶은 사람|전형절차 및 기타사항|유의사항))\s+(?=·\s)/gim, '$1\n')
     .replace(/[ \t]+·(?=\s)/g, '\n·');
 }
-const OTHER_HEADING = /^(?:#{1,6}\s+.+|[[【].+[\]】]|(?:주요\s*업무|담당\s*업무|업무\s*내용|조직\s*소개|근무\s*조건|복리\s*후생|혜택\s*및\s*복지|전형\s*절차|채용\s*(?:절차|프로세스)|접수\s*방법|기타\s*사항|responsibilities|benefits(?:\s*&\s*perks)?|success measures|about the (?:role|team)|hiring process|interview process)\s*[:：]?)$/i;
+const OTHER_HEADING = /^(?:#{1,6}\s+.+|[[【].+[\]】]|(?:주요\s*업무|담당\s*업무|업무\s*내용|조직\s*소개|근무\s*조건(?:\s*및\s*근무\s*환경)?|복리\s*후생|혜택\s*및\s*복지|전형\s*절차|채용\s*(?:절차|프로세스)|접수\s*방법|기타\s*사항|참고\s*사항|responsibilities|benefits(?:\s*&\s*perks)?|success measures|about the (?:role|team)|hiring process|interview process)\s*[:：]?)$/i;
 const LABELED_REQUIREMENT_HEADING = /^[^\n•]{0,100}\((필수\s*(?:요건|사항|조건)|우대\s*(?:요건|사항|조건))\)\s*[:：]?$/;
 const KRAFTON_PROCESS_HEADING = /^.{0,80}전형\s*과정이\s*필요합니다[.!]?$/;
 
@@ -119,6 +119,7 @@ export function extractJobSalary(content) {
   const amount = /(?:[$€£₹₩₱]\s*\d[\d,]*(?:\.\d+)?|\b(?:USD|AUD|CAD|INR|KRW|EUR|GBP|PHP)\s*(?:(?:from|up to)\s+)?\d[\d,]*(?:\.\d+)?|\d[\d,]*(?:\.\d+)?\s*(?:(?:만원|억원|원)|(?:USD|AUD|CAD|INR|KRW|EUR|GBP|PHP)\b))/i;
   for (let i = 0; i < lines.length; i++) {
     if (!/(?:salary|compensation|pay\s+range|급여|연봉|월급|시급)/i.test(lines[i])) continue;
+    if (/(?:급여|salary)[^\n]{0,12}\d{1,3}\s*%/i.test(lines[i]) && !amount.test(lines[i])) continue;
     for (let j = i; j < Math.min(i + 5, lines.length); j++) {
       if (j > i && /^(?:application limit|equal opportunity|our commitment|우대|자격)/i.test(lines[j])) break;
       if (amount.test(lines[j])) {
@@ -136,7 +137,7 @@ export function extractMentionedTools(requirements, content = '') {
   const text = [...requirements.required, ...requirements.preferred, String(content || '').replace(/<[^>]*>/g, ' ')].join(' ');
   const tools = ['Google apps', 'JIRA', 'Salesforce Service Cloud', 'Amazon Connect', 'LibreChat', 'Gemini', 'Glean', 'Java', 'Kotlin', 'JavaScript', 'TypeScript', 'Python', 'C++', 'ROS2', 'PyTorch', 'JAX', 'LeRobot', 'MuJoCo', 'Isaac Sim', 'React', 'Spring', 'Spring Boot', 'Spring Cloud', 'JPA', 'Hibernate', 'Gradle', 'Jenkins', 'Git', 'GitHub Actions', 'Istio', 'Kafka', 'Elastic', 'Elasticsearch', 'InfluxData', 'Grafana', 'Prometheus', 'Thanos', 'Memcached', 'Redis', 'RabbitMQ', 'MySQL', 'OCI', 'Cloudflare Tunnel', 'Nginx', 'Node.js', 'NestJS', 'Nest.js', 'gRPC', 'WebSocket', 'ArgoCD', 'GoCD', 'Vault', 'Podman', 'Containerd', 'Hadoop', 'Cloud Native', 'iOS', 'SQL', 'Excel', 'SAP', 'RDBMS', 'NoSQL', 'PostgreSQL', 'MongoDB', 'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP', 'IaC', 'CI/CD'];
   const matches = tools.filter((name) => new RegExp(`(?<![\\w+])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w+])`, 'i').test(text));
-  for (const name of ['LangChain', 'LangGraph', 'Terraform', 'OpenAI', 'Claude', 'FastAPI']) {
+  for (const name of ['LangChain', 'LangGraph', 'Terraform', 'OpenAI', 'Claude', 'FastAPI', 'Google Workspace', 'Slack']) {
     if (new RegExp(`(?<![\\w])${name}(?![\\w])`, 'i').test(text)) matches.push(name);
   }
   if (/\bRAG\b/.test(text)) matches.push('RAG');

@@ -10,6 +10,13 @@ import java.time.Instant;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class GreetingAdapterTest {
+    @Test void recognizesPipeHeadingsAndAvoidsConflictingFloor() {
+        String html = "<h2><strong>|</strong><strong> 주요업무</strong></h2><ul><li>고객 문의 응대</li></ul><h2>| 자격요건</h2><ul><li>CS 경력 2년 이상</li></ul><h2>| 우대사항</h2><ul><li>여행 분야 경험</li></ul><h2>| 근무조건 및 근무환경</h2><ul><li>근무장소 : 서울 테헤란로 415, 2층</li></ul>";
+        String text = GreetingAdapter.extractRelevantText(html);
+        assertThat(text).contains("주요업무", "자격요건", "우대사항", "근무장소").doesNotContain("| 주요업무");
+        assertThat(GreetingAdapter.displayAddress("서울 테헤란로 415", "L7강남 오피스동 3층", text)).isEqualTo("서울 테헤란로 415");
+        assertThat(GreetingAdapter.displayAddress("서울 테헤란로 415", "2층", text)).isEqualTo("서울 테헤란로 415 2층");
+    }
     @Test void capturesBracketedNuuaSections() {
         String html = "<p>회사 소개</p><p>[주요업무]</p><p>• LangChain 개발</p><p>[자격요건]</p><p>• 3년 이상의 백엔드 경험</p><p>[우대사항]</p><p>• Python 경험</p>";
         assertThat(GreetingAdapter.extractRelevantText(html))

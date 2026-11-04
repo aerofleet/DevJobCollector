@@ -30,7 +30,7 @@ import java.util.Map;
 /** Collects the public openings displayed on a configured Greeting career page. */
 @Component
 public class GreetingAdapter implements JobSourceAdapter {
-    public static final String VERSION = "greeting-openings-v4";
+    public static final String VERSION = "greeting-openings-v5";
     private static final String USER_AGENT = "DevJobCollector/1.0 (+https://itsdev.kr)";
     private static final int MAX_BYTES = 2_000_000;
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -116,7 +116,7 @@ public class GreetingAdapter implements JobSourceAdapter {
             JsonNode place = position.path("workspacePlace");
             String address = place.path("place").asText("").trim();
             String extra = place.path("detailPlace").asText("").trim();
-            if (!address.isEmpty()) { String full = extra.isEmpty() ? address : address + " " + extra; if (!places.contains(full)) places.add(full); }
+            if (!address.isEmpty()) { String full = displayAddress(address, extra, description); if (!places.contains(full)) places.add(full); }
             JsonNode career = position.path("jobPositionCareer");
             if ("EXPERIENCED".equals(career.path("careerType").asText()) && career.path("careerFrom").asInt(0) > 0) {
                 int from = career.path("careerFrom").asInt();
@@ -140,13 +140,21 @@ public class GreetingAdapter implements JobSourceAdapter {
                 listing.deadlineAt(), ContentHash.sha256(payload), payload);
     }
 
+    static String displayAddress(String address, String extra, String description) {
+        if (extra == null || extra.isBlank()) return address;
+        var textFloor = Pattern.compile("근무\\s*장소[^\\n]{0,120}?(\\d+)\\s*층").matcher(description);
+        var structuredFloor = Pattern.compile("(\\d+)\\s*층").matcher(extra);
+        if (textFloor.find() && structuredFloor.find() && !textFloor.group(1).equals(structuredFloor.group(1))) return address;
+        return address + " " + extra;
+    }
+
     static String extractRelevantText(String html) {
         String text = Jsoup.parse(html.replaceAll("(?i)<br\\s*/?>|</(?:p|div|li|h[1-6])>", "\n"))
                 .body().wholeText().replace('\u00a0', ' ');
         StringBuilder result = new StringBuilder();
         boolean collecting = false;
         for (String line : text.split("\\R")) {
-            String value = line.trim();
+            String value = line.trim().replaceFirst("^\\|\\s*", "");
             if (value.isEmpty()) continue;
             if (value.matches("(?i)^[\\[【]?(?:주요\\s*업무|담당\\s*업무|업무\\s*내용|자격\\s*요건|지원\\s*자격|필수\\s*(?:요건|사항|조건)|우대\\s*(?:요건|사항|조건)|급여\\s*(?:정보|조건)?|연봉|채용\\s*프로세스|채용\\s*절차|혜택\\s*및\\s*복지)[\\]】]?\\s*[:：]?$")) collecting = true;
             if (collecting) result.append(value).append('\n');
