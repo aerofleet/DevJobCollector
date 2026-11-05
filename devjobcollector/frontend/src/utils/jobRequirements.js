@@ -21,12 +21,13 @@ export function extractJobRequirements(content) {
   for (const raw of text.split('\n')) {
     const line = raw.trim();
     if (!line) continue;
+    if (/^#LI[-_]/i.test(line)) { section = null; continue; }
     const preferredItem = line.match(/^(?:[-*•●▪◦‣·]\s*)?preferred\s*[:：]\s*(.+)$/i);
     if (section && preferredItem) {
       result.preferred.push(preferredItem[1].trim());
       continue;
     }
-    const heading = line.match(HEADINGS) || line.match(LABELED_REQUIREMENT_HEADING) || line.match(/^(preferred experience)\s*[:：]?$/i) || line.match(/^(how do i know if the role is right for me)\?\s*$/i);
+    const heading = line.match(HEADINGS) || line.match(LABELED_REQUIREMENT_HEADING) || line.match(/^(?:must-have pantry staples|optional garnishes) \((minimum qualifications|preferred qualifications)\)\s*$/i) || line.match(/^(preferred experience)\s*[:：]?$/i) || line.match(/^(how do i know if the role is right for me)\?\s*$/i);
     if (heading) {
       section = /우대|이런\s*경험이\s*있다면\s*더\s*좋아요|preferred|nice to have|added plus|bonus points/i.test(heading[1]) ? 'preferred' : 'required';
       continue;
@@ -100,7 +101,9 @@ export function extractJobDuties(content) {
   for (const [index, raw] of lines.entries()) {
     const line = raw.trim();
     if (!line) continue;
-    if (heading.test(line) || /^우리\s*팀과\s*함께할\s*미션을\s*소개합니다[.!]?$/i.test(line) || (/^the opportunity\s*:?$/i.test(line) && lines.slice(index + 1).some(next => /^how do i know if the role is right for me\?\s*$/i.test(next.trim())))) { inside = true; continue; }
+    if (heading.test(line) || /^what you['’]ll cook up in your first year$/i.test(line) || /^우리\s*팀과\s*함께할\s*미션을\s*소개합니다[.!]?$/i.test(line) || (/^the opportunity\s*:?$/i.test(line) && lines.slice(index + 1).some(next => /^how do i know if the role is right for me\?\s*$/i.test(next.trim())))) { inside = true; continue; }
+    if (/^the secret ingredients we['’]re looking for$/i.test(line)) { inside = false; continue; }
+    if (inside && /^(?:Audit Delivery & Reporting|Team Leadership & Development|AI, Technology & Innovation|Tools & Process Improvement|Stakeholder Partnerships)$/i.test(line)) continue;
     if (/^how do i know if the role is right for me\?\s*$/i.test(line)) { inside = false; continue; }
     if (HEADINGS.test(line) || LABELED_REQUIREMENT_HEADING.test(line) || OTHER_HEADING.test(line) || KRAFTON_PROCESS_HEADING.test(line) || /^#{1,6}\s+/.test(line)
       || /^(?:전형\s*절차|토스로의\s*합류\s*여정|PID\s*-\s*[A-Z]?\d+|pay transparency|annual base salary|salary\s*[:：]|compensation\s*[:：])/i.test(line)
@@ -135,7 +138,7 @@ export function extractJobSalary(content) {
 // Show only recognizable tool names explicitly mentioned in qualification sections.
 export function extractMentionedTools(requirements, content = '') {
   const text = [...requirements.required, ...requirements.preferred, String(content || '').replace(/<[^>]*>/g, ' ')].join(' ');
-  const tools = ['Google Sheets', 'Google apps', 'JIRA', 'Salesforce Service Cloud', 'Amazon Connect', 'LibreChat', 'Gemini', 'Glean', 'Java', 'Kotlin', 'JavaScript', 'TypeScript', 'Python', 'C++', 'ROS2', 'PyTorch', 'JAX', 'LeRobot', 'MuJoCo', 'Isaac Sim', 'React', 'Spring', 'Spring Boot', 'Spring Cloud', 'JPA', 'Hibernate', 'Gradle', 'Jenkins', 'Git', 'GitHub Actions', 'Istio', 'Kafka', 'Elastic', 'Elasticsearch', 'InfluxData', 'Grafana', 'Prometheus', 'Thanos', 'Memcached', 'Redis', 'RabbitMQ', 'MySQL', 'OCI', 'Cloudflare Tunnel', 'Nginx', 'Node.js', 'NestJS', 'Nest.js', 'gRPC', 'WebSocket', 'ArgoCD', 'GoCD', 'Vault', 'Podman', 'Containerd', 'Hadoop', 'Cloud Native', 'iOS', 'SQL', 'Excel', 'SAP', 'RDBMS', 'NoSQL', 'PostgreSQL', 'MongoDB', 'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP', 'IaC', 'CI/CD'];
+  const tools = ['Datadog', 'Okta', 'Workiva', 'Google Sheets', 'Google apps', 'JIRA', 'Salesforce Service Cloud', 'Amazon Connect', 'LibreChat', 'Gemini', 'Glean', 'Java', 'Kotlin', 'JavaScript', 'TypeScript', 'Python', 'C++', 'ROS2', 'PyTorch', 'JAX', 'LeRobot', 'MuJoCo', 'Isaac Sim', 'React', 'Spring', 'Spring Boot', 'Spring Cloud', 'JPA', 'Hibernate', 'Gradle', 'Jenkins', 'Git', 'GitHub Actions', 'Istio', 'Kafka', 'Elastic', 'Elasticsearch', 'InfluxData', 'Grafana', 'Prometheus', 'Thanos', 'Memcached', 'Redis', 'RabbitMQ', 'MySQL', 'OCI', 'Cloudflare Tunnel', 'Nginx', 'Node.js', 'NestJS', 'Nest.js', 'gRPC', 'WebSocket', 'ArgoCD', 'GoCD', 'Vault', 'Podman', 'Containerd', 'Hadoop', 'Cloud Native', 'iOS', 'SQL', 'Excel', 'SAP', 'RDBMS', 'NoSQL', 'PostgreSQL', 'MongoDB', 'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP', 'IaC', 'CI/CD'];
   const matches = tools.filter((name) => new RegExp(`(?<![\\w+])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w+])`, 'i').test(text));
   for (const name of ['LangChain', 'LangGraph', 'Terraform', 'OpenAI', 'Claude', 'FastAPI', 'Google Workspace', 'Slack']) {
     if (new RegExp(`(?<![\\w])${name}(?![\\w])`, 'i').test(text)) matches.push(name);

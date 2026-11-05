@@ -2,6 +2,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
 
+test('extracts Instacart audit duties, minimum and preferred qualifications', () => {
+  const text = "What you'll cook up in your first year\nAudit Delivery & Reporting\n• Audit AWS, GCP, Datadog, and Okta\nTools & Process Improvement\n• Implement Workiva\nThe secret ingredients we're looking for\nMust-have pantry staples (Minimum Qualifications)\n• 12-15 years of progressive professional experience, with at least 5 years in a leadership role\nOptional garnishes (Preferred Qualifications)\n• CISA, CRISC, or CIA certification.\n#LI-Remote";
+  const result = extractJobRequirements(text);
+  assert.equal(result.required.length, 1);
+  assert.deepEqual(result.preferred, ['CISA, CRISC, or CIA certification.']);
+  assert.deepEqual(extractJobDuties(text), ['Audit AWS, GCP, Datadog, and Okta', 'Implement Workiva']);
+  assert.deepEqual(extractMentionedTools(result, text), ['Datadog', 'Okta', 'Workiva', 'AWS', 'GCP']);
+});
+
 test('extracts Woowahan duties, qualifications and office tools', () => {
   const text = '[업무내용]\n- 상품 등록\n[지원자격]\n- 오피스툴(Google Sheets, Excel 등) 활용 역량\n[우대사항]\n- 유통사 AMD 경험';
   const requirements = extractJobRequirements(text);

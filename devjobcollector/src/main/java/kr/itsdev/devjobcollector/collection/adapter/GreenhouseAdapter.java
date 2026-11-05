@@ -92,7 +92,7 @@ public class GreenhouseAdapter implements JobSourceAdapter {
                 String.valueOf(job.id()),
                 job.title(),
                 job.location() == null ? null : job.location().name(),
-                null,
+                employmentType(job),
                 team,
                 jobUrl,
                 jobUrl,
@@ -102,6 +102,14 @@ public class GreenhouseAdapter implements JobSourceAdapter {
                 ContentHash.sha256(rawPayload),
                 rawPayload
         );
+    }
+
+    private static String employmentType(GreenhouseJobResponse.Job job) {
+        if (job.metadata() == null) return null;
+        var values = job.metadata().stream().filter(item -> item != null && item.value() != null && item.value().isTextual()
+                        && ("Employment Type".equalsIgnoreCase(item.name()) || "Time Type".equalsIgnoreCase(item.name())))
+                .map(item -> item.value().asText()).filter(value -> !value.isBlank()).distinct().toList();
+        return values.isEmpty() ? null : String.join(" · ", values);
     }
 
     private String writePayload(Object value) {

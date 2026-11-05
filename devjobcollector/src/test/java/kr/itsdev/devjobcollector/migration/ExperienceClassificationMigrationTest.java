@@ -34,6 +34,24 @@ class ExperienceClassificationMigrationTest {
     @AfterAll static void cleanup() { flyway(null).clean(); }
     @BeforeEach void resetSchema() { flyway(null).clean(); }
 
+    @Test void updatesInstacartAuditDetails() throws Exception {
+        flyway("45").migrate();
+        try (Connection c = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"), System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"), System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {
+            c.setCatalog(SCHEMA);
+            try (var s = c.createStatement()) {
+                s.executeUpdate("INSERT INTO job_posts (id,source_platform,original_sn,company_name,title,start_date,end_date,original_url,is_active) VALUES (11951,'GREENHOUSE','instacart:8120705','Instacart','Director','2026-01-01','2030-01-01','https://instacart.careers/job/?gh_jid=8120705',1)");
+            }
+            flyway(null).migrate();
+            try (var s = c.createStatement(); var rows = s.executeQuery("SELECT hire_type,experience_category,experience_label,experience_evidence FROM job_posts WHERE id=11951")) {
+                assertThat(rows.next()).isTrue();
+                assertThat(rows.getString(1)).isEqualTo("Regular · Full time");
+                assertThat(rows.getString(2)).isEqualTo("EXPERIENCED");
+                assertThat(rows.getString(3)).isEqualTo("경력 12~15년");
+                assertThat(rows.getString(4)).contains("at least 5 years");
+            }
+        }
+    }
+
     @Test void updatesWoowahanAmdDetails() throws Exception {
         flyway("44").migrate();
         try (Connection c = DriverManager.getConnection(System.getenv("DJC_MIGRATION_TEST_URL"), System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root"), System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", ""))) {

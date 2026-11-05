@@ -51,7 +51,8 @@ class GreenhouseAdapterTest {
                           "first_published":"2026-08-01T01:02:03+00:00",
                           "updated_at":"2026-08-02T02:03:04+00:00",
                           "location":{"name":"Remote"},
-                          "departments":[{"id":1,"name":"Engineering"}]
+                          "departments":[{"id":1,"name":"Engineering"}],
+                          "metadata":[{"name":"Employment Type","value":"Regular"},{"name":"Time Type","value":"Full time"},{"name":"Other","value":["ignored"]}]
                         }]}
                         """, MediaType.APPLICATION_JSON));
 
@@ -62,6 +63,7 @@ class GreenhouseAdapterTest {
         assertThat(result.closureEvaluationAllowed()).isTrue();
         assertThat(result.jobs().getFirst().sourceJobId()).isEqualTo("123");
         assertThat(result.jobs().getFirst().team()).isEqualTo("Engineering");
+        assertThat(result.jobs().getFirst().employmentType()).isEqualTo("Regular · Full time");
         assertThat(result.jobs().getFirst().plainDescription()).isEqualTo("Build reliable APIs");
         assertThat(result.jobs().getFirst().sourceUrl()).isEqualTo("https://job-boards.greenhouse.io/gitlab/jobs/123");
         assertThat(result.responseHash()).hasSize(64);

@@ -54,6 +54,10 @@ public record ExperienceClassification(String category, String label, String evi
                     && !clauses[0].toLowerCase(Locale.ROOT).contains("preferred")) candidate = clauses[0].trim();
             if (candidate.matches(".*(?:학위|석사|박사)[^.!?\\n]{0,80}(?:또는|혹은)[^.!?\\n]{0,80}\\d{1,2}\\s*년.*") || candidate.contains("우대") || candidate.contains("선호") || candidate.toLowerCase(Locale.ROOT).contains("preferred")
                     || YEAR_RANGE.matcher(candidate).find()) continue;
+            Matcher progressiveRange = Pattern.compile("(?i)^[-*•●▪◦‣·]?\\s*(\\d{1,2})\\s*[-–~]\\s*(\\d{1,2})\\s+years? of progressive professional experience,\\s*with at least \\d{1,2} years? in a leadership role\\b.*").matcher(candidate);
+            if (progressiveRange.matches() && Integer.parseInt(progressiveRange.group(2)) >= Integer.parseInt(progressiveRange.group(1))) {
+                return new ExperienceClassification("EXPERIENCED", "경력 " + progressiveRange.group(1) + "~" + progressiveRange.group(2) + "년", candidate, "RULE");
+            }
             Matcher professional = PROFESSIONAL_ENGINEERING.matcher(candidate);
             if (professional.find() && Integer.parseInt(professional.group(1)) > minimum) {
                 minimum = Integer.parseInt(professional.group(1));
