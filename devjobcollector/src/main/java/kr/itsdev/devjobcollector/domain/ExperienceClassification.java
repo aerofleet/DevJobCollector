@@ -35,7 +35,7 @@ public record ExperienceClassification(String category, String label, String evi
         String unrestrictedEvidence = null;
         for (String line : text.split("\\R")) {
             String value = line.trim();
-            if (PREFERRED.matcher(value).find() || value.matches("(?i)^(?:bonus points|preferred experience)\\s*[:：]?$")) { inRequired = false; continue; }
+            if (PREFERRED.matcher(value).find() || value.matches("^(?:#{1,6}\\s*)?이런\\s*분이면\\s*더\\s*좋아요[!！.]?\\s*$") || value.matches("(?i)^(?:bonus points|preferred experience)\\s*[:：]?$")) { inRequired = false; continue; }
             boolean requiredHeading = REQUIRED.matcher(value).find() || value.matches("(?i)^how do i know if the role is right for me\\?\\s*$")
                     || value.matches("(?i)^what you should have\\s*[:：]?$");
             if (requiredHeading) { inRequired = true; }

@@ -90,18 +90,30 @@ public class GreenhouseAdapter implements JobSourceAdapter {
         return new JobRawDto(
                 sourceType(),
                 String.valueOf(job.id()),
+                null,
                 job.title(),
                 job.location() == null ? null : job.location().name(),
                 employmentType(job),
+                experience(job),
                 team,
                 jobUrl,
                 jobUrl,
                 toPlainText(job.content()),
                 parseInstant(job.firstPublished()),
                 parseInstant(job.updatedAt()),
+                null,
                 ContentHash.sha256(rawPayload),
                 rawPayload
         );
+    }
+
+    private static String experience(GreenhouseJobResponse.Job job) {
+        if (job.metadata() == null) return null;
+        return job.metadata().stream().filter(item -> item != null && "Prior Experience".equalsIgnoreCase(item.name())
+                        && item.value() != null && item.value().isTextual())
+                .map(item -> item.value().asText().trim())
+                .filter(value -> List.of("신입", "경력", "경력무관", "신입/경력", "신입·경력").contains(value))
+                .findFirst().orElse(null);
     }
 
     private static String employmentType(GreenhouseJobResponse.Job job) {

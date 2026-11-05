@@ -1,6 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
+import { extractDaangnSections, extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
+
+test('separates Daangn duties, required and preferred qualifications, notices and process', () => {
+  const text = '이런 일을 해요\n• 정산 검증\n• 파트너 대사\n이런 분과 함께하고 싶어요\n• 데이터 대조\n• 소통 역량\n이런 분이면 더 좋아요!\n• 정산 실무 경력 1년 이상\n• 엑셀, SQL, 파이썬 경험\n참고해 주세요\n• 최초 3개월 계약 후 평가\n이렇게 합류해요\n1. 서류 전형 → 2. 직무 인터뷰 → 3. 최종 합격\n당근 전형 소개\n서류 전형\n일반 안내';
+  const req = extractJobRequirements(text);
+  assert.deepEqual(extractJobDuties(text), ['정산 검증', '파트너 대사']);
+  assert.deepEqual(req.required, ['데이터 대조', '소통 역량']);
+  assert.deepEqual(req.preferred, ['정산 실무 경력 1년 이상', '엑셀, SQL, 파이썬 경험']);
+  assert.equal(extractExperienceWording(req), null);
+  assert.deepEqual(extractDaangnSections(text), { notices: ['최초 3개월 계약 후 평가'], process: ['1. 서류 전형 → 2. 직무 인터뷰 → 3. 최종 합격'] });
+  assert.deepEqual(extractMentionedTools(req, text), ['SQL', 'Python', 'Excel']);
+});
 
 test('extracts Instacart audit duties, minimum and preferred qualifications', () => {
   const text = "What you'll cook up in your first year\nAudit Delivery & Reporting\n• Audit AWS, GCP, Datadog, and Okta\nTools & Process Improvement\n• Implement Workiva\nThe secret ingredients we're looking for\nMust-have pantry staples (Minimum Qualifications)\n• 12-15 years of progressive professional experience, with at least 5 years in a leadership role\nOptional garnishes (Preferred Qualifications)\n• CISA, CRISC, or CIA certification.\n#LI-Remote";

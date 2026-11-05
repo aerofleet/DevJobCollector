@@ -9,7 +9,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import TechStackBadge from '../components/job/TechStackBadge';
 import StructuredJobContent from '../components/job/StructuredJobContent';
 import { jobSourceLabel } from '../utils/jobSource';
-import { extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from '../utils/jobRequirements';
+import { extractDaangnSections, extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from '../utils/jobRequirements';
 import { formatDate } from '../utils/dateParser';
 import { getDaysRemaining } from '../utils/dateParser';
 import '../styles/DetailPage.css';
@@ -67,6 +67,7 @@ const DetailPage = () => {
   const requirements = extractJobRequirements(job.applyQual);
   const experienceWording = extractExperienceWording(requirements);
   const duties = extractJobDuties(job.applyQual);
+  const daangnSections = job.companyName === '당근' ? extractDaangnSections(job.applyQual) : { notices: [], process: [] };
   const isPublicAlio = job.sourcePlatform === 'PUBLIC_ALIO';
   const salary = extractJobSalary(job.applyQual);
   const deadlineEvidence = job.deadlineEvidence;
@@ -211,6 +212,8 @@ const DetailPage = () => {
           {requirements.preferred.length ? <ul>{requirements.preferred.map((item, index) => <li key={index}>{item}</li>)}</ul>
             : <p className="job-content-empty">우대 사항을 확인하지 못했어요. 원문을 확인해 주세요.</p>}
         </section>
+        {daangnSections.notices.length > 0 && <section className="detail-section"><h3>근무 및 안내 사항</h3><ul>{daangnSections.notices.map((item, index) => <li key={index}>{item}</li>)}</ul></section>}
+        {daangnSections.process.length > 0 && <section className="detail-section"><h3>채용 절차</h3><ul>{daangnSections.process.map((item, index) => <li key={index}>{item}</li>)}</ul></section>}
         <section className="detail-section">
           <h3>급여 정보</h3>
           {salary && <p>{salary}</p>}

@@ -4,6 +4,13 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ExperienceClassificationTest {
+    @org.junit.jupiter.api.Test void treatsDaangnOneYearAsPreferred() {
+        String text = "이런 분과 함께하고 싶어요\n• 데이터를 대조해 원인을 규명해 보신 분\n이런 분이면 더 좋아요!\n• 정산 실무 경력 1년 이상이신 분\n참고해 주세요\n• 3개월 계약";
+        var result = ExperienceClassification.classify("경력", "Service Operations Manager", text, false);
+        assertThat(result.category()).isEqualTo("EXPERIENCED");
+        assertThat(result.label()).isEqualTo("경력");
+        assertThat(ExperienceClassification.classify(null, "Manager", text, false).category()).isEqualTo("UNKNOWN");
+    }
     @org.junit.jupiter.api.Test void classifiesInstacartProgressiveExperienceWithoutTreatingPreferredAsRequired() {
         String line = "12-15 years of progressive professional experience, with at least 5 years in a leadership role overseeing IT risk-based audits at a high-growth, global company.";
         var result = ExperienceClassification.classify(null, "Director IT", "Must-have pantry staples (Minimum Qualifications)\n• " + line + "\nOptional garnishes (Preferred Qualifications)\n• 20+ years experience", false);

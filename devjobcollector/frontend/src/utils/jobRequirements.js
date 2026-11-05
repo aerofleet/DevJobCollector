@@ -27,12 +27,12 @@ export function extractJobRequirements(content) {
       result.preferred.push(preferredItem[1].trim());
       continue;
     }
-    const heading = line.match(HEADINGS) || line.match(LABELED_REQUIREMENT_HEADING) || line.match(/^(?:must-have pantry staples|optional garnishes) \((minimum qualifications|preferred qualifications)\)\s*$/i) || line.match(/^(preferred experience)\s*[:：]?$/i) || line.match(/^(how do i know if the role is right for me)\?\s*$/i);
+    const heading = line.match(HEADINGS) || line.match(/^(이런\s*분이면\s*더\s*좋아요)[!！.]?$/) || line.match(LABELED_REQUIREMENT_HEADING) || line.match(/^(?:must-have pantry staples|optional garnishes) \((minimum qualifications|preferred qualifications)\)\s*$/i) || line.match(/^(preferred experience)\s*[:：]?$/i) || line.match(/^(how do i know if the role is right for me)\?\s*$/i);
     if (heading) {
-      section = /우대|이런\s*경험이\s*있다면\s*더\s*좋아요|preferred|nice to have|added plus|bonus points/i.test(heading[1]) ? 'preferred' : 'required';
+      section = /우대|이런\s*(?:경험이\s*있다면|분이면)\s*더\s*좋아요|preferred|nice to have|added plus|bonus points/i.test(heading[1]) ? 'preferred' : 'required';
       continue;
     }
-    if (OTHER_HEADING.test(line) || KRAFTON_PROCESS_HEADING.test(line) || /^(?:채용하고 싶은 사람|전형절차 및 기타사항|유의사항|전형\s*절차\s*및\s*안내\s*사항)\s*[:：]?$/i.test(line) || /^(?:#\s*[A-Z]?\d+|PID(?:\s*-\s*[A-Z]?\d+)?$)/i.test(line) || /^(?:position details|pay and benefits|compensation\s*&\s*benefits|pay range transparency|salary\s*[:：]|compensation\s*[:：]|the base salary range\b|at figma, one of our values|pay transparency|annual base salary|application limit|equal opportunity employer|accommodations|data privacy)/i.test(line) || /^[^:：]{1,80}[:：]$/.test(line)) { section = null; continue; }
+    if (OTHER_HEADING.test(line) || KRAFTON_PROCESS_HEADING.test(line) || /^(?:참고해\s*주세요|이렇게\s*합류해요|채용하고 싶은 사람|전형절차 및 기타사항|유의사항|전형\s*절차\s*및\s*안내\s*사항)\s*[:：]?$/i.test(line) || /^(?:#\s*[A-Z]?\d+|PID(?:\s*-\s*[A-Z]?\d+)?$)/i.test(line) || /^(?:position details|pay and benefits|compensation\s*&\s*benefits|pay range transparency|salary\s*[:：]|compensation\s*[:：]|the base salary range\b|at figma, one of our values|pay transparency|annual base salary|application limit|equal opportunity employer|accommodations|data privacy)/i.test(line) || /^[^:：]{1,80}[:：]$/.test(line)) { section = null; continue; }
     if (!section) continue;
     const item = line.replace(/^[-*•●▪◦‣·]\s*/, '').replace(/^\d+[.)]\s*/, '').trim();
     if (!item || /^https?:\/\//i.test(item)) continue;
@@ -101,7 +101,7 @@ export function extractJobDuties(content) {
   for (const [index, raw] of lines.entries()) {
     const line = raw.trim();
     if (!line) continue;
-    if (heading.test(line) || /^what you['’]ll cook up in your first year$/i.test(line) || /^우리\s*팀과\s*함께할\s*미션을\s*소개합니다[.!]?$/i.test(line) || (/^the opportunity\s*:?$/i.test(line) && lines.slice(index + 1).some(next => /^how do i know if the role is right for me\?\s*$/i.test(next.trim())))) { inside = true; continue; }
+    if (heading.test(line) || /^이런\s*일을\s*해요[.!！]?$/i.test(line) || /^what you['’]ll cook up in your first year$/i.test(line) || /^우리\s*팀과\s*함께할\s*미션을\s*소개합니다[.!]?$/i.test(line) || (/^the opportunity\s*:?$/i.test(line) && lines.slice(index + 1).some(next => /^how do i know if the role is right for me\?\s*$/i.test(next.trim())))) { inside = true; continue; }
     if (/^the secret ingredients we['’]re looking for$/i.test(line)) { inside = false; continue; }
     if (inside && /^(?:Audit Delivery & Reporting|Team Leadership & Development|AI, Technology & Innovation|Tools & Process Improvement|Stakeholder Partnerships)$/i.test(line)) continue;
     if (/^how do i know if the role is right for me\?\s*$/i.test(line)) { inside = false; continue; }
@@ -111,6 +111,21 @@ export function extractJobDuties(content) {
     if (inside) items.push(line.replace(/^[-*•●▪◦‣·]\s*/, '').replace(/^\d+[.)]\s*/, '').trim());
   }
   return items;
+}
+
+// These headings are explicit in Daangn postings; stop before the following section.
+export function extractDaangnSections(content) {
+  const result = { notices: [], process: [] };
+  let section = null;
+  for (const raw of String(content || '').split(/\r?\n/)) {
+    const line = raw.replace(/\u00a0/g, ' ').trim();
+    if (!line) continue;
+    if (/^참고해\s*주세요[.!！]?$/.test(line)) { section = 'notices'; continue; }
+    if (/^이렇게\s*합류해요[.!！]?$/.test(line)) { section = 'process'; continue; }
+    if (/^(?:당근\s*전형\s*소개|팀\s*동료들의\s*한마디|안내사항)$/.test(line)) { section = null; continue; }
+    if (section) result[section].push(line.replace(/^[-*•●▪◦‣·]\s*/, ''));
+  }
+  return result;
 }
 
 // Only return an amount when the source explicitly labels it as salary or pay.
@@ -144,6 +159,8 @@ export function extractMentionedTools(requirements, content = '') {
     if (new RegExp(`(?<![\\w])${name}(?![\\w])`, 'i').test(text)) matches.push(name);
   }
   if (/\bRAG\b/.test(text)) matches.push('RAG');
+  if (/파이썬/.test(text) && !matches.includes('Python')) matches.push('Python');
+  if (/엑셀/.test(text) && !matches.includes('Excel')) matches.push('Excel');
   if (/\bCursor\b/.test(text)) matches.push('Cursor');
   if (/(?:[,/]\s*Go\b|\bGo(?:lang)?\s*(?:언어|개발|programming|developer))/i.test(text)) matches.push('Go');
   if (/\bPostgres\b/i.test(text) && !matches.includes('PostgreSQL')) matches.push('PostgreSQL');
