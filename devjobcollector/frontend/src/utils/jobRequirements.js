@@ -1,4 +1,5 @@
 const HEADINGS = /^(?:#{1,6}\s*)?[[【]?(자격\s*(?:요건|조건)|지원\s*(?:자격|조건)|필수\s*(?:요건|사항|조건)|우대\s*(?:사항|요건|조건)|이런\s*분과\s*함께하고\s*싶어요|이런\s*경험이\s*있다면\s*더\s*좋아요|preferred (?:qualifications|requirements|skills)|basic qualifications|required skills(?:\s+and\s+experience)?|minimum requirements|nice to haves?|bonus points|while not required,?\s*it['’]s an added plus if you also have|we['’]d love to hear from you if you have|we(?:['’]re| are) looking for someone who|your expertise|what you should have|what you(?:['’]ll| will)?\s+(?:bring|need)|what we(?:['’]re| are) looking for|what we look for in you(?:\s*\(i\.?e\.?\s*,?\s*job requirements\))?|qualifications(?:\s*(?:&|and)\s*experience\s+required)?|requirements)[\]】]?[\s:：-]*$/i;
+import { recoverSectionHeading } from './jobSectionRecovery.js';
 // Some sources serialize a heading and bullet list into a single line.
 function separateInlineBullets(text) {
   return text.replace(/\ufeff/g, '').replace(/^[ \t]*■[ \t]*/gm, '').replace(/^(\s*(?:what you(?:['’]ll| will) do|required skills|preferred skills|채용하고 싶은 사람|전형절차 및 기타사항|유의사항))\s+(?=·\s)/gim, '$1\n')
@@ -27,6 +28,9 @@ export function extractJobRequirements(content) {
       result.preferred.push(preferredItem[1].trim());
       continue;
     }
+    const recovered = recoverSectionHeading(line);
+    if (recovered === 'required' || recovered === 'preferred') { section = recovered; continue; }
+    if (recovered === 'duties') { section = null; continue; }
     const heading = line.match(HEADINGS) || line.match(/^(you may be a good fit if you have)\s*[:：]?$/i) || line.match(/^(어떤\s*경력과\s*역량이\s*필요한가요\?|이런\s*점이\s*있으면\s*더\s*좋아요)[!！.]?$/) || line.match(/^(이런\s*분이면\s*더\s*좋아요)[!！.]?$/) || line.match(LABELED_REQUIREMENT_HEADING) || line.match(/^(?:must-have pantry staples|optional garnishes) \((minimum qualifications|preferred qualifications)\)\s*$/i) || line.match(/^(preferred experience)\s*[:：]?$/i) || line.match(/^(how do i know if the role is right for me)\?\s*$/i);
     if (heading) {
       section = /우대|이런\s*(?:경험이\s*있다면|분이면|점이\s*있으면)\s*더\s*좋아요|preferred|nice to have|added plus|bonus points/i.test(heading[1]) ? 'preferred' : 'required';
@@ -101,11 +105,11 @@ export function extractJobDuties(content) {
   for (const [index, raw] of lines.entries()) {
     const line = raw.trim();
     if (!line) continue;
-    if (heading.test(line) || /^어떤\s*업무를\s*담당하나요\?$/.test(line) || /^이런\s*일을\s*해요[.!！]?$/i.test(line) || /^what you['’]ll cook up in your first year$/i.test(line) || /^우리\s*팀과\s*함께할\s*미션을\s*소개합니다[.!]?$/i.test(line) || (/^the opportunity\s*:?$/i.test(line) && lines.slice(index + 1).some(next => /^how do i know if the role is right for me\?\s*$/i.test(next.trim())))) { inside = true; continue; }
+    if (heading.test(line) || recoverSectionHeading(line) === 'duties' || /^어떤\s*업무를\s*담당하나요\?$/.test(line) || /^이런\s*일을\s*해요[.!！]?$/i.test(line) || /^what you['’]ll cook up in your first year$/i.test(line) || /^우리\s*팀과\s*함께할\s*미션을\s*소개합니다[.!]?$/i.test(line) || (/^the opportunity\s*:?$/i.test(line) && lines.slice(index + 1).some(next => /^how do i know if the role is right for me\?\s*$/i.test(next.trim())))) { inside = true; continue; }
     if (/^the secret ingredients we['’]re looking for$/i.test(line)) { inside = false; continue; }
     if (inside && /^(?:Audit Delivery & Reporting|Team Leadership & Development|AI, Technology & Innovation|Tools & Process Improvement|Stakeholder Partnerships)$/i.test(line)) continue;
     if (/^how do i know if the role is right for me\?\s*$/i.test(line)) { inside = false; continue; }
-    if (HEADINGS.test(line) || /^어떤\s*경력과\s*역량이\s*필요한가요\?$/.test(line) || LABELED_REQUIREMENT_HEADING.test(line) || OTHER_HEADING.test(line) || KRAFTON_PROCESS_HEADING.test(line) || /^#{1,6}\s+/.test(line)
+    if (HEADINGS.test(line) || ['required', 'preferred'].includes(recoverSectionHeading(line)) || /^어떤\s*경력과\s*역량이\s*필요한가요\?$/.test(line) || LABELED_REQUIREMENT_HEADING.test(line) || OTHER_HEADING.test(line) || KRAFTON_PROCESS_HEADING.test(line) || /^#{1,6}\s+/.test(line)
       || /^(?:전형\s*절차|토스로의\s*합류\s*여정|PID\s*-\s*[A-Z]?\d+|pay transparency|annual base salary|salary\s*[:：]|compensation\s*[:：])/i.test(line)
       || /^[^:：]{1,80}[:：]$/.test(line)) { inside = false; continue; }
     if (inside) items.push(line.replace(/^[-*•●▪◦‣·]\s*/, '').replace(/^\d+[.)]\s*/, '').trim());

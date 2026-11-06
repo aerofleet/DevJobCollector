@@ -1,0 +1,72 @@
+name: DJC job extraction audit
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 19 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: djc-job-extraction-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install database and tunnel clients
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq mysql-client
+          curl --fail --location --retry 3 'https://github.com/cloudflare/cloudflared/releases/download/2026.5.1/cloudflared-linux-amd64.deb' -o cloudflared.deb
+          echo '4274f6106efbe586e8e2127aba02798c55bcfd99a45d14f08779d6afc51e8752  cloudflared.deb' | sha256sum --check --strict
+          sudo dpkg -i cloudflared.deb
+      - name: Configure restricted access
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          DJC_AUDIT_DB_USERNAME: ${{ secrets.DJC_AUDIT_DB_USERNAME }}
+          DJC_AUDIT_DB_PASSWORD: ${{ secrets.DJC_AUDIT_DB_PASSWORD }}
+          DB_SERVER_IP: ${{ secrets.DB_SERVER_IP }}
+        run: |
+          set -euo pipefail
+          for name in SSH_PRIVATE_KEY SERVER_USER DJC_AUDIT_DB_USERNAME DJC_AUDIT_DB_PASSWORD DB_SERVER_IP; do
+            if [ -z "${!name}" ]; then echo "::error::Missing required secret: $name"; exit 1; fi
+          done
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s' "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          cat > ~/.ssh/config <<EOF
+          Host djc-a1
+            HostName ssh-djc.itsdev.kr
+            User $SERVER_USER
+            IdentityFile ~/.ssh/id_rsa
+            ProxyCommand cloudflared access ssh --hostname %h
+            StrictHostKeyChecking accept-new
+            BatchMode yes
+            ConnectTimeout 20
+          EOF
+          chmod 600 ~/.ssh/config
+      - name: Run read-only extraction audit
+        working-directory: devjobcollector
+        env:
+          TUNNEL_SERVICE_TOKEN_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          TUNNEL_SERVICE_TOKEN_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+          DB_SERVER_IP: ${{ secrets.DB_SERVER_IP }}
+          DJC_AUDIT_DB_USERNAME: ${{ secrets.DJC_AUDIT_DB_USERNAME }}
+          MYSQL_PWD: ${{ secrets.DJC_AUDIT_DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          ssh -f -N -o ExitOnForwardFailure=yes -L "127.0.0.1:13306:${DB_SERVER_IP}:3306" djc-a1
+          report="$(mysql --protocol=TCP --host=127.0.0.1 --port=13306 --user="$DJC_AUDIT_DB_USERNAME" --batch --raw --skip-column-names devjob < ops/db/job-extraction-snapshot.sql | node frontend/scripts/audit-job-extraction.mjs)"
+          printf '%s\n' "$report"
+          { echo '## Job extraction audit'; echo '```json'; printf '%s\n' "$report"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

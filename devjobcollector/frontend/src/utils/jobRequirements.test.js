@@ -1,6 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractDaangnSections, extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
+import { recoverSectionHeading } from './jobSectionRecovery.js';
+
+test('recovers explicit question-style section titles without guessing from prose', () => {
+  const text = '주요 업무는?\n• API 운영\n자격 요건은?\n• Java 경험\n우대 사항은?\n• AWS 경험\n채용 절차\n• 면접';
+  assert.deepEqual(extractJobDuties(text), ['API 운영']);
+  assert.deepEqual(extractJobRequirements(text), { required: ['Java 경험'], preferred: ['AWS 경험'] });
+  assert.equal(recoverSectionHeading('Java 경험은 우대 사항입니다'), null);
+  assert.equal(recoverSectionHeading('필수 및 우대 요건'), null);
+  assert.equal(recoverSectionHeading('우대 사항이 없나요?'), null);
+});
 
 test('separates Channel Corp DevOps duties, qualifications and preferred experience', () => {
   const text = '어떤 기회가 있나요?\n• 기술 리더십\n어떤 업무를 담당하나요?\n• AWS와 Kubernetes 운영\n• Terraform 자동화\n어떤 경력과 역량이 필요한가요?\n• 문제 해결 능력: 분산 시스템 이슈 해결\n• Kubernetes 실무: 프로덕션 클러스터 운영\n• Infrastructure as Code: Terraform 활용\n• 프로그래밍 능력: 하나 이상의 언어\n• 학부 수준의 Computer Science 지식\n이런 점이 있으면 더 좋아요\n• 대규모 트래픽 경험\n• 비용 최적화: 클라우드 비용 30% 이상 절감\n• GitOps 실무\n• 보안 자동화\n• 마이그레이션 경험\n• Istio 서비스 메쉬 운영\n• Platform Engineering\n• 오픈소스 기여\n어떤 방식으로 채용하나요?\n• 서류 제출 후 인터뷰';
