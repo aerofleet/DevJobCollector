@@ -2,6 +2,16 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractDaangnSections, extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
 
+test('separates Channel Corp DevOps duties, qualifications and preferred experience', () => {
+  const text = '어떤 기회가 있나요?\n• 기술 리더십\n어떤 업무를 담당하나요?\n• AWS와 Kubernetes 운영\n• Terraform 자동화\n어떤 경력과 역량이 필요한가요?\n• 문제 해결 능력: 분산 시스템 이슈 해결\n• Kubernetes 실무: 프로덕션 클러스터 운영\n• Infrastructure as Code: Terraform 활용\n• 프로그래밍 능력: 하나 이상의 언어\n• 학부 수준의 Computer Science 지식\n이런 점이 있으면 더 좋아요\n• 대규모 트래픽 경험\n• 비용 최적화: 클라우드 비용 30% 이상 절감\n• GitOps 실무\n• 보안 자동화\n• 마이그레이션 경험\n• Istio 서비스 메쉬 운영\n• Platform Engineering\n• 오픈소스 기여\n어떤 방식으로 채용하나요?\n• 서류 제출 후 인터뷰';
+  const requirements = extractJobRequirements(text);
+  assert.deepEqual(extractJobDuties(text), ['AWS와 Kubernetes 운영', 'Terraform 자동화']);
+  assert.equal(requirements.required.length, 5);
+  assert.equal(requirements.preferred.length, 8);
+  assert.equal(requirements.preferred.at(-1), '오픈소스 기여');
+  assert.equal(extractExperienceWording(requirements), null);
+});
+
 test('separates TwelveLabs role-fit and preferred qualifications from team links', () => {
   const text = `IN THIS ROLE, YOU WILL\n- API 개발\nYOU MAY BE A GOOD FIT IF YOU HAVE\n- 백엔드 엔지니어링 분야에서 5년 이상의 경력을 보유하신 분\n- 스타트업에서 프로젝트를 이끈 경험\n- Go, Java/Kotlin 프로덕션 시스템 운영 경험\n- 관계형 데이터베이스와 쿼리 최적화 경험\n- 이벤트 기반 분산 시스템 경험\n- Kubernetes, AWS 환경의 대규모 시스템 경험\n- 인증, 빌링, 조직 관리 구현 경험\nPREFERRED QUALIFICATIONS\n- B2B SaaS 경험\n- Go 실무 경험\n- AI/ML 모델 연동 경험\n- FFmpeg 영상 처리 경험\n- CI/CD 및 모니터링 경험\nREAD MORE ABOUT THE TEAM\n- 팀 인터뷰\nHIRING PROCESS\n서류 검토`;
   const result = extractJobRequirements(text);
