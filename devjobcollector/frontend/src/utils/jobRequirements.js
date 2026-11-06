@@ -4,7 +4,7 @@ function separateInlineBullets(text) {
   return text.replace(/\ufeff/g, '').replace(/^[ \t]*■[ \t]*/gm, '').replace(/^(\s*(?:what you(?:['’]ll| will) do|required skills|preferred skills|채용하고 싶은 사람|전형절차 및 기타사항|유의사항))\s+(?=·\s)/gim, '$1\n')
     .replace(/[ \t]+·(?=\s)/g, '\n·');
 }
-const OTHER_HEADING = /^(?:#{1,6}\s+.+|[[【].+[\]】]|(?:주요\s*업무|담당\s*업무|업무\s*내용|조직\s*소개|근무\s*조건(?:\s*및\s*근무\s*환경)?|복리\s*후생|혜택\s*및\s*복지|전형\s*절차|채용\s*(?:절차|프로세스)|접수\s*방법|기타\s*사항|참고\s*사항|responsibilities|benefits(?:\s*&\s*perks)?|success measures|about the (?:role|team)|hiring process|interview process)\s*[:：]?)$/i;
+const OTHER_HEADING = /^(?:#{1,6}\s+.+|[[【].+[\]】]|(?:주요\s*업무|담당\s*업무|업무\s*내용|조직\s*소개|근무\s*조건(?:\s*및\s*근무\s*환경)?|복리\s*후생|혜택\s*및\s*복지|전형\s*절차|채용\s*(?:절차|프로세스)|접수\s*방법|기타\s*사항|참고\s*사항|responsibilities|benefits(?:\s*&\s*perks)?|success measures|about the (?:role|team)|read more about the team|hiring process|interview process)\s*[:：]?)$/i;
 const LABELED_REQUIREMENT_HEADING = /^[^\n•]{0,100}\((필수\s*(?:요건|사항|조건)|우대\s*(?:요건|사항|조건))\)\s*[:：]?$/;
 const KRAFTON_PROCESS_HEADING = /^.{0,80}전형\s*과정이\s*필요합니다[.!]?$/;
 
@@ -27,7 +27,7 @@ export function extractJobRequirements(content) {
       result.preferred.push(preferredItem[1].trim());
       continue;
     }
-    const heading = line.match(HEADINGS) || line.match(/^(이런\s*분이면\s*더\s*좋아요)[!！.]?$/) || line.match(LABELED_REQUIREMENT_HEADING) || line.match(/^(?:must-have pantry staples|optional garnishes) \((minimum qualifications|preferred qualifications)\)\s*$/i) || line.match(/^(preferred experience)\s*[:：]?$/i) || line.match(/^(how do i know if the role is right for me)\?\s*$/i);
+    const heading = line.match(HEADINGS) || line.match(/^(you may be a good fit if you have)\s*[:：]?$/i) || line.match(/^(이런\s*분이면\s*더\s*좋아요)[!！.]?$/) || line.match(LABELED_REQUIREMENT_HEADING) || line.match(/^(?:must-have pantry staples|optional garnishes) \((minimum qualifications|preferred qualifications)\)\s*$/i) || line.match(/^(preferred experience)\s*[:：]?$/i) || line.match(/^(how do i know if the role is right for me)\?\s*$/i);
     if (heading) {
       section = /우대|이런\s*(?:경험이\s*있다면|분이면)\s*더\s*좋아요|preferred|nice to have|added plus|bonus points/i.test(heading[1]) ? 'preferred' : 'required';
       continue;

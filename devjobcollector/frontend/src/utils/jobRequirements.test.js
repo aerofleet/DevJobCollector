@@ -2,6 +2,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractDaangnSections, extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
 
+test('separates TwelveLabs role-fit and preferred qualifications from team links', () => {
+  const text = `IN THIS ROLE, YOU WILL\n- API 개발\nYOU MAY BE A GOOD FIT IF YOU HAVE\n- 백엔드 엔지니어링 분야에서 5년 이상의 경력을 보유하신 분\n- 스타트업에서 프로젝트를 이끈 경험\n- Go, Java/Kotlin 프로덕션 시스템 운영 경험\n- 관계형 데이터베이스와 쿼리 최적화 경험\n- 이벤트 기반 분산 시스템 경험\n- Kubernetes, AWS 환경의 대규모 시스템 경험\n- 인증, 빌링, 조직 관리 구현 경험\nPREFERRED QUALIFICATIONS\n- B2B SaaS 경험\n- Go 실무 경험\n- AI/ML 모델 연동 경험\n- FFmpeg 영상 처리 경험\n- CI/CD 및 모니터링 경험\nREAD MORE ABOUT THE TEAM\n- 팀 인터뷰\nHIRING PROCESS\n서류 검토`;
+  const result = extractJobRequirements(text);
+  assert.equal(result.required.length, 7);
+  assert.equal(result.preferred.length, 5);
+  assert.equal(extractExperienceWording(result), '5년 이상');
+  assert.ok(![...result.required, ...result.preferred].includes('팀 인터뷰'));
+});
+
 test('separates Daangn duties, required and preferred qualifications, notices and process', () => {
   const text = '이런 일을 해요\n• 정산 검증\n• 파트너 대사\n이런 분과 함께하고 싶어요\n• 데이터 대조\n• 소통 역량\n이런 분이면 더 좋아요!\n• 정산 실무 경력 1년 이상\n• 엑셀, SQL, 파이썬 경험\n참고해 주세요\n• 최초 3개월 계약 후 평가\n이렇게 합류해요\n1. 서류 전형 → 2. 직무 인터뷰 → 3. 최종 합격\n당근 전형 소개\n서류 전형\n일반 안내';
   const req = extractJobRequirements(text);
