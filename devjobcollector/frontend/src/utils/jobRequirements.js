@@ -1,4 +1,4 @@
-const HEADINGS = /^(?:#{1,6}\s*)?[[【]?(자격\s*(?:요건|조건)|지원\s*(?:자격|조건)|필수\s*(?:요건|사항|조건)|우대\s*(?:사항|요건|조건)|이런\s*분과\s*함께하고\s*싶어요|이런\s*경험이\s*있다면\s*더\s*좋아요|preferred (?:qualifications|requirements|skills)|basic qualifications|required skills(?:\s+and\s+experience)?|minimum requirements|nice to haves?|bonus points|while not required,?\s*it['’]s an added plus if you also have|we['’]d love to hear from you if you have|we(?:['’]re| are) looking for someone who|your expertise|what you should have|what you(?:['’]ll| will)?\s+(?:bring|need)|what we(?:['’]re| are) looking for|what we look for in you(?:\s*\(i\.?e\.?\s*,?\s*job requirements\))?|qualifications(?:\s*(?:&|and)\s*experience\s+required)?|requirements)[\]】]?[\s:：-]*$/i;
+const HEADINGS = /^(?:#{1,6}\s*)?[[【]?(자격\s*(?:요건|조건)|지원\s*(?:자격|조건)|필수\s*(?:요건|사항|조건)|우대\s*(?:사항|요건|조건)|이런\s*분과\s*함께하고\s*싶어요|이런\s*경험이\s*있다면\s*더\s*좋아요|preferred (?:qualifications|requirements|skills)|basic qualifications|required skills(?:\s+and\s+experience)?|minimum requirements|nice to haves?|bonus points|while (?:it['’]s )?not required,?\s*it['’]s an added plus if you also have|we['’]d love to hear from you if you have|we(?:['’]re| are) looking for someone who|your expertise|what you should have|what you(?:['’]ll| will)?\s+(?:bring|need)|what we(?:['’]re| are) looking for|what we look for in you(?:\s*\(i\.?e\.?\s*,?\s*job requirements\))?|qualifications(?:\s*(?:&|and)\s*experience\s+required)?|requirements)[\]】]?[\s:：-]*$/i;
 import { recoverSectionHeading } from './jobSectionRecovery.js';
 // Some sources serialize a heading and bullet list into a single line.
 function separateInlineBullets(text) {
@@ -99,7 +99,7 @@ export function extractJobDuties(content) {
     .replace(/<br\s*\/?>/gi, '\n').replace(/<li(?:\s[^>]*)?>/gi, '\n• ')
     .replace(/<\/(?:p|div|li|h[1-6])>/gi, '\n').replace(/<[^>]*>/g, '')
     .replace(/\r\n?/g, '\n').replace(/\s*◆\s*/g, '\n').replace(/[ \t]+-[ \t]+/g, '\n- ').split('\n');
-  const heading = /^(?:#{1,6}\s*)?[[【]?(?:주요\s*업무|담당\s*업무|업무\s*내용|합류하면\s*함께\s*할\s*업무예요|합류하면\s*함께할\s*업무예요|responsibilities|what you(?:['’]ll| will) do)[\]】]?[\s:：-]*$/i;
+  const heading = /^(?:#{1,6}\s*)?[[【]?(?:주요\s*업무|담당\s*업무|업무\s*내용|합류하면\s*함께\s*할\s*업무예요|합류하면\s*함께할\s*업무예요|responsibilities|what you(?:['’]ll| will) do(?: at [\p{L}\p{N}&.'’ -]{1,60})?)[\]】]?[\s:：-]*$/iu;
   const items = [];
   let inside = false;
   for (const [index, raw] of lines.entries()) {

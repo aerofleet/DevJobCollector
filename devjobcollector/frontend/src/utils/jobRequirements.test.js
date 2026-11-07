@@ -1,6 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractDaangnSections, extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
+
+test('separates sales duties, required and preferred qualifications across heading variants', () => {
+  const text = 'What you’ll do at Figma Weave:\n• Lead the sales team\n• Coach customer meetings\nWe\'d love to hear from you if you have:\n• 8+ years of sales experience\nWhile it’s not required, it’s an added plus if you also have:\n• Experience with MEDDIC\nAt Figma, one of our values is Grow as you go.\nCompany information';
+  assert.deepEqual(extractJobDuties(text), ['Lead the sales team', 'Coach customer meetings']);
+  assert.deepEqual(extractJobRequirements(text), { required: ['8+ years of sales experience'], preferred: ['Experience with MEDDIC'] });
+  assert.deepEqual(extractJobDuties('What you’ll do at Acme:\n• Manage budgets\nBenefits:\n• Leave'), ['Manage budgets']);
+});
 import { recoverSectionHeading } from './jobSectionRecovery.js';
 
 test('recovers explicit question-style section titles without guessing from prose', () => {
