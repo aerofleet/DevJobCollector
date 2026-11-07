@@ -9,7 +9,7 @@ import org.springframework.web.util.HtmlUtils;
 public record ExperienceClassification(String category, String label, String evidence, String method) {
     private static final Pattern YEAR = Pattern.compile("(?i)(?:경력|실무|경험)[^\\n.!?]{0,25}?(\\d{1,2})\\s*년(?!\\s*(?:이하|미만|차))|(?:\\d{1,2})\\s*년\\s*이상의?[^\\n.!?]{0,120}?(?:경력|실무|경험)|(?:at least|minimum of|minimum)\\s+(\\d{1,2})\\s+years?[^\\n.!?]{0,100}experience|(?<!\\d)(\\d{1,2})\\+\\s+years?[^\\n.!?]{0,100}experience");
     private static final Pattern NUMBER = Pattern.compile("\\d{1,2}");
-    private static final Pattern YEARS_IN_FIELD = Pattern.compile("(?i)(?<!\\d)(\\d{1,2})\\+\\s+years?\\s+in\\s+(?!school\\b|college\\b|university\\b|education\\b)[a-z]");
+    private static final Pattern YEARS_IN_FIELD = Pattern.compile("(?i)(?:(?<!\\d)(\\d{1,2})\\+|\\b(?:minimum(?: of)?|at least)\\s+(\\d{1,2}))\\s+years?\\s+in\\s+(?!school\\b|college\\b|university\\b|education\\b)[a-z]");
     private static final Pattern PROFESSIONAL_ENGINEERING = Pattern.compile("(?i)^[-*•●▪◦‣·]?\\s*(\\d{1,2})\\+\\s+years?\\s+of\\s+professional\\s+[a-z][a-z0-9+#.-]*\\s+engineering\\s+building\\b");
     private static final Pattern YEAR_RANGE = Pattern.compile("\\d{1,2}\\s*(?:년\\s*)?[~～–-]\\s*\\d{1,2}\\s*년");
     private static final Pattern MINIMUM_ENGLISH_RANGE = Pattern.compile("(?i)\\b(?:minimum of|minimum|at least)\\s+(\\d{1,2})\\s*[-–~]\\s*(\\d{1,2})\\s*years?\\b[^\\n]{0,100}\\bexperience\\b");
@@ -66,8 +66,8 @@ public record ExperienceClassification(String category, String label, String evi
                 evidence = candidate.length() > 500 ? candidate.substring(0, 500) : candidate;
             }
             Matcher yearsInField = YEARS_IN_FIELD.matcher(candidate);
-            if (yearsInField.find() && Integer.parseInt(yearsInField.group(1)) > minimum) {
-                minimum = Integer.parseInt(yearsInField.group(1));
+            if (yearsInField.find() && Integer.parseInt(yearsInField.group(1) != null ? yearsInField.group(1) : yearsInField.group(2)) > minimum) {
+                minimum = Integer.parseInt(yearsInField.group(1) != null ? yearsInField.group(1) : yearsInField.group(2));
                 minimumRange = null;
                 minimumExplicit = true;
                 evidence = candidate.length() > 500 ? candidate.substring(0, 500) : candidate;

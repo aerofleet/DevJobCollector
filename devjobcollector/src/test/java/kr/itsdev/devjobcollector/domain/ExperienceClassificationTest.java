@@ -4,6 +4,14 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ExperienceClassificationTest {
+    @Test void recognizesMinimumYearsInProductDesignOnlyInRequiredSection() {
+        String requirement = "Minimum 5 years in Product Design (or equivalent).";
+        var result = ExperienceClassification.classify(null, "Product Designer", "What we’re looking for\n• " + requirement, false);
+        assertThat(result.label()).isEqualTo("경력 5년 이상");
+        assertThat(result.evidence()).contains(requirement);
+        assertThat(ExperienceClassification.classify(null, "Designer", "Preferred qualifications:\n• " + requirement, false).category()).isEqualTo("UNKNOWN");
+        assertThat(ExperienceClassification.classify(null, "Designer", "What we’re looking for\n• Minimum 5 years in education", false).category()).isEqualTo("UNKNOWN");
+    }
     @org.junit.jupiter.api.Test void treatsDaangnOneYearAsPreferred() {
         String text = "이런 분과 함께하고 싶어요\n• 데이터를 대조해 원인을 규명해 보신 분\n이런 분이면 더 좋아요!\n• 정산 실무 경력 1년 이상이신 분\n참고해 주세요\n• 3개월 계약";
         var result = ExperienceClassification.classify("경력", "Service Operations Manager", text, false);

@@ -2,6 +2,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractDaangnSections, extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
 
+test('extracts Pinterest minimum years in product design without treating education as work experience', () => {
+  const requirements = extractJobRequirements('What we’re looking for\n• Bachelor’s degree in design or equivalent experience.\n• Minimum 5 years in Product Design (or equivalent).\nRelocation Statement:');
+  assert.equal(extractExperienceWording(requirements), '5년 이상');
+  assert.equal(extractExperienceWording({ required: ['Minimum 5 years in education'], preferred: [] }), null);
+  assert.equal(extractExperienceWording({ required: ['Minimum 5 years in Product Design experience'], preferred: [] }), '5년 이상');
+});
+
 test('separates MongoDB minimum and preferred qualifications', () => {
   const text = 'What You’ll Do\n• Harden hosts\nWhat We’re Looking For\nMinimum Qualifications:\n• 10+ years in SRE, Infrastructure Engineering, or Cloud Security Engineering\n• Strong coding skills in Go, Python, C, C++, or Rust\nPreferred Qualifications:\n• Practical experience with eBPF-based security tooling\nAbout MongoDB\nCompany information';
   assert.deepEqual(extractJobDuties(text), ['Harden hosts']);

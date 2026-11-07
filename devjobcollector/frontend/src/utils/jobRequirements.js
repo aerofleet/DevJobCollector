@@ -70,6 +70,7 @@ export function extractExperienceWording(requirements) {
     (/(?:\d{1,2}\s*년\s*이상[^.!?\n]{0,40}(?:경험|경력)|(?:경험|경력)[^.!?\n]{0,40}\d{1,2}\s*년\s*이상)/.test(item)
       || /\b\d{1,2}\+\s*years?\b[^.!?\n]{0,80}\bexperience\b/i.test(item)
       || /\b(?:minimum(?: of)?|at least)\s+\d{1,2}\s+years?\b[^.!?\n]{0,80}\bexperience\b/i.test(item)
+      || /\b(?:minimum(?: of)?|at least)\s+\d{1,2}\s+years?\s+in\s+(?!school\b|college\b|university\b|education\b)[a-z]/i.test(item)
       || /\b\d{1,2}\+\s+years?\s+in\s+(?!school\b|college\b|university\b|education\b)[a-z]/i.test(item))
       && !/우대|선호|prefer|(?:학위|석사|박사)[^.!?\n]{0,80}(?:또는|혹은)[^.!?\n]{0,80}\d{1,2}\s*년/i.test(item));
   if (candidates.length === 0 && totalEngineering.length === 1) return `${totalEngineering[0]}년 이상`;
@@ -79,6 +80,7 @@ export function extractExperienceWording(requirements) {
   const durations = [...candidates[0].matchAll(/(\d{1,2})\s*년\s*이상/g)];
   const english = [...candidates[0].matchAll(/\b(\d{1,2})\+\s*years?\b/gi)];
   english.push(...candidates[0].matchAll(/\b(?:minimum(?: of)?|at least)\s+(\d{1,2})\s+years?\b(?=[^.!?\n]{0,80}\bexperience\b)/gi));
+  english.push(...candidates[0].matchAll(/\b(?:minimum(?: of)?|at least)\s+(\d{1,2})\s+years?\s+in\s+(?!school\b|college\b|university\b|education\b)[a-z](?![^.!?\n]{0,80}\bexperience\b)/gi));
   if (durations.length + english.length !== 1) return null;
   return `${(durations[0] || english[0])[1]}년 이상`;
 }

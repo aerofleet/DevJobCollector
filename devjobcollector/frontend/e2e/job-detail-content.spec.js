@@ -23,6 +23,16 @@ test.beforeEach(async ({ page }) => {
   }));
 });
 
+test('Pinterest 제품 디자이너 공고의 최소 경력을 표시한다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/12280?*', route => route.fulfill({ json: {
+    ...jobDetail, id: 12280, title: 'Sr. Product Designer - Measurement, Data, & AI', companyName: 'Pinterest', experience: '경력 확인 필요',
+    applyQual: 'What we’re looking for\n• Bachelor’s degree in design, a related field or equivalent experience.\n• Minimum 5 years in Product Design (or equivalent).\nRelocation Statement:',
+  } }));
+  await page.goto('/job/12280');
+  await expect(page.locator('.info-item').filter({ hasText: '경력' })).toContainText('5년 이상');
+  await expect(page.getByRole('heading', { name: '자격 조건' }).locator('..')).toContainText('Minimum 5 years in Product Design (or equivalent).');
+});
+
 test('Cloudflare 공고의 업무, 요건과 원문 근무지를 표시한다', async ({ page }) => {
   await page.route('**/api/v1/jobs/12278?*', route => route.fulfill({ json: {
     ...jobDetail, id: 12278, title: 'Software Engineer - Load Balancing', companyName: 'Cloudflare', location: 'Hybrid',
