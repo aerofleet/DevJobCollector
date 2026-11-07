@@ -10,6 +10,14 @@ test('separates sales duties, required and preferred qualifications across headi
 });
 import { recoverSectionHeading } from './jobSectionRecovery.js';
 
+test('separates mixed Databricks recruiting qualifications and contract terms', () => {
+  const text = 'This is a 6 month contract, with an opportunity to get the same extended.\nThe impact you will have:\n• Source candidates\n• Build a pipeline\nWhat we look for:\n• Sourcing experience\n• Leadership hiring is a plus\n• Communication skills\n• Engineering hiring is a plus\nAbout Databricks\nCompany description\nBenefits\nHoliday';
+  assert.deepEqual(extractJobDuties(text), ['Source candidates', 'Build a pipeline']);
+  assert.deepEqual(extractJobRequirements(text), { required: ['Sourcing experience', 'Communication skills'], preferred: ['Leadership hiring is a plus', 'Engineering hiring is a plus'] });
+  assert.equal(extractJobEmploymentType(text), '계약직 (6개월)');
+  assert.equal(extractJobEmploymentType('A 6 month contract was previously completed.'), null);
+});
+
 test('recovers explicit question-style section titles without guessing from prose', () => {
   const text = '주요 업무는?\n• API 운영\n자격 요건은?\n• Java 경험\n우대 사항은?\n• AWS 경험\n채용 절차\n• 면접';
   assert.deepEqual(extractJobDuties(text), ['API 운영']);
