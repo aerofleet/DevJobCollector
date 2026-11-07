@@ -10,6 +10,12 @@ test('separates sales duties, required and preferred qualifications across headi
 });
 import { recoverSectionHeading } from './jobSectionRecovery.js';
 
+test('separates inline Korean duties and required skills before preferred qualifications', () => {
+  const text = '담당 업무 ﻿추천 모델 연구 - 모델 개발 - 서비스 운영\n\n필요 역량 ﻿- 경력 3년 이상 - Python 경험\n\n우대 사항 ﻿- 관련 학위\n\n전형 절차 및 안내 사항 ﻿- 서류 전형';
+  assert.deepEqual(extractJobDuties(text), ['추천 모델 연구', '모델 개발', '서비스 운영']);
+  assert.deepEqual(extractJobRequirements(text), { required: ['경력 3년 이상', 'Python 경험'], preferred: ['관련 학위'] });
+});
+
 test('separates mixed Databricks recruiting qualifications and contract terms', () => {
   const text = 'This is a 6 month contract, with an opportunity to get the same extended.\nThe impact you will have:\n• Source candidates\n• Build a pipeline\nWhat we look for:\n• Sourcing experience\n• Leadership hiring is a plus\n• Communication skills\n• Engineering hiring is a plus\nAbout Databricks\nCompany description\nBenefits\nHoliday';
   assert.deepEqual(extractJobDuties(text), ['Source candidates', 'Build a pipeline']);
