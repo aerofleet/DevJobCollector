@@ -191,7 +191,9 @@ export function extractAvailableLocations(content) {
 }
 
 export function extractRoleSummary(content) {
-  const match = String(content || '').match(/(?:^|\n)\s*Role Summary\s*\n([^\r\n]+)/i);
+  const text = String(content || '');
+  const match = text.match(/(?:^|\n)[ \t]*Role Summary[ \t]*\n([^\r\n]+)/i)
+    || text.match(/(?:^|\n)[ \t]*(We are seeking\b(?=[^\r\n]*\byou will\b)[^\r\n]{1,2500})(?=\r?\n[ \t]*What we look for\s*[:：])/i);
   return match ? match[1].trim() : null;
 }
 

@@ -66,6 +66,7 @@ const DetailPage = () => {
   const daysRemaining = getDaysRemaining(job.endDate);
   const requirements = extractJobRequirements(job.applyQual);
   const experienceWording = extractExperienceWording(requirements);
+  const hasMultipleExperienceRequirements = requirements.required.filter((item) => /\b\d{1,2}\+\s*years?\b[^\n]{0,80}\bexperience\b/i.test(item)).length > 1;
   const duties = extractJobDuties(job.applyQual);
   const availableLocations = extractAvailableLocations(job.applyQual);
   const roleSummary = extractRoleSummary(job.applyQual);
@@ -146,7 +147,7 @@ const DetailPage = () => {
             </div>
             <div className="info-item">
               <span className="label">경력</span>
-              <span className="value">{formatInfoGridValue((!job.experience || job.experience === '경력 확인 필요') && experienceWording ? experienceWording : (job.experience || '경력 확인 필요').replace(/^경력\s+(?=\d)/, '')) || '경력 확인 필요'}</span>
+              <span className="value">{formatInfoGridValue((!job.experience || job.experience === '경력 확인 필요') && experienceWording ? experienceWording : (!job.experience || job.experience === '경력 확인 필요') && hasMultipleExperienceRequirements ? '복수 경력 조건 · 자격 조건 참조' : (job.experience || '경력 확인 필요').replace(/^경력\s+(?=\d)/, '')) || '경력 확인 필요'}</span>
             </div>
             {isPublicAlio && formatInfoGridValue(job.jobCategory) && <div className="info-item"><span className="label">채용 분야</span><span className="value">{formatInfoGridValue(job.jobCategory)}</span></div>}
             {formatInfoGridValue(employmentType) && <div className="info-item"><span className="label">고용 형태</span><span className="value">{formatInfoGridValue(employmentType)}</span></div>}

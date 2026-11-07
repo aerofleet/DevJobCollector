@@ -224,6 +224,20 @@ test('Databricks 공고의 필수·우대 경력을 업무와 급여에서 분�
   await expect(page.locator('.info-item').filter({ hasText: '경력' }).locator('.value')).toHaveText('10년 이상');
 });
 
+test('Databricks 네트워킹 공고의 직무 소개와 복수 경력 조건을 표시한다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/12288?*', route => route.fulfill({ json: {
+    ...jobDetail, id: 12288, title: 'Senior Software Engineer - Backend Infrastructure', companyName: 'Databricks',
+    location: 'Bengaluru, India', experience: '경력 확인 필요',
+    applyQual: 'P-1346\nWe are seeking an experienced Senior Software Engineers with a networking background to join the Networking Infrastructure team. You will also be leading the design and development of new services.\nWhat we look for:\n• 8+ years of production level experience in one of: Python, Java, Scala, C++, or similar language\n• 4+ years of experience developing large-scale distributed systems from scratch\n• Experience working on a SaaS platform or with Service-Oriented Architectures.\nAbout Databricks\nCompany introduction.',
+  } }));
+  await page.goto('/job/12288');
+  await expect(page.getByText('복수 경력 조건 · 자격 조건 참조')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '직무 소개' }).locator('..')).toContainText('You will also be leading');
+  const requirements = page.getByRole('heading', { name: '자격 조건' }).locator('..');
+  await expect(requirements).toContainText('8+ years of production level experience');
+  await expect(requirements).toContainText('4+ years of experience developing large-scale distributed systems');
+});
+
 test('한 줄로 수집된 네이버형 공고의 업무와 자격을 분리한다', async ({ page }) => {
   await page.route('**/api/v1/jobs/10152?*', route => route.fulfill({ json: {
     ...jobDetail, id: 10152, sourcePlatform: 'COMPANY_PAGE', experience: '경력무관', techStacks: [],
