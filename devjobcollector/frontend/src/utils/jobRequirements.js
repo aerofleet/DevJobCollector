@@ -31,7 +31,7 @@ export function extractJobRequirements(content) {
     const recovered = recoverSectionHeading(line);
     if (recovered === 'required' || recovered === 'preferred') { section = recovered; continue; }
     if (recovered === 'duties') { section = null; continue; }
-    const heading = line.match(HEADINGS) || line.match(/^(필요\s*역량|what we look for|you may be a good fit if you have)\s*[:：]?$/i) || line.match(/^(어떤\s*경력과\s*역량이\s*필요한가요\?|이런\s*점이\s*있으면\s*더\s*좋아요)[!！.]?$/) || line.match(/^(이런\s*분이면\s*더\s*좋아요)[!！.]?$/) || line.match(LABELED_REQUIREMENT_HEADING) || line.match(/^(?:must-have pantry staples|optional garnishes) \((minimum qualifications|preferred qualifications)\)\s*$/i) || line.match(/^(preferred experience)\s*[:：]?$/i) || line.match(/^(how do i know if the role is right for me)\?\s*$/i);
+    const heading = line.match(HEADINGS) || line.match(/^(필요\s*역량|votre expertise|vos compétences et aptitudes|what we look for|you may be a good fit if you have)\s*[:：]?$/i) || line.match(/^(어떤\s*경력과\s*역량이\s*필요한가요\?|이런\s*점이\s*있으면\s*더\s*좋아요)[!！.]?$/) || line.match(/^(이런\s*분이면\s*더\s*좋아요)[!！.]?$/) || line.match(LABELED_REQUIREMENT_HEADING) || line.match(/^(?:must-have pantry staples|optional garnishes) \((minimum qualifications|preferred qualifications)\)\s*$/i) || line.match(/^(preferred experience)\s*[:：]?$/i) || line.match(/^(how do i know if the role is right for me)\?\s*$/i);
     if (heading) {
       section = /우대|이런\s*(?:경험이\s*있다면|분이면|점이\s*있으면)\s*더\s*좋아요|preferred|nice to have|added plus|bonus points/i.test(heading[1]) ? 'preferred' : 'required';
       continue;
@@ -56,6 +56,11 @@ export function extractJobRequirements(content) {
 
 // Present the explicit duration without displaying an entire qualification sentence.
 export function extractExperienceWording(requirements) {
+  const french = requirements.required.flatMap(item => {
+    const match = item.match(/^(\d{1,2})\s+années?\s+ou\s+plus\s+d['’]expérience\b/i);
+    return match ? [match[1]] : [];
+  });
+  if (french.length === 1) return `${french[0]}년 이상`;
   // An explicitly total engineering tenure may include a separate management minimum.
   const totalEngineering = requirements.required.flatMap(item => {
     const match = item.match(/^(\d{1,2})\+\s+total years? of engineering experience with (?:a )?(?:minimum|minimal|at least)\s+\d{1,2}\s+years? of management experience\.?$/i);
@@ -107,7 +112,7 @@ export function extractJobDuties(content) {
   for (const [index, raw] of lines.entries()) {
     const line = raw.trim();
     if (!line) continue;
-    if (heading.test(line) || /^the impact you (?:will|['’]ll) have\s*[:：]?$/i.test(line) || recoverSectionHeading(line) === 'duties' || /^어떤\s*업무를\s*담당하나요\?$/.test(line) || /^이런\s*일을\s*해요[.!！]?$/i.test(line) || /^what you['’]ll cook up in your first year$/i.test(line) || /^우리\s*팀과\s*함께할\s*미션을\s*소개합니다[.!]?$/i.test(line) || (/^the opportunity\s*:?$/i.test(line) && lines.slice(index + 1).some(next => /^how do i know if the role is right for me\?\s*$/i.test(next.trim())))) { inside = true; continue; }
+    if (heading.test(line) || /^une journée typique\s*[:：]?$/i.test(line) || /^the impact you (?:will|['’]ll) have\s*[:：]?$/i.test(line) || recoverSectionHeading(line) === 'duties' || /^어떤\s*업무를\s*담당하나요\?$/.test(line) || /^이런\s*일을\s*해요[.!！]?$/i.test(line) || /^what you['’]ll cook up in your first year$/i.test(line) || /^우리\s*팀과\s*함께할\s*미션을\s*소개합니다[.!]?$/i.test(line) || (/^the opportunity\s*:?$/i.test(line) && lines.slice(index + 1).some(next => /^how do i know if the role is right for me\?\s*$/i.test(next.trim())))) { inside = true; continue; }
     if (/^the secret ingredients we['’]re looking for$/i.test(line)) { inside = false; continue; }
     if (inside && /^(?:Audit Delivery & Reporting|Team Leadership & Development|AI, Technology & Innovation|Tools & Process Improvement|Stakeholder Partnerships)$/i.test(line)) continue;
     if (/^how do i know if the role is right for me\?\s*$/i.test(line)) { inside = false; continue; }
@@ -195,7 +200,8 @@ export function extractJobEmploymentType(content) {
   const match = String(content || '').match(/(?:^|\n)\s*고용\s*형태\s*[:：]?\s*\n\s*[-*•●▪◦‣·]?\s*([^\n]{1,100})/i);
   if (match) return match[1].trim();
   const contract = String(content || '').match(/\bthis (?:is|position is|role is) a (\d{1,2})[- ]month contract\b/i);
-  return contract ? `계약직 (${contract[1]}개월)` : null;
+  if (contract) return `계약직 (${contract[1]}개월)`;
+  return /\bposte à temps plein\b/i.test(String(content || '')) ? '풀타임' : null;
 }
 
 export function extractRollingDeadline(content) {

@@ -10,6 +10,15 @@ test('separates sales duties, required and preferred qualifications across headi
 });
 import { recoverSectionHeading } from './jobSectionRecovery.js';
 
+test('extracts French job duties and qualifications without workplace text', () => {
+  const text = "Il s'agit d'un poste à temps plein basé au Canada.\nUne journée typique :\nSuperviser l'équipe\n• Gérer les dossiers\nVotre expertise:\n• 8 années ou plus d'expérience progressive, dont 5 années en gestion\nVos compétences et aptitudes:\n• Communication\nVotre lieu de travail:\nTélétravail au Canada";
+  const requirements = extractJobRequirements(text);
+  assert.deepEqual(extractJobDuties(text), ["Superviser l'équipe", 'Gérer les dossiers']);
+  assert.equal(requirements.required.length, 2);
+  assert.equal(extractExperienceWording(requirements), '8년 이상');
+  assert.equal(extractJobEmploymentType(text), '풀타임');
+});
+
 test('separates inline Korean duties and required skills before preferred qualifications', () => {
   const text = '담당 업무 ﻿추천 모델 연구 - 모델 개발 - 서비스 운영\n\n필요 역량 ﻿- 경력 3년 이상 - Python 경험\n\n우대 사항 ﻿- 관련 학위\n\n전형 절차 및 안내 사항 ﻿- 서류 전형';
   assert.deepEqual(extractJobDuties(text), ['추천 모델 연구', '모델 개발', '서비스 운영']);
