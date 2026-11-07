@@ -15,7 +15,7 @@ jobs:
         env:
           MYSQL_ROOT_PASSWORD: growth-test-only
           MYSQL_DATABASE: devjob
-        ports: ['33306:3306']
+        ports: ['3306/tcp']
         options: >-
           --health-cmd="mysqladmin ping -h 127.0.0.1 -pgrowth-test-only"
           --health-interval=10s --health-timeout=5s --health-retries=12
@@ -31,7 +31,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Security and MySQL migration / aggregation
         env:
-          DJC_MIGRATION_TEST_URL: jdbc:mysql://127.0.0.1:33306/devjob?serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true
+          DJC_MIGRATION_TEST_URL: jdbc:mysql://127.0.0.1:${{ job.services.mysql.ports[3306] }}/devjob?serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true
           DJC_MIGRATION_TEST_USERNAME: root
           DJC_MIGRATION_TEST_PASSWORD: growth-test-only
         run: bash ./gradlew test --tests 'kr.itsdev.devjobcollector.growth.*' --tests 'kr.itsdev.devjobcollector.repository.JobSearchRepositoryIntegrationTest' --console=plain
