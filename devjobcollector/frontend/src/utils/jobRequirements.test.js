@@ -2,6 +2,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractDaangnSections, extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
 
+test('separates MongoDB minimum and preferred qualifications', () => {
+  const text = 'What You’ll Do\n• Harden hosts\nWhat We’re Looking For\nMinimum Qualifications:\n• 10+ years in SRE, Infrastructure Engineering, or Cloud Security Engineering\n• Strong coding skills in Go, Python, C, C++, or Rust\nPreferred Qualifications:\n• Practical experience with eBPF-based security tooling\nAbout MongoDB\nCompany information';
+  assert.deepEqual(extractJobDuties(text), ['Harden hosts']);
+  assert.deepEqual(extractJobRequirements(text), {
+    required: ['10+ years in SRE, Infrastructure Engineering, or Cloud Security Engineering', 'Strong coding skills in Go, Python, C, C++, or Rust'],
+    preferred: ['Practical experience with eBPF-based security tooling'],
+  });
+});
+
 test('separates sales duties, required and preferred qualifications across heading variants', () => {
   const text = 'What you’ll do at Figma Weave:\n• Lead the sales team\n• Coach customer meetings\nWe\'d love to hear from you if you have:\n• 8+ years of sales experience\nWhile it’s not required, it’s an added plus if you also have:\n• Experience with MEDDIC\nAt Figma, one of our values is Grow as you go.\nCompany information';
   assert.deepEqual(extractJobDuties(text), ['Lead the sales team', 'Coach customer meetings']);
