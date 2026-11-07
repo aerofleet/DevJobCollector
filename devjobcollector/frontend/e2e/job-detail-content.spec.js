@@ -23,6 +23,22 @@ test.beforeEach(async ({ page }) => {
   }));
 });
 
+test('Cloudflare 공고의 업무, 요건과 원문 근무지를 표시한다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/12278?*', route => route.fulfill({ json: {
+    ...jobDetail, id: 12278, title: 'Software Engineer - Load Balancing', companyName: 'Cloudflare', location: 'Hybrid',
+    applyQual: 'Available Locations: Austin - TX (Austin Only)\nRole Summary\nBuild microservices using Go, PostgreSQL and Clickhouse.\nRole Responsibilities\n• Design and maintain load balancing systems.\n• Debug issues in complex systems.\nRole Requirements\n• 3+ years of relevant professional experience\n• Strong programming skills in Go, Rust, C++, or a similar systems-level language\nCompensation\nCompensation may be adjusted depending on work location and level.\n(This role is aligned with an L3 level)',
+  } }));
+  await page.goto('/job/12278');
+  await expect(page.getByText('원문 근무지: Austin - TX (Austin Only)')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '직무 소개' }).locator('..')).toContainText('Build microservices');
+  await expect(page.getByRole('heading', { name: '담당 업무' }).locator('..')).toContainText('Design and maintain');
+  const requirements = page.getByRole('heading', { name: '자격 조건' }).locator('..');
+  await expect(requirements).toContainText('3+ years');
+  await expect(requirements).not.toContainText('Compensation');
+  const stack = page.getByRole('heading', { name: '기술 스택' }).locator('..');
+  for (const tool of ['Go', 'Rust', 'ClickHouse']) await expect(stack).toContainText(tool);
+});
+
 test('Cheiron 공고의 필수·우대 조건과 본문 기술을 표시한다', async ({ page }) => {
   await page.route('**/api/v1/jobs/11542?*', route => route.fulfill({ json: {
     ...jobDetail, id: 11542, title: 'Backend Engineer, Applied Agents (Los Altos)', companyName: '케이론',

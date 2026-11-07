@@ -36,7 +36,7 @@ export function extractJobRequirements(content) {
       section = /우대|이런\s*(?:경험이\s*있다면|분이면|점이\s*있으면)\s*더\s*좋아요|preferred|nice to have|added plus|bonus points/i.test(heading[1]) ? 'preferred' : 'required';
       continue;
     }
-    if (OTHER_HEADING.test(line) || KRAFTON_PROCESS_HEADING.test(line) || /^about [\p{L}\p{N}&.'’ -]{1,60}$/iu.test(line) || /^(?:어떤\s*방식으로\s*채용하나요\?|참고해\s*주세요|이렇게\s*합류해요|채용하고 싶은 사람|전형절차 및 기타사항|유의사항|전형\s*절차\s*및\s*안내\s*사항)\s*[:：]?$/i.test(line) || /^(?:#\s*[A-Z]?\d+|PID(?:\s*-\s*[A-Z]?\d+)?$)/i.test(line) || /^(?:position details|pay and benefits|compensation\s*&\s*benefits|pay range transparency|salary\s*[:：]|compensation\s*[:：]|the base salary range\b|at figma, one of our values|pay transparency|annual base salary|application limit|equal opportunity employer|accommodations|data privacy)/i.test(line) || /^[^:：]{1,80}[:：]$/.test(line)) { section = null; continue; }
+    if (OTHER_HEADING.test(line) || KRAFTON_PROCESS_HEADING.test(line) || /^about [\p{L}\p{N}&.'’ -]{1,60}$/iu.test(line) || /^(?:어떤\s*방식으로\s*채용하나요\?|참고해\s*주세요|이렇게\s*합류해요|채용하고 싶은 사람|전형절차 및 기타사항|유의사항|전형\s*절차\s*및\s*안내\s*사항)\s*[:：]?$/i.test(line) || /^(?:#\s*[A-Z]?\d+|PID(?:\s*-\s*[A-Z]?\d+)?$)/i.test(line) || /^(?:position details|pay and benefits|compensation\s*&\s*benefits|pay range transparency|salary\s*[:：]|compensation(?:\s*[:：]|$)|the base salary range\b|at figma, one of our values|pay transparency|annual base salary|application limit|equal opportunity employer|accommodations|data privacy)/i.test(line) || /^[^:：]{1,80}[:：]$/.test(line)) { section = null; continue; }
     if (!section) continue;
     const item = line.replace(/^[-*•●▪◦‣·]\s*/, '').replace(/^\d+[.)]\s*/, '').trim();
     if (!item || /^https?:\/\//i.test(item)) continue;
@@ -166,14 +166,14 @@ export function extractMentionedTools(requirements, content = '') {
   const text = [...requirements.required, ...requirements.preferred, String(content || '').replace(/<[^>]*>/g, ' ')].join(' ');
   const tools = ['Datadog', 'Okta', 'Workiva', 'Google Sheets', 'Google apps', 'JIRA', 'Salesforce Service Cloud', 'Amazon Connect', 'LibreChat', 'Gemini', 'Glean', 'Java', 'Kotlin', 'JavaScript', 'TypeScript', 'Python', 'C++', 'ROS2', 'PyTorch', 'JAX', 'LeRobot', 'MuJoCo', 'Isaac Sim', 'React', 'Spring', 'Spring Boot', 'Spring Cloud', 'JPA', 'Hibernate', 'Gradle', 'Jenkins', 'Git', 'GitHub Actions', 'Istio', 'Kafka', 'Elastic', 'Elasticsearch', 'InfluxData', 'Grafana', 'Prometheus', 'Thanos', 'Memcached', 'Redis', 'RabbitMQ', 'MySQL', 'OCI', 'Cloudflare Tunnel', 'Nginx', 'Node.js', 'NestJS', 'Nest.js', 'gRPC', 'WebSocket', 'ArgoCD', 'GoCD', 'Vault', 'Podman', 'Containerd', 'Hadoop', 'Cloud Native', 'iOS', 'SQL', 'Excel', 'SAP', 'RDBMS', 'NoSQL', 'PostgreSQL', 'MongoDB', 'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP', 'IaC', 'CI/CD'];
   const matches = tools.filter((name) => new RegExp(`(?<![\\w+])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w+])`, 'i').test(text));
-  for (const name of ['LangChain', 'LangGraph', 'Terraform', 'OpenAI', 'Claude', 'FastAPI', 'Google Workspace', 'Slack']) {
+  for (const name of ['LangChain', 'LangGraph', 'Terraform', 'OpenAI', 'Claude', 'FastAPI', 'Google Workspace', 'Slack', 'Rust', 'ClickHouse']) {
     if (new RegExp(`(?<![\\w])${name}(?![\\w])`, 'i').test(text)) matches.push(name);
   }
   if (/\bRAG\b/.test(text)) matches.push('RAG');
   if (/파이썬/.test(text) && !matches.includes('Python')) matches.push('Python');
   if (/엑셀/.test(text) && !matches.includes('Excel')) matches.push('Excel');
   if (/\bCursor\b/.test(text)) matches.push('Cursor');
-  if (/(?:[,/]\s*Go\b|\bGo(?:lang)?\s*(?:언어|개발|programming|developer))/i.test(text)) matches.push('Go');
+  if (/(?:[,/]\s*Go\b|\b(?:in|using)\s+Go\b|\bGo(?:lang)?\s*(?:언어|개발|programming|developer))/i.test(text)) matches.push('Go');
   if (/\bPostgres\b/i.test(text) && !matches.includes('PostgreSQL')) matches.push('PostgreSQL');
   if (/\b(?:large language models?|LLMs?)\b/i.test(text)) matches.push('LLM');
   return matches;
@@ -182,6 +182,17 @@ export function extractMentionedTools(requirements, content = '') {
 export function formatJobLocation(location) {
   const parts = String(location || '').split(/[;•]/).map((part) => part.trim()).filter(Boolean);
   return parts.filter((part, index) => parts.findIndex((candidate) => candidate.toLocaleLowerCase() === part.toLocaleLowerCase()) === index).join(' · ');
+}
+
+// Show an explicitly labelled location separately from the provider's location field.
+export function extractAvailableLocations(content) {
+  const match = String(content || '').match(/^\s*Available Locations\s*[:：]\s*([^\r\n]+)$/im);
+  return match ? match[1].trim() : null;
+}
+
+export function extractRoleSummary(content) {
+  const match = String(content || '').match(/(?:^|\n)\s*Role Summary\s*\n([^\r\n]+)/i);
+  return match ? match[1].trim() : null;
 }
 
 // Omit parenthetical details only from compact summary values, retaining source content elsewhere.

@@ -9,7 +9,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import TechStackBadge from '../components/job/TechStackBadge';
 import StructuredJobContent from '../components/job/StructuredJobContent';
 import { jobSourceLabel } from '../utils/jobSource';
-import { extractDaangnSections, extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from '../utils/jobRequirements';
+import { extractAvailableLocations, extractRoleSummary, extractDaangnSections, extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from '../utils/jobRequirements';
 import { formatDate } from '../utils/dateParser';
 import { getDaysRemaining } from '../utils/dateParser';
 import '../styles/DetailPage.css';
@@ -67,6 +67,8 @@ const DetailPage = () => {
   const requirements = extractJobRequirements(job.applyQual);
   const experienceWording = extractExperienceWording(requirements);
   const duties = extractJobDuties(job.applyQual);
+  const availableLocations = extractAvailableLocations(job.applyQual);
+  const roleSummary = extractRoleSummary(job.applyQual);
   const daangnSections = job.companyName === '당근' ? extractDaangnSections(job.applyQual) : { notices: [], process: [] };
   const isPublicAlio = job.sourcePlatform === 'PUBLIC_ALIO';
   const salary = extractJobSalary(job.applyQual);
@@ -164,6 +166,7 @@ const DetailPage = () => {
               )}
             </div>
           </div>
+          {availableLocations && <p className="detail-source-note">원문 근무지: {availableLocations}</p>}
           {usesRollingDeadline && <p className="detail-source-note">채용 완료 시 조기 마감될 수 있습니다.</p>}
           {inferredDeadline && <p className="detail-source-note">본문에서 확인한 날짜입니다. 공고 원문을 확인해 주세요.</p>}
         </section>
@@ -199,6 +202,7 @@ const DetailPage = () => {
             return <li key={file.id}>{href ? <a href={href} target="_blank" rel="noopener noreferrer">{file.fileName || '첨부파일'}</a> : (file.fileName || '첨부파일')}</li>;
           })}</ul></section>}
         </> : <>
+        {roleSummary && <section className="detail-section"><h3>직무 소개</h3><p>{roleSummary}</p></section>}
         {duties.length > 0 && <section className="detail-section">
           <h3>담당 업무</h3><ul>{duties.map((item, index) => <li key={index}>{item}</li>)}</ul>
         </section>}
