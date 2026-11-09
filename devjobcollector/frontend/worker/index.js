@@ -24,10 +24,15 @@ async function api(path) {
 }
 
 export function metadata(path, job) {
-  const titles = { '/': 'DevJobs | 데브잡스', '/jobs': '개발자 채용공고 검색 | 데브잡스', '/terms': '이용약관 | 데브잡스', '/privacy': '개인정보 처리방침 | 데브잡스' };
+  const titles = {
+    '/': '개발자 채용공고 검색·AI 맞춤 추천 | 데브잡스 DevJobs',
+    '/jobs': '개발자 채용공고 통합검색 | 경력·기술스택별 채용정보 | 데브잡스',
+    '/terms': '이용약관 | 데브잡스 DevJobs',
+    '/privacy': '개인정보 처리방침 | 데브잡스 DevJobs'
+  };
   return {
     title: job ? `${text(job.title).slice(0, 110)} — ${text(job.companyName).slice(0, 50)} | 데브잡스` : titles[path] || '데브잡스',
-    description: job ? [job.companyName, job.location, job.experience, job.hireType, job.title].map(text).filter(Boolean).join(' · ').slice(0, 220) : '흩어진 개발자 채용공고를 한곳에서. 직무와 기술 스택으로 검색하고 관심 공고를 저장하세요.',
+    description: job ? [job.companyName, job.location, job.experience, job.hireType, job.title].map(text).filter(Boolean).join(' · ').slice(0, 220) : '여러 기업과 공공기관에 흩어진 개발자 채용공고를 한곳에서 검색하세요. 직무·경력·기술 스택 기반 검색과 AI 이력서 맞춤 추천을 제공합니다.',
     canonical: `${SITE}${path}`,
     index: Boolean(job) || publicPages.includes(path),
   };
