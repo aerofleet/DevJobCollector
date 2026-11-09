@@ -135,6 +135,7 @@ const DetailPage = () => {
       <div className="detail-container">
         <header className="detail-header">
           <h1>{job.title}</h1>
+          {job.industrialPersonnelRecruitment && <p className="industrial-recruitment-notice">산업기능요원 모집 공고입니다. 지원 가능한 편입·전직 유형은 공고 원문을 확인해 주세요.</p>}
           <p className="detail-source">출처 · {jobSourceLabel(job)}</p>
           <span>{job.companyName}</span>
         </header>

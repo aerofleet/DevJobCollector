@@ -97,6 +97,7 @@
 }
 
 .job-source { display: block; margin-bottom: 8px; color: #706a7b; font-size: 12px; font-weight: 600; }
+.industrial-recruitment-badge { display: inline-block; margin: 0 0 8px; padding: 4px 8px; border-radius: 6px; background: #e9f3ff; color: #1456a0; font-size: 12px; font-weight: 700; }
 
 /* 회사명 */
 .job-company-row {

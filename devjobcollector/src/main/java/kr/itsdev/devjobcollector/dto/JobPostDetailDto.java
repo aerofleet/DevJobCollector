@@ -25,6 +25,7 @@ public class JobPostDetailDto {
     private String experience;
     private String location;
     private String hireType;
+    private boolean industrialPersonnelRecruitment;
     private LocalDate startDate;
     private LocalDate endDate;
     private String sourceDeadlineDisplay;

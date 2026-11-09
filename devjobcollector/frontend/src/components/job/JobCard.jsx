@@ -65,6 +65,7 @@ const JobCard = ({ job, onOpen }) => {
         >
             {job.title}
         </h3>
+        {job.industrialPersonnelRecruitment && <span className="industrial-recruitment-badge">산업기능요원 모집</span>}
         {/* 기술 스택 */}
         <div className="tech-stack">
           {job.techStacks?.map((tech) => (
