@@ -20,6 +20,7 @@ class JobRecruitmentTypeTest {
 
     @Test void ignoresIncidentalMentionsAndGeneralEligibility() {
         assertThat(JobRecruitmentType.industrialPersonnel("백엔드 개발자", "산업기능요원 지원 가능 및 우대" )).isFalse();
+        assertThat(JobRecruitmentType.industrialPersonnel("Software Engineer, Frontend - 로컬 잡스", "이 포지션은 산업기능요원으로 채용이 가능한 포지션이에요.\n산업기능요원 집중 채용 캠페인을 진행해요. 캠페인 공고를 통해 지원해 주세요.\n[산업기능요원 집중 채용 캠페인] Software Engineer, Frontend" )).isFalse();
         assertThat(JobRecruitmentType.industrialPersonnel("백엔드 개발자", "팀원이 산업기능요원으로 복무했습니다." )).isFalse();
         assertThat(JobRecruitmentType.industrialPersonnel("백엔드 개발자", "병역필 또는 면제자" )).isFalse();
         assertThat(JobRecruitmentType.industrialPersonnel(null, null)).isFalse();

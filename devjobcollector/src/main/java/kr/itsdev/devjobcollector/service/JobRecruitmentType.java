@@ -14,7 +14,7 @@ public final class JobRecruitmentType {
         String text = HtmlUtils.htmlUnescape(HtmlUtils.htmlUnescape((title == null ? "" : title) + "\n" + (description == null ? "" : description)))
                 .replaceAll("(?i)<br\\s*/?>|</(?:p|div|li|h[1-6])>", "\n")
                 .replaceAll("<[^>]+>", " ").replace('\u00a0', ' ');
-        return CAMPAIGN.matcher(text).find()
+        return CAMPAIGN.matcher(title == null ? "" : title).find()
                 || (text.contains("산업기능요원") && ELIGIBILITY.matcher(text).find());
     }
 }
