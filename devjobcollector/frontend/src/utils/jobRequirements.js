@@ -31,7 +31,7 @@ export function extractJobRequirements(content) {
     const recovered = recoverSectionHeading(line);
     if (recovered === 'required' || recovered === 'preferred') { section = recovered; continue; }
     if (recovered === 'duties') { section = null; continue; }
-    const heading = line.match(HEADINGS) || line.match(/^(필요\s*역량|votre expertise|vos compétences et aptitudes|what we look for|you may be a good fit if you have)\s*[:：]?$/i) || line.match(/^(어떤\s*경력과\s*역량이\s*필요한가요\?|이런\s*점이\s*있으면\s*더\s*좋아요)[!！.]?$/) || line.match(/^(이런\s*분이면\s*더\s*좋아요)[!！.]?$/) || line.match(LABELED_REQUIREMENT_HEADING) || line.match(/^(?:must-have pantry staples|optional garnishes) \((minimum qualifications|preferred qualifications)\)\s*$/i) || line.match(/^(preferred experience)\s*[:：]?$/i) || line.match(/^(how do i know if the role is right for me)\?\s*$/i);
+    const heading = line.match(HEADINGS) || line.match(/^(이런\s*분을\s*찾고\s*있어요)[!！.]?\s*[:：]?$/) || line.match(/^(필요\s*역량|votre expertise|vos compétences et aptitudes|what we look for|you may be a good fit if you have)\s*[:：]?$/i) || line.match(/^(어떤\s*경력과\s*역량이\s*필요한가요\?|이런\s*점이\s*있으면\s*더\s*좋아요)[!！.]?$/) || line.match(/^(이런\s*분이면\s*더\s*좋아요)[!！.]?$/) || line.match(LABELED_REQUIREMENT_HEADING) || line.match(/^(?:must-have pantry staples|optional garnishes) \((minimum qualifications|preferred qualifications)\)\s*$/i) || line.match(/^(preferred experience)\s*[:：]?$/i) || line.match(/^(how do i know if the role is right for me)\?\s*$/i);
     if (heading) {
       section = /우대|이런\s*(?:경험이\s*있다면|분이면|점이\s*있으면)\s*더\s*좋아요|preferred|nice to have|added plus|bonus points/i.test(heading[1]) ? 'preferred' : 'required';
       continue;
@@ -118,7 +118,8 @@ export function extractJobDuties(content) {
     if (/^the secret ingredients we['’]re looking for$/i.test(line)) { inside = false; continue; }
     if (inside && /^(?:Audit Delivery & Reporting|Team Leadership & Development|AI, Technology & Innovation|Tools & Process Improvement|Stakeholder Partnerships)$/i.test(line)) continue;
     if (/^how do i know if the role is right for me\?\s*$/i.test(line)) { inside = false; continue; }
-    if (HEADINGS.test(line) || /^필요\s*역량\s*[:：]?$/.test(line) || ['required', 'preferred'].includes(recoverSectionHeading(line)) || /^어떤\s*경력과\s*역량이\s*필요한가요\?$/.test(line) || LABELED_REQUIREMENT_HEADING.test(line) || OTHER_HEADING.test(line) || KRAFTON_PROCESS_HEADING.test(line) || /^#{1,6}\s+/.test(line)
+    if (HEADINGS.test(line) || /^이런\s*분을\s*찾고\s*있어요[!！.]?\s*[:：]?$/.test(line) || /^필요\s*역량\s*[:：]?$/.test(line) || ['required', 'preferred'].includes(recoverSectionHeading(line)) || /^어떤\s*경력과\s*역량이\s*필요한가요\?$/.test(line) || LABELED_REQUIREMENT_HEADING.test(line) || OTHER_HEADING.test(line) || KRAFTON_PROCESS_HEADING.test(line) || /^#{1,6}\s+/.test(line)
+      || /^(?:이런\s*분이면\s*더\s*좋아요|참고해\s*주세요|이렇게\s*합류해요|당근\s*전형\s*소개|팀\s*동료들의\s*한마디|안내사항)[!！.]?\s*[:：]?$/.test(line)
       || /^(?:전형\s*절차|토스로의\s*합류\s*여정|PID\s*-\s*[A-Z]?\d+|pay transparency|annual base salary|salary\s*[:：]|compensation\s*[:：])/i.test(line)
       || /^[^:：]{1,80}[:：]$/.test(line)) { inside = false; continue; }
     if (inside) items.push(line.replace(/^[-*•●▪◦‣·]\s*/, '').replace(/^\d+[.)]\s*/, '').trim());

@@ -88,6 +88,13 @@ test('separates Daangn duties, required and preferred qualifications, notices an
   assert.deepEqual(extractMentionedTools(req, text), ['SQL', 'Python', 'Excel']);
 });
 
+test('separates industrial recruitment duties from all following sections', () => {
+  const text = '지원 전, 꼭 확인해 주세요!\n• 보충역 신규 편입\n이런 일을 해요\n• 백엔드 서비스를 개발해요\n• 대규모 트래픽을 개선해요\n이런 분을 찾고 있어요\n• 서비스를 운영해 본 경험이 있는 분\n이런 분이면 더 좋아요!\n• Kafka 경험\n참고해 주세요\n• 3개월 수습\n이렇게 합류해요\n1. 서류 전형 → 2. 인터뷰\n팀 동료들의 한마디\n산업기능요원 복무 후기';
+  assert.deepEqual(extractJobDuties(text), ['백엔드 서비스를 개발해요', '대규모 트래픽을 개선해요']);
+  assert.deepEqual(extractJobRequirements(text), { required: ['서비스를 운영해 본 경험이 있는 분'], preferred: ['Kafka 경험'] });
+  assert.deepEqual(extractDaangnSections(text), { notices: ['3개월 수습'], process: ['1. 서류 전형 → 2. 인터뷰'] });
+});
+
 test('extracts Instacart audit duties, minimum and preferred qualifications', () => {
   const text = "What you'll cook up in your first year\nAudit Delivery & Reporting\n• Audit AWS, GCP, Datadog, and Okta\nTools & Process Improvement\n• Implement Workiva\nThe secret ingredients we're looking for\nMust-have pantry staples (Minimum Qualifications)\n• 12-15 years of progressive professional experience, with at least 5 years in a leadership role\nOptional garnishes (Preferred Qualifications)\n• CISA, CRISC, or CIA certification.\n#LI-Remote";
   const result = extractJobRequirements(text);
