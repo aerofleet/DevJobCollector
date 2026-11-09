@@ -16,6 +16,7 @@
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^7.2.0",
     "@fortawesome/react-fontawesome": "^3.2.0",
+    "@rhwp/core": "0.8.6",
     "@tailwindcss/postcss": "^4.1.18",
     "axios": "^1.13.5",
     "bootstrap": "^5.3.8",
