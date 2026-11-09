@@ -6,6 +6,7 @@ import { cloudflare } from "@cloudflare/vite-plugin";
 // vite.config.js
 export default defineConfig(({ mode }) => ({
   plugins: [react(), ...(mode === 'e2e' ? [] : [cloudflare()])],
+  optimizeDeps: { include: ['@rhwp/core'] },
   server: {
     proxy: {
       '/api': 'http://localhost:8080'

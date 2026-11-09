@@ -138,4 +138,13 @@ export const fetchJobDetail = async (jobId) => {
   return response.data;
 };
 
+export const previewJobFile = async (fileId, signal) => {
+  const response = await apiClient.get(`/job-files/${encodeURIComponent(fileId)}/preview`, {
+    signal, responseType: 'arraybuffer', timeout: 30000, maxRetries: 0,
+  });
+  return new Uint8Array(response.data);
+};
+
+export const recordPreviewEvent = (event) => apiClient.post('/job-files/preview-events', null, { params: { event } }).catch(() => {});
+
 export default apiClient;

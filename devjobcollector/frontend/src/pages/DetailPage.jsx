@@ -1,7 +1,7 @@
 import { jobPath } from '../utils/jobPath';
 import { getAccessToken } from '../utils/accessToken';
 import { trackGrowth } from '../utils/growthAnalytics';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchJobDetail, recordJobEngagement } from '../api/jobApi';
 import { createApplication, createBookmark, recordRecentJob } from '../api/careerActivityApi';
@@ -9,10 +9,13 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import TechStackBadge from '../components/job/TechStackBadge';
 import StructuredJobContent from '../components/job/StructuredJobContent';
 import { jobSourceLabel } from '../utils/jobSource';
+import { canPreviewJobFile, jobFileUrl } from '../utils/jobFileUrl';
 import { extractAvailableLocations, extractRoleSummary, extractDaangnSections, extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from '../utils/jobRequirements';
 import { formatDate } from '../utils/dateParser';
 import { getDaysRemaining } from '../utils/dateParser';
 import '../styles/DetailPage.css';
+
+const HwpPreviewModal = lazy(() => import('../components/job/HwpPreviewModal'));
 
 const DetailPage = () => {
   const { id } = useParams();
@@ -22,15 +25,16 @@ const DetailPage = () => {
   const [error, setError] = useState(null);
   const [activityMessage, setActivityMessage] = useState('');
   const [activityPending, setActivityPending] = useState('');
+  const [previewFile, setPreviewFile] = useState(null);
   const viewEvent = useRef(null);
 
-  useEffect(() => {  
+  useEffect(() => {
   let cancelled = false;
   if (viewEvent.current?.id !== id) viewEvent.current = { id, eventId: crypto.randomUUID() };
   const eventId = viewEvent.current.eventId;
   const loadJobDetail = async () => {
     if (!id) return;
-    
+
     try {
       setLoading(true);
       const data = await fetchJobDetail(id);
@@ -54,7 +58,7 @@ const DetailPage = () => {
       setLoading(false);
     }
   };
-  
+
   loadJobDetail();
   return () => { cancelled = true; };
   }, [id, navigate]);
@@ -199,9 +203,8 @@ const DetailPage = () => {
             <p className="detail-source-note">출처: 공공기관 알리오 · 제공된 공고 정보와 첨부파일을 확인해 주세요.</p>
           </section>
           {job.files?.length > 0 && <section className="detail-section"><h3>첨부파일</h3><ul>{job.files.map((file) => {
-            let href = null;
-            try { const parsed = new URL(file.fileUrl); if (['http:', 'https:'].includes(parsed.protocol)) href = parsed.href; } catch { /* 유효한 주소만 연결합니다. */ }
-            return <li key={file.id}>{href ? <a href={href} target="_blank" rel="noopener noreferrer">{file.fileName || '첨부파일'}</a> : (file.fileName || '첨부파일')}</li>;
+            const href = jobFileUrl(file.fileUrl);
+            return <li key={file.id}>{href ? <a href={href} target="_blank" rel="noopener noreferrer">{file.fileName || '첨부파일'}</a> : (file.fileName || '첨부파일')}{canPreviewJobFile(file) && <button type="button" onClick={() => setPreviewFile({ ...file, originalUrl: href })}>미리보기</button>}</li>;
           })}</ul></section>}
         </> : <>
         {roleSummary && <section className="detail-section"><h3>직무 소개</h3><p>{roleSummary}</p></section>}
@@ -240,6 +243,7 @@ const DetailPage = () => {
         </section>}
         </>}
 
+        {previewFile && <Suspense fallback={<p role="status">미리보기를 준비하고 있습니다.</p>}><HwpPreviewModal file={previewFile} originalUrl={previewFile.originalUrl} onClose={() => setPreviewFile(null)} /></Suspense>}
         <div className="action-buttons">
           <button type="button" className="save-job-button im-button" onClick={async () => {
             const url = `${window.location.origin}${jobPath(id, job.title)}`;
