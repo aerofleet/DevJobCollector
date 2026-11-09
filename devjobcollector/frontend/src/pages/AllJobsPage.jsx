@@ -28,12 +28,13 @@ const SORT_OPTIONS = [
 
 const getFilters = (searchParams) => {
   const sort = SORT_OPTIONS.find((option) => option.value === searchParams.get('sort')) ?? SORT_OPTIONS[0];
+  const legacyEntrySearch = searchParams.get('keyword')?.trim() === '신입' && !searchParams.has('experience');
   return {
-    keyword: searchParams.get('keyword') ?? '',
+    keyword: legacyEntrySearch ? '' : searchParams.get('keyword') ?? '',
     jobCategory: [...new Set(searchParams.getAll('jobCategory').flatMap(value => value.split(',')).map(value => value.trim()).filter(Boolean))],
     techStack: [...new Set(searchParams.getAll('techStack').flatMap(value => value.split(',')).map(value => value.trim()).filter(Boolean))],
     company: [...new Set(searchParams.getAll('company').map(value => value.trim()).filter(Boolean))],
-    experience: searchParams.get('experience') ?? '',
+    experience: legacyEntrySearch ? '신입' : searchParams.get('experience') ?? '',
     location: [...new Set(searchParams.getAll('location').flatMap(value => value.split(',')).map(value => value.trim()).filter(Boolean))],
     sortBy: sort.sortBy,
     direction: sort.direction,
@@ -210,6 +211,15 @@ const AllJobsPage = () => {
     if (navigationType !== 'POP') return null;
     return getJobListPosition(location.key);
   }, [location.key, navigationType]);
+
+  useEffect(() => {
+    if (searchParams.get('keyword')?.trim() === '신입' && !searchParams.has('experience')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('keyword');
+      next.set('experience', '신입');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     let active = true;

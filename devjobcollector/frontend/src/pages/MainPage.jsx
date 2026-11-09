@@ -7,6 +7,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import HomeRecommendations from '../components/member/HomeRecommendations';
 import { useMemberSession } from '../contexts/memberSession';
 import '../styles/MainPage.css';
+import { QUICK_JOB_ROLES } from '../data/jobFilters';
 
 const QUICK_SEARCHES = ['Java', 'Spring', 'React', 'Python', '신입'];
 
@@ -14,42 +15,43 @@ const DISCOVERY_THEMES = [
   {
     eyebrow: 'DEVOPS & INFRA',
     title: '배포부터 운영까지\nDevOps · 인프라 채용',
-    keyword: 'DevOps',
+    roles: ['devops', 'sre', 'cloud', 'infrastructure', 'network', 'platform'],
     className: 'backend',
     icon: BriefcaseBusiness,
   },
   {
     eyebrow: 'THE ROOKIE',
     title: '첫 커리어를 시작하는\n신입 개발자 채용',
-    keyword: '신입',
+    experience: '신입',
+    roles: ['backend', 'frontend', 'fullstack', 'mobile', 'data-engineer', 'data-scientist', 'ml-engineer', 'ai-engineer', 'mlops', 'computer-vision', 'nlp', 'devops', 'sre', 'cloud', 'platform', 'embedded', 'robotics', 'iot', 'blockchain', 'desktop'],
     className: 'rookie',
     icon: Code2,
   },
   {
     eyebrow: 'BACKEND PICKS',
     title: '서비스의 중심을 만드는\n백엔드 포지션',
-    keyword: '백엔드',
+    roles: ['backend'],
     className: 'backend',
     icon: BriefcaseBusiness,
   },
   {
     eyebrow: 'FRONTEND PICKS',
     title: '사용자 경험을 완성하는\n프론트엔드 포지션',
-    keyword: '프론트엔드',
+    roles: ['frontend', 'web-publishing'],
     className: 'frontend',
     icon: Sparkles,
   },
   {
     eyebrow: 'DATA & AI',
     title: '데이터로 가치를 만드는\nAI · 데이터 포지션',
-    keyword: '데이터',
+    roles: QUICK_JOB_ROLES.find(role => role.value === 'data-ai').values,
     className: 'rookie',
     icon: Sparkles,
   },
   {
     eyebrow: 'MOBILE DEVELOPERS',
     title: '손안의 경험을 만드는\n모바일 앱 개발',
-    keyword: '모바일',
+    roles: QUICK_JOB_ROLES.find(role => role.value === 'mobile').values,
     className: 'frontend',
     icon: Code2,
   },
@@ -158,19 +160,18 @@ const MainPage = ({ onSearch }) => {
         </div>
 
         <div className="theme-grid">
-          {DISCOVERY_THEMES.map(({ eyebrow, title, keyword: themeKeyword, className, icon: Icon }) => (
-            <button
-              type="button"
+          {DISCOVERY_THEMES.map(({ eyebrow, title, roles, experience, className, icon: Icon }) => (
+            <Link
+              to={`/jobs?${new URLSearchParams({ ...(experience && { experience }), ...(roles && { jobCategory: roles.join(',') }) })}`}
               className={`theme-card ${className}`}
               data-motion-reveal=""
-              key={themeKeyword}
-              onClick={() => searchByKeyword(themeKeyword)}
+              key={eyebrow}
             >
               <span className="theme-icon">{React.createElement(Icon, { size: 22 })}</span>
               <span className="theme-eyebrow">{eyebrow}</span>
               <strong>{title.split('\n').map((line, index) => <React.Fragment key={line}>{index > 0 && <br />}{line}</React.Fragment>)}</strong>
               <span className="theme-link">공고 보기 <ArrowRight size={17} /></span>
-            </button>
+            </Link>
           ))}
         </div>
       </section>
