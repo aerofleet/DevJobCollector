@@ -10,6 +10,14 @@ import java.time.Instant;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class GreetingAdapterTest {
+    @Test void supportsOnlyTheExplicitBackpacCustomOrigin() {
+        assertThat(GreetingAdapter.originFor("backpac")).isEqualTo("https://team.backpac.kr");
+        assertThat(GreetingAdapter.originFor("nuua")).isEqualTo("https://nuua.career.greetinghr.com");
+    }
+    @Test void extractsBackpacSquareHeadings() {
+        String html = "<p>회사 소개</p><p>■ 주요 업무</p><ul><li>REST API 개발</li></ul><p>■ 자격 요건</p><ul><li>Java 실무 3년 이상</li></ul><p>■ 우대 사항</p><ul><li>Kafka 경험</li></ul>";
+        assertThat(GreetingAdapter.extractRelevantText(html)).contains("주요 업무", "REST API 개발", "자격 요건", "Java 실무 3년 이상", "우대 사항").doesNotContain("회사 소개", "■");
+    }
     @Test void recognizesPipeHeadingsAndAvoidsConflictingFloor() {
         String html = "<h2><strong>|</strong><strong> 주요업무</strong></h2><ul><li>고객 문의 응대</li></ul><h2>| 자격요건</h2><ul><li>CS 경력 2년 이상</li></ul><h2>| 우대사항</h2><ul><li>여행 분야 경험</li></ul><h2>| 근무조건 및 근무환경</h2><ul><li>근무장소 : 서울 테헤란로 415, 2층</li></ul>";
         String text = GreetingAdapter.extractRelevantText(html);

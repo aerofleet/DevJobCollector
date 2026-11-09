@@ -45,7 +45,7 @@ public class GreetingAdapter implements JobSourceAdapter {
                 || !target.getSourceIdentifier().matches("[a-z0-9-]{1,63}")) {
             throw new IllegalArgumentException("Greeting board identifier is required");
         }
-        String origin = "https://" + target.getSourceIdentifier() + ".career.greetinghr.com";
+        String origin = originFor(target.getSourceIdentifier());
         try {
             URI careers = URI.create(target.getCareersUrl());
             if (!"https".equalsIgnoreCase(careers.getScheme()) || careers.getUserInfo() != null
@@ -87,6 +87,11 @@ public class GreetingAdapter implements JobSourceAdapter {
         } catch (Exception e) {
             return CollectionResult.failed(CollectionStatus.FAILED, VERSION);
         }
+    }
+
+    static String originFor(String identifier) {
+        return "backpac".equals(identifier) ? "https://team.backpac.kr"
+                : "https://" + identifier + ".career.greetinghr.com";
     }
 
     static JobRawDto parseDetail(JobRawDto listing, String html) throws Exception {
@@ -154,7 +159,7 @@ public class GreetingAdapter implements JobSourceAdapter {
         StringBuilder result = new StringBuilder();
         boolean collecting = false;
         for (String line : text.split("\\R")) {
-            String value = line.trim().replaceFirst("^\\|\\s*", "");
+            String value = line.trim().replaceFirst("^[|■]\\s*", "");
             if (value.isEmpty()) continue;
             if (value.matches("(?i)^[\\[【]?(?:주요\\s*업무|담당\\s*업무|업무\\s*내용|자격\\s*요건|지원\\s*자격|필수\\s*(?:요건|사항|조건)|우대\\s*(?:요건|사항|조건)|급여\\s*(?:정보|조건)?|연봉|채용\\s*프로세스|채용\\s*절차|혜택\\s*및\\s*복지)[\\]】]?\\s*[:：]?$")) collecting = true;
             if (collecting) result.append(value).append('\n');

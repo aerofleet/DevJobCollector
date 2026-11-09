@@ -105,6 +105,12 @@ collection:
         careers-url: https://www.saramin.co.kr/zf_user/jobs/list/job-category
         collection-tier: B
       # 국내 스타트업의 공개 채용 원본 (Lever)
+      - enabled: true
+        company-name: 백패커
+        provider: GREETING
+        source-identifier: backpac
+        careers-url: https://team.backpac.kr/ko/home
+        collection-tier: B
       - enabled: ${GREETING_DISCOVERY_ENABLED:true}
         company-name: 누아
         provider: GREETING
