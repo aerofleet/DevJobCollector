@@ -1,6 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractDaangnSections, extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
+import { extractDaangnSections, extractTossInternSections, extractTossSourceDeadline, extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
+
+test('토스 인턴 공고의 프로젝트·일정·서류 안내를 분리하고 연도 없는 마감을 원문으로 보존한다', () => {
+  const text = '# 진행할 프로젝트\n- **프로젝트 중 하나에 참여해요.**\n>- LLM 환경 구축\n# 지원 조건\n- 근무 가능\n# 전형 일정\n- 지원 접수 마감: 11/15 (일) 23:59\n- 과제 전형: 11/20 - 11/26\n# 서류 지원 가이드\n- 경험을 작성\n# 토스로의 합류 여정\n- 서류 > 인터뷰\n# 꼭 확인해 주세요\n- 영문 명칭 사용';
+  const sections = extractTossInternSections(text);
+  assert.deepEqual(sections.map(section => section.title), ['진행할 프로젝트', '전형 일정', '서류 지원 가이드', '토스로의 합류 여정', '꼭 확인해 주세요']);
+  assert.match(sections[0].content, /- LLM 환경 구축/);
+  assert.doesNotMatch(sections[0].content, /근무 가능/);
+  assert.equal(extractTossSourceDeadline(text), '11/15 (일) 23:59');
+  assert.equal(extractTossSourceDeadline(`${text}\n- 지원 접수 마감: 11/16 (월) 23:59`), null);
+  assert.equal(extractTossSourceDeadline('지원 접수 마감: 11/15'), null);
+});
 
 test('extracts Pinterest minimum years in product design without treating education as work experience', () => {
   const requirements = extractJobRequirements('What we’re looking for\n• Bachelor’s degree in design or equivalent experience.\n• Minimum 5 years in Product Design (or equivalent).\nRelocation Statement:');
