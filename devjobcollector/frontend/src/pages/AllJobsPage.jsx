@@ -13,6 +13,7 @@ import { JOB_ROLES, JOB_ROLE_GROUPS, QUICK_JOB_ROLES, TECH_STACK_GROUPS } from '
 import { clearJobListPosition, getJobListPosition, saveJobListPosition } from '../utils/jobListPosition';
 
 const PAGE_SIZE = 12;
+const COMPANY_SEARCH_ALIASES = { '백패커': ['백팩', 'backpac'] };
 
 const EXPERIENCES = [
   { value: '', label: '경력 전체' },
@@ -205,6 +206,7 @@ const AllJobsPage = () => {
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [companies, setCompanies] = useState([]);
   const [companyStatus, setCompanyStatus] = useState('회사명을 불러오는 중입니다.');
+  const companyRequestVersion = useRef(0);
   const resultKey = searchParams.toString();
   const filters = useMemo(() => getFilters(new URLSearchParams(resultKey)), [resultKey]);
   const restorePosition = useMemo(() => {
@@ -221,13 +223,16 @@ const AllJobsPage = () => {
     }
   }, [searchParams, setSearchParams]);
 
-  useEffect(() => {
-    let active = true;
+  const refreshCompanies = useCallback(() => {
+    const version = ++companyRequestVersion.current;
     searchCompanyNames().then(names => {
-      if (active) { setCompanies(Array.isArray(names) ? names : []); setCompanyStatus(''); }
-    }).catch(() => { if (active) { setCompanies([]); setCompanyStatus('회사명을 불러오지 못했습니다. 페이지를 새로고침해 주세요.'); } });
-    return () => { active = false; };
+      if (version === companyRequestVersion.current) { setCompanies(Array.isArray(names) ? names : []); setCompanyStatus(''); }
+    }).catch(() => { if (version === companyRequestVersion.current) setCompanyStatus('회사명을 갱신하지 못했습니다. 다시 열어 시도해 주세요.'); });
   }, []);
+  useEffect(() => {
+    refreshCompanies();
+    return () => { companyRequestVersion.current += 1; };
+  }, [refreshCompanies]);
 
   const updateParams = (updates) => {
     const nextParams = new URLSearchParams(searchParams);
@@ -302,7 +307,7 @@ const AllJobsPage = () => {
 
           <p className="filter-selection-help">여러 항목을 선택할 수 있습니다. 같은 필터에서는 하나라도 일치하는 공고를 표시합니다.</p>
           <div className="detail-filters">
-            <MultiSelectFilter label="회사명" groups={[{ label: '회사', options: [...new Set([...filters.company, ...companies])].map(value => ({ value, label: value })) }]} values={filters.company} onChange={company => { if (company.length <= 30) updateParams({ company }); }} status={companyStatus} hint="회사명을 검색하거나 더 보기로 찾아 선택하세요. 최대 30개까지 선택할 수 있습니다." pageSize={60} />
+            <MultiSelectFilter label="회사명" groups={[{ label: '회사', options: [...new Set([...filters.company, ...companies])].map(value => ({ value, label: value, searchTerms: COMPANY_SEARCH_ALIASES[value] })) }]} values={filters.company} onChange={company => { if (company.length <= 30) updateParams({ company }); }} onOpen={refreshCompanies} status={companyStatus} hint="회사명을 검색하거나 더 보기로 찾아 선택하세요. 최대 30개까지 선택할 수 있습니다." pageSize={60} />
             <MultiSelectFilter label="직무 상세" groups={JOB_ROLE_GROUPS.map(group => ({ ...group, options: group.options.map(([value, label]) => ({ value, label })) }))} values={filters.jobCategory} onChange={jobCategory => updateParams({ jobCategory })} />
             <MultiSelectFilter label="기술 스택" groups={TECH_STACK_GROUPS.map(group => ({ ...group, options: group.options.map(value => ({ value, label: value })) }))} values={filters.techStack} onChange={techStack => updateParams({ techStack })} />
             <label>

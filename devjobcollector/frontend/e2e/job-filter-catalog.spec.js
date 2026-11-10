@@ -57,6 +57,30 @@ test('회사 필터가 첫 번째이며 60개 이후 회사도 표시하고 검�
   expect(new URL(page.url()).searchParams.getAll('company')).toEqual(['회사 074']);
 });
 
+test('백팩 별칭으로 백패커를 찾고 필터를 다시 열면 신규 회사를 반영한다', async ({ page }) => {
+  let names = ['백패커', '기존 회사'];
+  await page.route('**/api/v1/jobs/companies**', route => route.fulfill({ json: names }));
+  await page.goto('/jobs');
+  await openFilters(page);
+  const summary = page.getByLabel('회사명', { exact: true });
+  await summary.click();
+  const menu = page.getByRole('group', { name: '회사명 선택' });
+  const search = menu.getByLabel('회사명 검색');
+  await search.fill('백팩');
+  await expect(menu.getByLabel('백패커', { exact: true })).toBeVisible();
+  await search.fill('BACKPAC');
+  await expect(menu.getByLabel('백패커', { exact: true })).toBeVisible();
+  await menu.getByLabel('백패커', { exact: true }).click();
+  expect(new URL(page.url()).searchParams.getAll('company')).toEqual(['백패커']);
+  await search.fill('');
+  await summary.click();
+  names = [...names, '새로 수집된 회사'];
+  await summary.click();
+  await search.fill('새로 수집된 회사');
+  await expect(menu.getByLabel('새로 수집된 회사', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '백패커 해제' })).toBeVisible();
+});
+
 test('multiple selections preserve URL, API, individual removal and history', async ({ page }) => {
   await page.goto('/jobs');
   await openFilters(page);

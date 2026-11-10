@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-export default function MultiSelectFilter({ label, groups, values, onChange, status, hint, pageSize }) {
+export default function MultiSelectFilter({ label, groups, values, onChange, status, hint, pageSize, onOpen }) {
   const root = useRef(null);
   const [query, setQuery] = useState('');
   const [visibleLimit, setVisibleLimit] = useState(pageSize || Infinity);
@@ -14,10 +14,12 @@ export default function MultiSelectFilter({ label, groups, values, onChange, sta
     return () => document.removeEventListener('click', closeOutside);
   }, []);
   const options = groups.flatMap(group => group.options);
+  const matches = option => [option.label, ...(option.searchTerms || [])]
+    .some(term => term.toLowerCase().includes(query.trim().toLowerCase()));
   const selected = options.filter(option => values.includes(option.value));
   const toggle = value => onChange(values.includes(value)
     ? values.filter(item => item !== value) : [...values, value]);
-  return <details className="multi-filter" ref={root}
+  return <details className="multi-filter" ref={root} onToggle={event => { if (event.currentTarget.open) onOpen?.(); }}
     onKeyDown={event => {
       if (event.key === 'Escape') {
         root.current.open = false;
@@ -35,7 +37,7 @@ export default function MultiSelectFilter({ label, groups, values, onChange, sta
       <button type="button" onClick={() => onChange([])}>선택 해제</button>
       <div className="multi-filter-options">
         {groups.map(group => {
-          const visible = group.options.filter(option => option.label.toLowerCase().includes(query.trim().toLowerCase()));
+          const visible = group.options.filter(matches);
           return visible.length > 0 && <fieldset key={group.label}>
             <legend>{group.label}</legend>
             {visible.slice(0, visibleLimit).map(option => <label key={option.value}>
@@ -44,9 +46,9 @@ export default function MultiSelectFilter({ label, groups, values, onChange, sta
             </label>)}
           </fieldset>;
         })}
-        {pageSize && groups.some(group => group.options.filter(option => option.label.toLowerCase().includes(query.trim().toLowerCase())).length > visibleLimit)
+        {pageSize && groups.some(group => group.options.filter(matches).length > visibleLimit)
           && <button className="multi-filter-load-more" type="button" onClick={() => setVisibleLimit(limit => limit + pageSize)}>회사 더 보기</button>}
-        {!status && !options.some(option => option.label.toLowerCase().includes(query.trim().toLowerCase())) && <p>일치하는 항목이 없습니다.</p>}
+        {!status && !options.some(matches) && <p>일치하는 항목이 없습니다.</p>}
       </div>
     </div>
   </details>;
