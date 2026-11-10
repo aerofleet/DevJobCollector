@@ -1,134 +1,112 @@
-# 🚀 DevJobCollector
+# DevJobCollector (DevJobs)
 
-공공데이터포털(알리오) Open API를 활용해 공공기관 채용 정보를 자동 수집·정제하여 DB화하고, REST API로 제공하는 백엔드 서비스입니다.  
-프론트엔드 대시보드는 React + Vite 기반으로 구성되어 있습니다.
+공공기관과 기업 채용 페이지의 공고를 수집하고 개발 직무 탐색과 구직 활동을 지원하는 서비스입니다. Spring Boot API, React 사용자 앱과 관리자 앱으로 구성됩니다.
 
-[![Notion](https://img.shields.io/badge/Project_Documentation-000000?style=for-the-badge&logo=notion&logoColor=white)](https://www.notion.so/DJC-Project-2d89cc8ccb4a8094a818f92fcc4fd8d4?source=copy_link)
+- 서비스: [djc.itsdev.kr](https://djc.itsdev.kr)
+- 프로젝트 문서: [Notion](https://www.notion.so/DJC-Project-2d89cc8ccb4a8094a818f92fcc4fd8d4)
 
----
+## 주요 기능
 
-## 🛠 Tech Stack
+- **공고 수집**: ALIO 공공기관 공고와 Greenhouse, Lever, Greeting 등 기업 채용 원본을 수집합니다. 백패커 등 대상 기업은 `application.yml`의 수집 설정으로 관리합니다. 사람인 등 일부 수집기는 별도 활성화와 자격증명이 필요합니다.
+- **검색과 필터**: 검색어, 회사, 지역, 경력, 직무와 기술 스택으로 공개 중인 공고를 찾습니다. 회사 선택지는 활성·공개·미마감 공고를 기준으로 조회하며 필터를 다시 열 때 갱신합니다.
+- **공고 상세**: 지원 자격과 업무, 전형 정보 및 첨부파일을 표시합니다. 산업기능요원 관련 채용은 별도로 표시합니다.
+- **첨부 미리보기**: 지원되는 ALIO HWP/HWPX 첨부를 브라우저에서 미리 볼 수 있습니다. 미리보기가 실패하거나 서식이 다르면 원본 파일을 열 수 있습니다. 프록시는 허용된 원본과 공개 공고를 확인하고 파일 크기 및 동시 요청을 제한합니다. [검증 범위와 제한](devjobcollector/docs/hwp-preview-poc.md)
+- **회원 및 커리어**: 회원 인증, 이력서, 저장한 공고·지원 기록, 기업회원의 공고 관리 기능을 제공합니다. 이력서 분석과 추천 등 AI 기능은 관련 설정을 활성화한 환경에서 사용할 수 있습니다.
 
-- **Backend**: Java 21, Spring Boot 3.5.11, Spring Data JPA, Querydsl, Spring AOP, Actuator
-- **Data**: MySQL 9.6
-- **Build Tool**: Gradle
-- **External API**: Public Data Portal (ALIO) Recruitment API
-- **Frontend**: React 19, Vite, Tailwind CSS, Bootstrap
-- **Deploy (Frontend)**: Cloudflare Wrangler
+## 기술 구성
 
----
+| 영역 | 구성 |
+| --- | --- |
+| 백엔드 | Java 21, Spring Boot 3.5.11, Spring MVC/WebClient, Spring Data JPA, Querydsl, Spring Security |
+| 데이터 | MySQL, Flyway 마이그레이션. 마이그레이션 검증은 MySQL 26.7.0 이미지 사용 |
+| 사용자·관리자 앱 | React 19, Vite, React Router. 사용자 앱의 HWP 렌더링은 `@rhwp/core` 사용 |
+| 배포 | GitHub Actions, GHCR·Docker Compose, Cloudflare Workers |
 
-## ✨ Key Features (Current)
+## 저장소 구조
 
-### 1) 데이터 수집 파이프라인
-- **목록 → 상세 연쇄 수집**으로 공고 본문, 지원 자격, 전형 절차까지 적재
-- **일괄 중복 체크**로 수집 성능 개선 (`SourcePlatform + OriginalSN`)
-- **스케줄러 기반 자동 수집**: 매일 오전 10시 / 오후 4시 실행
-- **앱 기동 시 초기 수집**: 서비스 시작 시 1회 수집 (테스트 목적)
+```text
+.
+├── .github/workflows/            # CI와 배포 워크플로
+└── devjobcollector/
+    ├── src/                      # Spring Boot API, 수집기, 테스트, Flyway 마이그레이션
+    ├── auth-common/              # 공통 인증 모듈
+    ├── frontend/                 # 사용자 앱과 Cloudflare Worker
+    ├── admin-frontend/           # 관리자 앱
+    ├── ops/                      # Docker 배포와 DB 마이그레이션 검증
+    ├── docs/                     # 설계, 운영, 기능 검증 문서
+    ├── Dockerfile
+    └── compose.yaml              # 백엔드 컨테이너 구성
+```
 
-### 2) 데이터 모델링 & 정규화
-- 공고 중심 모델링 + **기술스택(TechStack)**, **첨부파일(JobFile)** 분리 관리
-- **동시성 안전한 기술스택 생성** 로직으로 중복 삽입 방지
+## 로컬 실행
 
-### 3) 검색 & 필터링
-- **통합 검색**: 제목/기관/지역/경력/직무/기술스택 키워드 검색
-- **기술 스택 필터링** 및 **활성 공고** 조회
-- **마감일 기준 정렬(D-Day 우선)** + 최신 등록 보조 정렬
+JDK 21, Node.js 22, npm과 MySQL이 필요합니다. Docker는 컨테이너 실행이나 MySQL 통합 검증에 사용합니다. `compose.yaml`은 **백엔드 앱만** 정의하므로 접근 가능한 MySQL을 별도로 준비해야 합니다.
 
-### 4) 유지보수/운영 자동화
-- **만료 공고 자동 비활성화** (매일 00:05)
-- **1년 이상 비활성 공고 정리** (매일 00:30, 로그 백업 후 삭제)
-- **요청/메서드 성능 로깅** (Interceptor + AOP)
+### 백엔드
 
-### 5) 이력서 CRUD API
-- 이력서 조회/등록/수정 API 제공 (`/api/v1/resume`)
-
----
-
-## 🚦 Getting Started
-
-### Prerequisites
-- JDK 21
-- MySQL 9.6+
-- Node.js (Frontend 실행 시)
-
-### Backend Setup
-
-1. 저장소 이동
-2. 설정 파일 수정  
-   - `devjobcollector/src/main/resources/application.yml`
-   - DB 접속 정보는 `application-local.yml` 또는 환경 변수로 분리 권장
-3. 필수 환경 변수 설정  
-   - `API_SERVICE_KEY`: 공공데이터포털 서비스 키
-4. 실행
+`devjob` 데이터베이스와 계정을 준비한 뒤 환경 변수를 설정합니다. 아래 값은 예시이며 실제 자격증명은 저장소에 커밋하지 않습니다. 로컬에서 외부 수집을 실행하지 않으려면 수집기 플래그를 끕니다.
 
 ```bash
 cd devjobcollector
+export SPRING_DATASOURCE_URL='jdbc:mysql://127.0.0.1:3306/devjob?serverTimezone=Asia/Seoul&useSSL=false&allowPublicKeyRetrieval=true'
+export SPRING_DATASOURCE_USERNAME='<DB_USER>'
+export SPRING_DATASOURCE_PASSWORD='<DB_PASSWORD>'
+export API_SERVICE_KEY='<API_SERVICE_KEY>'
+export PUBLIC_DATA_COLLECTION_ENABLED=false
+export ATS_COLLECTION_ENABLED=false
+export SARAMIN_COLLECTION_ENABLED=false
+export TOSS_COLLECTION_ENABLED=false
+export NAVER_COLLECTION_ENABLED=false
 ./gradlew bootRun
 ```
 
-### Frontend Setup (Optional)
+Windows에서는 환경 변수를 PowerShell의 `$env:이름`으로 설정하고 `./gradlew.bat bootRun`을 사용합니다. Flyway 접속 계정을 분리하려면 `FLYWAY_USERNAME`, `FLYWAY_PASSWORD`를 설정합니다. OAuth·메일·AI 등 선택 기능과 Docker 환경 변수는 [환경 변수 예시](devjobcollector/.env.docker.example) 및 `application.yml`을 참고하세요.
+
+### 사용자 앱
 
 ```bash
 cd devjobcollector/frontend
-npm install
+npm ci
 npm run dev
 ```
 
----
+API 기본 주소는 `http://localhost:8080/api/v1`이며, 다른 서버를 사용하면 `VITE_API_BASE_URL`을 설정합니다. 관리자 앱은 `devjobcollector/admin-frontend`에서 `npm ci`, `npm run dev`로 실행합니다.
 
-## 🔌 API Endpoints
+## 주요 API
 
-### Jobs
-- `GET /api/v1/jobs` 공고 목록 (페이징)
-- `GET /api/v1/jobs/{id}` 공고 상세
-- `GET /api/v1/jobs/search` 통합 검색  
-  - 예: `?keyword=개발자&location=서울&experience=신입&page=0&size=20`
-- `GET /api/v1/jobs/active` 활성 공고
-- `GET /api/v1/jobs/tech-stack?stackName=Java` 기술 스택 필터링
+| 메서드와 경로 | 설명 |
+| --- | --- |
+| `GET /api/v1/jobs` | 공고 목록 |
+| `GET /api/v1/jobs/{id}` | 공고 상세 |
+| `GET /api/v1/jobs/search` | 검색 및 필터. 예: `keyword`, `location`, `experience`, `jobCategory`, `techStack`, 반복 가능한 `company`, `page`, `size` |
+| `GET /api/v1/jobs/companies` | 현재 공개 공고의 회사 목록. 선택적으로 `query` 사용 |
+| `GET /api/v1/job-files/{fileId}/preview` | 지원되는 공개 공고 첨부의 미리보기 파일 |
+| `GET/POST /api/v1/members/me/resumes` | 로그인 회원의 이력서 목록·생성 |
+| `GET /actuator/health` | 서비스 상태 |
 
-### Resume
-- `GET /api/v1/resume/{userId}` 이력서 조회
-- `POST /api/v1/resume` 이력서 저장
-- `PUT /api/v1/resume/{id}` 이력서 수정
+회원·이력서·기업 관리 API에는 인증 및 해당 권한이 필요합니다. 실제 요청·응답과 추가 API는 각 컨트롤러를 참고하세요.
 
----
+## 검증
 
-## 🗂️ 프로젝트 구조 (Backend)
+```bash
+cd devjobcollector
+./gradlew test
+# Docker와 Bash가 있는 환경에서 MySQL 마이그레이션 통합 검증
+bash ops/db/run-member-migration-tests.sh
 
+cd frontend
+npm ci
+npm run lint
+npm run build
+# 최초 한 번: npx playwright install chromium
+npx playwright test e2e/job-filter-catalog.spec.js
 ```
-devjobcollector/src/main/java/kr/itsdev/devjobcollector
-├── config
-├── controller
-├── domain
-├── dto
-├── monitoring
-├── repository
-├── service
-└── DevjobcollectorApplication.java
-```
 
----
+일부 DB 통합 테스트는 별도 MySQL 환경 변수가 필요합니다. Playwright 기본 설정은 모바일부터 데스크톱까지 네 화면 크기를 사용합니다. HWP 표본 검증은 [별도 검증 문서](devjobcollector/docs/hwp-preview-poc.md)를 참고하세요.
 
-## 🔍 Trouble Shooting & Lessons Learned
+## 배포
 
-| 문제 상황 | 원인 | 해결 방안 |
-| --- | --- | --- |
-| JSON Deserialization Error | 응답이 List/Object로 동적 변화 | 상세 전용 DTO 분리로 타입 안정성 확보 |
-| Type Mismatch (SN) | 숫자형 고유번호가 문자열로 유입 | 식별자 도메인을 String으로 통일 |
-| Port Conflict (8080) | 이전 프로세스 비정상 종료 | `taskkill` 로 포트 점유 프로세스 종료 |
-
----
-
-## 📈 Future Roadmap
-
-- [ ] 커리어(Career) API 연동 확장 및 통합 수집
-- [ ] 알림(Email/Slack) 기반 수집 실패 감지 및 리포트
-- [ ] 프론트 대시보드 고도화 (필터/통계/차트)
-
----
-
-## 📚 Documentation
-
-프로젝트의 상세한 개발 일지, 트러블슈팅 및 기술적 의사결정 과정은 Notion에서 확인할 수 있습니다.
-
+- 백엔드: `main`의 백엔드 관련 경로 변경 시 [백엔드 워크플로](.github/workflows/djc-backend-deploy.yml)가 테스트·마이그레이션 검증 후 GHCR 이미지를 빌드하고 OCI에 Docker Compose로 배포합니다.
+- 사용자 앱: `main`의 프런트엔드 관련 경로 변경 시 [프런트엔드 워크플로](.github/workflows/djc-frontend-deploy.yml)가 빌드 후 Cloudflare Workers에 배포합니다.
+- 관리자 앱은 [별도 워크플로](.github/workflows/djc-admin-frontend-deploy.yml)로 배포합니다. 각 워크플로는 수동 실행도 지원합니다.
+- README만 변경하면 위 경로 기반 자동 배포는 실행되지 않습니다. 환경 변수와 비밀값은 GitHub 설정 및 운영 환경에서 관리합니다.
