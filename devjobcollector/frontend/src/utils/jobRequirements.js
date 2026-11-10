@@ -129,7 +129,7 @@ export function extractJobDuties(content) {
 
 // These headings are explicit in Daangn postings; stop before the following section.
 export function extractTossInternSections(content) {
-  const headings = ['진행할 프로젝트', '전형 일정', '서류 지원 가이드', '토스로의 합류 여정', '꼭 확인해 주세요'];
+  const headings = ['이력서의 강력한 한 줄, 토스에서', '답을 얻어갈 수 있는 질문들', '진행할 프로젝트', '전형 일정', '서류 지원 가이드', '토스로의 합류 여정', '꼭 확인해 주세요'];
   const sections = {};
   let current = null;
   for (const line of String(content || '').split(/\r?\n/)) {
