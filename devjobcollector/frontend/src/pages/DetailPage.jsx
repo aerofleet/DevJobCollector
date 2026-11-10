@@ -10,7 +10,7 @@ import TechStackBadge from '../components/job/TechStackBadge';
 import StructuredJobContent from '../components/job/StructuredJobContent';
 import { jobSourceLabel } from '../utils/jobSource';
 import { canPreviewJobFile, jobFileUrl } from '../utils/jobFileUrl';
-import { extractAvailableLocations, extractRoleSummary, extractDaangnSections, extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from '../utils/jobRequirements';
+import { extractAvailableLocations, extractRoleSummary, extractDaangnSections, extractTossInternSections, extractTossSourceDeadline, extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from '../utils/jobRequirements';
 import { formatDate } from '../utils/dateParser';
 import { getDaysRemaining } from '../utils/dateParser';
 import '../styles/DetailPage.css';
@@ -75,6 +75,9 @@ const DetailPage = () => {
   const availableLocations = extractAvailableLocations(job.applyQual);
   const roleSummary = extractRoleSummary(job.applyQual);
   const daangnSections = job.companyName === '당근' ? extractDaangnSections(job.applyQual) : { notices: [], process: [] };
+  const isTossIntern = job.companyName === '토스' && job.hireType === '인턴';
+  const tossSections = isTossIntern ? extractTossInternSections(job.applyQual) : [];
+  const tossDeadline = isTossIntern ? extractTossSourceDeadline(job.applyQual) : null;
   const isPublicAlio = job.sourcePlatform === 'PUBLIC_ALIO';
   const salary = extractJobSalary(job.applyQual);
   const deadlineEvidence = job.deadlineEvidence;
@@ -164,7 +167,7 @@ const DetailPage = () => {
               <span className="label">마감일</span>
               <span className="value">{job.sourceDeadlineDisplay === 'HIDDEN' ? '마감일 확인 필요'
                 : deadlineEvidence?.status === 'CONFLICT' || deadlineEvidence?.status === 'AMBIGUOUS' || (job.sourceDeadlineDisplay === 'RECRUITMENT_END' && deadlineEvidence?.status === 'PRESENT') ? '마감일 원문 확인 필요'
-                  : job.endDate?.startsWith('9999-12-31') ? (job.sourceDeadlineDisplay === 'RECRUITMENT_END' ? '영입종료시' : deadlineEvidence?.status === 'PRESENT' ? deadlineEvidence.localDate.replaceAll('-', '.') : formatInfoGridValue(rollingDeadline) || '마감일 확인 필요') : formatDate(job.endDate)}</span>
+                  : job.endDate?.startsWith('9999-12-31') ? (job.sourceDeadlineDisplay === 'RECRUITMENT_END' ? '영입종료시' : deadlineEvidence?.status === 'PRESENT' ? deadlineEvidence.localDate.replaceAll('-', '.') : tossDeadline ? `${tossDeadline} (원문)` : formatInfoGridValue(rollingDeadline) || '마감일 확인 필요') : formatDate(job.endDate)}</span>
             </div>
             <div className="info-item">
               {job.sourceDeadlineDisplay !== 'HIDDEN' && daysRemaining !== null && daysRemaining >= 0 && (
@@ -223,6 +226,7 @@ const DetailPage = () => {
         </section>
         {daangnSections.notices.length > 0 && <section className="detail-section"><h3>근무 및 안내 사항</h3><ul>{daangnSections.notices.map((item, index) => <li key={index}>{item}</li>)}</ul></section>}
         {daangnSections.process.length > 0 && <section className="detail-section"><h3>채용 절차</h3><ul>{daangnSections.process.map((item, index) => <li key={index}>{item}</li>)}</ul></section>}
+        {tossSections.map(section => <section className="detail-section" key={section.title}><h3>{section.title}</h3><StructuredJobContent content={section.content} /></section>)}
         <section className="detail-section">
           <h3>급여 정보</h3>
           {salary && <p>{salary}</p>}

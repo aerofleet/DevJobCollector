@@ -23,6 +23,20 @@ test.beforeEach(async ({ page }) => {
   }));
 });
 
+test('토스 플랫폼 인턴의 원문 프로젝트와 전형 일정을 바로 보여준다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/11107?*', route => route.fulfill({ json: {
+    ...jobDetail, id: 11107, title: '플랫폼 엔지니어 (인턴십)', companyName: '토스', sourcePlatform: 'COMPANY_PAGE',
+    experience: '경력 확인 필요', hireType: '인턴', endDate: '9999-12-31', deadlineEvidence: { status: 'UNAVAILABLE' },
+    applyQual: '# 진행할 프로젝트\n- **다음 프로젝트 중 하나에 2달동안 참여하게 돼요.**\n>- LLM 개발환경 구축\n# 지원 조건\n- 27년 1월 4일부터 2월 26일까지 토스 사무실에서 근무 가능하신 분\n# 전형 일정\n- 지원 접수 마감: 11/15 (일) 23:59\n- 과제 대상자 발표: 11/18(수) 11:00\n# 서류 지원 가이드\n- 경험 속 임팩트를 기술해주세요.\n# 토스로의 합류 여정\n- 서류접수 > 직무 인터뷰 > 최종합격 및 입사\n# 꼭 확인해 주세요\n- 국문, 영문 명칭을 함께 사용해요.',
+  } }));
+  await page.goto('/job/11107');
+  await expect(page.locator('.info-item').filter({ hasText: '마감일' })).toContainText('11/15 (일) 23:59 (원문)');
+  await expect(page.getByRole('heading', { name: '진행할 프로젝트' }).locator('..')).toContainText('LLM 개발환경 구축');
+  await expect(page.getByRole('heading', { name: '자격 조건' }).locator('..')).toContainText('토스 사무실에서 근무 가능');
+  await expect(page.getByRole('heading', { name: '전형 일정' }).locator('..')).toContainText('과제 대상자 발표');
+  await expect(page.getByRole('heading', { name: '서류 지원 가이드' }).locator('..')).toContainText('경험 속 임팩트');
+});
+
 test('Pinterest 제품 디자이너 공고의 최소 경력을 표시한다', async ({ page }) => {
   await page.route('**/api/v1/jobs/12280?*', route => route.fulfill({ json: {
     ...jobDetail, id: 12280, title: 'Sr. Product Designer - Measurement, Data, & AI', companyName: 'Pinterest', experience: '경력 확인 필요',
