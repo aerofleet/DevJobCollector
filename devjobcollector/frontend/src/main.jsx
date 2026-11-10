@@ -12,6 +12,7 @@ document.documentElement.dataset.motion = ['off', 'subtle', 'standard'].includes
 
 
 const root = document.getElementById('root');
+root.setAttribute('data-clarity-mask', 'true');
 const app = <StrictMode><App /></StrictMode>;
 if (window.location.pathname === '/' && root.hasChildNodes()) hydrateRoot(root, app);
 else createRoot(root).render(app);

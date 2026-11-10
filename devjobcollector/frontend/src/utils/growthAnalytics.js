@@ -1,6 +1,7 @@
 const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
 const CONSENT = 'djc-analytics-consent';
 const GOOGLE_CONSENT = 'djc-google-analytics-consent';
+const CLARITY_CONSENT = 'djc-clarity-consent';
 const VISITOR = 'djc-analytics-visitor';
 const SESSION = 'djc-analytics-session';
 const allowed = new Set(['PAGE_VIEW', 'SEARCH', 'JOB_VIEW', 'BOOKMARK', 'APPLY_CLICK', 'SIGNUP', 'LOGIN', 'SHARE']);
@@ -11,13 +12,13 @@ export function analyticsConsent() {
 }
 
 export function analyticsConsentSnapshot() {
-  try { return `${localStorage.getItem(CONSENT) || ''}:${localStorage.getItem(GOOGLE_CONSENT) || ''}`; } catch { return 'denied:denied'; }
+  try { return `${localStorage.getItem(CONSENT) || ''}:${localStorage.getItem(GOOGLE_CONSENT) || ''}:${localStorage.getItem(CLARITY_CONSENT) || ''}`; } catch { return 'denied:denied:denied'; }
 }
 
 export function subscribeAnalyticsConsent(onChange) {
   const changed = () => { onChange(); };
   const storage = (event) => {
-    if (event.key !== CONSENT && event.key !== GOOGLE_CONSENT && event.key !== null) return;
+    if (event.key !== CONSENT && event.key !== GOOGLE_CONSENT && event.key !== CLARITY_CONSENT && event.key !== null) return;
     if (analyticsConsent() !== 'granted') { try { sessionStorage.removeItem(SESSION); } catch { /* Restricted storage. */ } }
     lastPage = undefined;
     onChange();
@@ -31,6 +32,7 @@ export function setAnalyticsConsent(value) {
   try {
     localStorage.setItem(CONSENT, value === 'granted' ? 'granted' : 'denied');
     localStorage.setItem(GOOGLE_CONSENT, value === 'granted' ? 'granted' : 'denied');
+    localStorage.setItem(CLARITY_CONSENT, value === 'granted' ? 'granted' : 'denied');
     if (value !== 'granted') { localStorage.removeItem(VISITOR); sessionStorage.removeItem(SESSION); }
     lastPage = undefined;
     window.dispatchEvent(new Event('analytics-consent-change'));
