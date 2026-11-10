@@ -128,6 +128,24 @@ export function extractJobDuties(content) {
 }
 
 // These headings are explicit in Daangn postings; stop before the following section.
+export function extractTossInternSections(content) {
+  const headings = ['이력서의 강력한 한 줄, 토스에서', '답을 얻어갈 수 있는 질문들', '진행할 프로젝트', '전형 일정', '서류 지원 가이드', '토스로의 합류 여정', '꼭 확인해 주세요'];
+  const sections = {};
+  let current = null;
+  for (const line of String(content || '').split(/\r?\n/)) {
+    const heading = line.match(/^\s*#{1,6}\s+(.+?)\s*$/);
+    if (heading) { current = headings.includes(heading[1]) ? heading[1] : null; continue; }
+    if (current) (sections[current] ||= []).push(line.replace(/^\s*>\s*-\s*/, '- ').replace(/\*\*/g, ''));
+  }
+  return headings.map(title => ({ title, content: (sections[title] || []).join('\n').trim() })).filter(section => section.content);
+}
+
+export function extractTossSourceDeadline(content) {
+  const matches = [...String(content || '').matchAll(/^\s*[-*•]?\s*지원\s*접수\s*마감\s*[:：]\s*([^\r\n]+)\s*$/gm)]
+    .map(match => match[1].trim());
+  return matches.length === 1 && /^\d{1,2}\/\d{1,2}\s*\([월화수목금토일]\)\s+\d{1,2}:\d{2}$/.test(matches[0]) ? matches[0] : null;
+}
+
 export function extractDaangnSections(content) {
   const result = { notices: [], process: [] };
   let section = null;
