@@ -202,9 +202,9 @@ const DetailPage = () => {
             <StructuredJobContent content={job.processInfo} emptyMessage="제공된 전형 정보가 없습니다." />
             <p className="detail-source-note">출처: 공공기관 알리오 · 제공된 공고 정보와 첨부파일을 확인해 주세요.</p>
           </section>
-          {job.files?.length > 0 && <section className="detail-section"><h3>첨부파일</h3><ul>{job.files.map((file) => {
+          {job.files?.length > 0 && <section className="detail-section"><h3>첨부파일</h3><ul className="detail-attachments">{job.files.map((file) => {
             const href = jobFileUrl(file.fileUrl);
-            return <li key={file.id}>{href ? <a href={href} target="_blank" rel="noopener noreferrer">{file.fileName || '첨부파일'}</a> : (file.fileName || '첨부파일')}{canPreviewJobFile(file) && <button type="button" onClick={() => setPreviewFile({ ...file, originalUrl: href })}>미리보기</button>}</li>;
+            return <li key={file.id}>{href ? <a href={href} target="_blank" rel="noopener noreferrer">{file.fileName || '첨부파일'}</a> : (file.fileName || '첨부파일')}{canPreviewJobFile(file) && <button className="detail-preview-button" type="button" onClick={() => setPreviewFile({ ...file, originalUrl: href })}>미리보기</button>}</li>;
           })}</ul></section>}
         </> : <>
         {roleSummary && <section className="detail-section"><h3>직무 소개</h3><p>{roleSummary}</p></section>}
