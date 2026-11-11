@@ -6,6 +6,8 @@ export function recoverSectionHeading(value) {
   if (/^(?:주요\s*업무|담당\s*업무|업무\s*내용)\s*(?:는|란|은)?\s*[:：?？]?$/.test(title)) return 'duties';
   if (/^role requirements\s*[:：]?$/i.test(title)) return 'required';
   if (/^who you are\s*[:：]?$/i.test(title)) return 'required';
+  if (/^the right candidate for this role will be\s*[:：]?$/i.test(title)) return 'required';
+  if (/^position expectations\s*[:：]?$/i.test(title)) return 'duties';
   if (/^role responsibilities\s*[:：]?$/i.test(title)) return 'duties';
   return null;
 }

@@ -35,6 +35,16 @@ test('Datadog 복리후생 제목과 Ideally 우대 항목을 분리한다', () 
   assert.deepEqual(extractJobRequirements(text), { required: ['10+ years in design.'], preferred: ['Security domain experience.'] });
 });
 
+test('MongoDB 마케팅 공고의 업무와 자격, 사무실 또는 지역 원격 조건을 보존한다', () => {
+  const text = 'This role can be based out of our London office or remotely in the EMEA region.\nPosition Expectations\n• Own EMEA application volume\n• Run partner programs\nThe right candidate for this role will be:\n• Have 5+ years in growth marketing\n• Have experience running partner programs\nAbout MongoDB\nMongoDB Atlas is available across AWS and Microsoft Azure.';
+  const requirements = extractJobRequirements(text);
+  assert.deepEqual(extractJobDuties(text), ['Own EMEA application volume', 'Run partner programs']);
+  assert.equal(requirements.required.length, 2);
+  assert.equal(extractWorkArrangement(text), 'London 사무실 또는 EMEA 지역 원격');
+  assert.deepEqual(extractMentionedTools(requirements, text, 'MongoDB'), []);
+  assert.equal(extractWorkArrangement('Support EMEA customers remotely.'), null);
+});
+
 test('Who You Are 자격과 전체 디자인 경력은 보존하고 회사 소개는 제외한다', () => {
   const result = extractJobRequirements("Who You Are\n• You have 8+ years in product design, 3+ of them managing.\n• You've managed a design system team and grown it.\n• You read and write front-end code.\nAbout Datadog\nDatadog values people from all walks of life.\nBenefits and Growth:\n• New hire stock equity");
   assert.deepEqual(result, { required: ['You have 8+ years in product design, 3+ of them managing.', "You've managed a design system team and grown it.", 'You read and write front-end code.'], preferred: [] });

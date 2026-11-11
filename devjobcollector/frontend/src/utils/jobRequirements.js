@@ -185,7 +185,9 @@ export function extractJobSalary(content) {
 
 // Show only recognizable tool names explicitly mentioned in qualification sections.
 export function extractMentionedTools(requirements, content = '', companyName = '') {
-  const text = [...requirements.required, ...requirements.preferred, String(content || '').replace(/<[^>]*>/g, ' ')].join(' ');
+  const source = String(content || '').replace(/<br\s*\/?\s*>|<\/(?:p|div|li|h[1-6])>/gi, '\n').replace(/<[^>]*>/g, ' ');
+  const relevantSource = source.split(/^\s*(?:about\s+[\p{L}\p{N}&.'’ -]{1,60}|회사\s*소개)\s*[:：]?\s*$/imu)[0];
+  const text = [...requirements.required, ...requirements.preferred, relevantSource].join(' ');
   const tools = ['Datadog', 'Okta', 'Workiva', 'Google Sheets', 'Google apps', 'JIRA', 'Salesforce Service Cloud', 'Amazon Connect', 'LibreChat', 'Gemini', 'Glean', 'Java', 'Kotlin', 'JavaScript', 'TypeScript', 'Python', 'C++', 'ROS2', 'PyTorch', 'JAX', 'LeRobot', 'MuJoCo', 'Isaac Sim', 'React', 'Spring', 'Spring Boot', 'Spring Cloud', 'JPA', 'Hibernate', 'Gradle', 'Jenkins', 'Git', 'GitHub Actions', 'Istio', 'Kafka', 'Elastic', 'Elasticsearch', 'InfluxData', 'Grafana', 'Prometheus', 'Thanos', 'Memcached', 'Redis', 'RabbitMQ', 'MySQL', 'OCI', 'Cloudflare Tunnel', 'Nginx', 'Node.js', 'NestJS', 'Nest.js', 'gRPC', 'WebSocket', 'ArgoCD', 'GoCD', 'Vault', 'Podman', 'Containerd', 'Hadoop', 'Cloud Native', 'iOS', 'SQL', 'Excel', 'SAP', 'RDBMS', 'NoSQL', 'PostgreSQL', 'MongoDB', 'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP', 'IaC', 'CI/CD'];
   const matches = tools.filter((name) => new RegExp(`(?<![\\w+])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w+])`, 'i').test(text));
   for (const name of ['LangChain', 'LangGraph', 'Terraform', 'OpenAI', 'Claude', 'FastAPI', 'Google Workspace', 'Slack', 'Rust', 'ClickHouse']) {
@@ -210,10 +212,12 @@ export function extractMentionedTools(requirements, content = '', companyName = 
 // Only explicit statements about the job's working arrangement qualify.
 export function extractWorkArrangement(content) {
   const text = String(content || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;|&#160;/gi, ' ');
+  const officeOrRemote = text.match(/\b(?:this (?:role|position) can be based out of|based (?:out of|in))\s+(?:our\s+)?([\p{L}][\p{L} .'-]{0,35}?)\s+office\s+or\s+remotely\s+in\s+(?:the\s+)?([A-Z]{2,8})\s+region\b/iu);
   const found = [];
   if (/\b(?:hybrid (?:workplace|work(?:ing)? (?:model|arrangement|environment)|role|position|schedule)|(?:this (?:role|position|job) is|work(?:s|ing)? (?:in|on|under)|operat(?:e|es) as) (?:an? )?hybrid)\b|(?:근무\s*방식|근무\s*형태)\s*[:：]\s*하이브리드/i.test(text)) found.push('하이브리드');
   if (/\b(?:this (?:role|position|job) is|a) (?:fully |100% )?remote (?:role|position|job)?\b|(?:근무\s*방식|근무\s*형태)\s*[:：]\s*(?:전면\s*)?원격/i.test(text)) found.push('원격');
   if (/\b(?:this (?:role|position|job) is|an?) (?:fully )?(?:on-site|onsite|in-office) (?:role|position|job)\b|(?:근무\s*방식|근무\s*형태)\s*[:：]\s*(?:사무실|출근)/i.test(text)) found.push('출근');
+  if (officeOrRemote) found.push(`${officeOrRemote[1].trim()} 사무실 또는 ${officeOrRemote[2].toUpperCase()} 지역 원격`);
   return found.length === 1 ? found[0] : null;
 }
 
