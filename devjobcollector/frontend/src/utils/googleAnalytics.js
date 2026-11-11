@@ -7,6 +7,14 @@ let consentInitialized = false;
 let lastConsent;
 const deniedConsent = { analytics_storage: 'denied', ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' };
 
+export function trackWithBuddyBannerClick() {
+  try {
+    if (analyticsConsent() !== 'granted' || localStorage.getItem('djc-google-analytics-consent') !== 'granted'
+      || navigator.globalPrivacyControl || navigator.doNotTrack === '1') return;
+    window.gtag?.('event', 'withbuddy_banner_click', { send_to: MEASUREMENT_ID });
+  } catch { /* Analytics must not interrupt navigation. */ }
+}
+
 export function updateGoogleAnalytics() {
   let googleConsent = false;
   try { googleConsent = localStorage.getItem('djc-google-analytics-consent') === 'granted'; } catch { /* Restricted storage. */ }

@@ -1,0 +1,11 @@
+.withbuddy-banner { display: block; margin-top: 24px; border-radius: 16px; color: #0c3e62; }
+.withbuddy-banner:focus-visible { outline: 3px solid #6548e8; outline-offset: 4px; }
+.withbuddy-banner img { display: block; width: 100%; height: auto; border-radius: 16px; }
+.withbuddy-banner-mobile { display: none; }
+@media (max-width: 680px) {
+  .withbuddy-banner img { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .withbuddy-banner-mobile { display: grid; gap: 10px; padding: 22px; border: 1px solid #c6e1f4; border-radius: 16px; background: linear-gradient(135deg, #f7fbff, #d9edfc); }
+  .withbuddy-banner-mobile strong { font-size: 13px; }
+  .withbuddy-banner-mobile > span { font-size: 19px; font-weight: 800; line-height: 1.4; }
+  .withbuddy-banner-mobile small { font-size: 14px; font-weight: 700; }
+}
