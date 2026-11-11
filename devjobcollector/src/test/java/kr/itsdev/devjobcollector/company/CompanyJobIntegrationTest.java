@@ -76,6 +76,19 @@ class CompanyJobIntegrationTest {
                 .stream().filter(j -> j.getId().equals(p.publishedJobId()))).hasSize(1);
         assertThat(audits.findTop50ByCompanyJobIdOrderByIdDesc(d.id())).hasSize(3);
     }
+    @Test void selectedWorkAndLanguageSurviveDraftAndApproval() {
+        var input = new CompanyJobContent.Input("백엔드 개발자", "backend", "신입", "서울", "정규직", "Java", "업무 내용", LocalDate.now().plusDays(10), "https://example.com/jobs", "하이브리드", "비즈니스", "필수 아님", "내부 검토 메모", "newsletter");
+        var draft = service.create("owner", company.getId(), input);
+        var stored = service.list("owner", company.getId(), 0).getContent().stream().filter(item -> item.id().equals(draft.id())).findFirst().orElseThrow();
+        assertThat(stored.content().getKoreanLevel()).isEqualTo("비즈니스");
+        assertThat(stored.content().getRecruiterNote()).isEqualTo("내부 검토 메모");
+        assertThat(stored.content().getReferralSource()).isEqualTo("newsletter");
+        var submitted = service.submit("owner", company.getId(), draft.id(), draft.version());
+        var approved = service.review(draft.id(), submitted.version(), "APPROVE", "확인", ADMIN);
+        assertThat(posts.findById(approved.publishedJobId()).orElseThrow().getApplyQual())
+                .contains("근무 방식: 하이브리드", "한국어 수준: 비즈니스", "영어 수준: 필수 아님")
+                .doesNotContain("내부 검토 메모", "newsletter");
+    }
     @Test void editAndRejectionPreserveApprovedContentUntilApproval() {
         var p=publish(); var e=service.edit("owner",company.getId(),p.id(),p.version(),input("수정된 공고"));
         assertThat(posts.findById(p.publishedJobId()).orElseThrow().getTitle()).isEqualTo("백엔드 개발자");

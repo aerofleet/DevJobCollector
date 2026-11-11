@@ -69,4 +69,17 @@ class CompanyJobControllerSecurityTest {
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(service);
     }
+    @Test void acceptsSelectedFieldsAndPrivateNoteInDraftRequest() throws Exception {
+        DecodedJWT jwt=mock(DecodedJWT.class); Claim role=mock(Claim.class);
+        when(jwtTokenVerifier.verify("member")).thenReturn(jwt); when(jwt.getSubject()).thenReturn("42");
+        when(jwt.getClaim("role")).thenReturn(role); when(role.asString()).thenReturn("USER");
+        mvc.perform(post("/api/v1/companies/1/jobs").header("Authorization","Bearer member")
+                .contentType("application/json").content("{\"title\":\"draft\",\"workArrangement\":\"하이브리드\",\"koreanLevel\":\"비즈니스\",\"englishLevel\":\"필수 아님\",\"recruiterNote\":\"비공개 메모\",\"referralSource\":\"ai-assistant\"}"))
+                .andExpect(status().isOk());
+        var captured = org.mockito.ArgumentCaptor.forClass(CompanyJobContent.Input.class);
+        verify(service).create(eq("42"), eq(1L), captured.capture());
+        org.assertj.core.api.Assertions.assertThat(captured.getValue().workArrangement()).isEqualTo("하이브리드");
+        org.assertj.core.api.Assertions.assertThat(captured.getValue().recruiterNote()).isEqualTo("비공개 메모");
+        org.assertj.core.api.Assertions.assertThat(captured.getValue().referralSource()).isEqualTo("ai-assistant");
+    }
 }

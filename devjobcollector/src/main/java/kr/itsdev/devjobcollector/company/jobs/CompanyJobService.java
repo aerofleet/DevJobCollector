@@ -70,7 +70,7 @@ public class CompanyJobService {
         CompanyJob job = locked(companyId, id, version);
         if (job.getState() == CompanyJob.State.IN_REVIEW || job.getState() == CompanyJob.State.SUSPENDED
                 || job.getState() == CompanyJob.State.CLOSED || job.getState() == CompanyJob.State.DELETED) throw conflict();
-        job.edit(CompanyJobContent.from(content));
+        job.edit(CompanyJobContent.fromEdit(content, job.getContent()));
         audit(job, actor, "MEMBER", "EDITED", null);
         drafts.flush(); return view(job);
     }
@@ -165,12 +165,12 @@ public class CompanyJobService {
                     .companyName(job.getCompany().getDisplayName()).title(c.getTitle()).jobCategory(c.getJobCategory())
                     .experience(c.getExperience()).location(c.getLocation()).hireType(c.getHireType())
                     .startDate(LocalDate.now()).endDate(c.getEndDate()).originalUrl(c.getApplyUrl())
-                    .applyQual(c.getDescription()).build();
+                    .applyQual(c.publicDescription()).build();
         } else {
             post = posts.findByIdForModeration(post.getId()).orElseThrow(CompanyJobService::notFound);
             if (post.getModerationStatus() == JobModerationStatus.HIDDEN) throw conflict();
             post.refreshFromSource(job.getCompany().getDisplayName(), c.getTitle(), c.getJobCategory(), c.getExperience(),
-                    c.getLocation(), c.getHireType(), post.getStartDate(), c.getEndDate(), c.getApplyUrl(), c.getDescription(), null);
+                    c.getLocation(), c.getHireType(), post.getStartDate(), c.getEndDate(), c.getApplyUrl(), c.publicDescription(), null);
             post.getPostTags().clear();
             posts.flush();
         }

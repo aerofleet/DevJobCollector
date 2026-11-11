@@ -56,8 +56,10 @@ export default function CompanyJobReviewsPage() {
     {detail && <DetailModal title="기업 공고 검수" onClose={() => setDetail(null)} closeDisabled={busy}>
       {error && <p role="alert" className="form-error">{error}</p>}
       <h3>{detail.job.content.title}</h3><p>{detail.job.companyName} · {labels[detail.job.state]}</p>
-      <dl>{[['jobCategory', '직무'], ['experience', '경력'], ['location', '근무지'], ['hireType', '고용형태'], ['techStacks', '기술스택'], ['endDate', '마감일'], ['applyUrl', '지원 URL']].map(([key, name]) => <div key={key}><dt>{name}</dt><dd style={{ overflowWrap: 'anywhere' }}>{detail.job.content[key] || '미입력'}</dd></div>)}</dl>
+      <dl>{[['jobCategory', '직무'], ['experience', '경력'], ['location', '근무지'], ['hireType', '고용형태'], ['workArrangement', '근무형태'], ['koreanLevel', '한국어 수준'], ['englishLevel', '영어 수준'], ['techStacks', '기술스택'], ['endDate', '마감일'], ['applyUrl', '지원 URL']].map(([key, name]) => <div key={key}><dt>{name}</dt><dd style={{ overflowWrap: 'anywhere' }}>{detail.job.content[key] || '미입력'}</dd></div>)}</dl>
       <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{detail.job.content.description}</div>
+      {detail.job.content.recruiterNote && <section><h3>기업 검토 메모 (비공개)</h3><p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{detail.job.content.recruiterNote}</p></section>}
+      {detail.job.content.referralSource && <p>DevJobs 유입 경로 (비공개): {({ search: '구글 / 검색 엔진', 'ai-assistant': 'AI 어시스턴트', linkedin: '링크드인', 'social-media': 'X / 소셜 미디어', discord: '디스코드 / 커뮤니티', newsletter: '뉴스레터', referral: '지인 추천 / 입소문', event: '행사 / 컨퍼런스', other: '기타' })[detail.job.content.referralSource] || detail.job.content.referralSource}</p>}
       <h3>기존 수집 공고 중복 후보</h3><p>동일 기업명·지원 URL 기준 후보입니다. 직무를 대조한 뒤 판단해주세요.</p>
       {detail.duplicates.length ? <ul>{detail.duplicates.map((d) => <li key={d.id}>#{d.id} {d.title} — {d.companyName}</li>)}</ul> : <p>중복 후보가 없습니다.</p>}
       {detail.job.state === 'DELETED' && <p>삭제 처리된 공고입니다. 공개 노출은 중단되었으며 공고와 처리 기록은 보존됩니다.</p>}
