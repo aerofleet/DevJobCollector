@@ -1,6 +1,39 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractDaangnSections, extractTossInternSections, extractTossSourceDeadline, extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
+import { extractDaangnSections, extractTossInternSections, extractTossSourceDeadline, extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, extractWorkArrangement, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
+
+test('디자인 관리자 업무와 자격 및 회사 소개를 분리하고 회사명과 도구를 구분한다', () => {
+  const text = "We operate as a hybrid workplace.\nWhat You'll Do\nLead the team and set its direction\n• Coach the designers.\nWho You Are\n• You have 8+ years in product design, 3+ of them managing.\n• You read and write front-end code.\nAbout Datadog\nDatadog is an observability platform.";
+  const requirements = extractJobRequirements(text);
+  assert.deepEqual(extractJobDuties(text), ['Lead the team and set its direction', 'Coach the designers.']);
+  assert.equal(requirements.required.length, 2);
+  assert.equal(extractWorkArrangement(text), '하이브리드');
+  assert.ok(!extractMentionedTools(requirements, text, 'Datadog').includes('Datadog'));
+  const tools = extractJobRequirements('Qualifications\n• Experience using Datadog for monitoring.');
+  assert.ok(extractMentionedTools(tools, '', 'Datadog').includes('Datadog'));
+});
+
+test('HTML과 국문 섹션 경계를 유지하고 모호한 근무 방식은 추론하지 않는다', () => {
+  const html = '<h2>What You’ll Do</h2><ul><li>Build services</li></ul><h2>Who You Are</h2><ul><li>Python experience</li></ul><h2>About Acme</h2><p>Acme description</p>';
+  assert.deepEqual(extractJobDuties(html), ['Build services']);
+  assert.deepEqual(extractJobRequirements(html).required, ['Python experience']);
+  const korean = '담당 업무\n• 서버 개발\n자격 요건\n• Java 경험\n회사 소개\n• 소개';
+  assert.deepEqual(extractJobDuties(korean), ['서버 개발']);
+  assert.equal(extractWorkArrangement('We offer remote support to customers.'), null);
+  assert.equal(extractWorkArrangement('근무 방식: 하이브리드'), '하이브리드');
+  assert.equal(extractWorkArrangement('This is a hybrid role. This is a fully remote position.'), null);
+});
+
+test('Airbnb 형식의 업무·자격과 채용 안내를 분리한다', () => {
+  const text = 'A Typical Day\n• Partner with design leaders.\nYour Expertise\n• 7+ years of experience in program management.\nReasonable Accommodations: We offer support.\nA Note on Recruiting Scams: Be careful.';
+  assert.deepEqual(extractJobDuties(text), ['Partner with design leaders.']);
+  assert.deepEqual(extractJobRequirements(text).required, ['7+ years of experience in program management.']);
+});
+
+test('Datadog 복리후생 제목과 Ideally 우대 항목을 분리한다', () => {
+  const text = 'Who you are\n• 10+ years in design.\n• Ideally: Security domain experience.\nBenefits and Growth\n• Product training\nLI-Hybrid\nCompany details';
+  assert.deepEqual(extractJobRequirements(text), { required: ['10+ years in design.'], preferred: ['Security domain experience.'] });
+});
 
 test('Who You Are 자격과 전체 디자인 경력은 보존하고 회사 소개는 제외한다', () => {
   const result = extractJobRequirements("Who You Are\n• You have 8+ years in product design, 3+ of them managing.\n• You've managed a design system team and grown it.\n• You read and write front-end code.\nAbout Datadog\nDatadog values people from all walks of life.\nBenefits and Growth:\n• New hire stock equity");

@@ -10,7 +10,7 @@ import TechStackBadge from '../components/job/TechStackBadge';
 import StructuredJobContent from '../components/job/StructuredJobContent';
 import { jobSourceLabel } from '../utils/jobSource';
 import { canPreviewJobFile, jobFileUrl } from '../utils/jobFileUrl';
-import { extractAvailableLocations, extractRoleSummary, extractDaangnSections, extractTossInternSections, extractTossSourceDeadline, extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from '../utils/jobRequirements';
+import { extractAvailableLocations, extractRoleSummary, extractDaangnSections, extractTossInternSections, extractTossSourceDeadline, extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, extractWorkArrangement, formatInfoGridValue, formatJobLocation } from '../utils/jobRequirements';
 import { formatDate } from '../utils/dateParser';
 import { getDaysRemaining } from '../utils/dateParser';
 import '../styles/DetailPage.css';
@@ -92,7 +92,8 @@ const DetailPage = () => {
     && job.endDate?.startsWith('9999-12-31') && (!deadlineEvidence || deadlineEvidence.status === 'UNAVAILABLE') && rollingDeadline;
   const inferredDeadline = job.endDate?.startsWith('9999-12-31') && deadlineEvidence?.status === 'PRESENT'
     && job.sourceDeadlineDisplay !== 'HIDDEN' && job.sourceDeadlineDisplay !== 'RECRUITMENT_END';
-  const mentionedTools = extractMentionedTools(requirements, job.applyQual);
+  const mentionedTools = extractMentionedTools(requirements, job.applyQual, job.companyName);
+  const workArrangement = extractWorkArrangement(job.applyQual);
   const sourceTechnology = extractJobTechnologySections(job.applyQual);
   const registeredTools = new Set((job.techStacks || []).map((tech) => tech.stackName?.trim().toLowerCase()));
   const additionalTools = mentionedTools.filter((name) => !registeredTools.has(name.toLowerCase()));
@@ -162,6 +163,7 @@ const DetailPage = () => {
               <span className="label">경력</span>
               <span className="value">{formatInfoGridValue((!job.experience || job.experience === '경력 확인 필요') && experienceWording ? experienceWording : (!job.experience || job.experience === '경력 확인 필요') && hasMultipleExperienceRequirements ? '복수 경력 조건 · 자격 조건 참조' : (job.experience || '경력 확인 필요').replace(/^경력\s+(?=\d)/, '')) || '경력 확인 필요'}</span>
             </div>
+            {workArrangement && <div className="info-item"><span className="label">근무 방식</span><span className="value">{workArrangement}</span></div>}
             {isPublicAlio && formatInfoGridValue(job.jobCategory) && <div className="info-item"><span className="label">채용 분야</span><span className="value">{formatInfoGridValue(job.jobCategory)}</span></div>}
             {formatInfoGridValue(employmentType) && <div className="info-item"><span className="label">고용 형태</span><span className="value">{formatInfoGridValue(employmentType)}</span></div>}
             <div className="info-item">
