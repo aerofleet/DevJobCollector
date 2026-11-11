@@ -159,6 +159,15 @@ const MainPage = ({ onSearch }) => {
         </div>
       </section>
 
+      {!token && <section className="company-home-cta" aria-labelledby="company-home-title" data-motion-reveal="">
+        <div>
+          <span className="company-home-label">기업 채용 담당자라면</span>
+          <h2 id="company-home-title">채용 공고를 무료로 등록하세요</h2>
+          <p>로그인 후 기업 등록과 인증을 완료하면 공고를 작성할 수 있습니다. 검수 승인 후 채용 목록에 게시됩니다.</p>
+        </div>
+        <Link to="/login?next=%2Fcompany">로그인하고 무료 공고 등록 <ArrowRight size={17} aria-hidden="true" /></Link>
+      </section>}
+
       <aside className="career-shortcuts" aria-label="내 커리어 바로가기">
         <strong>{token ? '다음 커리어를 준비해볼까요?' : '내 경험에서 다음 기회를 찾아보세요.'}</strong>
         <nav><Link to="/resumes">이력서 관리</Link><Link to="/my-devjobs">저장·지원 현황</Link><Link to="/resume-analysis">AI 커리어 코칭</Link></nav>
