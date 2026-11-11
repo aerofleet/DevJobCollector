@@ -2,6 +2,12 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractDaangnSections, extractTossInternSections, extractTossSourceDeadline, extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, extractWorkArrangement, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
 
+test('기업 직접 등록의 추가 근무 조건을 자격 조건과 구분한다', () => {
+  const text = '[필수 자격]\n- Java 경험\n\n[추가 근무 조건]\n근무 방식: 하이브리드\n한국어 수준: 비즈니스\n영어 수준: 필수 아님';
+  assert.deepEqual(extractJobRequirements(text).required, ['Java 경험']);
+  assert.equal(extractWorkArrangement(text), '하이브리드');
+});
+
 test('디자인 관리자 업무와 자격 및 회사 소개를 분리하고 회사명과 도구를 구분한다', () => {
   const text = "We operate as a hybrid workplace.\nWhat You'll Do\nLead the team and set its direction\n• Coach the designers.\nWho You Are\n• You have 8+ years in product design, 3+ of them managing.\n• You read and write front-end code.\nAbout Datadog\nDatadog is an observability platform.";
   const requirements = extractJobRequirements(text);

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { companyJobsApi } from '../../api/companyJobsApi';
 import '../../styles/CompanyJobs.css';
 
-const EMPTY = { title: '', jobCategory: '', experience: '', location: '', hireType: '', techStacks: '', description: '', endDate: '', applyUrl: '' };
+const EMPTY = { title: '', jobCategory: '', experience: '', location: '', hireType: '', workArrangement: '', koreanLevel: '', englishLevel: '', techStacks: '', description: '', endDate: '', applyUrl: '', recruiterNote: '', referralSource: '' };
 const editableContent = (content) => Object.fromEntries(Object.keys(EMPTY).map((key) => [key, content?.[key] ?? '']));
 const STATES = { DRAFT: '임시저장', IN_REVIEW: '검수 대기', CHANGES_REQUESTED: '수정 요청', PUBLISHED: '승인 완료', CLOSED: '마감', SUSPENDED: '게시 중단', DELETED: '삭제됨' };
 const LIVE = { UNPUBLISHED: '미게시', ACTIVE: '게시 중', CLOSED: '마감', HIDDEN: '게시 중단' };
@@ -12,10 +12,24 @@ const FIELDS = [
   ['jobCategory', '직무', '예: 백엔드 개발자'],
   ['experience', '경력', '예: 신입 또는 경력 3년 이상'],
   ['location', '근무지', '예: 서울 강남구 · 주 2일 재택'],
-  ['hireType', '고용형태', '예: 정규직 또는 계약직 12개월'],
+  ['hireType', '고용형태', ''],
+  ['workArrangement', '근무형태 (선택)', ''],
+  ['koreanLevel', '한국어 수준 (선택)', ''],
+  ['englishLevel', '영어 수준 (선택)', ''],
   ['techStacks', '기술스택 (쉼표로 구분)', '예: Java, Spring Boot, MySQL'],
   ['endDate', '마감일', ''],
   ['applyUrl', '지원 URL (https)', '예: https://careers.example.com/jobs/123'],
+];
+const CHOICES = {
+  hireType: ['정규직', '계약직', '인턴', '파트타임', '프리랜서', '기타'],
+  workArrangement: ['출근', '하이브리드', '원격', '협의 가능'],
+  koreanLevel: ['필수 아님', '기초', '일상 회화', '비즈니스', '유창', '원어민/이중 언어'],
+  englishLevel: ['필수 아님', '기초', '일상 회화', '비즈니스', '유창', '원어민/이중 언어'],
+};
+const REFERRAL_CHOICES = [
+  ['search', '구글 / 검색 엔진'], ['ai-assistant', 'AI 어시스턴트 (ChatGPT, Claude, Perplexity 등)'],
+  ['linkedin', '링크드인'], ['social-media', 'X / 소셜 미디어'], ['discord', '디스코드 / 커뮤니티'],
+  ['newsletter', '뉴스레터'], ['referral', '지인 추천 / 입소문'], ['event', '행사 / 컨퍼런스'], ['other', '기타'],
 ];
 const DESCRIPTION_TEMPLATE = '[팀과 포지션 소개]\n\n[담당 업무]\n- \n\n[필수 자격]\n- \n\n[우대 사항]\n- \n\n[근무 조건]\n- \n\n[급여 및 복리후생]\n- \n\n[채용 절차 및 지원 안내]\n- ';
 const DESCRIPTION_EXAMPLE = '예: 담당 업무, 필수 자격, 우대 사항, 근무 조건, 급여 및 채용 절차를 구분해 작성해 주세요.';
@@ -71,23 +85,38 @@ export default function CompanyJobs({ company }) {
     {error && <p role="alert" className="company-feedback error">{error}</p>}
     {notice && <p role="status" className="company-feedback notice">{notice}</p>}
     {editor && <form className="company-job-editor" onSubmit={save}>
-      <h3>{editor.id ? '공고 수정' : '무료 채용 공고 작성'}</h3><p>임시저장은 일부 항목만 입력해도 가능합니다. 검수 요청에는 아래 9개 항목이 모두 필요합니다.</p>
+      <h3>{editor.id ? '공고 수정' : '무료 채용 공고 작성'}</h3><p>임시저장은 일부 항목만 입력해도 가능합니다. 검수 요청에는 선택 항목을 제외한 9개 항목이 필요합니다.</p>
       <p>게시 중인 공고를 수정하면 기존 승인본은 다음 승인까지 유지됩니다.</p>
       <fieldset disabled={busy}><div className="company-job-fields">{FIELDS.map(([key, label, placeholder]) => <label key={key} htmlFor={`cj-${key}`}>{label}
-        <input id={`cj-${key}`} type={key === 'endDate' ? 'date' : 'text'} value={form[key]}
+        {CHOICES[key] ? <select id={`cj-${key}`} value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })}>
+          <option value="">선택해 주세요</option>
+          {form[key] && !CHOICES[key].includes(form[key]) && <option value={form[key]}>{form[key]} (기존 입력값)</option>}
+          {CHOICES[key].map(option => <option key={option} value={option}>{option}</option>)}
+        </select> : <input id={`cj-${key}`} type={key === 'endDate' ? 'date' : 'text'} value={form[key]}
           placeholder={placeholder || undefined}
           maxLength={key === 'applyUrl' ? 2000 : key === 'techStacks' ? 1000 : 255}
-          onChange={(e) => setForm({ ...form, [key]: e.target.value })} /></label>)}</div>
+          onChange={(e) => setForm({ ...form, [key]: e.target.value })} />}</label>)}</div>
         <label htmlFor="cj-description">상세내용 (일반 텍스트)<textarea id="cj-description" rows={10} maxLength={20000} value={form.description} placeholder={DESCRIPTION_EXAMPLE} aria-describedby="company-job-description-help"
           onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
         <p id="company-job-description-help" className="company-job-description-help">팀 소개, 담당 업무, 필수·우대 자격, 근무 조건, 급여·복리후생과 채용 절차를 확인해 주세요.</p>
         {!form.description.trim() && <button type="button" onClick={() => setForm({ ...form, description: DESCRIPTION_TEMPLATE })}>상세내용 작성 틀 넣기</button>}
+        <label htmlFor="cj-recruiterNote">검토 메모 (선택)<textarea id="cj-recruiterNote" rows={3} maxLength={2000} value={form.recruiterNote} placeholder="예: 공고 검수 시 확인이 필요한 내용을 적어 주세요." aria-describedby="company-job-note-help" onChange={(e) => setForm({ ...form, recruiterNote: e.target.value })} /></label>
+        <p id="company-job-note-help" className="company-job-description-help">기업 담당자와 검수 관리자가 확인하며, 공개 공고에는 표시되지 않습니다.</p>
+        <label htmlFor="cj-referralSource">DevJobs를 어떻게 알게 되셨나요? (선택)
+          <select id="cj-referralSource" value={form.referralSource} onChange={(e) => setForm({ ...form, referralSource: e.target.value })} aria-describedby="company-job-referral-help">
+            <option value="">선택해 주세요</option>
+            {form.referralSource && !REFERRAL_CHOICES.some(([value]) => value === form.referralSource) && <option value={form.referralSource}>{form.referralSource} (기존 입력값)</option>}
+            {REFERRAL_CHOICES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+        </label>
+        <p id="company-job-referral-help" className="company-job-description-help">공개 공고에는 표시되지 않습니다.</p>
         <div className="company-job-actions"><button type="submit">{busy ? '저장 중…' : '임시저장'}</button>
           <button type="button" onClick={() => setPreview(!preview)}>미리보기</button>
           <button type="button" onClick={() => setEditor(null)}>편집 닫기</button></div>
       </fieldset>
       {preview && <article className="company-job-preview" aria-label="공고 미리보기"><span>기업 직접 등록 · {company.displayName}</span>
-        <h3>{form.title || '공고 제목'}</h3><p>{[form.jobCategory, form.experience, form.location, form.hireType].filter(Boolean).join(' · ')}</p>
+        <h3>{form.title || '공고 제목'}</h3><p>{[form.jobCategory, form.experience, form.location, form.hireType, form.workArrangement].filter(Boolean).join(' · ')}</p>
+        {(form.koreanLevel || form.englishLevel) && <p>{[form.koreanLevel && `한국어: ${form.koreanLevel}`, form.englishLevel && `영어: ${form.englishLevel}`].filter(Boolean).join(' · ')}</p>}
         <p>{form.techStacks}</p><div style={{ whiteSpace: 'pre-wrap' }}>{form.description}</div><p>마감일: {form.endDate || '미입력'}</p><p>지원: {form.applyUrl || '미입력'}</p></article>}
     </form>}
     <div className="company-job-actions"><button type="button" disabled={busy} onClick={() => { setError(''); load(); }}>목록 새로고침</button></div>

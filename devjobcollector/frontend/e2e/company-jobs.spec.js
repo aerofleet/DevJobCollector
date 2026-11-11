@@ -2,6 +2,14 @@ import { expect, test } from '@playwright/test';
 
 const company = { companyId: 77, displayName: '테스트 기업', legalName: '테스트 기업', companyStatus: 'VERIFIED', role: 'OWNER', membershipStatus: 'ACTIVE' };
 const content = { title: '백엔드 개발자', jobCategory: 'backend', experience: '신입', location: '서울', hireType: '정규직', techStacks: 'Java,Spring', description: '함께 개발할 동료를 찾습니다.', endDate: '2030-12-31', applyUrl: 'https://example.com/jobs' };
+const extended = { workArrangement: '하이브리드', koreanLevel: '비즈니스', englishLevel: '필수 아님', recruiterNote: '검수 시 확인해 주세요.', referralSource: 'ai-assistant' };
+async function fillContent(page, values) {
+  for (const [key, value] of Object.entries(values)) {
+    const field = page.locator(`#cj-${key}`);
+    if (['hireType', 'workArrangement', 'koreanLevel', 'englishLevel', 'referralSource'].includes(key)) await field.selectOption(value);
+    else await field.fill(value);
+  }
+}
 const reply = (route, data, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(data) });
 
 async function setup(page, overrides = {}, initial = []) {
@@ -38,23 +46,29 @@ test('무료 등록 안내와 작성 틀을 제공하고 입력 내용을 임시
   await expect(page.locator('#cj-title')).toHaveAttribute('placeholder', /백엔드 개발자/);
   await page.getByRole('button', { name: '상세내용 작성 틀 넣기' }).click();
   await expect(page.locator('#cj-description')).toHaveValue(/\[담당 업무\]/);
-  for (const [key, value] of Object.entries(content)) await page.locator(`#cj-${key}`).fill(value);
+  await fillContent(page, { ...content, ...extended });
   await page.getByRole('button', { name: '임시저장', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('임시저장했습니다');
-  expect(state.writes[0]).toEqual(content);
+  expect(state.writes[0]).toEqual({ ...content, ...extended });
+  await page.getByRole('button', { name: '편집 닫기' }).click();
+  await page.getByRole('button', { name: '수정', exact: true }).click();
+  await expect(page.locator('#cj-workArrangement')).toHaveValue('하이브리드');
+  await expect(page.locator('#cj-koreanLevel')).toHaveValue('비즈니스');
+  await expect(page.locator('#cj-recruiterNote')).toHaveValue('검수 시 확인해 주세요.');
+  await expect(page.locator('#cj-referralSource')).toHaveValue('ai-assistant');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 test('기업 공고 작성 미리보기 임시저장 검수요청 마감', async ({ page }) => {
   const state = await setup(page);
   await page.goto('/company');
   await page.getByRole('button', { name: '새 공고 작성' }).click();
-  for (const [key, value] of Object.entries(content)) await page.locator(`#cj-${key}`).fill(value);
+  await fillContent(page, content);
   await page.getByRole('button', { name: '미리보기', exact: true }).click();
   await expect(page.getByRole('article', { name: '공고 미리보기' })).toContainText(content.description);
   await page.screenshot({ path: `.codex/company-job-editor-${test.info().project.name}.png`, fullPage: true });
   await page.getByRole('button', { name: '임시저장', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('임시저장했습니다');
-  expect(state.writes[0]).toEqual(content);
+  expect(state.writes[0]).toEqual({ ...content, workArrangement: '', koreanLevel: '', englishLevel: '', recruiterNote: '', referralSource: '' });
   await expect(page.getByRole('button', { name: '편집 닫기' })).toBeVisible();
   await expect(page.getByRole('button', { name: '검수 요청', exact: true })).toBeEnabled();
   await page.getByRole('button', { name: '검수 요청', exact: true }).click();
@@ -91,6 +105,16 @@ test('VIEWER는 목록만 조회한다', async ({ page }) => {
   await expect(page.getByText('조회 권한입니다.', { exact: false })).toBeVisible();
   await expect(page.getByRole('button', { name: '새 공고 작성' })).toHaveCount(0);
   await expect(page.getByRole('region', { name: '기업 이력서 열람' })).toHaveCount(0);
+});
+
+test('기존 공고의 직접 입력 고용형태를 수정 시 보존한다', async ({ page }) => {
+  const state = await setup(page, {}, [{ id: 1, content: { ...content, hireType: '계약직 12개월' }, state: 'DRAFT', liveStatus: 'UNPUBLISHED', version: 3, views: 0, applyClicks: 0 }]);
+  await page.goto('/company');
+  await page.getByRole('button', { name: '수정', exact: true }).click();
+  await expect(page.locator('#cj-hireType')).toHaveValue('계약직 12개월');
+  await page.getByRole('button', { name: '임시저장', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('임시저장했습니다');
+  expect(state.writes[0].hireType).toBe('계약직 12개월');
 });
 
 test('기업 담당자는 이력서를 읽고 접근 철회 시 이전 상세를 지운다', async ({ page }) => {
