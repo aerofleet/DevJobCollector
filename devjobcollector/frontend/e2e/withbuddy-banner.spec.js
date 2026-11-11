@@ -79,3 +79,34 @@ test('비로그인 사용자는 기업 배너에 접근할 수 없다', async ({
   await expect(page).toHaveURL(/\/login/);
   await expect(page.getByRole('link', { name })).toHaveCount(0);
 });
+
+test('홈에서 활성 인증 기업에만 배너가 표시된다', async ({ page }) => {
+  await setup(page, [company]);
+  await page.goto('/');
+  const link = page.getByRole('link', { name });
+  await expect(link).toBeVisible();
+  await expect(link).toHaveAttribute('target', '_blank');
+  await expect(link).toHaveAttribute('href', /utm_campaign=company_onboarding/);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('홈에서 개인회원과 비로그인 사용자에게 배너가 표시되지 않는다', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('link', { name })).toHaveCount(0);
+  await setup(page, []);
+  await page.goto('/');
+  await expect(page.getByRole('link', { name })).toHaveCount(0);
+});
+
+test('홈에서 기업 조회 실패 및 비활성 소속은 배너를 표시하지 않는다', async ({ page }) => {
+  await setup(page, [{ ...company, membershipStatus: 'LEFT' }]);
+  const request = page.waitForResponse(response => response.url().includes('/companies/me'));
+  await page.goto('/');
+  await request;
+  await expect(page.getByRole('link', { name })).toHaveCount(0);
+  await page.route('**/api/v1/companies/me', route => route.fulfill({ status: 500, json: {} }));
+  const failed = page.waitForResponse(response => response.url().includes('/companies/me'));
+  await page.reload();
+  await failed;
+  await expect(page.getByRole('link', { name })).toHaveCount(0);
+});

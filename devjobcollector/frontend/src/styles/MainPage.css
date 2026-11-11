@@ -14,6 +14,10 @@
   margin-inline: auto;
 }
 
+.home-company-banner { width: min(1180px, calc(100% - 64px)); margin: 0 auto; }
+@media (max-width: 768px) { .home-company-banner { width: min(100% - 40px, 640px); } }
+@media (max-width: 520px) { .home-company-banner { width: calc(100% - 32px); } }
+
 .landing-hero {
   position: relative;
   isolation: isolate;

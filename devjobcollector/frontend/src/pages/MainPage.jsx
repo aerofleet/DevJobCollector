@@ -5,6 +5,8 @@ import { fetchRandomDeveloperJobs } from '../api/jobApi';
 import JobCard from '../components/job/JobCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import HomeRecommendations from '../components/member/HomeRecommendations';
+import WithBuddyBanner from '../components/company/WithBuddyBanner';
+import { fetchMyCompanies } from '../api/companyApi';
 import { useMemberSession } from '../contexts/memberSession';
 import '../styles/MainPage.css';
 import { QUICK_JOB_ROLES } from '../data/jobFilters';
@@ -64,7 +66,19 @@ const MainPage = ({ onSearch }) => {
   const [errorMessage, setErrorMessage] = useState('');
   const [heroKeyword, setHeroKeyword] = useState('');
   const [loading, setLoading] = useState(true);
+  const [companyAccess, setCompanyAccess] = useState(null);
   const initialRequest = useRef(null);
+
+  useEffect(() => {
+    if (!token) return undefined;
+    let active = true;
+    fetchMyCompanies().then((companies) => {
+      if (active) setCompanyAccess({ token, eligible: Array.isArray(companies) && companies.some(company => company.companyStatus === 'VERIFIED' && company.membershipStatus === 'ACTIVE') });
+    }).catch(() => {
+      if (active) setCompanyAccess({ token, eligible: false });
+    });
+    return () => { active = false; };
+  }, [token]);
 
   const submitSearch = (event) => {
     event.preventDefault();
@@ -145,6 +159,9 @@ const MainPage = ({ onSearch }) => {
         </div>
       </section>
 
+      {token && companyAccess?.token === token && companyAccess.eligible && (
+        <div className="home-company-banner"><WithBuddyBanner /></div>
+      )}
       <aside className="career-shortcuts" aria-label="내 커리어 바로가기">
         <strong>{token ? '다음 커리어를 준비해볼까요?' : '내 경험에서 다음 기회를 찾아보세요.'}</strong>
         <nav><Link to="/resumes">이력서 관리</Link><Link to="/my-devjobs">저장·지원 현황</Link><Link to="/resume-analysis">AI 커리어 코칭</Link></nav>
