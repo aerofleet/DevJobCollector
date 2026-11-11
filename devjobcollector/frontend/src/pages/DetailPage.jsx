@@ -2,7 +2,7 @@ import { jobPath } from '../utils/jobPath';
 import { getAccessToken } from '../utils/accessToken';
 import { trackGrowth } from '../utils/growthAnalytics';
 import React, { lazy, Suspense, useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { fetchJobDetail, recordJobEngagement } from '../api/jobApi';
 import { createApplication, createBookmark, recordRecentJob } from '../api/careerActivityApi';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -37,6 +37,7 @@ const DetailPage = () => {
 
     try {
       setLoading(true);
+      setError(null);
       const data = await fetchJobDetail(id);
       if (cancelled) return;
       setJob(data);
@@ -52,10 +53,11 @@ const DetailPage = () => {
         });
       }
     } catch (err) {
-      setError('공고를 불러오는데 실패했습니다.');
+      if (cancelled) return;
+      setError(err.response?.status === 404 ? 'not-found' : 'unavailable');
       console.error(err);
     } finally {
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     }
   };
 
@@ -64,8 +66,11 @@ const DetailPage = () => {
   }, [id, navigate]);
 
   if (loading) return <LoadingSpinner />;
-  if (error) return <div className="error-message">{error}</div>;
-  if (!job) return <div className="error-message">공고를 찾을 수 없습니다.</div>;
+  if (error || !job) return <main className="detail-unavailable" role="alert">
+    <h1>{error === 'unavailable' ? '공고를 불러오지 못했어요' : '공고를 찾을 수 없거나 종료됐어요'}</h1>
+    <p>{error === 'unavailable' ? '잠시 후 다시 시도해 주세요.' : '주소를 다시 확인하거나 다른 채용 공고를 살펴보세요.'}</p>
+    <Link to="/jobs">채용 공고 목록 보기</Link>
+  </main>;
 
   const daysRemaining = getDaysRemaining(job.endDate);
   const requirements = extractJobRequirements(job.applyQual);
