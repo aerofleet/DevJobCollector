@@ -2,6 +2,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractDaangnSections, extractTossInternSections, extractTossSourceDeadline, extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
 
+test('Who You Are 자격과 전체 디자인 경력은 보존하고 회사 소개는 제외한다', () => {
+  const result = extractJobRequirements("Who You Are\n• You have 8+ years in product design, 3+ of them managing.\n• You've managed a design system team and grown it.\n• You read and write front-end code.\nAbout Datadog\nDatadog values people from all walks of life.\nBenefits and Growth:\n• New hire stock equity");
+  assert.deepEqual(result, { required: ['You have 8+ years in product design, 3+ of them managing.', "You've managed a design system team and grown it.", 'You read and write front-end code.'], preferred: [] });
+  assert.equal(extractExperienceWording(result), '8년 이상');
+  assert.deepEqual(extractJobRequirements('Who you are working with\n• Partners in design'), { required: [], preferred: [] });
+});
+
 test('토스 인턴 공고의 프로젝트·일정·서류 안내를 분리하고 연도 없는 마감을 원문으로 보존한다', () => {
   const text = '# 이력서의 강력한 한 줄, 토스에서\n- 멘토와 성장\n# 답을 얻어갈 수 있는 질문들\n- 개발환경은 어떤 모습일까?\n# 진행할 프로젝트\n- **프로젝트 중 하나에 참여해요.**\n>- LLM 환경 구축\n# 지원 조건\n- 근무 가능\n# 전형 일정\n- 지원 접수 마감: 11/15 (일) 23:59\n- 과제 전형: 11/20 - 11/26\n# 서류 지원 가이드\n- 경험을 작성\n# 토스로의 합류 여정\n- 서류 > 인터뷰\n# 꼭 확인해 주세요\n- 영문 명칭 사용';
   const sections = extractTossInternSections(text);
