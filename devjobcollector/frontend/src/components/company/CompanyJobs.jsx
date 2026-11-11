@@ -19,10 +19,6 @@ const FIELDS = [
 ];
 const DESCRIPTION_TEMPLATE = '[팀과 포지션 소개]\n\n[담당 업무]\n- \n\n[필수 자격]\n- \n\n[우대 사항]\n- \n\n[근무 조건]\n- \n\n[급여 및 복리후생]\n- \n\n[채용 절차 및 지원 안내]\n- ';
 const DESCRIPTION_EXAMPLE = '예: 담당 업무, 필수 자격, 우대 사항, 근무 조건, 급여 및 채용 절차를 구분해 작성해 주세요.';
-const isEntered = (key, value) => {
-  const text = String(value);
-  return Boolean((key === 'description' ? text.replace(/\[(?:팀과 포지션 소개|담당 업무|필수 자격|우대 사항|근무 조건|급여 및 복리후생|채용 절차 및 지원 안내)\]|^\s*-\s*$/gm, '') : text).trim());
-};
 const failure = (e) => e.response?.status === 409 ? '다른 작업으로 공고가 변경되었습니다. 목록을 새로고침한 뒤 다시 열어주세요.'
   : e.response?.status === 403 ? '기업 인증 상태와 공고 관리 권한을 확인해주세요.'
     : e.response?.status === 400 ? '필수 항목, 마감일, 기술스택 및 https 지원 URL을 확인해주세요.' : '처리하지 못했습니다. 잠시 후 다시 시도해주세요.';
@@ -37,8 +33,6 @@ export default function CompanyJobs({ company }) {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const canWrite = company.membershipStatus === 'ACTIVE' && ['OWNER', 'ADMIN', 'RECRUITER'].includes(company.role);
-  const checklist = [...FIELDS.map(([key, label]) => [key, label]), ['description', '상세내용']];
-  const completedCount = checklist.filter(([key]) => isEntered(key, form[key])).length;
   const hasUnsavedChanges = editor !== null && (!editor.id || Object.keys(EMPTY).some((key) => form[key] !== editableContent(editor.content)[key]));
   const load = useCallback(async () => {
     try { setResult(await companyJobsApi.list(company.companyId, page)); }
@@ -79,11 +73,6 @@ export default function CompanyJobs({ company }) {
     {editor && <form className="company-job-editor" onSubmit={save}>
       <h3>{editor.id ? '공고 수정' : '무료 채용 공고 작성'}</h3><p>임시저장은 일부 항목만 입력해도 가능합니다. 검수 요청에는 아래 9개 항목이 모두 필요합니다.</p>
       <p>게시 중인 공고를 수정하면 기존 승인본은 다음 승인까지 유지됩니다.</p>
-      <div className="company-job-checklist" aria-labelledby="company-job-checklist-title">
-        <h4 id="company-job-checklist-title">등록 전 확인 목록 <span>{completedCount} / {checklist.length} 입력</span></h4>
-        <p>항목을 선택하면 해당 입력란으로 이동합니다. 입력 여부만 확인하며, 검수 요청 시 형식과 마감일을 확인합니다.</p>
-        <ul>{checklist.map(([key, label]) => <li key={key}><a href={`#cj-${key}`}>{isEntered(key, form[key]) ? '✓ 입력됨' : '○ 미입력'} <span>{label}</span></a></li>)}</ul>
-      </div>
       <fieldset disabled={busy}><div className="company-job-fields">{FIELDS.map(([key, label, placeholder]) => <label key={key} htmlFor={`cj-${key}`}>{label}
         <input id={`cj-${key}`} type={key === 'endDate' ? 'date' : 'text'} value={form[key]}
           placeholder={placeholder || undefined}
