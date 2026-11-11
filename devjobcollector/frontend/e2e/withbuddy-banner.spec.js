@@ -87,12 +87,14 @@ test('홈에서 활성 인증 기업에만 배너가 표시된다', async ({ pag
   await expect(link).toBeVisible();
   await expect(link).toHaveAttribute('target', '_blank');
   await expect(link).toHaveAttribute('href', /utm_campaign=company_onboarding/);
+  await expect(page.locator('.home-company-banner + .login-cta')).toHaveCount(1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-test('홈에서 개인회원과 비로그인 사용자에게 배너가 표시되지 않는다', async ({ page }) => {
+test('홈에서 비로그인 사용자에게 배너를 표시하고 개인회원에게는 표시하지 않는다', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('link', { name })).toHaveCount(0);
+  await expect(page.getByRole('link', { name })).toBeVisible();
+  await expect(page.locator('.home-company-banner + .login-cta')).toHaveCount(1);
   await setup(page, []);
   await page.goto('/');
   await expect(page.getByRole('link', { name })).toHaveCount(0);

@@ -159,9 +159,6 @@ const MainPage = ({ onSearch }) => {
         </div>
       </section>
 
-      {token && companyAccess?.token === token && companyAccess.eligible && (
-        <div className="home-company-banner"><WithBuddyBanner /></div>
-      )}
       <aside className="career-shortcuts" aria-label="내 커리어 바로가기">
         <strong>{token ? '다음 커리어를 준비해볼까요?' : '내 경험에서 다음 기회를 찾아보세요.'}</strong>
         <nav><Link to="/resumes">이력서 관리</Link><Link to="/my-devjobs">저장·지원 현황</Link><Link to="/resume-analysis">AI 커리어 코칭</Link></nav>
@@ -215,6 +212,9 @@ const MainPage = ({ onSearch }) => {
         {!loading && !errorMessage && jobs.length === 0 && <div className="empty-state">현재 노출할 공고가 없습니다.</div>}
       </section>
 
+      {(!token || (companyAccess?.token === token && companyAccess.eligible)) && (
+        <div className="home-company-banner"><WithBuddyBanner /></div>
+      )}
       <section className="login-cta" data-motion-reveal="">
         <div>
           <span className="section-eyebrow">YOUR NEXT MOVE</span>
