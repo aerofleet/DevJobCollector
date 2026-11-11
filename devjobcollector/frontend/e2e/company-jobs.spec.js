@@ -29,6 +29,24 @@ async function setup(page, overrides = {}, initial = []) {
   });
   return state;
 }
+test('무료 등록 안내와 작성 체크리스트가 입력과 임시저장에 맞춰 갱신된다', async ({ page }) => {
+  const state = await setup(page);
+  await page.goto('/company');
+  await expect(page.getByText('기업 인증 후 채용 공고를 무료로 등록하고 관리하세요.')).toBeVisible();
+  await page.getByRole('button', { name: '새 공고 작성' }).click();
+  const checklist = page.locator('.company-job-checklist');
+  await expect(checklist).toContainText('0 / 9 입력');
+  await expect(page.locator('#cj-title')).toHaveAttribute('placeholder', /백엔드 개발자/);
+  await page.getByRole('button', { name: '상세내용 작성 틀 넣기' }).click();
+  await expect(page.locator('#cj-description')).toHaveValue(/\[담당 업무\]/);
+  await expect(checklist).toContainText('0 / 9 입력');
+  for (const [key, value] of Object.entries(content)) await page.locator(`#cj-${key}`).fill(value);
+  await expect(checklist).toContainText('9 / 9 입력');
+  await page.getByRole('button', { name: '임시저장', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('임시저장했습니다');
+  expect(state.writes[0]).toEqual(content);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
 test('기업 공고 작성 미리보기 임시저장 검수요청 마감', async ({ page }) => {
   const state = await setup(page);
   await page.goto('/company');

@@ -7,7 +7,22 @@ const EMPTY = { title: '', jobCategory: '', experience: '', location: '', hireTy
 const editableContent = (content) => Object.fromEntries(Object.keys(EMPTY).map((key) => [key, content?.[key] ?? '']));
 const STATES = { DRAFT: '임시저장', IN_REVIEW: '검수 대기', CHANGES_REQUESTED: '수정 요청', PUBLISHED: '승인 완료', CLOSED: '마감', SUSPENDED: '게시 중단', DELETED: '삭제됨' };
 const LIVE = { UNPUBLISHED: '미게시', ACTIVE: '게시 중', CLOSED: '마감', HIDDEN: '게시 중단' };
-const FIELDS = [['title', '공고 제목'], ['jobCategory', '직무'], ['experience', '경력'], ['location', '근무지'], ['hireType', '고용형태'], ['techStacks', '기술스택 (쉼표로 구분)'], ['endDate', '마감일'], ['applyUrl', '지원 URL (https)']];
+const FIELDS = [
+  ['title', '공고 제목', '예: 백엔드 개발자 (Java/Spring)'],
+  ['jobCategory', '직무', '예: 백엔드 개발자'],
+  ['experience', '경력', '예: 신입 또는 경력 3년 이상'],
+  ['location', '근무지', '예: 서울 강남구 · 주 2일 재택'],
+  ['hireType', '고용형태', '예: 정규직 또는 계약직 12개월'],
+  ['techStacks', '기술스택 (쉼표로 구분)', '예: Java, Spring Boot, MySQL'],
+  ['endDate', '마감일', ''],
+  ['applyUrl', '지원 URL (https)', '예: https://careers.example.com/jobs/123'],
+];
+const DESCRIPTION_TEMPLATE = '[팀과 포지션 소개]\n\n[담당 업무]\n- \n\n[필수 자격]\n- \n\n[우대 사항]\n- \n\n[근무 조건]\n- \n\n[급여 및 복리후생]\n- \n\n[채용 절차 및 지원 안내]\n- ';
+const DESCRIPTION_EXAMPLE = '예: 담당 업무, 필수 자격, 우대 사항, 근무 조건, 급여 및 채용 절차를 구분해 작성해 주세요.';
+const isEntered = (key, value) => {
+  const text = String(value);
+  return Boolean((key === 'description' ? text.replace(/\[(?:팀과 포지션 소개|담당 업무|필수 자격|우대 사항|근무 조건|급여 및 복리후생|채용 절차 및 지원 안내)\]|^\s*-\s*$/gm, '') : text).trim());
+};
 const failure = (e) => e.response?.status === 409 ? '다른 작업으로 공고가 변경되었습니다. 목록을 새로고침한 뒤 다시 열어주세요.'
   : e.response?.status === 403 ? '기업 인증 상태와 공고 관리 권한을 확인해주세요.'
     : e.response?.status === 400 ? '필수 항목, 마감일, 기술스택 및 https 지원 URL을 확인해주세요.' : '처리하지 못했습니다. 잠시 후 다시 시도해주세요.';
@@ -22,6 +37,8 @@ export default function CompanyJobs({ company }) {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const canWrite = company.membershipStatus === 'ACTIVE' && ['OWNER', 'ADMIN', 'RECRUITER'].includes(company.role);
+  const checklist = [...FIELDS.map(([key, label]) => [key, label]), ['description', '상세내용']];
+  const completedCount = checklist.filter(([key]) => isEntered(key, form[key])).length;
   const hasUnsavedChanges = editor !== null && (!editor.id || Object.keys(EMPTY).some((key) => form[key] !== editableContent(editor.content)[key]));
   const load = useCallback(async () => {
     try { setResult(await companyJobsApi.list(company.companyId, page)); }
@@ -54,20 +71,28 @@ export default function CompanyJobs({ company }) {
   };
   const totalPages = result?.page?.totalPages ?? result?.totalPages ?? 1;
   return <section className="company-panel company-jobs" aria-label="기업 공고 관리">
-    <div className="company-jobs-heading"><div><h2>채용 공고 관리</h2><p>공고를 작성하고 검수를 요청하세요. 승인된 공고는 채용 목록에 게시됩니다.</p></div>
+    <div className="company-jobs-heading"><div><h2>채용 공고 관리</h2><p>채용 공고를 무료로 등록하고 검수를 요청하세요. 승인된 공고는 채용 목록에 게시됩니다.</p></div>
       {canWrite && <button type="button" disabled={busy} onClick={() => openEditor(null)}>새 공고 작성</button>}</div>
     {!canWrite && <p>조회 권한입니다. 공고 등록은 기업 관리자 또는 채용 담당자가 진행할 수 있습니다.</p>}
     {error && <p role="alert" className="company-feedback error">{error}</p>}
     {notice && <p role="status" className="company-feedback notice">{notice}</p>}
     {editor && <form className="company-job-editor" onSubmit={save}>
-      <h3>{editor.id ? '공고 수정' : '새 공고'}</h3><p>임시저장은 일부 항목만 입력해도 가능합니다. 검수 요청에는 모든 항목이 필요합니다.</p>
+      <h3>{editor.id ? '공고 수정' : '무료 채용 공고 작성'}</h3><p>임시저장은 일부 항목만 입력해도 가능합니다. 검수 요청에는 아래 9개 항목이 모두 필요합니다.</p>
       <p>게시 중인 공고를 수정하면 기존 승인본은 다음 승인까지 유지됩니다.</p>
-      <fieldset disabled={busy}><div className="company-job-fields">{FIELDS.map(([key, label]) => <label key={key} htmlFor={`cj-${key}`}>{label}
+      <div className="company-job-checklist" aria-labelledby="company-job-checklist-title">
+        <h4 id="company-job-checklist-title">등록 전 확인 목록 <span>{completedCount} / {checklist.length} 입력</span></h4>
+        <p>항목을 선택하면 해당 입력란으로 이동합니다. 입력 여부만 확인하며, 검수 요청 시 형식과 마감일을 확인합니다.</p>
+        <ul>{checklist.map(([key, label]) => <li key={key}><a href={`#cj-${key}`}>{isEntered(key, form[key]) ? '✓ 입력됨' : '○ 미입력'} <span>{label}</span></a></li>)}</ul>
+      </div>
+      <fieldset disabled={busy}><div className="company-job-fields">{FIELDS.map(([key, label, placeholder]) => <label key={key} htmlFor={`cj-${key}`}>{label}
         <input id={`cj-${key}`} type={key === 'endDate' ? 'date' : 'text'} value={form[key]}
+          placeholder={placeholder || undefined}
           maxLength={key === 'applyUrl' ? 2000 : key === 'techStacks' ? 1000 : 255}
           onChange={(e) => setForm({ ...form, [key]: e.target.value })} /></label>)}</div>
-        <label htmlFor="cj-description">상세내용 (일반 텍스트)<textarea id="cj-description" rows={10} maxLength={20000} value={form.description}
+        <label htmlFor="cj-description">상세내용 (일반 텍스트)<textarea id="cj-description" rows={10} maxLength={20000} value={form.description} placeholder={DESCRIPTION_EXAMPLE} aria-describedby="company-job-description-help"
           onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
+        <p id="company-job-description-help" className="company-job-description-help">팀 소개, 담당 업무, 필수·우대 자격, 근무 조건, 급여·복리후생과 채용 절차를 확인해 주세요.</p>
+        {!form.description.trim() && <button type="button" onClick={() => setForm({ ...form, description: DESCRIPTION_TEMPLATE })}>상세내용 작성 틀 넣기</button>}
         <div className="company-job-actions"><button type="submit">{busy ? '저장 중…' : '임시저장'}</button>
           <button type="button" onClick={() => setPreview(!preview)}>미리보기</button>
           <button type="button" onClick={() => setEditor(null)}>편집 닫기</button></div>

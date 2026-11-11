@@ -162,7 +162,7 @@ const CompanyPage = () => {
           <header className="member-page-heading company-heading">
             <span className="member-eyebrow">COMPANY CENTER</span>
             <h1>기업 서비스</h1>
-            <p>기업 인증부터 채용 공고 등록과 관리까지 한곳에서 진행하세요.</p>
+            <p>기업 인증 후 채용 공고를 무료로 등록하고 관리하세요.</p>
           </header>
 
           {loading && <section className="company-state-card" aria-live="polite">기업 정보를 불러오는 중입니다.</section>}
