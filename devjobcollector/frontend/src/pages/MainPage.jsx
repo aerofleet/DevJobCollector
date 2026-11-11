@@ -213,7 +213,7 @@ const MainPage = ({ onSearch }) => {
       </section>
 
       {(!token || (companyAccess?.token === token && companyAccess.eligible)) && (
-        <div className="home-company-banner"><WithBuddyBanner /></div>
+        <div className="home-company-banner" data-motion-reveal=""><WithBuddyBanner /></div>
       )}
       <section className="login-cta" data-motion-reveal="">
         <div>

@@ -112,3 +112,15 @@ test('홈에서 기업 조회 실패 및 비활성 소속은 배너를 표시하
   await failed;
   await expect(page.getByRole('link', { name })).toHaveCount(0);
 });
+
+test('홈 배너 스크롤 모션과 동작 줄이기 설정을 따른다', async ({ page }) => {
+  await page.goto('/');
+  const banner = page.locator('.home-company-banner');
+  await expect(banner).toHaveAttribute('data-motion-reveal', '');
+  await banner.scrollIntoViewIfNeeded();
+  await expect(banner).toHaveAttribute('data-reveal-state', /running|done/);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.reload();
+  await expect(banner).toHaveAttribute('data-reveal-state', 'done');
+  await expect(page.getByRole('link', { name })).toBeVisible();
+});
