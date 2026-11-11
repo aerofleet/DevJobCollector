@@ -59,15 +59,27 @@ export default function CompanyJobs({ company }) {
     setForm(editableContent(job?.content));
     setPreview(false); setError(''); setNotice('');
   };
-  const save = async (event) => {
-    event.preventDefault(); if (busy) return;
+  const save = async (event, submitForReview = false) => {
+    event?.preventDefault(); if (busy) return;
     setBusy(true); setError(''); setNotice('');
+    let saved = null;
     try {
       const content = { ...form, endDate: form.endDate || null };
-      const saved = editor.id ? await companyJobsApi.edit(company.companyId, editor.id, editor.version, content)
+      saved = editor.id ? await companyJobsApi.edit(company.companyId, editor.id, editor.version, content)
         : await companyJobsApi.create(company.companyId, content);
-      setEditor(saved); setForm(editableContent(saved.content)); setNotice('임시저장했습니다. 목록에서 바로 검수를 요청할 수 있습니다.'); await load();
-    } catch (e) { setError(failure(e)); } finally { setBusy(false); }
+      setEditor(saved); setForm(editableContent(saved.content));
+      if (submitForReview) {
+        await companyJobsApi.action(company.companyId, saved, 'submit');
+        setEditor(null); setNotice('공고를 저장하고 검수를 요청했습니다. 승인 후 채용 목록에 게시됩니다.');
+      } else setNotice('임시저장했습니다. 목록에서 바로 검수를 요청할 수 있습니다.');
+      await load();
+    } catch (e) {
+      if (saved && submitForReview) {
+        setNotice('공고는 임시저장되었습니다. 내용을 확인한 뒤 검수를 다시 요청해 주세요.');
+        await load();
+      }
+      setError(failure(e));
+    } finally { setBusy(false); }
   };
   const act = async (job, action) => {
     if (busy) return;
@@ -85,7 +97,7 @@ export default function CompanyJobs({ company }) {
     {error && <p role="alert" className="company-feedback error">{error}</p>}
     {notice && <p role="status" className="company-feedback notice">{notice}</p>}
     {editor && <form className="company-job-editor" onSubmit={save}>
-      <h3>{editor.id ? '공고 수정' : '무료 채용 공고 작성'}</h3><p>임시저장은 일부 항목만 입력해도 가능합니다. 검수 요청에는 선택 항목을 제외한 9개 항목이 필요합니다.</p>
+      <h3>{editor.id ? '공고 수정' : '무료 채용 공고 작성'}</h3><p>임시저장은 일부 항목만 입력해도 가능합니다. 저장하고 검수를 요청하면 관리자의 승인 후 게시됩니다. 검수 요청에는 선택 항목을 제외한 9개 항목이 필요합니다.</p>
       <p>게시 중인 공고를 수정하면 기존 승인본은 다음 승인까지 유지됩니다.</p>
       <fieldset disabled={busy}><div className="company-job-fields">{FIELDS.map(([key, label, placeholder]) => <label key={key} htmlFor={`cj-${key}`}>{label}
         {CHOICES[key] ? <select id={`cj-${key}`} value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })}>
@@ -111,6 +123,7 @@ export default function CompanyJobs({ company }) {
         </label>
         <p id="company-job-referral-help" className="company-job-description-help">공개 공고에는 표시되지 않습니다.</p>
         <div className="company-job-actions"><button type="submit">{busy ? '저장 중…' : '임시저장'}</button>
+          <button type="button" className="company-job-submit" onClick={() => save(null, true)}>저장하고 검수 요청</button>
           <button type="button" onClick={() => setPreview(!preview)}>미리보기</button>
           <button type="button" onClick={() => setEditor(null)}>편집 닫기</button></div>
       </fieldset>

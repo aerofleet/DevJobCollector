@@ -79,6 +79,46 @@ test('기업 공고 작성 미리보기 임시저장 검수요청 마감', async
   await page.screenshot({ path: `.codex/company-jobs-${test.info().project.name}.png`, fullPage: true });
 });
 
+test('작성 화면에서 저장 후 최신 버전으로 바로 검수를 요청한다', async ({ page }) => {
+  const state = await setup(page);
+  await page.goto('/company');
+  await page.getByRole('button', { name: '새 공고 작성' }).click();
+  await fillContent(page, content);
+  await page.getByRole('button', { name: '저장하고 검수 요청' }).click();
+  await expect(page.getByRole('status')).toContainText('저장하고 검수를 요청했습니다');
+  await expect(page.locator('.company-job-status')).toContainText('검수 대기');
+  expect(state.writes).toHaveLength(1);
+  expect(state.submissions).toEqual([{ expectedVersion: 0 }]);
+  await expect(page.getByRole('button', { name: '편집 닫기' })).toHaveCount(0);
+});
+
+test('검수 요청이 실패하면 저장된 초안을 유지하고 중복 생성 없이 재시도한다', async ({ page }) => {
+  const state = await setup(page);
+  await page.route('**/companies/77/jobs/1/submit', route => reply(route, {}, 400), { times: 1 });
+  await page.goto('/company');
+  await page.getByRole('button', { name: '새 공고 작성' }).click();
+  await fillContent(page, content);
+  await page.getByRole('button', { name: '저장하고 검수 요청' }).click();
+  await expect(page.getByRole('status')).toContainText('공고는 임시저장되었습니다');
+  await expect(page.getByRole('alert')).toContainText('필수 항목');
+  await expect(page.locator('#cj-title')).toHaveValue(content.title);
+  await page.getByRole('button', { name: '저장하고 검수 요청' }).click();
+  await expect(page.locator('.company-job-status')).toContainText('검수 대기');
+  expect(state.jobs).toHaveLength(1);
+  expect(state.submissions).toEqual([{ expectedVersion: 1 }]);
+});
+
+test('기존 공고를 수정해 저장하고 검수 요청할 때 수정된 버전을 제출한다', async ({ page }) => {
+  const state = await setup(page, {}, [{ id: 1, content, state: 'DRAFT', liveStatus: 'UNPUBLISHED', version: 3, views: 0, applyClicks: 0 }]);
+  await page.goto('/company');
+  await page.getByRole('button', { name: '수정', exact: true }).click();
+  await page.locator('#cj-title').fill('수정된 공고');
+  await page.getByRole('button', { name: '저장하고 검수 요청' }).click();
+  await expect(page.locator('.company-job-status')).toContainText('검수 대기');
+  expect(state.jobs[0].content.title).toBe('수정된 공고');
+  expect(state.submissions).toEqual([{ expectedVersion: 4 }]);
+});
+
 test('저장된 초안은 편집 중에도 제출 가능하고 미저장 변경은 저장 후 최신 버전으로 제출한다', async ({ page }) => {
   const state = await setup(page, {}, [{ id: 1, content, state: 'DRAFT', liveStatus: 'UNPUBLISHED', version: 3, views: 0, applyClicks: 0 }]);
   await page.goto('/company');
