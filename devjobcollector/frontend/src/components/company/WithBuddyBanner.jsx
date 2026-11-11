@@ -2,7 +2,7 @@ import banner from '../../assets/withbuddy-banner.png';
 import { trackWithBuddyBannerClick } from '../../utils/googleAnalytics';
 import '../../styles/WithBuddyBanner.css';
 
-const url = new URL('https://withbuddy.ai.kr/');
+const url = new URL('https://info.withbuddy.ai.kr/');
 url.searchParams.set('utm_source', 'devjobs');
 url.searchParams.set('utm_medium', 'banner');
 url.searchParams.set('utm_campaign', 'company_onboarding');

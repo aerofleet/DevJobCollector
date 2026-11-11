@@ -26,7 +26,7 @@ test('활성 기업에 배너와 반응형 대안 및 안전한 링크를 제공
   await expect(link).toHaveAttribute('target', '_blank');
   await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
   const href = new URL(await link.getAttribute('href'));
-  expect(href.origin + href.pathname).toBe('https://withbuddy.ai.kr/');
+  expect(href.origin + href.pathname).toBe('https://info.withbuddy.ai.kr/');
   expect(Object.fromEntries(href.searchParams)).toEqual({ utm_source: 'devjobs', utm_medium: 'banner', utm_campaign: 'company_onboarding' });
   await expect(link.locator('img')).toHaveAttribute('alt', name);
   await link.focus();
@@ -36,7 +36,7 @@ test('활성 기업에 배너와 반응형 대안 및 안전한 링크를 제공
   else await expect(link.locator('img')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.evaluate(() => { window.dataLayer = []; });
-  await page.context().route('https://withbuddy.ai.kr/**', route => route.fulfill({ contentType: 'text/html', body: '<title>WithBuddy</title>' }));
+  await page.context().route('https://info.withbuddy.ai.kr/**', route => route.fulfill({ contentType: 'text/html', body: '<title>WithBuddy</title>' }));
   const popupPromise = page.waitForEvent('popup');
   await link.click();
   const popup = await popupPromise;
@@ -64,7 +64,7 @@ test('비활성 소속에는 배너를 표시하지 않는다', async ({ page })
 test('분석 동의가 없으면 클릭 이벤트를 전송하지 않는다', async ({ page }) => {
   await setup(page, [company]);
   await page.goto('/company');
-  await page.context().route('https://withbuddy.ai.kr/**', route => route.fulfill({ body: 'WithBuddy' }));
+  await page.context().route('https://info.withbuddy.ai.kr/**', route => route.fulfill({ body: 'WithBuddy' }));
   await page.evaluate(() => { window.dataLayer = []; });
   const popupPromise = page.waitForEvent('popup');
   await page.getByRole('link', { name }).click();
