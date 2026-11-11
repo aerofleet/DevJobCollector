@@ -94,6 +94,9 @@ test('홈에서 활성 인증 기업에만 배너가 표시된다', async ({ pag
 test('홈에서 비로그인 사용자에게 배너를 표시하고 개인회원에게는 표시하지 않는다', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('link', { name })).toBeVisible();
+  const bannerImage = page.getByRole('link', { name }).locator('img');
+  await expect(bannerImage).toHaveAttribute('src', '/withbuddy-banner.png');
+  await expect.poll(() => bannerImage.evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
   await expect(page.locator('.home-company-banner + .login-cta')).toHaveCount(1);
   await setup(page, []);
   await page.goto('/');
