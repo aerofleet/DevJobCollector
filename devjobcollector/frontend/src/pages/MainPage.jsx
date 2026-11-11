@@ -212,9 +212,6 @@ const MainPage = ({ onSearch }) => {
         {!loading && !errorMessage && jobs.length === 0 && <div className="empty-state">현재 노출할 공고가 없습니다.</div>}
       </section>
 
-      {(!token || (companyAccess?.token === token && companyAccess.eligible)) && (
-        <div className="home-company-banner" data-motion-reveal=""><WithBuddyBanner /></div>
-      )}
       <section className="login-cta" data-motion-reveal="">
         <div>
           <span className="section-eyebrow">YOUR NEXT MOVE</span>
@@ -223,6 +220,10 @@ const MainPage = ({ onSearch }) => {
         </div>
         <Link to={token ? '/my-devjobs' : '/login'}>{token ? '내 채용 활동 보기' : '로그인하고 시작하기'} <ArrowRight size={18} /></Link>
       </section>
+
+      {(!token || (companyAccess?.token === token && companyAccess.eligible)) && (
+        <div className="home-company-banner" data-motion-reveal=""><WithBuddyBanner /></div>
+      )}
 
       <footer className="landing-footer">
         <strong>DevJobs</strong>
