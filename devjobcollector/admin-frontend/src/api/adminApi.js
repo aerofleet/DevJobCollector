@@ -99,8 +99,8 @@ export const adminApi = {
   updatePublicSeedHomepage: (id, url, expectedVersion) => adminRequest(`/companies/public-seeds/${id}/homepage`, {
     method: 'PUT', body: JSON.stringify({ url, expectedVersion }),
   }),
-  discoverPublicSeedHtml: (id, html, expectedVersion) => adminRequest(`/companies/public-seeds/${id}/discover-html`, {
-    method: 'POST', body: JSON.stringify({ html, expectedVersion }),
+  discoverPublicSeedHomepage: (id, expectedVersion) => adminRequest(`/companies/public-seeds/${id}/discover`, {
+    method: 'POST', body: JSON.stringify({ expectedVersion }),
   }),
   publicSeedAtsCandidates: (id) => adminRequest(`/companies/public-seeds/${id}/ats-candidates?size=100`),
   rejectPublicSeedAts: (seedId, candidateId, reason) => adminRequest(

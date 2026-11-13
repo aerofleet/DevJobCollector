@@ -80,8 +80,8 @@ test('관리자가 공공 CSV를 수입한다', async ({ page }) => {
     return route.fulfill({ status: 204 });
   });
   await page.route('**/api/v1/admin/companies/public-seeds/1/ats-candidates?*', (route) => route.fulfill({ json: { data: ats } }));
-  await page.route('**/api/v1/admin/companies/public-seeds/1/discover-html', (route) => {
-    expect(route.request().postDataJSON()).toEqual({ html: '<a href="https://nuua.career.greetinghr.com/ko/home">채용</a>', expectedVersion: 0 });
+  await page.route('**/api/v1/admin/companies/public-seeds/1/discover', (route) => {
+    expect(route.request().postDataJSON()).toEqual({ expectedVersion: 0 });
     ats = [{ id: 1, provider: 'GREETING', sourceIdentifier: 'nuua', sourceUrl: 'https://nuua.career.greetinghr.com/ko/home', status: 'DISCOVERED',
       firstHomepageCandidateUrl: 'https://old.example', firstSeedVersion: 0, currentSeedVersion: 1 }];
     return route.fulfill({ json: { data: { candidateCount: 1 } } });
@@ -115,11 +115,10 @@ test('관리자가 공공 CSV를 수입한다', async ({ page }) => {
   await expect(page.getByText('홈페이지 후보를 저장했습니다. 공식 여부는 확인이 필요합니다.')).toBeVisible();
   await expect(page.getByRole('cell', { name: 'https://example.com', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'ATS 후보 확인' }).click();
-  await page.getByLabel('홈페이지 HTML').fill('<a href="https://nuua.career.greetinghr.com/ko/home">채용</a>');
-  await page.getByRole('button', { name: 'ATS 후보 추출' }).click();
+  await page.getByRole('button', { name: '홈페이지에서 ATS 자동 검색' }).click();
   await expect(page.getByText(/GREETING · nuua/)).toBeVisible();
   await expect(page.getByText(/최초 발견 이후 홈페이지 입력 이력 변경됨/)).toBeVisible();
-  await expect(page.getByText(/HTML 출처와 기업 소유권은 확인되지 않았습니다/)).toBeVisible();
+  await expect(page.getByText(/홈페이지를 조회해 ATS 후보 1건을 찾았습니다/)).toBeVisible();
   await page.getByRole('button', { name: '검수 시작' }).click();
   await page.getByLabel('검수 메모').fill('기업 관계 확인 중');
   await page.getByLabel('참고 URL (선택)').fill('https://example.com/about');

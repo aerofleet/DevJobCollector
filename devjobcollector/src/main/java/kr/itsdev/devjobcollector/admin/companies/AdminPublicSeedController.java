@@ -50,11 +50,11 @@ public class AdminPublicSeedController {
 
     public record HomepageRequest(String url, Long expectedVersion) { }
 
-    @PostMapping("/{id}/discover-html")
-    public Map<String, Object> discoverHtml(@PathVariable long id, @RequestBody HtmlRequest body,
+    @PostMapping("/{id}/discover")
+    public Map<String, Object> discoverHomepage(@PathVariable long id, @RequestBody DiscoveryRequest body,
                                             @AuthenticationPrincipal AdminPrincipal principal, HttpServletRequest request) {
         String requestId = (String) request.getAttribute(AdminRequestSecurityFilter.REQUEST_ID_ATTRIBUTE);
-        return Map.of("data", Map.of("candidateCount", discovery.discover(id, body.expectedVersion(), body.html(),
+        return Map.of("data", Map.of("candidateCount", discovery.discover(id, body.expectedVersion(),
                 principal, requestId, request.getRemoteAddr(), request.getHeader("User-Agent"))), "requestId", requestId);
     }
 
@@ -67,7 +67,7 @@ public class AdminPublicSeedController {
                 "requestId", request.getAttribute(AdminRequestSecurityFilter.REQUEST_ID_ATTRIBUTE)));
     }
 
-    public record HtmlRequest(Long expectedVersion, String html) { }
+    public record DiscoveryRequest(Long expectedVersion) { }
 
     @PostMapping("/{id}/ats-candidates/{candidateId}/reject")
     public ResponseEntity<Void> rejectCandidate(@PathVariable long id, @PathVariable long candidateId,
