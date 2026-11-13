@@ -79,6 +79,15 @@ collection:
     page-size: ${SME_JOB_COMPANY_SYNC_PAGE_SIZE:1000}
     initial-delay-ms: ${SME_JOB_COMPANY_SYNC_INITIAL_DELAY_MS:300000}
     delay-ms: ${SME_JOB_COMPANY_SYNC_DELAY_MS:86400000}
+  homepage-search:
+    enabled: ${PUBLIC_SEED_HOMEPAGE_SEARCH_ENABLED:true}
+    naver-client-id: ${NAVER_SEARCH_CLIENT_ID:}
+    naver-client-secret: ${NAVER_SEARCH_CLIENT_SECRET:}
+    daily-limit: ${NAVER_SEARCH_DAILY_LIMIT:25000}
+    monthly-limit: ${NAVER_SEARCH_MONTHLY_LIMIT:775000}
+    batch-size: ${PUBLIC_SEED_HOMEPAGE_SEARCH_BATCH_SIZE:30}
+    initial-delay-ms: ${PUBLIC_SEED_HOMEPAGE_SEARCH_INITIAL_DELAY_MS:180000}
+    delay-ms: ${PUBLIC_SEED_HOMEPAGE_SEARCH_DELAY_MS:3600000}
   company-page:
     user-agent: ${COMPANY_PAGE_USER_AGENT:DevJobCollector/1.0 (+https://itsdev.kr)}
     max-description-length: ${COMPANY_PAGE_MAX_DESCRIPTION_LENGTH:20000}

@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClientResponseException;
 
 /** Daily, idempotent synchronization of public hiring-company records into discovery seeds. */
 @Slf4j
@@ -62,6 +63,11 @@ public class SmeJobCompanySeedSyncScheduler {
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             log.warn("KOSME SME seed sync interrupted after page {}", pageNumber);
+        } catch (RestClientResponseException ex) {
+            meters.counter("company_discovery.sme_seed.sync", "result", "failed",
+                    "http_status", Integer.toString(ex.getStatusCode().value())).increment();
+            log.warn("KOSME SME seed sync stopped after page {}: HTTP {}",
+                    pageNumber, ex.getStatusCode().value());
         } catch (Exception ex) {
             meters.counter("company_discovery.sme_seed.sync", "result", "failed").increment();
             log.warn("KOSME SME seed sync stopped after page {}: {}", pageNumber, ex.getClass().getSimpleName());
