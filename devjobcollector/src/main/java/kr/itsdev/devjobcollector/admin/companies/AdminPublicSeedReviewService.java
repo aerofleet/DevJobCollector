@@ -27,7 +27,8 @@ public class AdminPublicSeedReviewService {
         String normalized = validUrl(url);
         if (expectedVersion == null || expectedVersion < 0 || expectedVersion == Long.MAX_VALUE)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "INVALID_SEED_VERSION");
-        int changed = jdbc.update("UPDATE public_company_seed SET homepage_candidate_url = ?, version = version + 1 "
+        int changed = jdbc.update("UPDATE public_company_seed SET homepage_candidate_url = ?, "
+                        + "homepage_candidate_source = NULL, homepage_candidate_score = NULL, version = version + 1 "
                         + "WHERE id = ? AND version = ? AND status = 'DISCOVERED'",
                 normalized, id, expectedVersion);
         if (changed == 0) {

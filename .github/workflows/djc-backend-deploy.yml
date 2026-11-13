@@ -123,6 +123,10 @@ jobs:
           FLYWAY_PASSWORD: ${{ secrets.FLYWAY_PASSWORD }}
           API_SERVICE_KEY: ${{ secrets.API_SERVICE_KEY }}
           DATA_API_SERVICE_KEY: ${{ secrets.DATA_API_SERVICE_KEY }}
+          NAVER_SEARCH_CLIENT_ID: ${{ secrets.NAVER_SEARCH_CLIENT_ID }}
+          NAVER_SEARCH_CLIENT_SECRET: ${{ secrets.NAVER_SEARCH_CLIENT_SECRET }}
+          DJC_NAVER_SEARCH_DAILY_LIMIT: ${{ vars.DJC_NAVER_SEARCH_DAILY_LIMIT || '25000' }}
+          DJC_NAVER_SEARCH_MONTHLY_LIMIT: ${{ vars.DJC_NAVER_SEARCH_MONTHLY_LIMIT || '775000' }}
           DJC_SME_JOB_COMPANY_SYNC_ENABLED: ${{ vars.DJC_SME_JOB_COMPANY_SYNC_ENABLED || 'false' }}
           AUTH_TOKEN_SECRET: ${{ secrets.AUTH_TOKEN_SECRET }}
           AUTH_FRONTEND_SUCCESS_URI: ${{ secrets.AUTH_FRONTEND_SUCCESS_URI }}
@@ -141,6 +145,14 @@ jobs:
           fi
           if [[ "$DJC_SME_JOB_COMPANY_SYNC_ENABLED" = "true" && -z "$DATA_API_SERVICE_KEY" ]]; then
             echo "::error::DATA_API_SERVICE_KEY secret is required when SME seed sync is enabled"
+            exit 1
+          fi
+          if [[ ! "$DJC_NAVER_SEARCH_DAILY_LIMIT" =~ ^[0-9]{1,5}$ ]] || (( 10#$DJC_NAVER_SEARCH_DAILY_LIMIT > 25000 )); then
+            echo "::error::DJC_NAVER_SEARCH_DAILY_LIMIT must be an integer from 0 to 25000"
+            exit 1
+          fi
+          if [[ ! "$DJC_NAVER_SEARCH_MONTHLY_LIMIT" =~ ^[0-9]{1,6}$ ]] || (( 10#$DJC_NAVER_SEARCH_MONTHLY_LIMIT > 775000 )); then
+            echo "::error::DJC_NAVER_SEARCH_MONTHLY_LIMIT must be an integer from 0 to 775000"
             exit 1
           fi
           required=(SSH_PRIVATE_KEY SERVER_USER CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET DB_SERVER_IP DB_USERNAME DB_PASSWORD FLYWAY_USERNAME FLYWAY_PASSWORD API_SERVICE_KEY AUTH_TOKEN_SECRET AUTH_FRONTEND_SUCCESS_URI AUTH_SIGNUP_TERMS_POLICY_VERSION AUTH_SIGNUP_PRIVACY_POLICY_VERSION GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET KAKAO_CLIENT_ID KAKAO_CLIENT_SECRET ADMIN_MFA_ENCRYPTION_KEY)
@@ -165,6 +177,10 @@ jobs:
           FLYWAY_PASSWORD: ${{ secrets.FLYWAY_PASSWORD }}
           API_SERVICE_KEY: ${{ secrets.API_SERVICE_KEY }}
           DATA_API_SERVICE_KEY: ${{ secrets.DATA_API_SERVICE_KEY }}
+          NAVER_SEARCH_CLIENT_ID: ${{ secrets.NAVER_SEARCH_CLIENT_ID }}
+          NAVER_SEARCH_CLIENT_SECRET: ${{ secrets.NAVER_SEARCH_CLIENT_SECRET }}
+          DJC_NAVER_SEARCH_DAILY_LIMIT: ${{ vars.DJC_NAVER_SEARCH_DAILY_LIMIT || '25000' }}
+          DJC_NAVER_SEARCH_MONTHLY_LIMIT: ${{ vars.DJC_NAVER_SEARCH_MONTHLY_LIMIT || '775000' }}
           DJC_SME_JOB_COMPANY_SYNC_ENABLED: ${{ vars.DJC_SME_JOB_COMPANY_SYNC_ENABLED || 'false' }}
           SARAMIN_ACCESS_KEY: ${{ secrets.SARAMIN_ACCESS_KEY }}
           AUTH_TOKEN_SECRET: ${{ secrets.AUTH_TOKEN_SECRET }}
@@ -230,6 +246,10 @@ jobs:
             printf '%s\n' "API_SERVICE_KEY=$API_SERVICE_KEY"
             printf '%s\n' "DATA_API_SERVICE_KEY=$DATA_API_SERVICE_KEY"
             printf '%s\n' "SME_JOB_COMPANY_SYNC_ENABLED=$DJC_SME_JOB_COMPANY_SYNC_ENABLED"
+            printf '%s\n' "NAVER_SEARCH_CLIENT_ID=$NAVER_SEARCH_CLIENT_ID"
+            printf '%s\n' "NAVER_SEARCH_CLIENT_SECRET=$NAVER_SEARCH_CLIENT_SECRET"
+            printf '%s\n' "NAVER_SEARCH_DAILY_LIMIT=$DJC_NAVER_SEARCH_DAILY_LIMIT"
+            printf '%s\n' "NAVER_SEARCH_MONTHLY_LIMIT=$DJC_NAVER_SEARCH_MONTHLY_LIMIT"
             printf '%s\n' "SARAMIN_ACCESS_KEY=$SARAMIN_ACCESS_KEY"
             printf '%s\n' "SARAMIN_COLLECTION_ENABLED=$([ -n "$SARAMIN_ACCESS_KEY" ] && echo true || echo false)"
             printf '%s\n' "TOSS_COLLECTION_ENABLED=true"

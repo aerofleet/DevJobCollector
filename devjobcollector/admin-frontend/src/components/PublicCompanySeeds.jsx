@@ -114,7 +114,7 @@ export default function PublicCompanySeeds({ refresh }) {
   const visible = rows?.slice(0, PAGE_SIZE) || [];
   return <div className="dashboard-panel user-list">
     <h3>공공 기업 Seed</h3>
-    <p>공공 구인기업 목록에서 수입한 기업입니다. 동일 사업자번호의 회원 기업이 있으면 표시합니다.</p>
+    <p>공공 구인기업 목록에서 수입한 기업입니다. 개발·IT 관련 Seed는 검색 API 설정 시 공식 홈페이지 후보를 자동으로 찾고, 기존 탐색기가 ATS 링크를 이어서 확인합니다. 검색 결과는 소유권이 검증되지 않은 후보이며 공고 수집 승인은 별도로 필요합니다.</p>
     {notice && <p role="status">{notice}</p>}
     {error ? <p className="form-error" role="alert">{error}</p> : !rows ? <p role="status">기업을 불러오는 중입니다.</p>
       : visible.length === 0 ? <p>수입된 공공 기업이 없습니다.</p> : <div className="table-scroll"><table>
@@ -123,7 +123,8 @@ export default function PublicCompanySeeds({ refresh }) {
           <td>{seed.companyName}</td><td>{seed.source === 'KOSME_JOB_COMPANIES' ? '중진공 구인기업' : seed.source}</td>
           <td>{seed.itRelatedPosting ? `개발·IT · ${seed.relevantPostingTitle || '관련 공고'}` : '일반'}</td>
           <td>{seed.status}</td><td>{seed.matchedCompanyId ? `${seed.matchedCompanyName} (#${seed.matchedCompanyId})` : '미확인'}</td>
-          <td>{seed.companyStatus || '—'}</td><td>{seed.homepageCandidateUrl || '미입력'}</td>
+          <td>{seed.companyStatus || '—'}</td><td>{seed.homepageCandidateUrl || '미입력'}
+            {seed.homepageCandidateSource === 'NAVER_WEB_SEARCH' && <div>네이버 검색 후보 · 검색 점수 {seed.homepageCandidateScore}/100 · 공식 여부 미확인</div>}</td>
           <td>{seed.status === 'DISCOVERED' && <button type="button" onClick={() => {
             setSelected(seed); setUrl(seed.homepageCandidateUrl || ''); setNotice(''); setError('');
           }}>홈페이지 입력</button>}
