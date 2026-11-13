@@ -118,7 +118,7 @@ test('관리자가 공공 CSV를 수입한다', async ({ page }) => {
   await page.getByRole('button', { name: '홈페이지에서 ATS 자동 검색' }).click();
   await expect(page.getByText(/GREETING · nuua/)).toBeVisible();
   await expect(page.getByText(/최초 발견 이후 홈페이지 입력 이력 변경됨/)).toBeVisible();
-  await expect(page.getByText(/홈페이지를 조회해 ATS 후보 1건을 찾았습니다/)).toBeVisible();
+  await expect(page.getByText(/검색 완료: ATS 후보 1건을 찾았습니다/)).toBeVisible();
   await page.getByRole('button', { name: '검수 시작' }).click();
   await page.getByLabel('검수 메모').fill('기업 관계 확인 중');
   await page.getByLabel('참고 URL (선택)').fill('https://example.com/about');
