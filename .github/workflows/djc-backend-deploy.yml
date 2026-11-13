@@ -122,6 +122,7 @@ jobs:
           FLYWAY_USERNAME: ${{ secrets.FLYWAY_USERNAME }}
           FLYWAY_PASSWORD: ${{ secrets.FLYWAY_PASSWORD }}
           API_SERVICE_KEY: ${{ secrets.API_SERVICE_KEY }}
+          DATA_API_SERVICE_KEY: ${{ secrets.DATA_API_SERVICE_KEY }}
           DJC_SME_JOB_COMPANY_SYNC_ENABLED: ${{ vars.DJC_SME_JOB_COMPANY_SYNC_ENABLED || 'false' }}
           AUTH_TOKEN_SECRET: ${{ secrets.AUTH_TOKEN_SECRET }}
           AUTH_FRONTEND_SUCCESS_URI: ${{ secrets.AUTH_FRONTEND_SUCCESS_URI }}
@@ -136,6 +137,10 @@ jobs:
           set -euo pipefail
           if [[ ! "$DJC_SME_JOB_COMPANY_SYNC_ENABLED" =~ ^(true|false)$ ]]; then
             echo "::error::DJC_SME_JOB_COMPANY_SYNC_ENABLED must be true or false"
+            exit 1
+          fi
+          if [[ "$DJC_SME_JOB_COMPANY_SYNC_ENABLED" = "true" && -z "$DATA_API_SERVICE_KEY" ]]; then
+            echo "::error::DATA_API_SERVICE_KEY secret is required when SME seed sync is enabled"
             exit 1
           fi
           required=(SSH_PRIVATE_KEY SERVER_USER CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET DB_SERVER_IP DB_USERNAME DB_PASSWORD FLYWAY_USERNAME FLYWAY_PASSWORD API_SERVICE_KEY AUTH_TOKEN_SECRET AUTH_FRONTEND_SUCCESS_URI AUTH_SIGNUP_TERMS_POLICY_VERSION AUTH_SIGNUP_PRIVACY_POLICY_VERSION GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET KAKAO_CLIENT_ID KAKAO_CLIENT_SECRET ADMIN_MFA_ENCRYPTION_KEY)
@@ -159,6 +164,7 @@ jobs:
           FLYWAY_USERNAME: ${{ secrets.FLYWAY_USERNAME }}
           FLYWAY_PASSWORD: ${{ secrets.FLYWAY_PASSWORD }}
           API_SERVICE_KEY: ${{ secrets.API_SERVICE_KEY }}
+          DATA_API_SERVICE_KEY: ${{ secrets.DATA_API_SERVICE_KEY }}
           DJC_SME_JOB_COMPANY_SYNC_ENABLED: ${{ vars.DJC_SME_JOB_COMPANY_SYNC_ENABLED || 'false' }}
           SARAMIN_ACCESS_KEY: ${{ secrets.SARAMIN_ACCESS_KEY }}
           AUTH_TOKEN_SECRET: ${{ secrets.AUTH_TOKEN_SECRET }}
@@ -222,6 +228,7 @@ jobs:
             printf '%s\n' "FLYWAY_USERNAME=$FLYWAY_USERNAME"
             printf '%s\n' "FLYWAY_PASSWORD=$FLYWAY_PASSWORD"
             printf '%s\n' "API_SERVICE_KEY=$API_SERVICE_KEY"
+            printf '%s\n' "DATA_API_SERVICE_KEY=$DATA_API_SERVICE_KEY"
             printf '%s\n' "SME_JOB_COMPANY_SYNC_ENABLED=$DJC_SME_JOB_COMPANY_SYNC_ENABLED"
             printf '%s\n' "SARAMIN_ACCESS_KEY=$SARAMIN_ACCESS_KEY"
             printf '%s\n' "SARAMIN_COLLECTION_ENABLED=$([ -n "$SARAMIN_ACCESS_KEY" ] && echo true || echo false)"

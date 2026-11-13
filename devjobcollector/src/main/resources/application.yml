@@ -71,7 +71,7 @@ data-api:
     service-key: ${API_SERVICE_KEY}
   sme-job-companies:
     base-url: https://api.odcloud.kr/api/15100246/v1/uddi:bb241c38-4ecd-4b5f-aa09-88f2e9478860
-    service-key: ${API_SERVICE_KEY:}
+    service-key: ${DATA_API_SERVICE_KEY:}
 
 collection:
   sme-seed-sync:

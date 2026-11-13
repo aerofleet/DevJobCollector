@@ -14,6 +14,7 @@
 - `Authorization: Infuser {API_KEY}` 헤더 인증을 사용한다. 키는 요청 URL이나 로그에 남기지 않는다.
 - `page`, `perPage`, `returnType=JSON` 페이지를 1일 간격으로 읽어 Seed에 최대 1,000건씩 멱등 반영한다.
 - 사업자번호는 해시만 저장하고 기존 Seed 상태는 유지한다. IT·개발 관련 공고명은 우선순위와 분류 근거로 기록한다.
+- 운영 키는 GitHub Actions secret `DATA_API_SERVICE_KEY`로 별도 관리한다. 기존 `API_SERVICE_KEY`와 혼용하지 않는다.
 - 운영 자동 실행은 GitHub Actions 변수 `DJC_SME_JOB_COMPANY_SYNC_ENABLED=true`로 명시적으로 켠다. 기본값은 `false`다.
 
 ## 현재 검증 상태
@@ -21,5 +22,5 @@
 - Gradle `compileJava`, `compileTestJava`: 성공.
 - API 응답 매핑·`Authorization: Infuser` 헤더, 직무 분류 단위 테스트 2건: 성공.
 - 관리자 프런트엔드 `npm.cmd run lint`, `npm.cmd run build`: 성공.
-- 로컬 API 키 읽기 호출: HTTP 401, provider code `-4`(등록되지 않은 인증키); 데이터 동기화 전 인증키 갱신 필요.
+- 기존 로컬 `API_SERVICE_KEY` 후보와 새 `DATA_API_SERVICE_KEY` 호출: HTTP 401, provider code `-4`(헤더·쿼리 모두). 승인키 반영 또는 발급 키 일치 확인 후 전체 API 평가셋 실행 필요.
 - 승인된 실제 키로 최신 API 전체 페이지 평가셋 실행, Before/After 수치, KPI 합격 여부: 미완료.
