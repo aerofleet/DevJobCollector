@@ -28,6 +28,7 @@ import kr.itsdev.devjobcollector.collection.discovery.HomepageAtsLinkDiscovery;
 import kr.itsdev.devjobcollector.collection.discovery.ExistingCompanyDiscoveryService;
 import kr.itsdev.devjobcollector.collection.discovery.SmeJobCompanySeedImporter;
 import kr.itsdev.devjobcollector.collection.discovery.SmeJobCompanySeedReader;
+import kr.itsdev.devjobcollector.collection.discovery.SmeJobPostingRelevance;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -62,7 +63,8 @@ import static org.mockito.Mockito.*;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @EnabledIfEnvironmentVariable(named = "DJC_MIGRATION_TEST_URL", matches = ".+")
 @Import({QuerydslConfig.class, CompanyMembershipService.class, CompanyAuthorizationService.class,
-        SmeJobCompanySeedReader.class, SmeJobCompanySeedImporter.class, AdminPublicSeedImportService.class})
+        SmeJobCompanySeedReader.class, SmeJobPostingRelevance.class, SmeJobCompanySeedImporter.class,
+        AdminPublicSeedImportService.class})
 class CompanyRepositoryIntegrationTest {
     @Autowired CompanyRepository companyRepository;
     @Autowired CompanyMemberRepository memberRepository;
