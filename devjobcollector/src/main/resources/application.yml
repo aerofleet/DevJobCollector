@@ -69,8 +69,16 @@ data-api:
   public-data:
     base-url: https://apis.data.go.kr/1051000/recruitment
     service-key: ${API_SERVICE_KEY}
+  sme-job-companies:
+    base-url: https://api.odcloud.kr/api/15100246/v1/uddi:bb241c38-4ecd-4b5f-aa09-88f2e9478860
+    service-key: ${API_SERVICE_KEY:}
 
 collection:
+  sme-seed-sync:
+    enabled: ${SME_JOB_COMPANY_SYNC_ENABLED:false}
+    page-size: ${SME_JOB_COMPANY_SYNC_PAGE_SIZE:1000}
+    initial-delay-ms: ${SME_JOB_COMPANY_SYNC_INITIAL_DELAY_MS:300000}
+    delay-ms: ${SME_JOB_COMPANY_SYNC_DELAY_MS:86400000}
   company-page:
     user-agent: ${COMPANY_PAGE_USER_AGENT:DevJobCollector/1.0 (+https://itsdev.kr)}
     max-description-length: ${COMPANY_PAGE_MAX_DESCRIPTION_LENGTH:20000}

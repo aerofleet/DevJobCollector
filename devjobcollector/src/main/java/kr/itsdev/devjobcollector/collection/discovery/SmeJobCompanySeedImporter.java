@@ -51,4 +51,16 @@ public class SmeJobCompanySeedImporter {
         jdbc.update(sql, arguments.toArray());
         batch.clear();
     }
+
+    @Transactional(rollbackFor = Exception.class)
+    public int importSeeds(List<SmeJobCompanySeedReader.Seed> seeds) {
+        List<SmeJobCompanySeedReader.Seed> batch = new ArrayList<>(500);
+        for (var seed : seeds) {
+            batch.add(seed);
+            if (batch.size() == 500) flush(batch);
+        }
+        int imported = seeds.size();
+        flush(batch);
+        return imported;
+    }
 }

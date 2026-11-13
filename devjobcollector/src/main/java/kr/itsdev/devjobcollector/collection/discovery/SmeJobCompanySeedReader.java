@@ -33,17 +33,27 @@ public class SmeJobCompanySeedReader {
             if (!headers.containsAll(REQUIRED)) throw new IOException("Unexpected KOSME CSV headers");
             for (CSVRecord row : parser) {
                 if (!row.isConsistent()) { skipped++; continue; }
-                String name = row.get("기업명").trim();
-                String number = row.get("사업자번호").trim();
-                String title = row.get("공고명").trim();
-                String registered = row.get("공고등록일").trim();
-                if (name.isEmpty() || name.length() > 200 || !number.matches("[0-9]{3}-?[0-9]{2}-?[0-9]{5}")
-                        || title.length() > 500 || registered.length() > 30) { skipped++; continue; }
-                sink.accept(new Seed(name, hash(number.replace("-", "")), title, registered));
+                Seed seed = createSeed(row.get("기업명"), row.get("사업자번호"), row.get("공고명"), row.get("공고등록일"));
+                if (seed == null || !row.get("사업자번호").trim().matches("[0-9]{3}-?[0-9]{2}-?[0-9]{5}")) {
+                    skipped++;
+                    continue;
+                }
+                sink.accept(seed);
                 accepted++;
             }
         }
         return new Counts(accepted, skipped);
+    }
+
+    Seed createSeed(String companyName, String businessNumber, String jobTitle, String postingDate) {
+        if (companyName == null || businessNumber == null || jobTitle == null || postingDate == null) return null;
+        String name = companyName.trim();
+        String number = businessNumber.trim().replace("-", "");
+        String title = jobTitle.trim();
+        String registered = postingDate.trim();
+        if (name.isEmpty() || name.length() > 200 || !number.matches("[0-9]{10}")
+                || title.length() > 500 || registered.length() > 30) return null;
+        return new Seed(name, hash(number), title, registered);
     }
 
     private static String hash(String number) {

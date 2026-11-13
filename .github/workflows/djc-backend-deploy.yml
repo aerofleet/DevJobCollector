@@ -216,6 +216,7 @@ jobs:
             printf '%s\n' "FLYWAY_USERNAME=$FLYWAY_USERNAME"
             printf '%s\n' "FLYWAY_PASSWORD=$FLYWAY_PASSWORD"
             printf '%s\n' "API_SERVICE_KEY=$API_SERVICE_KEY"
+            printf '%s\n' "SME_JOB_COMPANY_SYNC_ENABLED=true"
             printf '%s\n' "SARAMIN_ACCESS_KEY=$SARAMIN_ACCESS_KEY"
             printf '%s\n' "SARAMIN_COLLECTION_ENABLED=$([ -n "$SARAMIN_ACCESS_KEY" ] && echo true || echo false)"
             printf '%s\n' "TOSS_COLLECTION_ENABLED=true"
