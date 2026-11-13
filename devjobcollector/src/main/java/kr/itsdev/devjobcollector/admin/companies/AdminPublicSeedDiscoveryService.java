@@ -7,6 +7,7 @@ import kr.itsdev.devjobcollector.admin.AdminAuditLogRepository;
 import kr.itsdev.devjobcollector.admin.AdminAuditResult;
 import kr.itsdev.devjobcollector.admin.auth.AdminPrincipal;
 import kr.itsdev.devjobcollector.collection.discovery.HomepageAtsLinkDiscovery;
+import kr.itsdev.devjobcollector.collection.discovery.SafeHomepageFetcher;
 import kr.itsdev.devjobcollector.collection.repository.CompanySourceTargetRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -14,27 +15,30 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-/** Parses administrator-provided HTML. Neither its origin nor company ownership is verified. */
+/** Discovers ATS links from the safely fetched, robots-aware homepage pages. */
 @Service
 public class AdminPublicSeedDiscoveryService {
     private final JdbcTemplate jdbc;
     private final HomepageAtsLinkDiscovery links;
+    private final SafeHomepageFetcher fetcher;
     private final CompanySourceTargetRepository targets;
     private final AdminAuditLogRepository audit;
 
     public AdminPublicSeedDiscoveryService(JdbcTemplate jdbc, HomepageAtsLinkDiscovery links,
+                                           SafeHomepageFetcher fetcher,
                                            CompanySourceTargetRepository targets, AdminAuditLogRepository audit) {
         this.jdbc = jdbc;
         this.links = links;
+        this.fetcher = fetcher;
         this.targets = targets;
         this.audit = audit;
     }
 
     @Transactional
-    public int discover(long seedId, Long expectedVersion, String html, AdminPrincipal actor,
+    public int discover(long seedId, Long expectedVersion, AdminPrincipal actor,
                         String requestId, String ip, String agent) {
         if (actor == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "ADMIN_AUTH_REQUIRED");
-        if (expectedVersion == null || expectedVersion < 0 || html == null || html.isBlank() || html.length() > 2_000_000)
+        if (expectedVersion == null || expectedVersion < 0)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "INVALID_DISCOVERY_INPUT");
         var rows = jdbc.query("SELECT homepage_candidate_url, status, version FROM public_company_seed WHERE id = ? FOR UPDATE",
                 (rs, row) -> new Seed(rs.getString(1), rs.getString(2), rs.getLong(3)), seedId);
@@ -42,7 +46,12 @@ public class AdminPublicSeedDiscoveryService {
         var seed = rows.getFirst();
         if (!"DISCOVERED".equals(seed.status()) || seed.homepage() == null || seed.version() != expectedVersion)
             throw new ResponseStatusException(HttpStatus.CONFLICT, "SEED_VERSION_CONFLICT");
-        List<HomepageAtsLinkDiscovery.Candidate> found = links.discover(seed.homepage(), html).stream()
+        var pages = fetcher.discoverablePages(seed.homepage());
+        if (pages.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                "HOMEPAGE_UNAVAILABLE_OR_ROBOTS_BLOCKED");
+        List<HomepageAtsLinkDiscovery.Candidate> found = pages.stream()
+                .flatMap(page -> links.discover(page.url().toString(), page.html()).stream())
+                .distinct()
                 .filter(candidate -> candidate.sourceUrl().length() <= 1000)
                 .limit(100)
                 .filter(candidate -> targets.findByProviderAndSourceIdentifier(candidate.fingerprint().provider(),
@@ -56,8 +65,8 @@ public class AdminPublicSeedDiscoveryService {
                     seedId, candidate.fingerprint().provider().name(), candidate.fingerprint().sourceIdentifier(),
                     candidate.sourceUrl(), seed.homepage(), seed.version());
         }
-        audit.save(AdminAuditLog.record(actor.id(), "PUBLIC_SEED_HTML_DISCOVERY", "PUBLIC_COMPANY_SEED",
-                Long.toString(seedId), "관리자 제공 HTML 분석; 출처 미검증", null,
+        audit.save(AdminAuditLog.record(actor.id(), "PUBLIC_SEED_HOMEPAGE_DISCOVERY", "PUBLIC_COMPANY_SEED",
+                Long.toString(seedId), "안전한 홈페이지 페이지 자동 조회 및 ATS 링크 분석", null,
                 "{\"candidateCount\":" + found.size() + "}", AdminAuditResult.SUCCESS, requestId,
                 truncate(ip, 45), truncate(agent, 500)));
         return found.size();

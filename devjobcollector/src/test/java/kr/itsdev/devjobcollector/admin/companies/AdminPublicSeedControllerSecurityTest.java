@@ -66,10 +66,10 @@ class AdminPublicSeedControllerSecurityTest {
     }
 
     @Test
-    void htmlDiscoveryRequiresCsrf() throws Exception {
+    void homepageDiscoveryRequiresCsrf() throws Exception {
         when(authenticationService.authenticate("token")).thenReturn(new AdminPrincipal(1L, "admin@example.com",
                 "Admin", AdminRole.ADMIN, Set.of(), "session", tokenCodec.hash("csrf")));
-        String path = "/api/v1/admin/companies/public-seeds/1/discover-html";
+        String path = "/api/v1/admin/companies/public-seeds/1/discover";
         mvc.perform(post(path).cookie(new Cookie("DJC_ADMIN_SESSION", "token"))
                 .header("Origin", "https://djc-admin.itsdev.kr").contentType("application/json")
                 .content("{\"html\":\"text\",\"expectedVersion\":0}"))

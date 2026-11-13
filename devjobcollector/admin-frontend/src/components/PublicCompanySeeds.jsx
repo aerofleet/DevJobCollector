@@ -15,7 +15,6 @@ export default function PublicCompanySeeds({ refresh }) {
   const [notice, setNotice] = useState('');
   const [revision, setRevision] = useState(0);
   const [analysisSeed, setAnalysisSeed] = useState(null);
-  const [html, setHtml] = useState('');
   const [ats, setAts] = useState([]);
   const [rejectId, setRejectId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -49,7 +48,7 @@ export default function PublicCompanySeeds({ refresh }) {
   };
 
   const openAnalysis = async (seed) => {
-    setAnalysisSeed(seed); setHtml(''); setAts([]); setError(''); setNotice(''); setRejectId(null); setReviewId(null); setApprovalId(null);
+    setAnalysisSeed(seed); setAts([]); setError(''); setNotice(''); setRejectId(null); setReviewId(null); setApprovalId(null);
     try { setAts((await adminApi.publicSeedAtsCandidates(seed.id)).data); }
     catch (cause) { setError(cause.message); }
   };
@@ -99,14 +98,13 @@ export default function PublicCompanySeeds({ refresh }) {
     } catch (cause) { setError(cause.status === 409 ? '이미 처리된 후보입니다. 다시 열어 확인해주세요.' : cause.message); }
     finally { setSaving(false); }
   };
-  const analyze = async (event) => {
-    event.preventDefault();
+  const analyze = async () => {
     if (!analysisSeed || saving) return;
     setSaving(true); setError(''); setNotice('');
     try {
-      const result = await adminApi.discoverPublicSeedHtml(analysisSeed.id, html, analysisSeed.version);
+      const result = await adminApi.discoverPublicSeedHomepage(analysisSeed.id, analysisSeed.version);
       setAts((await adminApi.publicSeedAtsCandidates(analysisSeed.id)).data);
-      setNotice(`ATS 후보 ${result.data.candidateCount}건을 발견했습니다. HTML 출처와 기업 소유권은 확인되지 않았습니다.`);
+      setNotice(`홈페이지를 조회해 ATS 후보 ${result.data.candidateCount}건을 찾았습니다. 후보의 공식 여부와 기업 소유권은 별도 확인이 필요합니다.`);
     } catch (cause) { setError(cause.status === 409 ? 'Seed가 변경됐습니다. 목록에서 다시 열어주세요.' : cause.message); }
     finally { setSaving(false); }
   };
@@ -142,11 +140,9 @@ export default function PublicCompanySeeds({ refresh }) {
       <div><button type="submit" disabled={saving}>후보 저장</button>
         <button type="button" disabled={saving} onClick={() => setSelected(null)}>취소</button></div>
     </form>}
-    {analysisSeed && <form className="company-review-confirm" onSubmit={analyze}>
-      <p>{analysisSeed.companyName}의 홈페이지 HTML을 직접 입력합니다. 입력 내용의 출처는 자동 검증되지 않습니다.</p>
-      <label>홈페이지 HTML<textarea value={html} onChange={(event) => setHtml(event.target.value)}
-        maxLength={2000000} rows={5} required disabled={saving} /></label>
-      <div><button type="submit" disabled={saving}>ATS 후보 추출</button>
+    {analysisSeed && <div className="company-review-confirm">
+      <p>{analysisSeed.companyName} 홈페이지의 공개 페이지를 자동으로 확인해 ATS 링크를 검색합니다. 로봇 배제 규칙을 따르며, 검색된 후보의 공식 여부와 소유권은 별도 확인해야 합니다.</p>
+      <div><button type="button" disabled={saving} onClick={analyze}>{saving ? '홈페이지 확인 중…' : '홈페이지에서 ATS 자동 검색'}</button>
         <button type="button" disabled={saving} onClick={() => setAnalysisSeed(null)}>닫기</button></div>
       <p>저장된 ATS 후보 (최대 100건)</p>
       <ul>{ats.map((item) => <li key={item.id}>{item.provider} · {item.sourceIdentifier} · {item.sourceUrl} · {item.status}
@@ -191,6 +187,6 @@ export default function PublicCompanySeeds({ refresh }) {
         <button type="button" disabled={saving} onClick={approveTarget}>승인 및 수집 대상 생성</button>
         <button type="button" disabled={saving} onClick={() => setApprovalId(null)}>승인 취소</button>
       </div>}
-    </form>}
+    </div>}
   </div>;
 }

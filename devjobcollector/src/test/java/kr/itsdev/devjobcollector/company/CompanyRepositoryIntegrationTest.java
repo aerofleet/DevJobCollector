@@ -25,6 +25,7 @@ import kr.itsdev.devjobcollector.collection.domain.SourceType;
 import kr.itsdev.devjobcollector.collection.discovery.AtsFingerprintService;
 import kr.itsdev.devjobcollector.collection.discovery.DiscoveryCandidateStore;
 import kr.itsdev.devjobcollector.collection.discovery.HomepageAtsLinkDiscovery;
+import kr.itsdev.devjobcollector.collection.discovery.SafeHomepageFetcher;
 import kr.itsdev.devjobcollector.collection.discovery.ExistingCompanyDiscoveryService;
 import kr.itsdev.devjobcollector.collection.discovery.SmeJobCompanySeedImporter;
 import kr.itsdev.devjobcollector.collection.discovery.SmeJobCompanySeedReader;
@@ -115,10 +116,13 @@ class CompanyRepositoryIntegrationTest {
         var reviewer = new AdminPrincipal(2L, "r@example.com", "심사자", AdminRole.REVIEWER, Set.of(), "session", "csrf");
         var review = new AdminPublicSeedReviewService(jdbc, auditRepository);
         review.setHomepage(seedId, 0L, "https://example.com", admin, "approval-homepage", null, null);
-        var discovery = new AdminPublicSeedDiscoveryService(jdbc, new HomepageAtsLinkDiscovery(new AtsFingerprintService()),
+        var homepageFetcher = org.mockito.Mockito.mock(SafeHomepageFetcher.class);
+        org.mockito.Mockito.when(homepageFetcher.discoverablePages("https://example.com"))
+                .thenReturn(List.of(new SafeHomepageFetcher.Page(java.net.URI.create("https://example.com"),
+                        "<a href='https://nuua.career.greetinghr.com/ko/home'>채용</a>")));
+        var discovery = new AdminPublicSeedDiscoveryService(jdbc, new HomepageAtsLinkDiscovery(new AtsFingerprintService()), homepageFetcher,
                 targetRepository, auditRepository);
-        String html = "<a href='https://nuua.career.greetinghr.com/ko/home'>채용</a>";
-        discovery.discover(seedId, 1L, html, admin, "approval-discovery", null, null);
+        discovery.discover(seedId, 1L, admin, "approval-discovery", null, null);
         var candidate = discovery.list(seedId, 0, 20).getFirst();
         discovery.startReview(seedId, candidate.id(), 1L, "공식 사이트 확인", "https://example.com/about",
                 admin, "approval-review", null, null);
@@ -181,11 +185,14 @@ class CompanyRepositoryIntegrationTest {
                 "invalid", null, null)).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM admin_audit_logs WHERE request_id = ?", Integer.class,
                 "seed-homepage")).isEqualTo(1);
+        var homepageFetcher = org.mockito.Mockito.mock(SafeHomepageFetcher.class);
+        org.mockito.Mockito.when(homepageFetcher.discoverablePages("https://example.com/careers"))
+                .thenReturn(List.of(new SafeHomepageFetcher.Page(java.net.URI.create("https://example.com/careers"),
+                        "<a href='https://nuua.career.greetinghr.com/ko/home'>채용</a>")));
         var discovery = new AdminPublicSeedDiscoveryService(jdbc,
-                new HomepageAtsLinkDiscovery(new AtsFingerprintService()), targetRepository, auditRepository);
-        String html = "<a href='https://nuua.career.greetinghr.com/ko/home'>채용</a>";
-        assertThat(discovery.discover(seed.id(), 1L, html, admin, "seed-discovery", null, null)).isEqualTo(1);
-        assertThat(discovery.discover(seed.id(), 1L, html, admin, "seed-discovery-2", null, null)).isEqualTo(1);
+                new HomepageAtsLinkDiscovery(new AtsFingerprintService()), homepageFetcher, targetRepository, auditRepository);
+        assertThat(discovery.discover(seed.id(), 1L, admin, "seed-discovery", null, null)).isEqualTo(1);
+        assertThat(discovery.discover(seed.id(), 1L, admin, "seed-discovery-2", null, null)).isEqualTo(1);
         assertThat(discovery.list(seed.id(), 0, 20)).hasSize(1)
                 .first().extracting(AdminPublicSeedDiscoveryService.CandidateView::sourceIdentifier).isEqualTo("nuua");
         var first = discovery.list(seed.id(), 0, 20).getFirst();
