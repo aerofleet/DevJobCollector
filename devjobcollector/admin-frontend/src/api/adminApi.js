@@ -22,7 +22,7 @@ export const adminRequest = async (path, options = {}) => {
   const headers = new Headers(options.headers);
   headers.set('Accept', 'application/json');
 
-  if (options.body && !headers.has('Content-Type')) {
+  if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
   if (!['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase())) {
@@ -94,6 +94,40 @@ export const adminApi = {
     method: 'PATCH', body: JSON.stringify(body),
   }),
   companies: (params) => adminPageRequest(`/companies?${new URLSearchParams(params)}`),
+  discoveryCandidates: (params) => adminRequest(`/companies/discovery-candidates?${new URLSearchParams(params)}`),
+  publicSeeds: (params) => adminRequest(`/companies/public-seeds?${new URLSearchParams(params)}`),
+  updatePublicSeedHomepage: (id, url, expectedVersion) => adminRequest(`/companies/public-seeds/${id}/homepage`, {
+    method: 'PUT', body: JSON.stringify({ url, expectedVersion }),
+  }),
+  discoverPublicSeedHtml: (id, html, expectedVersion) => adminRequest(`/companies/public-seeds/${id}/discover-html`, {
+    method: 'POST', body: JSON.stringify({ html, expectedVersion }),
+  }),
+  publicSeedAtsCandidates: (id) => adminRequest(`/companies/public-seeds/${id}/ats-candidates?size=100`),
+  rejectPublicSeedAts: (seedId, candidateId, reason) => adminRequest(
+    `/companies/public-seeds/${seedId}/ats-candidates/${candidateId}/reject`,
+    { method: 'POST', body: JSON.stringify({ reason }) },
+  ),
+  reviewPublicSeedAts: (seedId, candidateId, note, referenceUrl, expectedSeedVersion) => adminRequest(
+    `/companies/public-seeds/${seedId}/ats-candidates/${candidateId}/review`,
+    { method: 'POST', body: JSON.stringify({ note, referenceUrl, expectedSeedVersion }) },
+  ),
+  verifyPublicSeedBoard: (seedId, candidateId, expectedSeedVersion) => adminRequest(
+    `/companies/public-seeds/${seedId}/ats-candidates/${candidateId}/verify-board`,
+    { method: 'POST', body: JSON.stringify({ expectedSeedVersion }) },
+  ),
+  approvePublicSeedTarget: (seedId, candidateId, expectedSeedVersion, companyName, ownershipConfirmed) => adminRequest(
+    `/companies/public-seeds/${seedId}/ats-candidates/${candidateId}/approve-target`,
+    { method: 'POST', body: JSON.stringify({ expectedSeedVersion, companyName, ownershipConfirmed }) },
+  ),
+  importPublicSeeds: (file, encoding) => {
+    const body = new FormData();
+    body.append('file', file);
+    body.append('encoding', encoding);
+    return adminRequest('/companies/public-seeds/import', { method: 'POST', body });
+  },
+  rejectDiscoveryCandidate: (id, reason) => adminRequest(`/companies/discovery-candidates/${id}/reject`, {
+    method: 'POST', body: JSON.stringify({ reason }),
+  }),
   company: (id) => adminRequest(`/companies/${id}`),
   companyEvidence: downloadCompanyEvidence,
   approveCompany: (companyId, requestId, idempotencyKey) => adminRequest(

@@ -233,7 +233,7 @@ public class GreetingAdapter implements JobSourceAdapter {
         return List.copyOf(result);
     }
 
-    static boolean allowed(String robots, String path) {
+    public static boolean allowed(String robots, String path) {
         boolean relevant = false, haveRules = false, applies = false;
         int bestAllow = -1, bestDeny = -1;
         for (String line : robots.split("\\R")) {

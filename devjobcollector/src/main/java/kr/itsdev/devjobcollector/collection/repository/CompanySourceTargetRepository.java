@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface CompanySourceTargetRepository extends JpaRepository<CompanySourceTarget, Long> {
+    boolean existsByCompanyId(Long companyId);
     Optional<CompanySourceTarget> findByProviderAndSourceIdentifier(SourceType provider, String sourceIdentifier);
 
     @Query("SELECT t FROM CompanySourceTarget t " +

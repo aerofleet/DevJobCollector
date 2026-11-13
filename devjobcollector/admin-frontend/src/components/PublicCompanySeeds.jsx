@@ -1,0 +1,194 @@
+import { useEffect, useState } from 'react';
+import { adminApi } from '../api/adminApi';
+import { useAdminAuth } from '../auth/AdminAuthContext';
+
+const PAGE_SIZE = 20;
+
+export default function PublicCompanySeeds({ refresh }) {
+  const { admin } = useAdminAuth();
+  const [cursors, setCursors] = useState([0]);
+  const [rows, setRows] = useState(null);
+  const [error, setError] = useState('');
+  const [selected, setSelected] = useState(null);
+  const [url, setUrl] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [revision, setRevision] = useState(0);
+  const [analysisSeed, setAnalysisSeed] = useState(null);
+  const [html, setHtml] = useState('');
+  const [ats, setAts] = useState([]);
+  const [rejectId, setRejectId] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [reviewId, setReviewId] = useState(null);
+  const [reviewNote, setReviewNote] = useState('');
+  const [reference, setReference] = useState('');
+  const [approvalId, setApprovalId] = useState(null);
+  const [confirmCompany, setConfirmCompany] = useState('');
+  const [confirmOwnership, setConfirmOwnership] = useState(false);
+  const cursor = cursors[cursors.length - 1];
+
+  useEffect(() => {
+    let active = true;
+    adminApi.publicSeeds({ afterId: String(cursor), size: String(PAGE_SIZE + 1) })
+      .then((result) => { if (active) { setRows(result.data); setError(''); } })
+      .catch((cause) => { if (active) { setRows(null); setError(cause.message); } });
+    return () => { active = false; };
+  }, [cursor, refresh, revision]);
+
+  const saveHomepage = async (event) => {
+    event.preventDefault();
+    if (!selected || saving) return;
+    setSaving(true); setError(''); setNotice('');
+    try {
+      await adminApi.updatePublicSeedHomepage(selected.id, url.trim(), selected.version);
+      setSelected(null); setNotice('홈페이지 후보를 저장했습니다. 공식 여부는 확인이 필요합니다.');
+      setRevision((value) => value + 1);
+    } catch (cause) {
+      setError(cause.status === 409 ? '다른 관리자가 변경했습니다. 목록을 다시 확인해주세요.' : cause.message);
+    } finally { setSaving(false); }
+  };
+
+  const openAnalysis = async (seed) => {
+    setAnalysisSeed(seed); setHtml(''); setAts([]); setError(''); setNotice(''); setRejectId(null); setReviewId(null); setApprovalId(null);
+    try { setAts((await adminApi.publicSeedAtsCandidates(seed.id)).data); }
+    catch (cause) { setError(cause.message); }
+  };
+  const startReview = async () => {
+    if (saving || !analysisSeed || reviewId === null) return;
+    if (!reviewNote.trim()) { setError('검수 메모를 입력해주세요.'); return; }
+    setSaving(true); setError(''); setNotice('');
+    try {
+      await adminApi.reviewPublicSeedAts(analysisSeed.id, reviewId, reviewNote.trim(), reference.trim() || null, analysisSeed.version);
+      setReviewId(null); setReviewNote(''); setReference(''); setNotice('검수 메모를 저장했습니다. 소유권과 활성 공고는 확인되지 않았습니다.');
+      setAts((await adminApi.publicSeedAtsCandidates(analysisSeed.id)).data);
+    } catch (cause) { setError(cause.status === 409 ? '후보 또는 기업 정보가 변경됐습니다. 다시 열어 확인해주세요.' : cause.message); }
+    finally { setSaving(false); }
+  };
+  const verifyBoard = async (candidateId) => {
+    if (saving || !analysisSeed) return;
+    setSaving(true); setError(''); setNotice('');
+    try {
+      const result = await adminApi.verifyPublicSeedBoard(analysisSeed.id, candidateId, analysisSeed.version);
+      setNotice(`ATS에서 공고 ${result.data.jobCount}건을 확인했습니다. 기업 소유권은 별도 확인이 필요합니다.`);
+      setAts((await adminApi.publicSeedAtsCandidates(analysisSeed.id)).data);
+    } catch (cause) { setError(cause.status === 409 ? '공고를 확인하지 못했거나 후보가 변경됐습니다.' : cause.message); }
+    finally { setSaving(false); }
+  };
+  const approveTarget = async () => {
+    if (saving || !analysisSeed || approvalId === null) return;
+    if (!confirmOwnership || confirmCompany.trim() !== analysisSeed.companyName) {
+      setError('기업명을 정확히 입력하고 소유권 확인 항목을 선택해주세요.'); return;
+    }
+    setSaving(true); setError(''); setNotice('');
+    try {
+      const result = await adminApi.approvePublicSeedTarget(analysisSeed.id, approvalId, analysisSeed.version,
+        confirmCompany.trim(), confirmOwnership);
+      setApprovalId(null); setNotice(`수집 대상 #${result.data.targetId}을 생성했습니다. 공고 수집이 시작될 수 있습니다.`);
+      setAts((await adminApi.publicSeedAtsCandidates(analysisSeed.id)).data);
+    } catch (cause) { setError(cause.status === 409 ? '검증이 만료됐거나 근거·상태가 변경됐습니다. 다시 확인해주세요.' : cause.message); }
+    finally { setSaving(false); }
+  };
+  const rejectAts = async () => {
+    if (saving || !analysisSeed || rejectId === null) return;
+    if (!rejectReason.trim()) { setError('거절 사유를 입력해주세요.'); return; }
+    setSaving(true); setError(''); setNotice('');
+    try {
+      await adminApi.rejectPublicSeedAts(analysisSeed.id, rejectId, rejectReason.trim());
+      setRejectId(null); setRejectReason(''); setNotice('ATS 후보를 거절했습니다.');
+      setAts((await adminApi.publicSeedAtsCandidates(analysisSeed.id)).data);
+    } catch (cause) { setError(cause.status === 409 ? '이미 처리된 후보입니다. 다시 열어 확인해주세요.' : cause.message); }
+    finally { setSaving(false); }
+  };
+  const analyze = async (event) => {
+    event.preventDefault();
+    if (!analysisSeed || saving) return;
+    setSaving(true); setError(''); setNotice('');
+    try {
+      const result = await adminApi.discoverPublicSeedHtml(analysisSeed.id, html, analysisSeed.version);
+      setAts((await adminApi.publicSeedAtsCandidates(analysisSeed.id)).data);
+      setNotice(`ATS 후보 ${result.data.candidateCount}건을 발견했습니다. HTML 출처와 기업 소유권은 확인되지 않았습니다.`);
+    } catch (cause) { setError(cause.status === 409 ? 'Seed가 변경됐습니다. 목록에서 다시 열어주세요.' : cause.message); }
+    finally { setSaving(false); }
+  };
+
+  const visible = rows?.slice(0, PAGE_SIZE) || [];
+  return <div className="dashboard-panel user-list">
+    <h3>공공 기업 Seed</h3>
+    <p>공공 구인기업 목록에서 수입한 기업입니다. 동일 사업자번호의 회원 기업이 있으면 표시합니다.</p>
+    {notice && <p role="status">{notice}</p>}
+    {error ? <p className="form-error" role="alert">{error}</p> : !rows ? <p role="status">기업을 불러오는 중입니다.</p>
+      : visible.length === 0 ? <p>수입된 공공 기업이 없습니다.</p> : <div className="table-scroll"><table>
+        <thead><tr><th>공공 기업명</th><th>출처</th><th>Seed 상태</th><th>일치하는 회원 기업</th><th>회원 기업 상태</th><th>홈페이지 후보</th><th>입력</th></tr></thead>
+        <tbody>{visible.map((seed) => <tr key={seed.id}>
+          <td>{seed.companyName}</td><td>{seed.source === 'KOSME_JOB_COMPANIES' ? '중진공 구인기업' : seed.source}</td>
+          <td>{seed.status}</td><td>{seed.matchedCompanyId ? `${seed.matchedCompanyName} (#${seed.matchedCompanyId})` : '미확인'}</td>
+          <td>{seed.companyStatus || '—'}</td><td>{seed.homepageCandidateUrl || '미입력'}</td>
+          <td>{seed.status === 'DISCOVERED' && <button type="button" onClick={() => {
+            setSelected(seed); setUrl(seed.homepageCandidateUrl || ''); setNotice(''); setError('');
+          }}>홈페이지 입력</button>}
+          {seed.homepageCandidateUrl && <button type="button" onClick={() => openAnalysis(seed)}>ATS 후보 확인</button>}</td>
+        </tr>)}</tbody></table></div>}
+    {rows && <div className="user-pagination"><span>{cursors.length} 페이지</span>
+      <button type="button" disabled={cursors.length === 1} onClick={() => { setRows(null); setCursors(cursors.slice(0, -1)); }}>이전 기업</button>
+      <button type="button" disabled={rows.length <= PAGE_SIZE}
+        onClick={() => { setRows(null); setCursors([...cursors, visible[visible.length - 1].id]); }}>다음 기업</button>
+    </div>}
+    {selected && <form className="company-review-confirm" onSubmit={saveHomepage}>
+      <p>{selected.companyName}의 홈페이지 후보를 입력합니다. 저장 후에도 공식 여부 확인이 필요합니다.</p>
+      <label>홈페이지 후보 URL<input type="url" value={url} onChange={(event) => setUrl(event.target.value)}
+        maxLength={500} required disabled={saving} placeholder="https://example.com" /></label>
+      <div><button type="submit" disabled={saving}>후보 저장</button>
+        <button type="button" disabled={saving} onClick={() => setSelected(null)}>취소</button></div>
+    </form>}
+    {analysisSeed && <form className="company-review-confirm" onSubmit={analyze}>
+      <p>{analysisSeed.companyName}의 홈페이지 HTML을 직접 입력합니다. 입력 내용의 출처는 자동 검증되지 않습니다.</p>
+      <label>홈페이지 HTML<textarea value={html} onChange={(event) => setHtml(event.target.value)}
+        maxLength={2000000} rows={5} required disabled={saving} /></label>
+      <div><button type="submit" disabled={saving}>ATS 후보 추출</button>
+        <button type="button" disabled={saving} onClick={() => setAnalysisSeed(null)}>닫기</button></div>
+      <p>저장된 ATS 후보 (최대 100건)</p>
+      <ul>{ats.map((item) => <li key={item.id}>{item.provider} · {item.sourceIdentifier} · {item.sourceUrl} · {item.status}
+        {' · '}{item.discoverySource === 'AUTO_HOMEPAGE' ? '홈페이지 자동 탐색 후보' : '관리자 제공 HTML 후보'}
+        <div>최초 입력 기준 홈페이지: {item.firstHomepageCandidateUrl || '기록 없음'}
+          {' · '}{item.firstSeedVersion == null ? '기준 이력 없음' : item.firstSeedVersion !== item.currentSeedVersion
+            ? '최초 발견 이후 홈페이지 입력 이력 변경됨' : '현재 홈페이지 입력과 동일'}</div>
+        {item.reviewNote && <div>검수 메모: {item.reviewNote} · 참고 주소: {item.reviewReferenceUrl || '없음'}</div>}
+        {item.boardVerifiedAt && <div>ATS 공고 확인: {item.boardJobCount}건 · {item.boardVerifiedAt} UTC
+          {item.boardSeedVersion !== item.currentSeedVersion && ' · 기업 정보가 변경되어 재확인 필요'}</div>}
+        {['VERIFYING', 'BOARD_VERIFIED'].includes(item.status) && <button type="button" disabled={saving} onClick={() => verifyBoard(item.id)}>ATS 공고 확인</button>}
+        {item.status === 'BOARD_VERIFIED' && admin?.role !== 'REVIEWER' && <button type="button" onClick={() => {
+          setApprovalId(item.id); setConfirmCompany(''); setConfirmOwnership(false); setReviewId(null); setRejectId(null); setNotice(''); setError('');
+        }}>수집 대상 승인</button>}
+        {item.status === 'DISCOVERED' && <button type="button" onClick={() => {
+          setReviewId(item.id); setReviewNote(''); setReference(''); setRejectId(null); setError(''); setNotice('');
+        }}>검수 시작</button>}
+        {['DISCOVERED', 'VERIFYING', 'BOARD_VERIFIED'].includes(item.status) && <button type="button" onClick={() => {
+          setRejectId(item.id); setRejectReason(''); setError(''); setNotice('');
+          setReviewId(null);
+        }}>ATS 후보 거절</button>}
+      </li>)}</ul>
+      {rejectId !== null && <div>
+        <label>ATS 후보 거절 사유<textarea value={rejectReason} onChange={(event) => setRejectReason(event.target.value)}
+          maxLength={500} rows={3} disabled={saving} /></label>
+        <button type="button" disabled={saving} onClick={rejectAts}>ATS 거절 확정</button>
+        <button type="button" disabled={saving} onClick={() => setRejectId(null)}>거절 취소</button>
+      </div>}
+      {reviewId !== null && <div>
+        <p>검수 기록만 저장합니다. 소유권과 활성 공고는 별도 확인해야 합니다.</p>
+        <label>검수 메모<textarea value={reviewNote} onChange={(event) => setReviewNote(event.target.value)}
+          maxLength={500} rows={3} disabled={saving} /></label>
+        <label>참고 URL (선택)<input type="url" value={reference} onChange={(event) => setReference(event.target.value)}
+          maxLength={1000} disabled={saving} /></label>
+        <button type="button" disabled={saving} onClick={startReview}>검수 기록 저장</button>
+        <button type="button" disabled={saving} onClick={() => setReviewId(null)}>검수 취소</button>
+      </div>}
+      {approvalId !== null && <div>
+        <p>승인하면 수집기가 이 ATS의 공고를 수집할 수 있습니다. 공식 홈페이지와 ATS가 같은 기업 소유인지 직접 확인해주세요.</p>
+        <label>기업명 확인<input value={confirmCompany} onChange={(event) => setConfirmCompany(event.target.value)} disabled={saving} /></label>
+        <label><input type="checkbox" checked={confirmOwnership} onChange={(event) => setConfirmOwnership(event.target.checked)} disabled={saving} />공식 홈페이지와 ATS의 기업 소유권을 확인했습니다.</label>
+        <button type="button" disabled={saving} onClick={approveTarget}>승인 및 수집 대상 생성</button>
+        <button type="button" disabled={saving} onClick={() => setApprovalId(null)}>승인 취소</button>
+      </div>}
+    </form>}
+  </div>;
+}

@@ -18,6 +18,7 @@ import UsersPage from './pages/UsersPage';
 import JobsPage from './pages/JobsPage';
 import CompanyJobReviewsPage from './pages/CompanyJobReviewsPage';
 import CompaniesPage from './pages/CompaniesPage';
+import DiscoveryCandidatesPage from './pages/DiscoveryCandidatesPage';
 import AuditPage from './pages/AuditPage';
 import AdminsPage from './pages/AdminsPage';
 
@@ -25,6 +26,7 @@ const navigation = [
   { to: '/', label: '대시보드', icon: LayoutDashboard, end: true },
   { to: '/users', label: '회원 관리', icon: Users },
   { to: '/companies', label: '기업 심사', icon: Building2 },
+  { to: '/discovery', label: '채용 소스 후보', icon: Building2 },
   { to: '/jobs', label: '공고 관리', icon: ClipboardList },
   { to: '/company-jobs', label: '기업 공고 검수', icon: ClipboardList },
   { to: '/audit', label: '감사 기록', icon: FileClock, superAdminOnly: true },
@@ -35,6 +37,7 @@ const routeTitles = {
   '/': '운영 대시보드',
   '/users': '회원 관리',
   '/companies': '기업 심사',
+  '/discovery': '채용 소스 후보',
   '/jobs': '공고 관리',
   '/company-jobs': '기업 공고 검수',
   '/audit': '감사 기록',
@@ -132,6 +135,7 @@ const AppRoutes = () => (
       <Route index element={<DashboardPage />} />
       <Route path="users" element={<UsersPage />} />
       <Route path="companies" element={<CompaniesPage />} />
+      <Route path="discovery" element={<DiscoveryCandidatesPage />} />
       <Route path="jobs" element={<JobsPage />} />
       <Route path="company-jobs" element={<CompanyJobReviewsPage />} />
       <Route path="audit" element={<AuditPage />} />

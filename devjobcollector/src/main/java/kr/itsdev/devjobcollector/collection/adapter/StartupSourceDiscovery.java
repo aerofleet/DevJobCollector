@@ -51,7 +51,7 @@ public class StartupSourceDiscovery {
         return thread;
     });
     private final AtomicBoolean running = new AtomicBoolean();
-    @Value("${collection.discovery.enabled:true}") private boolean enabled;
+    @Value("${collection.discovery.enabled:false}") private boolean enabled;
 
     @Scheduled(initialDelayString = "${collection.discovery.initial-delay-ms:120000}",
             fixedDelayString = "${collection.discovery.poll-delay-ms:86400000}")

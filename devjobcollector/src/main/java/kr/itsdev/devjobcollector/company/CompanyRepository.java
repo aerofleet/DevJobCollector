@@ -18,6 +18,11 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
     Page<Company> searchForAdmin(@Param("keyword") String keyword,
                                  @Param("status") CompanyStatus status, Pageable pageable);
 
+    @Query("SELECT c FROM Company c WHERE c.status = :status AND c.websiteUrl IS NOT NULL "
+            + "AND TRIM(c.websiteUrl) <> '' AND NOT EXISTS "
+            + "(SELECT t.id FROM CompanySourceTarget t WHERE t.companyId = c.id) ORDER BY c.id")
+    Page<Company> findDiscoverySeeds(@Param("status") CompanyStatus status, Pageable pageable);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT company FROM Company company WHERE company.id = :companyId")
     Optional<Company> findByIdForUpdate(@Param("companyId") Long companyId);

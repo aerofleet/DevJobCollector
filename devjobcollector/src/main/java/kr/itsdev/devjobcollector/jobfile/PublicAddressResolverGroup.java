@@ -11,7 +11,8 @@ import java.net.SocketAddress;
 import java.util.List;
 
 /** Validates the actual resolved addresses returned to the HTTP connector. */
-final class PublicAddressResolverGroup extends AddressResolverGroup<InetSocketAddress> {
+public final class PublicAddressResolverGroup extends AddressResolverGroup<InetSocketAddress> {
+    public PublicAddressResolverGroup() { }
     @Override protected AddressResolver<InetSocketAddress> newResolver(EventExecutor executor) {
         var delegate = DefaultAddressResolverGroup.INSTANCE.getResolver(executor);
         return new AddressResolver<>() {
