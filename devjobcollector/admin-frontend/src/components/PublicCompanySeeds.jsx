@@ -118,9 +118,10 @@ export default function PublicCompanySeeds({ refresh }) {
     {notice && <p role="status">{notice}</p>}
     {error ? <p className="form-error" role="alert">{error}</p> : !rows ? <p role="status">기업을 불러오는 중입니다.</p>
       : visible.length === 0 ? <p>수입된 공공 기업이 없습니다.</p> : <div className="table-scroll"><table>
-        <thead><tr><th>공공 기업명</th><th>출처</th><th>Seed 상태</th><th>일치하는 회원 기업</th><th>회원 기업 상태</th><th>홈페이지 후보</th><th>입력</th></tr></thead>
+        <thead><tr><th>공공 기업명</th><th>출처</th><th>직무 우선순위</th><th>Seed 상태</th><th>일치하는 회원 기업</th><th>회원 기업 상태</th><th>홈페이지 후보</th><th>입력</th></tr></thead>
         <tbody>{visible.map((seed) => <tr key={seed.id}>
           <td>{seed.companyName}</td><td>{seed.source === 'KOSME_JOB_COMPANIES' ? '중진공 구인기업' : seed.source}</td>
+          <td>{seed.itRelatedPosting ? `개발·IT · ${seed.relevantPostingTitle || '관련 공고'}` : '일반'}</td>
           <td>{seed.status}</td><td>{seed.matchedCompanyId ? `${seed.matchedCompanyName} (#${seed.matchedCompanyId})` : '미확인'}</td>
           <td>{seed.companyStatus || '—'}</td><td>{seed.homepageCandidateUrl || '미입력'}</td>
           <td>{seed.status === 'DISCOVERED' && <button type="button" onClick={() => {

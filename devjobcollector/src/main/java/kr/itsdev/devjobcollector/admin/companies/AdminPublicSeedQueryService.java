@@ -19,16 +19,18 @@ public class AdminPublicSeedQueryService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "INVALID_SEED_PAGE");
         }
         return jdbc.query("SELECT s.id, s.company_name, s.source, s.status, s.last_seen_at, s.homepage_candidate_url, s.version, "
+                        + "s.has_it_related_posting, s.relevant_posting_title, "
                         + "c.id AS matched_company_id, c.display_name AS matched_company_name, c.status AS company_status "
                         + "FROM public_company_seed s LEFT JOIN companies c "
                         + "ON c.business_number_hash = s.business_number_hash WHERE s.id > ? ORDER BY s.id LIMIT ?",
                 (rs, row) -> new SeedView(rs.getLong("id"), rs.getString("company_name"), rs.getString("source"),
                         rs.getString("status"), rs.getObject("last_seen_at", LocalDateTime.class),
                         rs.getObject("matched_company_id", Long.class), rs.getString("matched_company_name"),
-                        rs.getString("company_status"), rs.getString("homepage_candidate_url"), rs.getLong("version")), afterId, size);
+                        rs.getString("company_status"), rs.getString("homepage_candidate_url"), rs.getLong("version"),
+                        rs.getBoolean("has_it_related_posting"), rs.getString("relevant_posting_title")), afterId, size);
     }
 
     public record SeedView(long id, String companyName, String source, String status, LocalDateTime lastSeenAt,
                            Long matchedCompanyId, String matchedCompanyName, String companyStatus,
-                           String homepageCandidateUrl, long version) { }
+                           String homepageCandidateUrl, long version, boolean itRelatedPosting, String relevantPostingTitle) { }
 }

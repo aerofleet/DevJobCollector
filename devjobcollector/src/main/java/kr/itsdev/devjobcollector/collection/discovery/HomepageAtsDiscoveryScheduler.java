@@ -38,7 +38,7 @@ public class HomepageAtsDiscoveryScheduler {
             List<HomepageAtsCandidateRecorder.Seed> seeds = jdbc.query("SELECT id, homepage_candidate_url, version "
                             + "FROM public_company_seed WHERE status = 'DISCOVERED' AND homepage_candidate_url IS NOT NULL "
                             + "AND (homepage_discovery_checked_at IS NULL OR homepage_discovery_checked_at < "
-                            + "UTC_TIMESTAMP(6) - INTERVAL 7 DAY) ORDER BY homepage_discovery_checked_at, id LIMIT ?",
+                            + "UTC_TIMESTAMP(6) - INTERVAL 7 DAY) ORDER BY has_it_related_posting DESC, homepage_discovery_checked_at, id LIMIT ?",
                     (rs, row) -> new HomepageAtsCandidateRecorder.Seed(rs.getLong(1), rs.getString(2), rs.getLong(3)),
                     Math.max(1, Math.min(batchSize, 100)));
             int candidates = 0, checked = 0;

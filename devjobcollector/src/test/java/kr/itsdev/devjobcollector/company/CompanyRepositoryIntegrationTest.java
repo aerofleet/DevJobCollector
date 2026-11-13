@@ -106,7 +106,8 @@ class CompanyRepositoryIntegrationTest {
     void approvalRequiresBoardEvidenceExplicitOwnershipAndCreatesOneTarget() throws Exception {
         String csv = "기업명,사업자번호,지역구분,종업원수,공고명,고용형태,공고등록일\n"
                 + "승인기업,234-56-78901,서울,10,개발자,정규직,2025-01-01\n";
-        new SmeJobCompanySeedImporter(new SmeJobCompanySeedReader(), jdbc).importCsv(new StringReader(csv));
+        new SmeJobCompanySeedImporter(new SmeJobCompanySeedReader(), jdbc,
+                new kr.itsdev.devjobcollector.collection.discovery.SmeJobPostingRelevance()).importCsv(new StringReader(csv));
         long seedId = jdbc.queryForObject("SELECT id FROM public_company_seed WHERE company_name = ?", Long.class, "승인기업");
         var admin = new AdminPrincipal(1L, "a@example.com", "관리자", AdminRole.ADMIN, Set.of(), "session", "csrf");
         var reviewer = new AdminPrincipal(2L, "r@example.com", "심사자", AdminRole.REVIEWER, Set.of(), "session", "csrf");
@@ -250,13 +251,17 @@ class CompanyRepositoryIntegrationTest {
         String csv = "기업명,사업자번호,지역구분,종업원수,공고명,고용형태,공고등록일\r\n"
                 + "공공기업,123-45-67890,서울,10,개발자,정규직,2025-01-01\r\n"
                 + "공공기업,1234567890,서울,10,개발자,정규직,2025-01-02\r\n";
-        var importer = new SmeJobCompanySeedImporter(new SmeJobCompanySeedReader(), jdbc);
+        var importer = new SmeJobCompanySeedImporter(new SmeJobCompanySeedReader(), jdbc, new kr.itsdev.devjobcollector.collection.discovery.SmeJobPostingRelevance());
         var counts = importer.importCsv(new StringReader(csv));
         assertThat(counts).isEqualTo(new SmeJobCompanySeedReader.Counts(2, 0));
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM public_company_seed WHERE company_name = ?",
                 Integer.class, "공공기업")).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT business_number_hash FROM public_company_seed WHERE company_name = ?",
                 String.class, "공공기업")).matches("[0-9a-f]{64}").doesNotContain("1234567890");
+        assertThat(jdbc.queryForObject("SELECT has_it_related_posting FROM public_company_seed WHERE company_name = ?",
+                Boolean.class, "공공기업")).isTrue();
+        assertThat(jdbc.queryForObject("SELECT relevant_posting_title FROM public_company_seed WHERE company_name = ?",
+                String.class, "공공기업")).isEqualTo("개발자");
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM companies WHERE display_name = ?",
                 Integer.class, "공공기업")).isZero();
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM company_source_target WHERE company_name = ?",
@@ -265,6 +270,8 @@ class CompanyRepositoryIntegrationTest {
         importer.importCsv(new StringReader(csv));
         assertThat(jdbc.queryForObject("SELECT status FROM public_company_seed WHERE company_name = ?",
                 String.class, "공공기업")).isEqualTo("REJECTED");
+        assertThat(jdbc.queryForObject("SELECT has_it_related_posting FROM public_company_seed WHERE company_name = ?",
+                Boolean.class, "공공기업")).isTrue();
     }
 
     @Test
