@@ -233,13 +233,16 @@ class CompanyRepositoryIntegrationTest {
         assertThatThrownBy(() -> discovery.reject(seed.id() + 10000, first.id(), "다른 기업", admin, "wrong", null, null))
                 .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
         review.setHomepage(seed.id(), 1L, "https://other.example", admin, "seed-homepage-new", null, null);
-        assertThat(discovery.discover(seed.id(), 2L, html, admin, "rediscovered", null, null)).isEqualTo(1);
+        org.mockito.Mockito.when(homepageFetcher.discoverablePages("https://other.example"))
+                .thenReturn(List.of(new SafeHomepageFetcher.Page(java.net.URI.create("https://other.example"),
+                        "<a href='https://nuua.career.greetinghr.com/ko/home'>채용</a>")));
+        assertThat(discovery.discover(seed.id(), 2L, admin, "rediscovered", null, null)).isEqualTo(1);
         var afterChange = discovery.list(seed.id(), 0, 20).getFirst();
         assertThat(afterChange.firstHomepageCandidateUrl()).isEqualTo("https://example.com/careers");
         assertThat(afterChange.firstSeedVersion()).isEqualTo(1L);
         assertThat(afterChange.currentSeedVersion()).isEqualTo(2L);
         assertThat(afterChange.status()).isEqualTo("REJECTED");
-        assertThatThrownBy(() -> discovery.discover(seed.id(), 0L, html, admin, "stale-discovery", null, null))
+        assertThatThrownBy(() -> discovery.discover(seed.id(), 0L, admin, "stale-discovery", null, null))
                 .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
         assertThat(targetRepository.findByProviderAndSourceIdentifier(SourceType.GREETING, "nuua")).isEmpty();
         String hash = jdbc.queryForObject("SELECT business_number_hash FROM public_company_seed WHERE id = ?",
