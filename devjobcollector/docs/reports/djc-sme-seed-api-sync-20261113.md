@@ -14,6 +14,7 @@
 - `Authorization: Infuser {API_KEY}` 헤더 인증을 사용한다. 키는 요청 URL이나 로그에 남기지 않는다.
 - `page`, `perPage`, `returnType=JSON` 페이지를 1일 간격으로 읽어 Seed에 최대 1,000건씩 멱등 반영한다.
 - 사업자번호는 해시만 저장하고 기존 Seed 상태는 유지한다. IT·개발 관련 공고명은 우선순위와 분류 근거로 기록한다.
+- 운영 자동 실행은 GitHub Actions 변수 `DJC_SME_JOB_COMPANY_SYNC_ENABLED=true`로 명시적으로 켠다. 기본값은 `false`다.
 
 ## 현재 검증 상태
 
