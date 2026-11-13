@@ -15,6 +15,7 @@ export default function PublicCompanySeeds({ refresh }) {
   const [notice, setNotice] = useState('');
   const [revision, setRevision] = useState(0);
   const [analysisSeed, setAnalysisSeed] = useState(null);
+  const [analysisError, setAnalysisError] = useState('');
   const [ats, setAts] = useState([]);
   const [rejectId, setRejectId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -48,7 +49,7 @@ export default function PublicCompanySeeds({ refresh }) {
   };
 
   const openAnalysis = async (seed) => {
-    setAnalysisSeed(seed); setAts([]); setError(''); setNotice(''); setRejectId(null); setReviewId(null); setApprovalId(null);
+    setAnalysisSeed(seed); setAnalysisError(''); setAts([]); setError(''); setNotice(''); setRejectId(null); setReviewId(null); setApprovalId(null);
     try { setAts((await adminApi.publicSeedAtsCandidates(seed.id)).data); }
     catch (cause) { setError(cause.message); }
   };
@@ -100,12 +101,34 @@ export default function PublicCompanySeeds({ refresh }) {
   };
   const analyze = async () => {
     if (!analysisSeed || saving) return;
-    setSaving(true); setError(''); setNotice('');
+    setSaving(true); setAnalysisError(''); setError(''); setNotice('');
     try {
-      const result = await adminApi.discoverPublicSeedHomepage(analysisSeed.id, analysisSeed.version);
+      let seed = analysisSeed;
+      let result;
+      try {
+        result = await adminApi.discoverPublicSeedHomepage(seed.id, seed.version);
+      } catch (cause) {
+        if (cause.status !== 409) throw cause;
+        const latestPage = await adminApi.publicSeeds({ afterId: String(cursor), size: String(PAGE_SIZE + 1) });
+        const latest = latestPage.data.find((item) => item.id === seed.id);
+        if (!latest || latest.status !== 'DISCOVERED' || latest.homepageCandidateUrl !== seed.homepageCandidateUrl) {
+          throw new Error('기업 또는 홈페이지 정보가 변경됐습니다. 목록을 새로고침한 뒤 다시 열어주세요.');
+        }
+        seed = latest;
+        setAnalysisSeed(latest);
+        setRows(latestPage.data);
+        result = await adminApi.discoverPublicSeedHomepage(seed.id, seed.version);
+      }
       setAts((await adminApi.publicSeedAtsCandidates(analysisSeed.id)).data);
-      setNotice(`홈페이지를 조회해 ATS 후보 ${result.data.candidateCount}건을 찾았습니다. 후보의 공식 여부와 기업 소유권은 별도 확인이 필요합니다.`);
-    } catch (cause) { setError(cause.status === 409 ? 'Seed가 변경됐습니다. 목록에서 다시 열어주세요.' : cause.message); }
+      setNotice(result.data.candidateCount > 0
+        ? `검색 완료: ATS 후보 ${result.data.candidateCount}건을 찾았습니다. 후보의 공식 여부와 기업 소유권은 별도 확인이 필요합니다.`
+        : '검색은 완료됐지만 인식 가능한 ATS 링크를 찾지 못했습니다. 이 홈페이지는 일반 게시판일 수 있습니다.');
+    } catch (cause) {
+      const message = cause.status === 502
+        ? '홈페이지에 접근할 수 없거나 robots.txt에서 조회를 허용하지 않았습니다. 홈페이지 주소를 확인해주세요.'
+        : cause.message || 'ATS 후보 검색 요청에 실패했습니다.';
+      setAnalysisError(message);
+    }
     finally { setSaving(false); }
   };
 
@@ -142,6 +165,7 @@ export default function PublicCompanySeeds({ refresh }) {
     </form>}
     {analysisSeed && <div className="company-review-confirm">
       <p>{analysisSeed.companyName} 홈페이지의 공개 페이지를 자동으로 확인해 ATS 링크를 검색합니다. 로봇 배제 규칙을 따르며, 검색된 후보의 공식 여부와 소유권은 별도 확인해야 합니다.</p>
+      {analysisError && <p className="form-error" role="alert">{analysisError}</p>}
       <div><button type="button" disabled={saving} onClick={analyze}>{saving ? '홈페이지 확인 중…' : '홈페이지에서 ATS 자동 검색'}</button>
         <button type="button" disabled={saving} onClick={() => setAnalysisSeed(null)}>닫기</button></div>
       <p>저장된 ATS 후보 (최대 100건)</p>
