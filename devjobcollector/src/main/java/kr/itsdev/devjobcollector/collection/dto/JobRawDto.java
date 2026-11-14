@@ -20,8 +20,22 @@ public record JobRawDto(
         Instant updatedAtSource,
         Instant deadlineAt,
         String contentHash,
-        String rawPayload
+        String rawPayload,
+        java.util.List<String> contentImageUrls
 ) {
+    public JobRawDto(SourceType provider, String sourceJobId, String companyName, String title,
+                     String location, String employmentType, String experience, String team,
+                     String sourceUrl, String applyUrl, String plainDescription, Instant publishedAt,
+                     Instant updatedAtSource, Instant deadlineAt, String contentHash, String rawPayload) {
+        this(provider, sourceJobId, companyName, title, location, employmentType, experience, team,
+                sourceUrl, applyUrl, plainDescription, publishedAt, updatedAtSource, deadlineAt, contentHash, rawPayload, null);
+    }
+
+    public JobRawDto withContentImages(java.util.List<String> images) {
+        return new JobRawDto(provider, sourceJobId, companyName, title, location, employmentType, experience,
+                team, sourceUrl, applyUrl, plainDescription, publishedAt, updatedAtSource, deadlineAt,
+                contentHash, rawPayload, images == null ? null : java.util.List.copyOf(images));
+    }
     public JobRawDto(
             SourceType provider,
             String sourceJobId,

@@ -176,6 +176,7 @@ public class JobPostService {
             .isActive(jobPost.isActive())
             .techStacks(convertTechStacks(jobPost))
             .files(extractFiles(jobPost))
+            .contentImageUrls(jobPost.getContentImages().stream().map(kr.itsdev.devjobcollector.domain.JobPostImage::getImageUrl).toList())
             .build();
     }
 

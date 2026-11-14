@@ -18,7 +18,16 @@ import org.junit.jupiter.api.Test;
 class RecruitBoardCollectorTest {
     private static final String BOARD = "https://example.com/bbs/board.php?bo_table=recruit";
     private final SafeHomepageFetcher fetcher = mock(SafeHomepageFetcher.class);
-    private final RecruitBoardCollector collector = new RecruitBoardCollector(fetcher, new RecruitBoardParser());
+    private final RecruitBoardCollector collector = new RecruitBoardCollector(fetcher, new RecruitBoardParser(), new RecruitBoardDetailParser());
+
+    @org.junit.jupiter.api.BeforeEach
+    void details() {
+        for (int id : new int[] {1, 2}) {
+            String url = BOARD + "&wr_id=" + id;
+            when(fetcher.fetchPage(url)).thenReturn(Optional.of(new SafeHomepageFetcher.Page(URI.create(url),
+                    "<div class='board-content'><img src='/images/" + id + ".jpg'></div>")));
+        }
+    }
 
     @Test
     void traversesPagesWithoutInferringClosureFromMissingRows() {
@@ -27,7 +36,17 @@ class RecruitBoardCollectorTest {
         var result = collector.collect(target());
         assertThat(result.status()).isEqualTo(CollectionStatus.SUCCESS);
         assertThat(result.jobs()).extracting(job -> job.sourceJobId()).containsExactly("1", "2");
+        assertThat(result.jobs().getFirst().contentImageUrls()).containsExactly("https://example.com/images/1.jpg");
         assertThat(result.closureEvaluationAllowed()).isFalse();
+    }
+
+    @Test
+    void unavailableDetailsArePartialAndDoNotEraseSavedImages() {
+        when(fetcher.fetchPage(BOARD)).thenReturn(page(BOARD, row(1)));
+        when(fetcher.fetchPage(BOARD + "&wr_id=1")).thenReturn(Optional.empty());
+        var result = collector.collect(target());
+        assertThat(result.status()).isEqualTo(CollectionStatus.PARTIAL_SUCCESS);
+        assertThat(result.jobs().getFirst().contentImageUrls()).isNull();
     }
 
     @Test

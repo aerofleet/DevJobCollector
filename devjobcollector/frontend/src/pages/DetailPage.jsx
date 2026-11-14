@@ -8,6 +8,7 @@ import { createApplication, createBookmark, recordRecentJob } from '../api/caree
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import TechStackBadge from '../components/job/TechStackBadge';
 import StructuredJobContent from '../components/job/StructuredJobContent';
+import JobContentImages from '../components/job/JobContentImages';
 import { jobSourceLabel } from '../utils/jobSource';
 import { canPreviewJobFile, jobFileUrl } from '../utils/jobFileUrl';
 import { extractAvailableLocations, extractRoleSummary, extractDaangnSections, extractTossInternSections, extractTossSourceDeadline, extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, extractWorkArrangement, formatInfoGridValue, formatJobLocation } from '../utils/jobRequirements';
@@ -217,6 +218,7 @@ const DetailPage = () => {
             return <li key={file.id}>{href ? <a href={href} target="_blank" rel="noopener noreferrer">{file.fileName || '첨부파일'}</a> : (file.fileName || '첨부파일')}{canPreviewJobFile(file) && <button className="detail-preview-button" type="button" onClick={() => setPreviewFile({ ...file, originalUrl: href })}>미리보기</button>}</li>;
           })}</ul></section>}
         </> : <>
+        <JobContentImages urls={job.contentImageUrls} originalUrl={originalUrl} />
         {roleSummary && <section className="detail-section"><h3>직무 소개</h3><p>{roleSummary}</p></section>}
         {duties.length > 0 && <section className="detail-section">
           <h3>담당 업무</h3><ul>{duties.map((item, index) => <li key={index}>{item}</li>)}</ul>

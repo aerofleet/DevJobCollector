@@ -78,6 +78,7 @@ class CompanyRepositoryIntegrationTest {
     @Autowired AdminAuditLogRepository auditRepository;
     @Autowired AdminPublicSeedImportService seedImportService;
     @Autowired PlatformTransactionManager transactionManager;
+    @Autowired kr.itsdev.devjobcollector.repository.JobPostRepository jobPostRepository;
 
     @DynamicPropertySource
     static void dataSourceProperties(DynamicPropertyRegistry registry) {
@@ -103,6 +104,30 @@ class CompanyRepositoryIntegrationTest {
         System.out.println("KOSME_IMPORT_ROWS=" + counts.accepted() + " SKIPPED=" + counts.skipped() + " UNIQUE=" + unique);
         assertThat(counts.accepted()).isPositive();
         assertThat(unique).isPositive().isLessThanOrEqualTo(counts.accepted());
+    }
+
+    @Test
+    void contentImagesPersistInOrderAndCanBeReplacedWithoutDuplicates() {
+        var job = kr.itsdev.devjobcollector.domain.JobPost.builder()
+                .sourcePlatform(kr.itsdev.devjobcollector.domain.SourcePlatform.COMPANY_PAGE)
+                .originalSn("test:content-images").companyName("회사").title("개발자")
+                .startDate(java.time.LocalDate.of(2026, 1, 1)).endDate(java.time.LocalDate.of(2099, 1, 1))
+                .originalUrl("https://example.com/job").build();
+        job.replaceContentImages(List.of("https://example.com/a.png", "https://example.com/b.jpg"));
+        jobPostRepository.saveAndFlush(job);
+        long id = job.getId();
+        entityManager.clear();
+        var stored = jobPostRepository.findById(id).orElseThrow();
+        assertThat(stored.getContentImages()).extracting(kr.itsdev.devjobcollector.domain.JobPostImage::getImageUrl)
+                .containsExactly("https://example.com/a.png", "https://example.com/b.jpg");
+        stored.replaceContentImages(null);
+        assertThat(stored.getContentImages()).hasSize(2);
+        stored.replaceContentImages(List.of("https://example.com/c.webp"));
+        jobPostRepository.flush();
+        entityManager.clear();
+        assertThat(jobPostRepository.findById(id).orElseThrow().getContentImages())
+                .extracting(kr.itsdev.devjobcollector.domain.JobPostImage::getImageUrl)
+                .containsExactly("https://example.com/c.webp");
     }
 
     @Test

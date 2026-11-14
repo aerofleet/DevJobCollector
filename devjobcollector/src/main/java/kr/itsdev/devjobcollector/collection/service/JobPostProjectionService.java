@@ -75,6 +75,9 @@ public class JobPostProjectionService {
                 sourceUrl,
                 rawJob.plainDescription(),
                 null);
+        if (rawJob.provider() == SourceType.COMPANY_PAGE && rawJob.contentImageUrls() != null) {
+            jobPost.replaceContentImages(rawJob.contentImageUrls());
+        }
         if (rawJob.provider() == SourceType.KAKAO) {
             jobPost.updateSourceDeadlineDisplay(kakaoDeadlineDisplay(rawJob));
         }

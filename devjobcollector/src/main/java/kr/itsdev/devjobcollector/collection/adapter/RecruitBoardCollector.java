@@ -20,12 +20,15 @@ import org.springframework.stereotype.Component;
 public class RecruitBoardCollector {
     static final String SCHEMA = "recruit-board-v1";
     private static final int MAX_PAGES = 30;
+    private static final int MAX_DETAIL_REQUESTS = 100;
     private final SafeHomepageFetcher fetcher;
     private final RecruitBoardParser parser;
+    private final RecruitBoardDetailParser detailParser;
 
-    public RecruitBoardCollector(SafeHomepageFetcher fetcher, RecruitBoardParser parser) {
+    public RecruitBoardCollector(SafeHomepageFetcher fetcher, RecruitBoardParser parser, RecruitBoardDetailParser detailParser) {
         this.fetcher = fetcher;
         this.parser = parser;
+        this.detailParser = detailParser;
     }
 
     public CollectionResult collect(CompanySourceTarget target) {
@@ -80,8 +83,18 @@ public class RecruitBoardCollector {
         }
         if (seen.isEmpty() || (jobs.isEmpty() && !complete))
             return CollectionResult.failed(CollectionStatus.FAILED, SCHEMA);
+        boolean detailsComplete = true;
+        int detailCount = 0;
+        for (var entry : jobs.entrySet()) {
+            if (detailCount++ >= MAX_DETAIL_REQUESTS) { detailsComplete = false; break; }
+            try {
+                var detail = fetcher.fetchPage(entry.getValue().sourceUrl());
+                if (detail.isEmpty()) { detailsComplete = false; continue; }
+                entry.setValue(entry.getValue().withContentImages(detailParser.images(detail.get().html(), detail.get().url())));
+            } catch (IllegalArgumentException ex) { detailsComplete = false; }
+        }
         var resultJobs = java.util.List.copyOf(jobs.values());
-        CollectionStatus status = !complete ? CollectionStatus.PARTIAL_SUCCESS
+        CollectionStatus status = !complete || !detailsComplete ? CollectionStatus.PARTIAL_SUCCESS
                 : resultJobs.isEmpty() ? CollectionStatus.EMPTY_SUCCESS : CollectionStatus.SUCCESS;
         // Pagination markup can disappear without proving the board is complete. Only explicit
         // closed badges may close jobs; absence from the traversed pages is not sufficient.

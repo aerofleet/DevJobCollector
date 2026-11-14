@@ -147,6 +147,11 @@ public class JobPost {
 
     @BatchSize(size = 100)
     @OneToMany(mappedBy = "jobPost", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("positionIndex ASC")
+    private List<JobPostImage> contentImages = new ArrayList<>();
+
+    @BatchSize(size = 100)
+    @OneToMany(mappedBy = "jobPost", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PostTag> postTags = new ArrayList<>();
 
     @Builder
@@ -242,6 +247,14 @@ public class JobPost {
     public void addFile(JobFile file) {
         files.add(file);
         file.setJobPost(this);
+    }
+
+    public void replaceContentImages(List<String> urls) {
+        if (urls == null) return;
+        List<String> current = contentImages.stream().map(JobPostImage::getImageUrl).toList();
+        if (current.equals(urls)) return;
+        contentImages.clear();
+        for (int i = 0; i < urls.size(); i++) contentImages.add(new JobPostImage(this, urls.get(i), i));
     }
 
     public void removeFile(JobFile file) {
