@@ -2,19 +2,23 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { adminApi, adminRequest } from '../api/adminApi';
 import { useAdminAuth } from '../auth/AdminAuthContext';
 import DetailModal from '../components/DetailModal';
+import { paginationPage, paginationSize, readPaginationSession, savePaginationSession } from '../utils/paginationSession';
 
 const statusText = { ACTIVE: '노출', HIDDEN: '숨김', CLOSED: '강제 마감' };
 const actionText = { ACTIVE: '재활성', HIDDEN: '공고 숨김', CLOSED: '강제 마감', DELETED: '공고 삭제' };
 const companyActions = { HIDDEN: 'SUSPEND', CLOSED: 'FORCE_CLOSE', DELETED: 'DELETE' };
+const PAGINATION_KEY = 'admin.jobs.pagination';
 
 export default function JobsPage() {
   const { admin } = useAdminAuth();
-  const [keyword, setKeyword] = useState('');
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('');
-  const [page, setPage] = useState(0);
-  const [size, setSize] = useState(20);
-  const [pageInput, setPageInput] = useState('1');
+  const [initialPagination] = useState(() => readPaginationSession(PAGINATION_KEY));
+  const initialSearch = typeof initialPagination.search === 'string' ? initialPagination.search.slice(0, 100) : '';
+  const [keyword, setKeyword] = useState(initialSearch);
+  const [search, setSearch] = useState(initialSearch);
+  const [status, setStatus] = useState(() => Object.hasOwn(statusText, initialPagination.status) ? initialPagination.status : '');
+  const [page, setPage] = useState(() => paginationPage(initialPagination.page));
+  const [size, setSize] = useState(() => paginationSize(initialPagination.size));
+  const [pageInput, setPageInput] = useState(() => String(paginationPage(initialPagination.page) + 1));
   const [pageError, setPageError] = useState('');
   const requestSequence = useRef(0);
   const [result, setResult] = useState(null);
@@ -30,6 +34,8 @@ export default function JobsPage() {
   const [aiConfirmed, setAiConfirmed] = useState(false);
   const [reviewDraft, setReviewDraft] = useState(null);
   const [salaryPreview, setSalaryPreview] = useState(null);
+
+  useEffect(() => { savePaginationSession(PAGINATION_KEY, { page, size, search, status }); }, [page, size, search, status]);
 
   const load = useCallback(async () => {
     const sequence = ++requestSequence.current;

@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '../api/adminApi';
 import { useAdminAuth } from '../auth/AdminAuthContext';
+import { paginationPage, paginationSize, readPaginationSession, savePaginationSession } from '../utils/paginationSession';
+
+const PAGINATION_KEY = 'admin.publicSeeds.pagination';
 
 export default function PublicCompanySeeds({ refresh }) {
   const { admin } = useAdminAuth();
-  const [page, setPage] = useState(0);
-  const [size, setSize] = useState(20);
+  const [initialPagination] = useState(() => readPaginationSession(PAGINATION_KEY));
+  const [page, setPage] = useState(() => paginationPage(initialPagination.page));
+  const [size, setSize] = useState(() => paginationSize(initialPagination.size));
   const [total, setTotal] = useState(0);
   const [pageCount, setPageCount] = useState(0);
-  const [pageInput, setPageInput] = useState('1');
+  const [pageInput, setPageInput] = useState(() => String(paginationPage(initialPagination.page) + 1));
   const [pageError, setPageError] = useState('');
   const [rows, setRows] = useState(null);
   const [error, setError] = useState('');
@@ -29,6 +33,7 @@ export default function PublicCompanySeeds({ refresh }) {
   const [approvalError, setApprovalError] = useState('');
   const [confirmCompany, setConfirmCompany] = useState('');
   const [confirmOwnership, setConfirmOwnership] = useState(false);
+  useEffect(() => { savePaginationSession(PAGINATION_KEY, { page, size }); }, [page, size]);
   useEffect(() => {
     let active = true;
     adminApi.publicSeedPage({ page: String(page), size: String(size) })

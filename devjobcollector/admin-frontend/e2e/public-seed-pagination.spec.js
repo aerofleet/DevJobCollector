@@ -19,6 +19,10 @@ test('공공 기업 총 건수와 페이지 이동 및 페이지 크기를 사�
   await expect(nav).toContainText('1 / 7 페이지');
   await nav.getByRole('button', { name: '3페이지' }).click();
   await expect(page.getByRole('cell', { name: '공공기업 41', exact: true })).toBeVisible();
+  await page.reload();
+  await expect(nav).toContainText('3 / 7 페이지');
+  await expect(page.getByRole('cell', { name: '공공기업 41', exact: true })).toBeVisible();
+  await expect(nav.getByLabel('페이지 이동')).toHaveValue('3');
   await nav.getByLabel('페이지 이동').fill('7');
   await nav.getByRole('button', { name: '이동', exact: true }).click();
   await expect(page.getByRole('cell', { name: '공공기업 137', exact: true })).toBeVisible();
@@ -29,6 +33,12 @@ test('공공 기업 총 건수와 페이지 이동 및 페이지 크기를 사�
   await nav.getByLabel('페이지당').selectOption('50');
   await expect(nav).toContainText('1 / 3 페이지');
   await expect(page.getByRole('cell', { name: '공공기업 50', exact: true })).toBeVisible();
+  await nav.getByRole('button', { name: '3페이지' }).click();
+  await expect(page.getByRole('cell', { name: '공공기업 137', exact: true })).toBeVisible();
+  await page.reload();
+  await expect(nav).toContainText('3 / 3 페이지');
+  await expect(nav.getByLabel('페이지당')).toHaveValue('50');
+  await expect(page.getByRole('cell', { name: '공공기업 137', exact: true })).toBeVisible();
 });
 
 test('버전 충돌 시 현재 페이지에서 최신 Seed를 다시 확인한다', async ({ page }) => {
