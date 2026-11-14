@@ -20,6 +20,12 @@ test('공고 페이지 번호와 크기를 변경해도 검색 조건을 유지�
   await expect(nav).toContainText('1 / 7 페이지');
   await nav.getByRole('button', { name: '3페이지' }).click();
   await expect(page.getByRole('cell', { name: '검색 결과 41', exact: true })).toBeVisible();
+  await page.reload();
+  await expect(nav).toContainText('3 / 7 페이지');
+  await expect(page.getByRole('cell', { name: '검색 결과 41', exact: true })).toBeVisible();
+  await expect(page.getByLabel('공고 또는 기업명')).toHaveValue('개발자');
+  await expect(page.getByLabel('관리 상태')).toHaveValue('HIDDEN');
+  await expect(nav.getByLabel('페이지 이동')).toHaveValue('3');
   await nav.getByLabel('페이지 이동').fill('7');
   await nav.getByRole('button', { name: '이동', exact: true }).click();
   await expect(page.getByRole('cell', { name: '검색 결과 121', exact: true })).toBeVisible();
@@ -30,4 +36,10 @@ test('공고 페이지 번호와 크기를 변경해도 검색 조건을 유지�
   await nav.getByLabel('페이지당').selectOption('50');
   await expect(nav).toContainText('1 / 3 페이지');
   await expect(page.getByRole('cell', { name: '검색 결과 1', exact: true })).toBeVisible();
+  await nav.getByRole('button', { name: '3페이지' }).click();
+  await expect(page.getByRole('cell', { name: '검색 결과 101', exact: true })).toBeVisible();
+  await page.reload();
+  await expect(nav).toContainText('3 / 3 페이지');
+  await expect(nav.getByLabel('페이지당')).toHaveValue('50');
+  await expect(page.getByRole('cell', { name: '검색 결과 101', exact: true })).toBeVisible();
 });
