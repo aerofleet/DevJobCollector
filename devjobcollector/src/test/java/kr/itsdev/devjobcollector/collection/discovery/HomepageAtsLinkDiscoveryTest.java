@@ -31,4 +31,24 @@ class HomepageAtsLinkDiscoveryTest {
                 .isEmpty();
         assertThat(discovery.discover(null, "")).isEmpty();
     }
+
+    @Test
+    void recognizesTheSuppliedGreetingBoardBeforeItsOtherLinks() {
+        String board = "https://cnccosmetic.career.greetinghr.com/ko/apply";
+        var candidates = discovery.discover(board, "<a href='/ko'>회사 소개</a><a href='/ko/o/123'>공고</a>");
+        assertThat(candidates).singleElement().satisfies(candidate -> {
+            assertThat(candidate.fingerprint().provider()).isEqualTo(SourceType.GREETING);
+            assertThat(candidate.fingerprint().sourceIdentifier()).isEqualTo("cnccosmetic");
+            assertThat(candidate.sourceUrl()).isEqualTo(board);
+        });
+    }
+
+    @Test
+    void selectsOnlySupportedGreetingListPaths() {
+        var fingerprints = new AtsFingerprintService();
+        assertThat(fingerprints.greetingBoardUrl("https://cnccosmetic.career.greetinghr.com/ko/apply", "cnccosmetic"))
+                .isEqualTo("https://cnccosmetic.career.greetinghr.com/ko/apply");
+        assertThat(fingerprints.greetingBoardUrl("https://nuua.career.greetinghr.com/ko/o/123", "nuua"))
+                .isEqualTo("https://nuua.career.greetinghr.com/ko/home");
+    }
 }

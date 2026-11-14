@@ -67,7 +67,7 @@ public class PublicSeedBoardVerificationService {
         JobSourceAdapter adapter = adapters.get(provider);
         if (adapter == null) throw error(HttpStatus.CONFLICT, "UNSUPPORTED_ATS_BOARD");
         String url = provider == SourceType.GREETING
-                ? "https://" + board.identifier() + ".career.greetinghr.com/ko/home" : board.sourceUrl();
+                ? fingerprints.greetingBoardUrl(board.sourceUrl(), board.identifier()) : board.sourceUrl();
         var target = new CompanySourceTarget(null, board.companyName(), provider, board.identifier(), url, CollectionTier.B);
         var result = adapter.fetchJobs(target, CollectionContext.now());
         if (result.status() != CollectionStatus.SUCCESS

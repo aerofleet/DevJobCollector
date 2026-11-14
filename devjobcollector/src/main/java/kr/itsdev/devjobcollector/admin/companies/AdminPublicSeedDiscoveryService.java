@@ -67,7 +67,8 @@ public class AdminPublicSeedDiscoveryService {
                             + "(seed_id, provider, source_identifier, source_url, status, first_seen_at, last_seen_at, "
                             + "first_homepage_candidate_url, first_seed_version) "
                             + "VALUES (?, ?, ?, ?, 'DISCOVERED', UTC_TIMESTAMP(6), UTC_TIMESTAMP(6), ?, ?) "
-                            + "ON DUPLICATE KEY UPDATE last_seen_at = UTC_TIMESTAMP(6)",
+                            + "ON DUPLICATE KEY UPDATE last_seen_at = UTC_TIMESTAMP(6), "
+                            + "source_url = CASE WHEN status = 'DISCOVERED' THEN VALUES(source_url) ELSE source_url END",
                     seedId, candidate.fingerprint().provider().name(), candidate.fingerprint().sourceIdentifier(),
                     candidate.sourceUrl(), seed.homepage(), seed.version());
         }

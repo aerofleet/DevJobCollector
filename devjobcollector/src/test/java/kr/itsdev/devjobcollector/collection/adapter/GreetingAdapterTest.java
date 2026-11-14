@@ -30,6 +30,11 @@ class GreetingAdapterTest {
         assertThat(GreetingAdapter.extractRelevantText(html))
                 .contains("[주요업무]", "LangChain", "[자격요건]", "[우대사항]").doesNotContain("회사 소개");
     }
+    @Test void capturesNumberedSectionHeadings() {
+        String html = "<p>회사 소개</p><p>1.주요업무</p><p>백엔드 개발</p><p>2.자격요건</p><p>Java 경험</p>";
+        assertThat(GreetingAdapter.extractRelevantText(html)).contains("주요업무", "백엔드 개발", "자격요건", "Java 경험")
+                .doesNotContain("회사 소개");
+    }
     @Test void schemaUpgradeSchedulesARefreshButCurrentVersionRetainsItsSchedule() {
         var target = new CompanySourceTarget(null, "누아", SourceType.GREETING, "nuua", "https://nuua.career.greetinghr.com/ko/home", CollectionTier.B);
         target.activate();
@@ -79,6 +84,40 @@ class GreetingAdapterTest {
                 """;
         assertThat(GreetingAdapter.postingUrls(xml, "https://nuua.career.greetinghr.com"))
                 .containsExactly("https://nuua.career.greetinghr.com/o/123");
+    }
+
+    @Test
+    @org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named = "DJC_GREETING_LIST_FIXTURE", matches = ".+")
+    void parsesThePublicCncCosmeticListFixture() throws Exception {
+        String html = java.nio.file.Files.readString(java.nio.file.Path.of(System.getenv("DJC_GREETING_LIST_FIXTURE")));
+        var result = GreetingAdapter.parseList(html, "https://cnccosmetic.career.greetinghr.com", "User-agent: *\nAllow: /");
+        assertThat(result.status()).isEqualTo(CollectionStatus.SUCCESS);
+        assertThat(result.jobs()).hasSize(11);
+    }
+
+    @Test
+    @org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named = "DJC_GREETING_DETAIL_FIXTURE", matches = ".+")
+    void parsesThePublicCncCosmeticDetailFixture() throws Exception {
+        String html = java.nio.file.Files.readString(java.nio.file.Path.of(System.getenv("DJC_GREETING_DETAIL_FIXTURE")));
+        var listing = new JobRawDto(SourceType.GREETING, "244655", "공고", null, null, null,
+                "https://cnccosmetic.career.greetinghr.com/o/244655", null, null, null, null, "hash", "{}");
+        var detail = GreetingAdapter.parseDetail(listing, html);
+        assertThat(detail).isNotNull();
+        assertThat(detail.plainDescription()).isNotBlank();
+    }
+
+    @Test
+    @org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named = "DJC_GREETING_DETAIL_DIRECTORY", matches = ".+")
+    void parsesEveryPublicCncCosmeticDetailFromTheList() throws Exception {
+        String html = java.nio.file.Files.readString(java.nio.file.Path.of(System.getenv("DJC_GREETING_LIST_FIXTURE")));
+        var list = GreetingAdapter.parseList(html, "https://cnccosmetic.career.greetinghr.com", "User-agent: *\nAllow: /");
+        assertThat(list.jobs()).hasSize(11);
+        for (var listing : list.jobs()) {
+            var path = java.nio.file.Path.of(System.getenv("DJC_GREETING_DETAIL_DIRECTORY"), listing.sourceJobId() + ".html");
+            var parsed = GreetingAdapter.parseDetail(listing, java.nio.file.Files.readString(path));
+            assertThat(parsed).as("공고 %s 상세 파싱", listing.sourceJobId()).isNotNull();
+            assertThat(parsed.plainDescription()).isNotBlank();
+        }
     }
 
     @Test void respectsRobotsRulesAndSearchProhibition() {

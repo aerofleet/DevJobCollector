@@ -27,9 +27,11 @@ public class SafeHomepageFetcher {
     private static final int MAX_HTML_CHARS = 2_000_000;
     private static final long MIN_REQUEST_GAP_NANOS = Duration.ofMillis(500).toNanos();
     private static final Pattern IP_LITERAL = Pattern.compile("^(?:[0-9.]+|\\[[0-9a-fA-F:]+])$");
+    private static final AtsFingerprintService ATS = new AtsFingerprintService();
     private final WebClient web;
     private long nextRequestNanos;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public SafeHomepageFetcher() {
         HttpClient client = HttpClient.create().resolver(new PublicAddressResolverGroup())
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 3000)
@@ -40,6 +42,8 @@ public class SafeHomepageFetcher {
                 .defaultHeader(HttpHeaders.ACCEPT_ENCODING, "identity").build();
     }
 
+    SafeHomepageFetcher(WebClient web) { this.web = web; }
+
     public List<Page> discoverablePages(String homepage) {
         URI root = validate(homepage);
         String robots = get(root.resolve("/robots.txt"), true).orElse(null);
@@ -49,6 +53,9 @@ public class SafeHomepageFetcher {
         if (!GreetingAdapter.allowed(robots, rootPath)) return List.of();
         var home = get(root, false);
         if (home.isEmpty()) return List.of();
+        // Once an explicit supported board is safely fetched, probing unrelated guessed paths
+        // adds latency and cannot improve its identity.
+        if (ATS.identify(root.toString()).isPresent()) return List.of(new Page(root, home.get()));
 
         Set<URI> pages = new LinkedHashSet<>();
         pages.add(root);

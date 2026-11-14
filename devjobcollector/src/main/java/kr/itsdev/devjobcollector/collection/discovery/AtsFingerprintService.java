@@ -48,5 +48,11 @@ public class AtsFingerprintService {
                 ? Optional.of(new Fingerprint(type, identifier)) : Optional.empty();
     }
 
+    public String greetingBoardUrl(String sourceUrl, String identifier) {
+        URI uri = URI.create(sourceUrl);
+        String path = "/ko/apply".equals(uri.getRawPath()) ? "/ko/apply" : "/ko/home";
+        return "https://" + identifier + ".career.greetinghr.com" + path;
+    }
+
     public record Fingerprint(SourceType provider, String sourceIdentifier) { }
 }

@@ -79,7 +79,7 @@ public class PublicSeedTargetApprovalService {
             throw error(HttpStatus.CONFLICT, "MATCHED_COMPANY_NOT_VERIFIED");
         Long companyId = companies.isEmpty() ? null : companies.getFirst().id();
         String url = fp.provider() == SourceType.GREETING
-                ? "https://" + fp.sourceIdentifier() + ".career.greetinghr.com/ko/home" : c.sourceUrl();
+                ? fingerprints.greetingBoardUrl(c.sourceUrl(), fp.sourceIdentifier()) : c.sourceUrl();
         var target = new CompanySourceTarget(companyId, c.companyName(), fp.provider(), fp.sourceIdentifier(), url, CollectionTier.B);
         target.activate();
         try { targets.saveAndFlush(target); }
