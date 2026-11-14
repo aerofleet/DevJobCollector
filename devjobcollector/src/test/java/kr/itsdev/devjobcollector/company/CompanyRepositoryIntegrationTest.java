@@ -150,6 +150,39 @@ class CompanyRepositoryIntegrationTest {
     }
 
     @Test
+    void directGreetingBoardKeepsItsApplyPathThroughVerificationAndApproval() throws Exception {
+        String csv = "기업명,사업자번호,지역구분,종업원수,공고명,고용형태,공고등록일\n"
+                + "직접그리팅기업,444-44-55555,서울,10,개발자,정규직,2025-01-01\n";
+        new SmeJobCompanySeedImporter(new SmeJobCompanySeedReader(), jdbc, new SmeJobPostingRelevance())
+                .importCsv(new StringReader(csv));
+        long seedId = jdbc.queryForObject("SELECT id FROM public_company_seed WHERE company_name = ?", Long.class, "직접그리팅기업");
+        var admin = new AdminPrincipal(1L, "a@example.com", "관리자", AdminRole.ADMIN, Set.of(), "session", "csrf");
+        String url = "https://cnccosmetic.career.greetinghr.com/ko/apply";
+        new AdminPublicSeedReviewService(jdbc, auditRepository).setHomepage(seedId, 0L, url, admin, "greeting-home", null, null);
+        var fetcher = mock(SafeHomepageFetcher.class);
+        when(fetcher.discoverablePages(url)).thenReturn(List.of(new SafeHomepageFetcher.Page(java.net.URI.create(url), "<a href='/ko'>홈</a>")));
+        var discovery = new AdminPublicSeedDiscoveryService(jdbc, new HomepageAtsLinkDiscovery(new AtsFingerprintService()),
+                fetcher, targetRepository, auditRepository, new kr.itsdev.devjobcollector.collection.adapter.RecruitBoardParser());
+        assertThat(discovery.discover(seedId, 1L, admin, "greeting-discover", null, null)).isEqualTo(1);
+        var candidate = discovery.list(seedId, 0, 20).getFirst();
+        jdbc.update("UPDATE public_seed_ats_candidate SET source_url = ? WHERE id = ?", "https://cnccosmetic.career.greetinghr.com/ko", candidate.id());
+        discovery.discover(seedId, 1L, admin, "greeting-rediscover", null, null);
+        assertThat(discovery.list(seedId, 0, 20).getFirst().sourceUrl()).isEqualTo(url);
+        discovery.startReview(seedId, candidate.id(), 1L, "공식 확인", url, admin, "greeting-review", null, null);
+        var adapter = mock(JobSourceAdapter.class);
+        when(adapter.sourceType()).thenReturn(SourceType.GREETING);
+        var job = new JobRawDto(SourceType.GREETING, "1", "개발자", "서울", null, null,
+                "https://cnccosmetic.career.greetinghr.com/o/1", null, null, null, null, "hash", "{}");
+        when(adapter.fetchJobs(any(), any())).thenReturn(new CollectionResult(CollectionStatus.SUCCESS, List.of(job), 1, "test", true, "hash"));
+        new PublicSeedBoardVerificationService(jdbc, new AtsFingerprintService(), List.of(adapter), transactionManager, auditRepository)
+                .verify(seedId, candidate.id(), 1L, admin, "greeting-verify", null, null);
+        verify(adapter).fetchJobs(argThat(target -> url.equals(target.getCareersUrl())), any());
+        long targetId = new PublicSeedTargetApprovalService(jdbc, targetRepository, new AtsFingerprintService(), auditRepository)
+                .approve(seedId, candidate.id(), 1L, "직접그리팅기업", true, admin, "greeting-approve", null, null);
+        assertThat(targetRepository.findById(targetId).orElseThrow().getCareersUrl()).isEqualTo(url);
+    }
+
+    @Test
     void companyBoardRequiresVerificationAndOwnershipBeforeTargetCreation() throws Exception {
         String csv = "기업명,사업자번호,지역구분,종업원수,공고명,고용형태,공고등록일\n"
                 + "게시판기업,333-44-55555,서울,10,개발자,정규직,2025-01-01\n";

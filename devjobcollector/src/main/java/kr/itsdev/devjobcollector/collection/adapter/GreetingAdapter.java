@@ -161,7 +161,8 @@ public class GreetingAdapter implements JobSourceAdapter {
         for (String line : text.split("\\R")) {
             String value = line.trim().replaceFirst("^[|■]\\s*", "");
             if (value.isEmpty()) continue;
-            if (value.matches("(?i)^[\\[【]?(?:주요\\s*업무|담당\\s*업무|업무\\s*내용|자격\\s*요건|지원\\s*자격|필수\\s*(?:요건|사항|조건)|우대\\s*(?:요건|사항|조건)|급여\\s*(?:정보|조건)?|연봉|채용\\s*프로세스|채용\\s*절차|혜택\\s*및\\s*복지)[\\]】]?\\s*[:：]?$")) collecting = true;
+            String heading = value.replaceFirst("^\\d{1,2}[.)]\\s*", "");
+            if (heading.matches("(?i)^[\\[【]?(?:주요\\s*업무|담당\\s*업무|업무\\s*내용|자격\\s*요건|지원\\s*자격|필수\\s*(?:요건|사항|조건)|우대\\s*(?:요건|사항|조건)|급여\\s*(?:정보|조건)?|연봉|채용\\s*프로세스|채용\\s*절차|혜택\\s*및\\s*복지)[\\]】]?\\s*[:：]?$")) collecting = true;
             if (collecting) result.append(value).append('\n');
             if (result.length() >= 20000) break;
         }

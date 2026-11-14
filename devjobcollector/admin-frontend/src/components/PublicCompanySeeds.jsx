@@ -157,6 +157,8 @@ export default function PublicCompanySeeds({ refresh }) {
     } catch (cause) {
       const message = cause.status === 502
         ? '홈페이지에 접근할 수 없거나 robots.txt에서 조회를 허용하지 않았습니다. 홈페이지 주소를 확인해주세요.'
+        : cause instanceof TypeError && /fetch|network|load failed/i.test(cause.message)
+          ? '관리자 API에 연결하지 못했습니다. 잠시 후 다시 시도하고, 이미 후보가 저장됐는지 확인해 주세요.'
         : cause.message || 'ATS 후보 검색 요청에 실패했습니다.';
       setAnalysisError(message);
     }

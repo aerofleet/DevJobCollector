@@ -211,3 +211,19 @@ test('승인 충돌 원인을 승인 영역에 표시한다', async ({ page }) =
   await page.getByRole('button', { name: '승인 및 수집 대상 생성' }).click();
   await expect(page.getByText(/수집 대상 #7을 생성했습니다/)).toBeVisible();
 });
+
+test('홈페이지 검색 연결 실패를 이해할 수 있는 안내로 표시한다', async ({ page }) => {
+  await page.route('**/api/v1/admin/me', route => route.fulfill({ json: { data: { id: 1, name: '관리자', role: 'ADMIN' } } }));
+  await page.route('**/api/v1/admin/companies/discovery-candidates?*', route => route.fulfill({ json: { data: [] } }));
+  await page.route('**/api/v1/admin/companies/public-seeds/paged?*', route => route.fulfill({ json: { data: {
+    page: 0, totalElements: 1, totalPages: 1, items: [{ id: 1, companyName: '기업', source: 'KOSME_JOB_COMPANIES',
+      status: 'DISCOVERED', version: 1, homepageCandidateUrl: 'https://example.com' }],
+  } } }));
+  await page.route('**/api/v1/admin/companies/public-seeds/1/ats-candidates?*', route => route.fulfill({ json: { data: [] } }));
+  await page.route('**/api/v1/admin/companies/public-seeds/1/discover', route => route.abort('failed'));
+  await page.goto('/discovery');
+  await page.getByRole('button', { name: 'ATS 후보 확인' }).click();
+  await page.getByRole('button', { name: '홈페이지에서 ATS 자동 검색' }).click();
+  await expect(page.getByRole('alert')).toContainText('관리자 API에 연결하지 못했습니다');
+  await expect(page.getByRole('alert')).toContainText('이미 후보가 저장됐는지 확인');
+});

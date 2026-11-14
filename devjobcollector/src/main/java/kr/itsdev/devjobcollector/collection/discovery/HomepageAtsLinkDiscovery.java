@@ -24,6 +24,9 @@ public class HomepageAtsLinkDiscovery {
             if (!"https".equalsIgnoreCase(homepage.getScheme()) || homepage.getHost() == null
                     || homepage.getUserInfo() != null) return List.of();
             Map<AtsFingerprintService.Fingerprint, Candidate> results = new LinkedHashMap<>();
+            // A supplied homepage can itself be the supported ATS board.
+            fingerprints.identify(homepage.toString()).ifPresent(fingerprint ->
+                    results.put(fingerprint, new Candidate(fingerprint, homepage.toString())));
             // Resolve links against the supplied origin, never an untrusted HTML base element.
             Jsoup.parse(html).select("a[href]").forEach(link -> {
                 try {
