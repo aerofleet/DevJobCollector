@@ -8,6 +8,9 @@ import kr.itsdev.devjobcollector.admin.AdminAuditResult;
 import kr.itsdev.devjobcollector.admin.auth.AdminPrincipal;
 import kr.itsdev.devjobcollector.collection.discovery.HomepageAtsLinkDiscovery;
 import kr.itsdev.devjobcollector.collection.discovery.SafeHomepageFetcher;
+import kr.itsdev.devjobcollector.collection.discovery.RecruitBoardIdentity;
+import kr.itsdev.devjobcollector.collection.adapter.RecruitBoardParser;
+import kr.itsdev.devjobcollector.collection.domain.SourceType;
 import kr.itsdev.devjobcollector.collection.repository.CompanySourceTargetRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -23,15 +26,18 @@ public class AdminPublicSeedDiscoveryService {
     private final SafeHomepageFetcher fetcher;
     private final CompanySourceTargetRepository targets;
     private final AdminAuditLogRepository audit;
+    private final RecruitBoardParser recruitBoardParser;
 
     public AdminPublicSeedDiscoveryService(JdbcTemplate jdbc, HomepageAtsLinkDiscovery links,
                                            SafeHomepageFetcher fetcher,
-                                           CompanySourceTargetRepository targets, AdminAuditLogRepository audit) {
+                                           CompanySourceTargetRepository targets, AdminAuditLogRepository audit,
+                                           RecruitBoardParser recruitBoardParser) {
         this.jdbc = jdbc;
         this.links = links;
         this.fetcher = fetcher;
         this.targets = targets;
         this.audit = audit;
+        this.recruitBoardParser = recruitBoardParser;
     }
 
     @Transactional
@@ -65,11 +71,26 @@ public class AdminPublicSeedDiscoveryService {
                     seedId, candidate.fingerprint().provider().name(), candidate.fingerprint().sourceIdentifier(),
                     candidate.sourceUrl(), seed.homepage(), seed.version());
         }
+        int boardCount = 0;
+        for (var page : pages) {
+            var identity = RecruitBoardIdentity.identify(page.url().toString());
+            if (identity.isEmpty() || targets.findByProviderAndSourceIdentifier(SourceType.COMPANY_PAGE, identity.get()).isPresent()) continue;
+            var parsed = recruitBoardParser.parse(page.html(), page.url(), null);
+            if (!parsed.valid() || parsed.jobs().isEmpty()) continue;
+            jdbc.update("INSERT INTO public_seed_ats_candidate "
+                            + "(seed_id, provider, source_identifier, source_url, status, first_seen_at, last_seen_at, "
+                            + "first_homepage_candidate_url, first_seed_version) "
+                            + "VALUES (?, ?, ?, ?, 'DISCOVERED', UTC_TIMESTAMP(6), UTC_TIMESTAMP(6), ?, ?) "
+                            + "ON DUPLICATE KEY UPDATE last_seen_at = UTC_TIMESTAMP(6)",
+                    seedId, SourceType.COMPANY_PAGE.name(), identity.get(), page.url().toString(), seed.homepage(), seed.version());
+            boardCount++;
+        }
+        int candidateCount = found.size() + boardCount;
         audit.save(AdminAuditLog.record(actor.id(), "PUBLIC_SEED_HOMEPAGE_DISCOVERY", "PUBLIC_COMPANY_SEED",
                 Long.toString(seedId), "안전한 홈페이지 페이지 자동 조회 및 ATS 링크 분석", null,
-                "{\"candidateCount\":" + found.size() + "}", AdminAuditResult.SUCCESS, requestId,
+                "{\"candidateCount\":" + candidateCount + "}", AdminAuditResult.SUCCESS, requestId,
                 truncate(ip, 45), truncate(agent, 500)));
-        return found.size();
+        return candidateCount;
     }
 
     private static String truncate(String value, int limit) {

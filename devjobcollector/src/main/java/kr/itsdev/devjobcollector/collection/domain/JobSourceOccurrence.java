@@ -116,4 +116,10 @@ public class JobSourceOccurrence {
         }
         return false;
     }
+
+    public boolean closeExplicitly() {
+        if (!"ACTIVE".equals(sourceStatus)) return false;
+        sourceStatus = "CLOSED";
+        return true;
+    }
 }

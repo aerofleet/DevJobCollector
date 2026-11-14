@@ -125,6 +125,43 @@ class CompanyRepositoryIntegrationTest {
     }
 
     @Test
+    void companyBoardRequiresVerificationAndOwnershipBeforeTargetCreation() throws Exception {
+        String csv = "기업명,사업자번호,지역구분,종업원수,공고명,고용형태,공고등록일\n"
+                + "게시판기업,333-44-55555,서울,10,개발자,정규직,2025-01-01\n";
+        new SmeJobCompanySeedImporter(new SmeJobCompanySeedReader(), jdbc,
+                new SmeJobPostingRelevance()).importCsv(new StringReader(csv));
+        long seedId = jdbc.queryForObject("SELECT id FROM public_company_seed WHERE company_name = ?", Long.class, "게시판기업");
+        var admin = new AdminPrincipal(1L, "a@example.com", "관리자", AdminRole.ADMIN, Set.of(), "session", "csrf");
+        String url = "https://example.com/bbs/board.php?bo_table=recruit";
+        new AdminPublicSeedReviewService(jdbc, auditRepository).setHomepage(seedId, 0L, url, admin, "board-home", null, null);
+        var fetcher = mock(SafeHomepageFetcher.class);
+        String html = "<table><tr><td><a href='/bbs/board.php?bo_table=recruit&amp;wr_id=1'>개발자</a></td>"
+                + "<td><span class='badge recruit-now'>접수중</span></td><td>2026.11.01~2026.12.01</td></tr></table>";
+        when(fetcher.discoverablePages(url)).thenReturn(List.of(new SafeHomepageFetcher.Page(java.net.URI.create(url), html)));
+        var discovery = new AdminPublicSeedDiscoveryService(jdbc, new HomepageAtsLinkDiscovery(new AtsFingerprintService()),
+                fetcher, targetRepository, auditRepository, new kr.itsdev.devjobcollector.collection.adapter.RecruitBoardParser());
+        assertThat(discovery.discover(seedId, 1L, admin, "board-discover", null, null)).isEqualTo(1);
+        var candidate = discovery.list(seedId, 0, 20).getFirst();
+        assertThat(candidate.provider()).isEqualTo("COMPANY_PAGE");
+        discovery.startReview(seedId, candidate.id(), 1L, "기업 확인", "https://example.com/about", admin, "board-review", null, null);
+        var approval = new PublicSeedTargetApprovalService(jdbc, targetRepository, new AtsFingerprintService(), auditRepository);
+        assertThatThrownBy(() -> approval.approve(seedId, candidate.id(), 1L, "게시판기업", true, admin, "board-early", null, null))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        var adapter = mock(JobSourceAdapter.class);
+        when(adapter.sourceType()).thenReturn(SourceType.COMPANY_PAGE);
+        var jobs = new kr.itsdev.devjobcollector.collection.adapter.RecruitBoardParser()
+                .parse(html, java.net.URI.create(url), "게시판기업").jobs();
+        when(adapter.fetchJobs(any(), any())).thenReturn(new CollectionResult(CollectionStatus.SUCCESS, jobs, 1, "test", true, "hash"));
+        new PublicSeedBoardVerificationService(jdbc, new AtsFingerprintService(), List.of(adapter), transactionManager, auditRepository)
+                .verify(seedId, candidate.id(), 1L, admin, "board-verify", null, null);
+        assertThatThrownBy(() -> approval.approve(seedId, candidate.id(), 1L, "게시판기업", false, admin, "board-no-owner", null, null))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        long targetId = approval.approve(seedId, candidate.id(), 1L, "게시판기업", true, admin, "board-approve", null, null);
+        assertThat(targetRepository.findById(targetId).orElseThrow().getProvider()).isEqualTo(SourceType.COMPANY_PAGE);
+        assertThat(discovery.list(seedId, 0, 20).getFirst().status()).isEqualTo("TARGET_CREATED");
+    }
+
+    @Test
     void approvalRequiresBoardEvidenceExplicitOwnershipAndCreatesOneTarget() throws Exception {
         String csv = "기업명,사업자번호,지역구분,종업원수,공고명,고용형태,공고등록일\n"
                 + "승인기업,234-56-78901,서울,10,개발자,정규직,2025-01-01\n";
@@ -140,7 +177,7 @@ class CompanyRepositoryIntegrationTest {
                 .thenReturn(List.of(new SafeHomepageFetcher.Page(java.net.URI.create("https://example.com"),
                         "<a href='https://nuua.career.greetinghr.com/ko/home'>채용</a>")));
         var discovery = new AdminPublicSeedDiscoveryService(jdbc, new HomepageAtsLinkDiscovery(new AtsFingerprintService()), homepageFetcher,
-                targetRepository, auditRepository);
+                targetRepository, auditRepository, new kr.itsdev.devjobcollector.collection.adapter.RecruitBoardParser());
         discovery.discover(seedId, 1L, admin, "approval-discovery", null, null);
         var candidate = discovery.list(seedId, 0, 20).getFirst();
         discovery.startReview(seedId, candidate.id(), 1L, "공식 사이트 확인", "https://example.com/about",
@@ -209,7 +246,8 @@ class CompanyRepositoryIntegrationTest {
                 .thenReturn(List.of(new SafeHomepageFetcher.Page(java.net.URI.create("https://example.com/careers"),
                         "<a href='https://nuua.career.greetinghr.com/ko/home'>채용</a>")));
         var discovery = new AdminPublicSeedDiscoveryService(jdbc,
-                new HomepageAtsLinkDiscovery(new AtsFingerprintService()), homepageFetcher, targetRepository, auditRepository);
+                new HomepageAtsLinkDiscovery(new AtsFingerprintService()), homepageFetcher, targetRepository, auditRepository,
+                new kr.itsdev.devjobcollector.collection.adapter.RecruitBoardParser());
         assertThat(discovery.discover(seed.id(), 1L, admin, "seed-discovery", null, null)).isEqualTo(1);
         assertThat(discovery.discover(seed.id(), 1L, admin, "seed-discovery-2", null, null)).isEqualTo(1);
         assertThat(discovery.list(seed.id(), 0, 20)).hasSize(1)

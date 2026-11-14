@@ -118,14 +118,14 @@ test('관리자가 공공 CSV를 수입한다', async ({ page }) => {
   await page.getByRole('button', { name: '홈페이지에서 ATS 자동 검색' }).click();
   await expect(page.getByText(/GREETING · nuua/)).toBeVisible();
   await expect(page.getByText(/최초 발견 이후 홈페이지 입력 이력 변경됨/)).toBeVisible();
-  await expect(page.getByText(/검색 완료: ATS 후보 1건을 찾았습니다/)).toBeVisible();
+  await expect(page.getByText(/검색 완료: 채용 게시판 후보 1건을 찾았습니다/)).toBeVisible();
   await page.getByRole('button', { name: '검수 시작' }).click();
   await page.getByLabel('검수 메모').fill('기업 관계 확인 중');
   await page.getByLabel('참고 URL (선택)').fill('https://example.com/about');
   await page.getByRole('button', { name: '검수 기록 저장' }).click();
   await expect(page.getByText(/검수 메모: 기업 관계 확인 중/)).toBeVisible();
   await page.getByRole('button', { name: 'ATS 공고 확인' }).click();
-  await expect(page.getByText(/ATS 공고 확인: 1건/)).toBeVisible();
+  await expect(page.getByText(/공고 확인: 1건/)).toBeVisible();
   await page.getByRole('button', { name: 'ATS 후보 거절' }).click();
   await page.getByLabel('ATS 후보 거절 사유').fill('소유권 미확인');
   await page.getByRole('button', { name: 'ATS 거절 확정' }).click();
@@ -154,7 +154,7 @@ test('관리자가 소유권을 확인한 뒤 수집 대상을 승인한다', as
   await page.getByRole('button', { name: 'ATS 후보 확인' }).click();
   await page.getByRole('button', { name: '수집 대상 승인' }).click();
   await page.getByLabel('기업명 확인').fill('국내기업');
-  await page.getByLabel('공식 홈페이지와 ATS의 기업 소유권을 확인했습니다.').check();
+  await page.getByLabel('공식 홈페이지와 채용 게시판의 기업 소유권을 확인했습니다.').check();
   await page.getByRole('button', { name: '승인 및 수집 대상 생성' }).click();
   await expect(page.getByText(/수집 대상 #7을 생성했습니다/)).toBeVisible();
 });
