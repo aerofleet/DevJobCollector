@@ -172,4 +172,6 @@ jobs:
             printf 'container path=%s ' "$path"
             sudo docker exec "$container_id" curl -sS -o /dev/null -w 'status=%{http_code} elapsed=%{time_total}\n' --max-time 15 -A 'DevJobCollector/1.0 (+https://itsdev.kr)' "https://cnccosmetic.career.greetinghr.com$path"
           done
+          printf 'DNS host records IPv6 count: '
+          sudo docker exec "$container_id" sh -c "getent hosts cnccosmetic.career.greetinghr.com | awk '\$1 ~ /:/ {n++} END {print n+0}'"
           REMOTE
