@@ -168,7 +168,7 @@ class CompanyRepositoryIntegrationTest {
         assertThat(discovery.discover(seedId, 1L, admin, "board-discover", null, null)).isEqualTo(1);
         var candidate = discovery.list(seedId, 0, 20).getFirst();
         assertThat(candidate.provider()).isEqualTo("COMPANY_PAGE");
-        discovery.startReview(seedId, candidate.id(), 1L, "기업 확인", "https://example.com/about", admin, "board-review", null, null);
+        discovery.startReview(seedId, candidate.id(), 1L, "기업 확인", null, admin, "board-review", null, null);
         var approval = new PublicSeedTargetApprovalService(jdbc, targetRepository, new AtsFingerprintService(), auditRepository);
         assertThatThrownBy(() -> approval.approve(seedId, candidate.id(), 1L, "게시판기업", true, admin, "board-early", null, null))
                 .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
@@ -179,11 +179,33 @@ class CompanyRepositoryIntegrationTest {
         when(adapter.fetchJobs(any(), any())).thenReturn(new CollectionResult(CollectionStatus.SUCCESS, jobs, 1, "test", true, "hash"));
         new PublicSeedBoardVerificationService(jdbc, new AtsFingerprintService(), List.of(adapter), transactionManager, auditRepository)
                 .verify(seedId, candidate.id(), 1L, admin, "board-verify", null, null);
+        assertThatThrownBy(() -> approval.approve(seedId, candidate.id(), 1L, "게시판기업", true, admin, "board-no-reference", null, null))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        discovery.startReview(seedId, candidate.id(), 1L, "공식 근거 확인", "https://example.com/about", admin, "board-correct", null, null);
+        var corrected = discovery.list(seedId, 0, 20).getFirst();
+        assertThat(corrected.status()).isEqualTo("VERIFYING");
+        assertThat(corrected.boardVerifiedAt()).isNull();
+        assertThat(corrected.boardJobCount()).isNull();
+        assertThatThrownBy(() -> approval.approve(seedId, candidate.id(), 1L, "게시판기업", true, admin, "board-reverify-required", null, null))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        when(adapter.fetchJobs(any(), any())).thenAnswer(invocation -> {
+            jdbc.update("UPDATE public_seed_ats_candidate SET review_reference_url = ? WHERE id = ?",
+                    "https://example.com/changed", candidate.id());
+            return new CollectionResult(CollectionStatus.SUCCESS, jobs, 1, "test", true, "hash");
+        });
+        assertThatThrownBy(() -> new PublicSeedBoardVerificationService(jdbc, new AtsFingerprintService(), List.of(adapter), transactionManager, auditRepository)
+                .verify(seedId, candidate.id(), 1L, admin, "board-stale-verify", null, null))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        when(adapter.fetchJobs(any(), any())).thenReturn(new CollectionResult(CollectionStatus.SUCCESS, jobs, 1, "test", true, "hash"));
+        new PublicSeedBoardVerificationService(jdbc, new AtsFingerprintService(), List.of(adapter), transactionManager, auditRepository)
+                .verify(seedId, candidate.id(), 1L, admin, "board-reverify", null, null);
         assertThatThrownBy(() -> approval.approve(seedId, candidate.id(), 1L, "게시판기업", false, admin, "board-no-owner", null, null))
                 .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
         long targetId = approval.approve(seedId, candidate.id(), 1L, "게시판기업", true, admin, "board-approve", null, null);
         assertThat(targetRepository.findById(targetId).orElseThrow().getProvider()).isEqualTo(SourceType.COMPANY_PAGE);
         assertThat(discovery.list(seedId, 0, 20).getFirst().status()).isEqualTo("TARGET_CREATED");
+        assertThatThrownBy(() -> discovery.startReview(seedId, candidate.id(), 1L, "변경", "https://example.com/about", admin, "board-after-create", null, null))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
     }
 
     @Test
