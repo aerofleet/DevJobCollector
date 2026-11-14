@@ -153,3 +153,19 @@ jobs:
           set -euo pipefail
           ssh djc-a1 "sudo docker compose --project-name djc --env-file /etc/devjobcollector/devjobcollector.env -f /opt/devjobcollector/compose.yaml logs --no-color --since 2h app" |
             python3 -c 'import re,sys,collections; s=sys.stdin.read(); p=r"API timing \[POST /api/v1/admin/companies/public-seeds/\d+/discover\] status=(\d+) elapsedMs=([\d.]+)"; a=re.findall(p,s); print("discovery_requests:", len(a)); [print("status=%s elapsed_ms=%s" % x) for x in a[-20:]]; print("exception_counts:"); c=collections.Counter(re.findall(r"\b([A-Za-z]+(?:Exception|Error))\b",s)); [print(k,v) for k,v in c.most_common(25)]'
+
+      - name: Probe public board from production host
+        if: always()
+        env:
+          TUNNEL_SERVICE_TOKEN_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          TUNNEL_SERVICE_TOKEN_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+        run: |
+          ssh djc-a1 'bash -s' <<'REMOTE'
+          set +e
+          for path in /robots.txt /ko/apply; do
+            printf 'host path=%s ' "$path"
+            curl -sS -o /dev/null -w 'status=%{http_code} elapsed=%{time_total}\n' --max-time 15 -A 'DevJobCollector/1.0 (+https://itsdev.kr)' "https://cnccosmetic.career.greetinghr.com$path"
+          done
+          container_id="$(sudo docker compose --project-name djc --env-file /etc/devjobcollector/devjobcollector.env -f /opt/devjobcollector/compose.yaml ps -q app)"
+          sudo docker exec "$container_id" sh -c 'command -v curl || command -v wget || true'
+          REMOTE
