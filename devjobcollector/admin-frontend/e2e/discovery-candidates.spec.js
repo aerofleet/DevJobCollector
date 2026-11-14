@@ -121,7 +121,7 @@ test('관리자가 공공 CSV를 수입한다', async ({ page }) => {
   await expect(page.getByText(/검색 완료: 채용 게시판 후보 1건을 찾았습니다/)).toBeVisible();
   await page.getByRole('button', { name: '검수 시작' }).click();
   await page.getByLabel('검수 메모').fill('기업 관계 확인 중');
-  await page.getByLabel('참고 URL (선택)').fill('https://example.com/about');
+  await page.getByLabel('참고 URL (수집 대상 승인 시 필수)').fill('https://example.com/about');
   await page.getByRole('button', { name: '검수 기록 저장' }).click();
   await expect(page.getByText(/검수 메모: 기업 관계 확인 중/)).toBeVisible();
   await page.getByRole('button', { name: 'ATS 공고 확인' }).click();
@@ -153,8 +153,36 @@ test('관리자가 소유권을 확인한 뒤 수집 대상을 승인한다', as
   await page.goto('/discovery');
   await page.getByRole('button', { name: 'ATS 후보 확인' }).click();
   await page.getByRole('button', { name: '수집 대상 승인' }).click();
+  await page.getByRole('button', { name: '승인 및 수집 대상 생성' }).click();
+  await expect(page.getByRole('alert')).toContainText('“국내기업”을 정확히 입력');
   await page.getByLabel('기업명 확인').fill('국내기업');
+  await page.getByRole('button', { name: '승인 및 수집 대상 생성' }).click();
+  await expect(page.getByRole('alert')).toContainText('소유권 확인 체크박스');
   await page.getByLabel('공식 홈페이지와 채용 게시판의 기업 소유권을 확인했습니다.').check();
   await page.getByRole('button', { name: '승인 및 수집 대상 생성' }).click();
   await expect(page.getByText(/수집 대상 #7을 생성했습니다/)).toBeVisible();
+});
+
+test('승인 충돌 원인을 승인 영역에 표시한다', async ({ page }) => {
+  await page.route('**/api/v1/admin/me', route => route.fulfill({ json: { data: { id: 1, name: '관리자', role: 'ADMIN' } } }));
+  await page.route('**/api/v1/admin/companies/discovery-candidates?*', route => route.fulfill({ json: { data: [] } }));
+  await page.route('**/api/v1/admin/companies/public-seeds/paged?*', route => route.fulfill({ json: { data: {
+    page: 0, totalElements: 1, totalPages: 1, items: [{ id: 1, companyName: '(주)웰파인', source: 'KOSME_JOB_COMPANIES',
+      status: 'DISCOVERED', version: 1, homepageCandidateUrl: 'https://www.wellfine.co.kr/bbs/board.php?bo_table=recruit' }],
+  } } }));
+  await page.route('**/api/v1/admin/companies/public-seeds/1/ats-candidates?*', route => route.fulfill({ json: { data: [{
+    id: 2, provider: 'COMPANY_PAGE', sourceIdentifier: 'board', sourceUrl: 'https://www.wellfine.co.kr/bbs/board.php?bo_table=recruit',
+    status: 'BOARD_VERIFIED', boardJobCount: 3, boardSeedVersion: 1, currentSeedVersion: 1,
+  }] } }));
+  await page.route('**/api/v1/admin/companies/public-seeds/1/ats-candidates/2/approve-target', route =>
+    route.fulfill({ status: 409, json: { code: 'OWNERSHIP_EVIDENCE_REQUIRED' } }));
+  await page.goto('/discovery');
+  await page.getByRole('button', { name: 'ATS 후보 확인' }).click();
+  await page.getByRole('button', { name: '수집 대상 승인' }).click();
+  await page.getByLabel('기업명 확인').fill('(주)웰파인');
+  await page.getByLabel('공식 홈페이지와 채용 게시판의 기업 소유권을 확인했습니다.').check();
+  await page.getByRole('button', { name: '승인 및 수집 대상 생성' }).click();
+  const approval = page.locator('div').filter({ has: page.getByLabel('기업명 확인') }).last();
+  await expect(approval.getByRole('alert')).toContainText('검수 참고 URL');
+  await expect(approval.getByRole('button', { name: '승인 및 수집 대상 생성' })).toBeEnabled();
 });

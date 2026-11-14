@@ -26,6 +26,7 @@ export default function PublicCompanySeeds({ refresh }) {
   const [reviewNote, setReviewNote] = useState('');
   const [reference, setReference] = useState('');
   const [approvalId, setApprovalId] = useState(null);
+  const [approvalError, setApprovalError] = useState('');
   const [confirmCompany, setConfirmCompany] = useState('');
   const [confirmOwnership, setConfirmOwnership] = useState(false);
   useEffect(() => {
@@ -95,16 +96,23 @@ export default function PublicCompanySeeds({ refresh }) {
   };
   const approveTarget = async () => {
     if (saving || !analysisSeed || approvalId === null) return;
-    if (!confirmOwnership || confirmCompany.trim() !== analysisSeed.companyName) {
-      setError('기업명을 정확히 입력하고 소유권 확인 항목을 선택해주세요.'); return;
+    if (confirmCompany.trim() !== analysisSeed.companyName) {
+      setApprovalError(`기업명에 “${analysisSeed.companyName}”을 정확히 입력해 주세요.`); return;
     }
-    setSaving(true); setError(''); setNotice('');
+    if (!confirmOwnership) { setApprovalError('기업 소유권 확인 체크박스를 선택해 주세요.'); return; }
+    setSaving(true); setError(''); setApprovalError(''); setNotice('');
     try {
       const result = await adminApi.approvePublicSeedTarget(analysisSeed.id, approvalId, analysisSeed.version,
         confirmCompany.trim(), confirmOwnership);
       setApprovalId(null); setNotice(`수집 대상 #${result.data.targetId}을 생성했습니다. 공고 수집이 시작될 수 있습니다.`);
-      setAts((await adminApi.publicSeedAtsCandidates(analysisSeed.id)).data);
-    } catch (cause) { setError(cause.status === 409 ? '검증이 만료됐거나 근거·상태가 변경됐습니다. 다시 확인해주세요.' : cause.message); }
+      try { setAts((await adminApi.publicSeedAtsCandidates(analysisSeed.id)).data); }
+      catch { setError('수집 대상은 생성됐지만 후보 목록을 새로고침하지 못했습니다. 창을 다시 열어 확인해 주세요.'); }
+    } catch (cause) {
+      setApprovalError(cause.status === 409
+        ? '승인 조건을 확인해 주세요. 공고 확인은 24시간 내에 완료해야 하며, 검수 참고 URL은 기업 홈페이지와 같은 호스트여야 합니다. 이미 승인됐거나 기업·후보 상태가 바뀐 경우에도 다시 확인해야 합니다.'
+        : cause.status === 403 ? '이 계정에는 수집 대상 승인 권한이 없습니다.'
+          : cause.message || '수집 대상 생성에 실패했습니다. 다시 시도해 주세요.');
+    }
     finally { setSaving(false); }
   };
   const rejectAts = async () => {
@@ -158,8 +166,8 @@ export default function PublicCompanySeeds({ refresh }) {
   return <div className="dashboard-panel user-list">
     <h3>공공 기업 Seed</h3>
     <p>공공 구인기업 목록에서 수입한 기업입니다. 개발·IT 관련 Seed는 검색 API 설정 시 공식 홈페이지 후보를 자동으로 찾고, 기존 탐색기가 ATS 링크를 이어서 확인합니다. 검색 결과는 소유권이 검증되지 않은 후보이며 공고 수집 승인은 별도로 필요합니다.</p>
-    {notice && <p role="status">{notice}</p>}
-    {error ? <p className="form-error" role="alert">{error}</p> : !rows ? <p role="status">기업을 불러오는 중입니다.</p>
+    {notice && !analysisSeed && <p role="status">{notice}</p>}
+    {error && !analysisSeed ? <p className="form-error" role="alert">{error}</p> : !rows ? <p role="status">기업을 불러오는 중입니다.</p>
       : visible.length === 0 ? <p>수입된 공공 기업이 없습니다.</p> : <div className="table-scroll"><table>
         <thead><tr><th>공공 기업명</th><th>출처</th><th>직무 우선순위</th><th>Seed 상태</th><th>일치하는 회원 기업</th><th>회원 기업 상태</th><th>홈페이지 후보</th><th>입력</th></tr></thead>
         <tbody>{visible.map((seed) => <tr key={seed.id}>
@@ -208,6 +216,7 @@ export default function PublicCompanySeeds({ refresh }) {
     </form>}
     {analysisSeed && <div className="company-review-confirm">
       <p>{analysisSeed.companyName} 홈페이지의 공개 페이지에서 ATS 링크와 지원되는 채용 게시판을 검색합니다. 로봇 배제 규칙을 따르며, 후보의 공식 여부와 소유권은 별도 확인해야 합니다.</p>
+      {error && <p className="form-error" role="alert">{error}</p>}
       {analysisError && <p className="form-error" role="alert">{analysisError}</p>}
       <div><button type="button" disabled={saving} onClick={analyze}>{saving ? '홈페이지 확인 중…' : '홈페이지에서 ATS 자동 검색'}</button>
         <button type="button" disabled={saving} onClick={() => setAnalysisSeed(null)}>닫기</button></div>
@@ -222,7 +231,7 @@ export default function PublicCompanySeeds({ refresh }) {
           {item.boardSeedVersion !== item.currentSeedVersion && ' · 기업 정보가 변경되어 재확인 필요'}</div>}
         {['VERIFYING', 'BOARD_VERIFIED'].includes(item.status) && <button type="button" disabled={saving} onClick={() => verifyBoard(item.id)}>{item.provider === 'COMPANY_PAGE' ? '게시판 공고 확인' : 'ATS 공고 확인'}</button>}
         {item.status === 'BOARD_VERIFIED' && admin?.role !== 'REVIEWER' && <button type="button" onClick={() => {
-          setApprovalId(item.id); setConfirmCompany(''); setConfirmOwnership(false); setReviewId(null); setRejectId(null); setNotice(''); setError('');
+          setApprovalId(item.id); setConfirmCompany(''); setConfirmOwnership(false); setApprovalError(''); setReviewId(null); setRejectId(null); setNotice(''); setError('');
         }}>수집 대상 승인</button>}
         {item.status === 'DISCOVERED' && <button type="button" onClick={() => {
           setReviewId(item.id); setReviewNote(''); setReference(''); setRejectId(null); setError(''); setNotice('');
@@ -232,6 +241,7 @@ export default function PublicCompanySeeds({ refresh }) {
           setReviewId(null);
         }}>ATS 후보 거절</button>}
       </li>)}</ul>
+      {notice && <p role="status">{notice}</p>}
       {rejectId !== null && <div>
         <label>ATS 후보 거절 사유<textarea value={rejectReason} onChange={(event) => setRejectReason(event.target.value)}
           maxLength={500} rows={3} disabled={saving} /></label>
@@ -242,17 +252,19 @@ export default function PublicCompanySeeds({ refresh }) {
         <p>검수 기록만 저장합니다. 소유권과 활성 공고는 별도 확인해야 합니다.</p>
         <label>검수 메모<textarea value={reviewNote} onChange={(event) => setReviewNote(event.target.value)}
           maxLength={500} rows={3} disabled={saving} /></label>
-        <label>참고 URL (선택)<input type="url" value={reference} onChange={(event) => setReference(event.target.value)}
+        <label>참고 URL (수집 대상 승인 시 필수)<input type="url" value={reference} onChange={(event) => setReference(event.target.value)}
           maxLength={1000} disabled={saving} /></label>
         <button type="button" disabled={saving} onClick={startReview}>검수 기록 저장</button>
         <button type="button" disabled={saving} onClick={() => setReviewId(null)}>검수 취소</button>
       </div>}
       {approvalId !== null && <div>
         <p>승인하면 수집기가 이 채용 게시판의 공고를 수집할 수 있습니다. 공식 홈페이지와 게시판이 같은 기업 소유인지 직접 확인해주세요.</p>
-        <label>기업명 확인<input value={confirmCompany} onChange={(event) => setConfirmCompany(event.target.value)} disabled={saving} /></label>
-        <label><input type="checkbox" checked={confirmOwnership} onChange={(event) => setConfirmOwnership(event.target.checked)} disabled={saving} />공식 홈페이지와 채용 게시판의 기업 소유권을 확인했습니다.</label>
-        <button type="button" disabled={saving} onClick={approveTarget}>승인 및 수집 대상 생성</button>
-        <button type="button" disabled={saving} onClick={() => setApprovalId(null)}>승인 취소</button>
+        <p>아래 기업명을 그대로 입력해 주세요: <strong>{analysisSeed.companyName}</strong></p>
+        {approvalError && <p className="form-error" role="alert">{approvalError}</p>}
+        <label>기업명 확인<input value={confirmCompany} onChange={(event) => { setConfirmCompany(event.target.value); setApprovalError(''); }} disabled={saving} /></label>
+        <label><input type="checkbox" checked={confirmOwnership} onChange={(event) => { setConfirmOwnership(event.target.checked); setApprovalError(''); }} disabled={saving} />공식 홈페이지와 채용 게시판의 기업 소유권을 확인했습니다.</label>
+        <button type="button" disabled={saving} onClick={approveTarget}>{saving ? '승인 처리 중…' : '승인 및 수집 대상 생성'}</button>
+        <button type="button" disabled={saving} onClick={() => { setApprovalId(null); setApprovalError(''); }}>승인 취소</button>
       </div>}
     </div>}
   </div>;
