@@ -9,6 +9,7 @@ import kr.itsdev.devjobcollector.admin.AdminAuditResult;
 import kr.itsdev.devjobcollector.admin.auth.AdminPrincipal;
 import kr.itsdev.devjobcollector.collection.adapter.JobSourceAdapter;
 import kr.itsdev.devjobcollector.collection.discovery.AtsFingerprintService;
+import kr.itsdev.devjobcollector.collection.discovery.RecruitBoardIdentity;
 import kr.itsdev.devjobcollector.collection.domain.CollectionStatus;
 import kr.itsdev.devjobcollector.collection.domain.CollectionTier;
 import kr.itsdev.devjobcollector.collection.domain.CompanySourceTarget;
@@ -54,7 +55,9 @@ public class PublicSeedBoardVerificationService {
         if (!"DISCOVERED".equals(board.seedStatus()) || !("VERIFYING".equals(board.status()) || "BOARD_VERIFIED".equals(board.status()))
                 || board.version() != expectedVersion)
             throw error(HttpStatus.CONFLICT, "DISCOVERY_STATUS_CONFLICT");
-        var fingerprint = fingerprints.identify(board.sourceUrl())
+        var fingerprint = (SourceType.COMPANY_PAGE.name().equals(board.provider())
+                ? RecruitBoardIdentity.identify(board.sourceUrl()).map(id -> new AtsFingerprintService.Fingerprint(SourceType.COMPANY_PAGE, id))
+                : fingerprints.identify(board.sourceUrl()))
                 .orElseThrow(() -> error(HttpStatus.CONFLICT, "INVALID_ATS_SOURCE"));
         if (!fingerprint.provider().name().equals(board.provider()) || !fingerprint.sourceIdentifier().equals(board.identifier()))
             throw error(HttpStatus.CONFLICT, "INVALID_ATS_SOURCE");
@@ -67,7 +70,8 @@ public class PublicSeedBoardVerificationService {
                 ? "https://" + board.identifier() + ".career.greetinghr.com/ko/home" : board.sourceUrl();
         var target = new CompanySourceTarget(null, board.companyName(), provider, board.identifier(), url, CollectionTier.B);
         var result = adapter.fetchJobs(target, CollectionContext.now());
-        if (result.status() != CollectionStatus.SUCCESS || !result.closureEvaluationAllowed() || result.jobs().isEmpty()
+        if (result.status() != CollectionStatus.SUCCESS
+                || (provider != SourceType.COMPANY_PAGE && !result.closureEvaluationAllowed()) || result.jobs().isEmpty()
                 || result.jobs().stream().anyMatch(job -> job.provider() != provider))
             throw error(HttpStatus.CONFLICT, "ATS_BOARD_NOT_VERIFIED");
         int count = result.jobs().size();
