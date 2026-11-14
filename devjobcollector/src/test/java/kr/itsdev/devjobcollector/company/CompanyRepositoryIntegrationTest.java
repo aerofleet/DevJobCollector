@@ -106,6 +106,25 @@ class CompanyRepositoryIntegrationTest {
     }
 
     @Test
+    void publicSeedNumberedPagesMatchCursorOrderAndCount() throws Exception {
+        String csv = "기업명,사업자번호,지역구분,종업원수,공고명,고용형태,공고등록일\n"
+                + "페이지기업1,441-11-11111,서울,10,개발자,정규직,2025-01-01\n"
+                + "페이지기업2,442-22-22222,서울,10,개발자,정규직,2025-01-01\n"
+                + "페이지기업3,443-33-33333,서울,10,개발자,정규직,2025-01-01\n";
+        new SmeJobCompanySeedImporter(new SmeJobCompanySeedReader(), jdbc, new SmeJobPostingRelevance())
+                .importCsv(new StringReader(csv));
+        var service = new AdminPublicSeedQueryService(jdbc);
+        var first = service.page(0, 2);
+        var second = service.page(1, 2);
+        assertThat(first.totalElements()).isEqualTo(jdbc.queryForObject("SELECT COUNT(*) FROM public_company_seed", Long.class));
+        assertThat(first.totalPages()).isEqualTo((first.totalElements() + 1) / 2);
+        assertThat(first.items()).extracting(AdminPublicSeedQueryService.SeedView::id)
+                .containsExactlyElementsOf(service.list(0, 2).stream().map(AdminPublicSeedQueryService.SeedView::id).toList());
+        assertThat(second.items()).extracting(AdminPublicSeedQueryService.SeedView::id)
+                .doesNotContainAnyElementsOf(first.items().stream().map(AdminPublicSeedQueryService.SeedView::id).toList());
+    }
+
+    @Test
     void approvalRequiresBoardEvidenceExplicitOwnershipAndCreatesOneTarget() throws Exception {
         String csv = "기업명,사업자번호,지역구분,종업원수,공고명,고용형태,공고등록일\n"
                 + "승인기업,234-56-78901,서울,10,개발자,정규직,2025-01-01\n";
