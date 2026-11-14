@@ -168,4 +168,8 @@ jobs:
           done
           container_id="$(sudo docker compose --project-name djc --env-file /etc/devjobcollector/devjobcollector.env -f /opt/devjobcollector/compose.yaml ps -q app)"
           sudo docker exec "$container_id" sh -c 'command -v curl || command -v wget || true'
+          for path in /robots.txt /ko/apply; do
+            printf 'container path=%s ' "$path"
+            sudo docker exec "$container_id" curl -sS -o /dev/null -w 'status=%{http_code} elapsed=%{time_total}\n' --max-time 15 -A 'DevJobCollector/1.0 (+https://itsdev.kr)' "https://cnccosmetic.career.greetinghr.com$path"
+          done
           REMOTE
