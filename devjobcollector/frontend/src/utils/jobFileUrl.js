@@ -10,8 +10,16 @@ export function jobFileUrl(value) {
   } catch { return null; }
 }
 
+export function getPreviewType(file) {
+  const name = file?.fileName || '';
+  if (/\.(?:hwp|hwpx)$/i.test(name)) return 'HWP';
+  if (/\.pdf$/i.test(name)) return 'PDF';
+  if (/\.(?:png|jpe?g|webp)$/i.test(name)) return 'IMAGE';
+  return null;
+}
+
 export function canPreviewJobFile(file) {
-  if (!/\.(?:hwp|hwpx)$/i.test(file.fileName || '')) return false;
+  if (!getPreviewType(file)) return false;
   try {
     const url = new URL(file.fileUrl);
     return url.protocol === 'https:' && ['alio.go.kr', 'www.alio.go.kr', 'opendata.alio.go.kr'].includes(url.hostname)

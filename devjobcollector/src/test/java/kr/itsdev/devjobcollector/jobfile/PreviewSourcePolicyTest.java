@@ -12,7 +12,9 @@ class PreviewSourcePolicyTest {
                 .isEqualTo("https://www.alio.go.kr/download/download.json?fileNo=3085641");
         for (String url : new String[] {"http://www.alio.go.kr/a", "https://www.alio.go.kr.evil.example/a", "https://www.alio.go.kr@evil.example/a", "https://www.alio.go.kr:8443/a", "https://opendata.alio.go.kr/recruit/downloadAtchFile?recrutAtchFileNo=1&url=https://evil.example"})
             assertThatThrownBy(() -> PreviewSourcePolicy.source("공고.hwp", url)).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> PreviewSourcePolicy.source("공고.pdf", "https://www.alio.go.kr/a")).isInstanceOf(IllegalArgumentException.class);
+        for (String extension : new String[] {"pdf", "png", "jpg", "jpeg", "webp"})
+            assertThat(PreviewSourcePolicy.source("공고." + extension, "https://www.alio.go.kr/a")).isNotNull();
+        assertThatThrownBy(() -> PreviewSourcePolicy.source("공고.svg", "https://www.alio.go.kr/a")).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test void rejectsNonPublicNetworkAddresses() throws Exception {

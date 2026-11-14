@@ -1,0 +1,4 @@
+.attachment-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 18px; }
+.attachment-image { display: block; height: auto; margin: 0 auto; }
+.attachment-pdf-page { margin: 0 auto 12px; background: white; width: min(100%, 800px); min-height: 300px; }
+.attachment-pdf-page canvas { display: block; width: 100%; height: auto; }

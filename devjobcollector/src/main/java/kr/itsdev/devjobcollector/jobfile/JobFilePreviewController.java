@@ -109,7 +109,7 @@ final class JobFilePreviewController {
 
     static long stream(Flux<? extends DataBuffer> input, String filename, java.io.OutputStream output) throws IOException {
         long written = 0;
-        byte[] prefix = new byte[8];
+        byte[] prefix = new byte[filename.toLowerCase(java.util.Locale.ROOT).endsWith(".webp") ? 12 : 8];
         int prefixLength = 0;
         try (var buffers = input.toStream(1)) {
             var iterator = buffers.iterator();
@@ -140,9 +140,15 @@ final class JobFilePreviewController {
     }
 
     static boolean validMagic(String filename, byte[] prefix) {
-        if (filename.toLowerCase(java.util.Locale.ROOT).endsWith(".hwpx"))
+        String name = filename.toLowerCase(java.util.Locale.ROOT);
+        if (name.endsWith(".hwpx"))
             return prefix.length >= 4 && prefix[0] == 0x50 && prefix[1] == 0x4b && prefix[2] == 0x03 && prefix[3] == 0x04;
-        return Arrays.equals(prefix, HWP_MAGIC);
+        if (name.endsWith(".hwp")) return Arrays.equals(prefix, HWP_MAGIC);
+        if (name.endsWith(".pdf")) return prefix.length >= 5 && prefix[0] == '%' && prefix[1] == 'P' && prefix[2] == 'D' && prefix[3] == 'F' && prefix[4] == '-';
+        if (name.endsWith(".png")) return Arrays.equals(prefix, new byte[] {(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a});
+        if (name.endsWith(".jpg") || name.endsWith(".jpeg")) return prefix.length >= 3 && prefix[0] == (byte) 0xff && prefix[1] == (byte) 0xd8 && prefix[2] == (byte) 0xff;
+        if (name.endsWith(".webp")) return prefix.length >= 12 && prefix[0] == 'R' && prefix[1] == 'I' && prefix[2] == 'F' && prefix[3] == 'F' && prefix[8] == 'W' && prefix[9] == 'E' && prefix[10] == 'B' && prefix[11] == 'P';
+        return false;
     }
 
     private record Source(String name, String url) {}
