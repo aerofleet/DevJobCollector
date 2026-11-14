@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { adminApi, adminRequest } from '../api/adminApi';
 import { useAdminAuth } from '../auth/AdminAuthContext';
 import DetailModal from '../components/DetailModal';
@@ -13,6 +13,10 @@ export default function JobsPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(0);
+  const [size, setSize] = useState(20);
+  const [pageInput, setPageInput] = useState('1');
+  const [pageError, setPageError] = useState('');
+  const requestSequence = useRef(0);
   const [result, setResult] = useState(null);
   const [selected, setSelected] = useState(null);
   const [reason, setReason] = useState('');
@@ -28,16 +32,35 @@ export default function JobsPage() {
   const [salaryPreview, setSalaryPreview] = useState(null);
 
   const load = useCallback(async () => {
+    const sequence = ++requestSequence.current;
     setError('');
     try {
-      const params = { page: String(page), size: '20' };
+      const params = { page: String(page), size: String(size) };
       if (search) params.keyword = search;
       if (status) params.status = status;
-      setResult((await adminApi.jobs(params)).data);
-    } catch (cause) { setError(cause.message); }
-  }, [page, search, status]);
+      const data = (await adminApi.jobs(params)).data;
+      if (sequence !== requestSequence.current) return;
+      if (page > 0 && page >= data.totalPages) {
+        setPage(Math.max(0, data.totalPages - 1)); setPageInput(String(Math.max(1, data.totalPages))); return;
+      }
+      setResult(data);
+    } catch (cause) { if (sequence === requestSequence.current) setError(cause.message); }
+  }, [page, size, search, status]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { const sequence = requestSequence; load(); return () => { sequence.current++; }; }, [load]);
+
+  const goToPage = (next) => {
+    if (!result || next < 0 || next >= result.totalPages) return;
+    setPageError(''); setPageInput(String(next + 1)); setPage(next);
+  };
+  const submitPage = (event) => {
+    event.preventDefault();
+    const target = Number(pageInput);
+    if (!/^\d+$/.test(pageInput) || !Number.isSafeInteger(target) || target < 1 || target > result.totalPages) {
+      setPageError(`1부터 ${result.totalPages}까지 입력해 주세요.`); return;
+    }
+    goToPage(target - 1);
+  };
 
   const selectJob = async (id) => {
     setError(''); setReason(''); setNewEndDate(''); setPendingStatus(null);
@@ -149,15 +172,18 @@ export default function JobsPage() {
       : selected?.moderationStatus === 'CLOSED' ? ['ACTIVE'] : [];
   const needsNewEndDate = pendingStatus === 'ACTIVE' && selected
     && (!selected.active || selected.endDate < new Date().toLocaleDateString('sv-SE'));
+  const pageCount = result?.totalPages ?? 0;
+  const firstPage = Math.max(0, Math.min(page - 2, pageCount - 5));
+  const pageNumbers = Array.from({ length: Math.min(5, pageCount) }, (_, index) => firstPage + index);
 
   return <section className="users-page">
     <div className="page-heading"><div><p className="eyebrow">JOB POSTS</p><h2>공고 관리</h2>
       <p>공고 숨김·강제 마감·재활성을 관리합니다. 수집원이 공고를 다시 마감으로 판단하면 비활성화될 수 있습니다.</p></div></div>
     <form className="user-filters dashboard-panel" onSubmit={(event) => {
-      event.preventDefault(); setPage(0); setSearch(keyword.trim());
+      event.preventDefault(); setPage(0); setPageInput('1'); setPageError(''); setSearch(keyword.trim());
     }}>
       <label>공고 또는 기업명<input value={keyword} onChange={(event) => setKeyword(event.target.value)} maxLength={100} /></label>
-      <label>관리 상태<select value={status} onChange={(event) => { setStatus(event.target.value); setPage(0); }}>
+      <label>관리 상태<select value={status} onChange={(event) => { setStatus(event.target.value); setPage(0); setPageInput('1'); setPageError(''); }}>
         <option value="">전체</option>{Object.entries(statusText).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
       </select></label>
       <button className="secondary-button" type="submit">검색</button>
@@ -171,9 +197,32 @@ export default function JobsPage() {
             <td>{job.title}</td><td>{job.companyName}</td><td>{statusText[job.moderationStatus]}</td>
             <td>{job.endDate || '—'}</td><td><button type="button" onClick={() => selectJob(job.id)}>상세</button></td>
           </tr>)}</tbody></table></div>}
-      {result && <div className="user-pagination"><span>총 {result.totalElements}건 · {page + 1} / {Math.max(1, result.totalPages)} 페이지</span>
-        <button type="button" disabled={page === 0} onClick={() => setPage(page - 1)}>이전</button>
-        <button type="button" disabled={page + 1 >= result.totalPages} onClick={() => setPage(page + 1)}>다음</button></div>}
+      {result && <nav className="seed-pagination" aria-label="공고 목록 페이지">
+        <div className="seed-pagination-summary"><span>전체 <strong>{result.totalElements.toLocaleString()}</strong>건</span>
+          <span>{pageCount ? page + 1 : 0} / {pageCount.toLocaleString()} 페이지</span>
+          <label>페이지당 <select value={size} onChange={(event) => {
+            setPage(0); setPageInput('1'); setPageError(''); setSize(Number(event.target.value));
+          }}><option value="20">20개</option><option value="50">50개</option><option value="100">100개</option></select></label>
+        </div>
+        <div className="seed-pagination-actions">
+          <button type="button" aria-label="첫 페이지" disabled={page === 0 || !pageCount} onClick={() => goToPage(0)}>«</button>
+          <button type="button" aria-label="이전 페이지" disabled={page === 0 || !pageCount} onClick={() => goToPage(page - 1)}>‹</button>
+          {firstPage > 0 && <span aria-hidden="true">…</span>}
+          {pageNumbers.map(number => <button type="button" key={number} aria-label={`${number + 1}페이지`}
+            aria-current={number === page ? 'page' : undefined} onClick={() => goToPage(number)}>{number + 1}</button>)}
+          {firstPage + pageNumbers.length < pageCount && <span aria-hidden="true">…</span>}
+          <button type="button" aria-label="다음 페이지" disabled={page + 1 >= pageCount} onClick={() => goToPage(page + 1)}>›</button>
+          <button type="button" aria-label="마지막 페이지" disabled={page + 1 >= pageCount} onClick={() => goToPage(pageCount - 1)}>»</button>
+        </div>
+        <form className="seed-pagination-jump" onSubmit={submitPage} noValidate>
+          <label htmlFor="job-page-number">페이지 이동</label>
+          <input id="job-page-number" type="number" min="1" max={pageCount || 1} inputMode="numeric"
+            value={pageInput} disabled={!pageCount} onChange={(event) => { setPageInput(event.target.value); setPageError(''); }}
+            aria-invalid={Boolean(pageError)} aria-describedby={pageError ? 'job-page-error' : undefined} />
+          <button type="submit" disabled={!pageCount}>이동</button>
+          {pageError && <span id="job-page-error" role="alert">{pageError}</span>}
+        </form>
+      </nav>}
     </div>
     {selected && <DetailModal title="공고 상세" onClose={() => setSelected(null)} closeDisabled={busy}>
       {error && <p className="form-error" role="alert">{error}</p>}
