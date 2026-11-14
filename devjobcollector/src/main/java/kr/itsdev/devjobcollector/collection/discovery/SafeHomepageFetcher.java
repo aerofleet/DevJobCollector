@@ -45,6 +45,7 @@ public class SafeHomepageFetcher {
         String robots = get(root.resolve("/robots.txt"), true).orElse(null);
         if (robots == null) return List.of();
         String rootPath = root.getRawPath() == null || root.getRawPath().isBlank() ? "/" : root.getRawPath();
+        if (root.getRawQuery() != null) rootPath += "?" + root.getRawQuery();
         if (!GreetingAdapter.allowed(robots, rootPath)) return List.of();
         var home = get(root, false);
         if (home.isEmpty()) return List.of();
@@ -55,8 +56,10 @@ public class SafeHomepageFetcher {
         document.select("a[href]").forEach(link -> {
             try {
                 URI linked = validate(root.resolve(link.attr("href")).toString());
-                if (sameOrigin(root, linked) && isCareersPath(linked.getRawPath())
-                        && GreetingAdapter.allowed(robots, linked.getRawPath())) pages.add(linked);
+                String linkedPath = linked.getRawPath() + (linked.getRawQuery() == null ? "" : "?" + linked.getRawQuery());
+                if (sameOrigin(root, linked) && (isCareersPath(linked.getRawPath())
+                        || RecruitBoardIdentity.identify(linked.toString()).isPresent())
+                        && GreetingAdapter.allowed(robots, linkedPath)) pages.add(linked);
             } catch (IllegalArgumentException ignored) { }
         });
         for (String path : List.of("/careers", "/career", "/jobs", "/recruit", "/recruitment", "/join", "/team")) {
@@ -71,6 +74,16 @@ public class SafeHomepageFetcher {
             else get(page, false).ifPresent(html -> result.add(new Page(page, html)));
         }
         return List.copyOf(result);
+    }
+
+    /** A single robots-checked HTTPS page, using the same public DNS and redirect restrictions as discovery. */
+    public java.util.Optional<Page> fetchPage(String value) {
+        URI uri = validate(value);
+        String robots = get(uri.resolve("/robots.txt"), true).orElse(null);
+        String path = uri.getRawPath() == null || uri.getRawPath().isBlank() ? "/" : uri.getRawPath();
+        if (uri.getRawQuery() != null) path += "?" + uri.getRawQuery();
+        if (robots == null || !GreetingAdapter.allowed(robots, path)) return java.util.Optional.empty();
+        return get(uri, false).map(html -> new Page(uri, html));
     }
 
     URI validate(String value) {

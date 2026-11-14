@@ -34,6 +34,7 @@ public class CompanyPageAdapter implements JobSourceAdapter {
     private final RestTemplate restTemplate;
     private final JsonLdJobPostingParser parser;
     private final CompanyPageCollectionProperties properties;
+    private final RecruitBoardCollector recruitBoards;
 
     @Override
     public SourceType sourceType() {
@@ -43,6 +44,9 @@ public class CompanyPageAdapter implements JobSourceAdapter {
     @Override
     public CollectionResult fetchJobs(CompanySourceTarget target, CollectionContext context) {
         requireTarget(target);
+        if (target.getSourceIdentifier().startsWith("recruit-board-")) {
+            return recruitBoards.collect(target);
+        }
         URI pageUri;
         try {
             pageUri = requirePublicHttpUri(target.getCareersUrl());
