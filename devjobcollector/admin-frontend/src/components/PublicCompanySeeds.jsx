@@ -78,8 +78,11 @@ export default function PublicCompanySeeds({ refresh }) {
     if (!reviewNote.trim()) { setError('검수 메모를 입력해주세요.'); return; }
     setSaving(true); setError(''); setNotice('');
     try {
+      const previousStatus = ats.find(item => item.id === reviewId)?.status;
       await adminApi.reviewPublicSeedAts(analysisSeed.id, reviewId, reviewNote.trim(), reference.trim() || null, analysisSeed.version);
-      setReviewId(null); setReviewNote(''); setReference(''); setNotice('검수 메모를 저장했습니다. 소유권과 활성 공고는 확인되지 않았습니다.');
+      setReviewId(null); setReviewNote(''); setReference(''); setNotice(previousStatus === 'BOARD_VERIFIED'
+        ? '검수 내용을 수정했습니다. 공고 확인을 다시 진행해 주세요.'
+        : '검수 메모를 저장했습니다. 소유권과 활성 공고는 확인되지 않았습니다.');
       setAts((await adminApi.publicSeedAtsCandidates(analysisSeed.id)).data);
     } catch (cause) { setError(cause.status === 409 ? '후보 또는 기업 정보가 변경됐습니다. 다시 열어 확인해주세요.' : cause.message); }
     finally { setSaving(false); }
@@ -236,6 +239,10 @@ export default function PublicCompanySeeds({ refresh }) {
         {item.status === 'DISCOVERED' && <button type="button" onClick={() => {
           setReviewId(item.id); setReviewNote(''); setReference(''); setRejectId(null); setError(''); setNotice('');
         }}>검수 시작</button>}
+        {['VERIFYING', 'BOARD_VERIFIED'].includes(item.status) && <button type="button" onClick={() => {
+          setReviewId(item.id); setReviewNote(item.reviewNote || ''); setReference(item.reviewReferenceUrl || '');
+          setRejectId(null); setApprovalId(null); setError(''); setNotice('');
+        }}>검수 내용 수정</button>}
         {['DISCOVERED', 'VERIFYING', 'BOARD_VERIFIED'].includes(item.status) && <button type="button" onClick={() => {
           setRejectId(item.id); setRejectReason(''); setError(''); setNotice('');
           setReviewId(null);
@@ -249,7 +256,7 @@ export default function PublicCompanySeeds({ refresh }) {
         <button type="button" disabled={saving} onClick={() => setRejectId(null)}>거절 취소</button>
       </div>}
       {reviewId !== null && <div>
-        <p>검수 기록만 저장합니다. 소유권과 활성 공고는 별도 확인해야 합니다.</p>
+        <p>검수 기록만 저장합니다. 수정하면 기존 공고 확인이 초기화되므로 다시 확인해야 합니다.</p>
         <label>검수 메모<textarea value={reviewNote} onChange={(event) => setReviewNote(event.target.value)}
           maxLength={500} rows={3} disabled={saving} /></label>
         <label>참고 URL (수집 대상 승인 시 필수)<input type="url" value={reference} onChange={(event) => setReference(event.target.value)}
