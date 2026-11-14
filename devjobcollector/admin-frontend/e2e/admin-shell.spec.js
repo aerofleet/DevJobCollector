@@ -183,12 +183,14 @@ test('관리자 목록의 중첩 페이징 수치와 다음 페이지를 표시�
   });
 
   await page.goto('/jobs');
-  await expect(page.locator('.user-pagination')).toContainText('총 25건 · 1 / 2 페이지');
-  await expect(page.getByRole('button', { name: '다음' })).toBeEnabled();
-  await page.getByRole('button', { name: '다음' }).click();
-  await expect(page.locator('.user-pagination')).toContainText('총 25건 · 2 / 2 페이지');
-  await expect(page.getByRole('button', { name: '다음' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: '이전' })).toBeEnabled();
+  const nav = page.getByRole('navigation', { name: '공고 목록 페이지' });
+  await expect(nav).toContainText('전체 25건');
+  await expect(nav).toContainText('1 / 2 페이지');
+  await expect(nav.getByRole('button', { name: '다음 페이지' })).toBeEnabled();
+  await nav.getByRole('button', { name: '다음 페이지' }).click();
+  await expect(nav).toContainText('2 / 2 페이지');
+  await expect(nav.getByRole('button', { name: '다음 페이지' })).toBeDisabled();
+  await expect(nav.getByRole('button', { name: '이전 페이지' })).toBeEnabled();
 });
 
 test('기업 상세에서 인증 요청을 조회하되 증빙 키와 승인 버튼은 표시하지 않는다', async ({ page }) => {
