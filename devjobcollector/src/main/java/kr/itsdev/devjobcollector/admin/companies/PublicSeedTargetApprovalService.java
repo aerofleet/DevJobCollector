@@ -9,6 +9,7 @@ import kr.itsdev.devjobcollector.admin.AdminAuditResult;
 import kr.itsdev.devjobcollector.admin.AdminRole;
 import kr.itsdev.devjobcollector.admin.auth.AdminPrincipal;
 import kr.itsdev.devjobcollector.collection.discovery.AtsFingerprintService;
+import kr.itsdev.devjobcollector.collection.discovery.RecruitBoardIdentity;
 import kr.itsdev.devjobcollector.collection.domain.CollectionTier;
 import kr.itsdev.devjobcollector.collection.domain.CompanySourceTarget;
 import kr.itsdev.devjobcollector.collection.domain.SourceType;
@@ -60,8 +61,13 @@ public class PublicSeedTargetApprovalService {
             URI reference = URI.create(c.reference());
             if (!"https".equalsIgnoreCase(reference.getScheme()) || homepage.getHost() == null
                     || !homepage.getHost().equalsIgnoreCase(reference.getHost())) throw new IllegalArgumentException();
+            if (SourceType.COMPANY_PAGE.name().equals(c.provider())
+                    && !homepage.getHost().equalsIgnoreCase(URI.create(c.sourceUrl()).getHost()))
+                throw new IllegalArgumentException();
         } catch (RuntimeException invalid) { throw error(HttpStatus.CONFLICT, "OWNERSHIP_EVIDENCE_REQUIRED"); }
-        var fp = fingerprints.identify(c.sourceUrl()).orElseThrow(() -> error(HttpStatus.CONFLICT, "INVALID_ATS_SOURCE"));
+        var fp = (SourceType.COMPANY_PAGE.name().equals(c.provider())
+                ? RecruitBoardIdentity.identify(c.sourceUrl()).map(id -> new AtsFingerprintService.Fingerprint(SourceType.COMPANY_PAGE, id))
+                : fingerprints.identify(c.sourceUrl())).orElseThrow(() -> error(HttpStatus.CONFLICT, "INVALID_ATS_SOURCE"));
         if (!fp.provider().name().equals(c.provider()) || !fp.sourceIdentifier().equals(c.identifier()))
             throw error(HttpStatus.CONFLICT, "INVALID_ATS_SOURCE");
         if (targets.findByProviderAndSourceIdentifier(fp.provider(), fp.sourceIdentifier()).isPresent())

@@ -131,7 +131,14 @@ public class CollectionOrchestrator {
 
         if (successfulResponse(result.status())) {
             persistSuccessfulResult(run, target, result, finishedAt);
-            if (result.closureEvaluationAllowed()) {
+            for (String id : result.explicitlyClosedIds()) {
+                occurrenceRepository.findByProviderAndTargetIdAndSourceJobId(target.getProvider(), target.getId(), id)
+                        .filter(JobSourceOccurrence::closeExplicitly)
+                        .map(JobSourceOccurrence::getJobPostingId)
+                        .flatMap(jobPostRepository::findById)
+                        .ifPresent(JobPost::deactivate);
+            }
+            if (run.isClosureEvaluationAllowed()) {
                 reconcileMissingOccurrences(target, result.jobs());
             }
             target.recordSuccess(finishedAt, httpStatus, result.schemaVersion(), finishedAt.plus(SUCCESS_INTERVAL));

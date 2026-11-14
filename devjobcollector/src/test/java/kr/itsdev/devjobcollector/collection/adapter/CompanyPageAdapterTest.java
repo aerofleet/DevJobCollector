@@ -77,7 +77,8 @@ class CompanyPageAdapterTest {
         CompanyPageCollectionProperties properties =
                 new CompanyPageCollectionProperties("DevJobCollector-Test/1.0", 20_000);
         JsonLdJobPostingParser parser = new JsonLdJobPostingParser(new ObjectMapper(), properties);
-        return new CompanyPageAdapter(restTemplate, parser, properties);
+        return new CompanyPageAdapter(restTemplate, parser, properties,
+                org.mockito.Mockito.mock(RecruitBoardCollector.class));
     }
 
     private static CompanySourceTarget target(String careersUrl) {

@@ -53,6 +53,7 @@
 .detail-source { margin: 0 0 8px; color: #706a7b; font-size: 13px; font-weight: 600; }
 .detail-source-note { color: #706a7b; font-size: 14px; }
 .detail-original-link { color: #5e42e6; font-weight: 700; text-underline-offset: 3px; }
+.job-content-images img { display: block; width: 100%; height: auto; margin: 12px auto; }
 .detail-section li { margin-bottom: 8px; overflow-wrap: anywhere; }
 
 .detail-attachments { display: grid; gap: 10px; padding: 0; list-style: none; }

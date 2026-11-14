@@ -48,5 +48,6 @@ public class JobPostDetailDto {
     // 연관 데이터
     private List<TechStackDto> techStacks;
     private List<JobFileDto> files;
+    private List<String> contentImageUrls;
 
 }
