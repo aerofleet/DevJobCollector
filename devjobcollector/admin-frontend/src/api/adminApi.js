@@ -96,6 +96,7 @@ export const adminApi = {
   companies: (params) => adminPageRequest(`/companies?${new URLSearchParams(params)}`),
   discoveryCandidates: (params) => adminRequest(`/companies/discovery-candidates?${new URLSearchParams(params)}`),
   publicSeeds: (params) => adminRequest(`/companies/public-seeds?${new URLSearchParams(params)}`),
+  publicSeedPage: (params) => adminRequest(`/companies/public-seeds/paged?${new URLSearchParams(params)}`),
   updatePublicSeedHomepage: (id, url, expectedVersion) => adminRequest(`/companies/public-seeds/${id}/homepage`, {
     method: 'PUT', body: JSON.stringify({ url, expectedVersion }),
   }),

@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { Buffer } from 'node:buffer';
 
 test.beforeEach(async ({ page }) => {
-  await page.route('**/api/v1/admin/companies/public-seeds?*', (route) => route.fulfill({ json: { data: [] } }));
+  await page.route('**/api/v1/admin/companies/public-seeds/paged?*', (route) => route.fulfill({ json: { data: { items: [], page: 0, totalElements: 0, totalPages: 0 } } }));
 });
 
 test('후보 목록의 상태 필터와 페이지 이동을 사용한다', async ({ page }) => {
@@ -60,10 +60,10 @@ test('관리자가 공공 CSV를 수입한다', async ({ page }) => {
   let imported = false;
   let homepage = null;
   let ats = [];
-  await page.route('**/api/v1/admin/companies/public-seeds?*', (route) => route.fulfill({ json: {
-    data: imported ? [{ id: 1, companyName: '국내기업', source: 'KOSME_JOB_COMPANIES', status: 'DISCOVERED',
+  await page.route('**/api/v1/admin/companies/public-seeds/paged?*', (route) => route.fulfill({ json: {
+    data: { page: 0, totalElements: imported ? 1 : 0, totalPages: imported ? 1 : 0, items: imported ? [{ id: 1, companyName: '국내기업', source: 'KOSME_JOB_COMPANIES', status: 'DISCOVERED',
       matchedCompanyId: 7, matchedCompanyName: '국내기업', companyStatus: 'VERIFIED',
-      version: 0, homepageCandidateUrl: homepage }] : [],
+      version: 0, homepageCandidateUrl: homepage }] : [] },
   } }));
   await page.route('**/api/v1/admin/me', (route) => route.fulfill({ json: {
     data: { id: 1, name: '관리자', role: 'ADMIN' },
@@ -136,10 +136,10 @@ test('관리자가 공공 CSV를 수입한다', async ({ page }) => {
 test('관리자가 소유권을 확인한 뒤 수집 대상을 승인한다', async ({ page }) => {
   await page.route('**/api/v1/admin/me', (route) => route.fulfill({ json: { data: { id: 1, name: '관리자', role: 'ADMIN' } } }));
   await page.route('**/api/v1/admin/companies/discovery-candidates?*', (route) => route.fulfill({ json: { data: [] } }));
-  await page.route('**/api/v1/admin/companies/public-seeds?*', (route) => route.fulfill({ json: { data: [{
+  await page.route('**/api/v1/admin/companies/public-seeds/paged?*', (route) => route.fulfill({ json: { data: { page: 0, totalElements: 1, totalPages: 1, items: [{
     id: 1, companyName: '국내기업', source: 'KOSME_JOB_COMPANIES', status: 'DISCOVERED', version: 1,
     homepageCandidateUrl: 'https://example.com',
-  }] } }));
+  }] } } }));
   let status = 'BOARD_VERIFIED';
   await page.route('**/api/v1/admin/companies/public-seeds/1/ats-candidates?*', (route) => route.fulfill({ json: { data: [{
     id: 1, provider: 'GREETING', sourceIdentifier: 'nuua', sourceUrl: 'https://nuua.career.greetinghr.com/ko/home',
