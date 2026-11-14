@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 /** Preliminary source policy. DNS results must be checked at connection time, not just before it. */
 final class PreviewSourcePolicy {
     private static final Set<String> HOSTS = Set.of("alio.go.kr", "www.alio.go.kr", "opendata.alio.go.kr");
-    private static final Pattern EXTENSION = Pattern.compile("(?i).*\\.(hwp|hwpx)$");
+    private static final Pattern EXTENSION = Pattern.compile("(?i).*\\.(hwp|hwpx|pdf|png|jpe?g|webp)$");
     private static final Pattern LEGACY_QUERY = Pattern.compile("recrutAtchFileNo=([0-9]{1,20})");
 
     static URI source(String filename, String url) {

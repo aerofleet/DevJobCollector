@@ -15,7 +15,7 @@ import { formatDate } from '../utils/dateParser';
 import { getDaysRemaining } from '../utils/dateParser';
 import '../styles/DetailPage.css';
 
-const HwpPreviewModal = lazy(() => import('../components/job/HwpPreviewModal'));
+const AttachmentPreviewModal = lazy(() => import('../components/job/AttachmentPreviewModal'));
 
 const DetailPage = () => {
   const { id } = useParams();
@@ -254,7 +254,7 @@ const DetailPage = () => {
         </section>}
         </>}
 
-        {previewFile && <Suspense fallback={<p role="status">미리보기를 준비하고 있습니다.</p>}><HwpPreviewModal file={previewFile} originalUrl={previewFile.originalUrl} onClose={() => setPreviewFile(null)} /></Suspense>}
+        {previewFile && <Suspense fallback={<p role="status">미리보기를 준비하고 있습니다.</p>}><AttachmentPreviewModal file={previewFile} originalUrl={previewFile.originalUrl} onClose={() => setPreviewFile(null)} /></Suspense>}
         <div className="action-buttons">
           <button type="button" className="save-job-button im-button" onClick={async () => {
             const url = `${window.location.origin}${jobPath(id, job.title)}`;

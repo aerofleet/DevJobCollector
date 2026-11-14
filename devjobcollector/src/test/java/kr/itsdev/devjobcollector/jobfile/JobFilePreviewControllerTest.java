@@ -67,6 +67,25 @@ class JobFilePreviewControllerTest {
         assertThat(JobFilePreviewController.validMagic("공고.hwpx", java.util.Arrays.copyOf(hwp, 8))).isFalse();
     }
 
+    @Test void validatesPdfAndImageSignaturesIncludingFragmentedWebp() throws Exception {
+        byte[] pdf = "%PDF-1.7".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+        byte[] png = {(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a};
+        byte[] jpg = {(byte) 0xff, (byte) 0xd8, (byte) 0xff, 0, 0, 0, 0, 0};
+        byte[] webp = {'R', 'I', 'F', 'F', 4, 0, 0, 0, 'W', 'E', 'B', 'P', 1};
+        assertThat(JobFilePreviewController.validMagic("x.pdf", pdf)).isTrue();
+        assertThat(JobFilePreviewController.validMagic("x.PNG", png)).isTrue();
+        assertThat(JobFilePreviewController.validMagic("x.jpeg", jpg)).isTrue();
+        assertThat(JobFilePreviewController.validMagic("x.webp", webp)).isTrue();
+        assertThat(JobFilePreviewController.validMagic("x.pdf", png)).isFalse();
+        assertThat(JobFilePreviewController.validMagic("x.svg", png)).isFalse();
+        var output = new ByteArrayOutputStream();
+        assertThat(JobFilePreviewController.stream(Flux.just(buffers.wrap(java.util.Arrays.copyOfRange(webp, 0, 5)),
+                buffers.wrap(java.util.Arrays.copyOfRange(webp, 5, webp.length))), "x.webp", output)).isEqualTo(webp.length);
+        assertThat(output.toByteArray()).isEqualTo(webp);
+        assertThatThrownBy(() -> JobFilePreviewController.stream(Flux.just(buffers.wrap(png)), "x.webp", new ByteArrayOutputStream()))
+                .isInstanceOf(java.io.IOException.class);
+    }
+
     @Test void validatesRedirectBeforeFollowingIt() {
         var calls = new AtomicInteger();
         var web = WebClient.builder().exchangeFunction(request -> {
