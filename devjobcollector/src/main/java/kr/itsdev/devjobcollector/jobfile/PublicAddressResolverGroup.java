@@ -7,6 +7,7 @@ import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.Promise;
 import java.net.InetSocketAddress;
+import java.net.Inet6Address;
 import java.net.SocketAddress;
 import java.util.List;
 
@@ -36,13 +37,22 @@ public final class PublicAddressResolverGroup extends AddressResolverGroup<InetS
                 delegate.resolveAll(address).addListener(result -> {
                     if (!result.isSuccess()) { promise.tryFailure(result.cause()); return; }
                     @SuppressWarnings("unchecked") var addresses = (List<InetSocketAddress>) result.getNow();
-                    if (addresses.isEmpty() || addresses.stream().anyMatch(a -> a.isUnresolved() || !PreviewSourcePolicy.publicAddress(a.getAddress())))
-                        promise.tryFailure(new IllegalArgumentException("Non-public source address"));
-                    else promise.trySuccess(addresses);
+                    try { promise.trySuccess(publicIpv4Addresses(addresses)); }
+                    catch (IllegalArgumentException invalid) { promise.tryFailure(invalid); }
                 });
                 return promise;
             }
             public void close() { /* The delegate is shared by Netty. */ }
         };
+    }
+
+    /** IPv6 is not supported by the source policy; never return it to the connector. */
+    static List<InetSocketAddress> publicIpv4Addresses(List<InetSocketAddress> addresses) {
+        if (addresses.isEmpty() || addresses.stream().anyMatch(InetSocketAddress::isUnresolved))
+            throw new IllegalArgumentException("Non-public source address");
+        var ipv4 = addresses.stream().filter(a -> !(a.getAddress() instanceof Inet6Address)).toList();
+        if (ipv4.isEmpty() || ipv4.stream().anyMatch(a -> !PreviewSourcePolicy.publicAddress(a.getAddress())))
+            throw new IllegalArgumentException("Non-public source address");
+        return ipv4;
     }
 }
