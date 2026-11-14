@@ -6,7 +6,7 @@ function pdfFixture() {
     '<< /Type /Catalog /Pages 2 0 R >>',
     '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
     '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << >> /Contents 4 0 R >>',
-    '<< /Length 0 >>\nstream\n\nendstream',
+    '<< /Length 27 >>\nstream\n0 0 0 rg 20 20 100 100 re f\nendstream',
   ];
   let body = '%PDF-1.4\n';
   const offsets = [0];
@@ -35,6 +35,9 @@ test('PDF is loaded on demand, rendered and restores focus', async ({ page }) =>
   await trigger.click();
   const dialog = page.getByRole('dialog', { name: '첨부문서 미리보기' });
   await expect(dialog.locator('canvas')).toHaveJSProperty('width', 800, { timeout: 30000 });
+  await expect.poll(() => dialog.locator('canvas').evaluate(canvas =>
+    Array.from(canvas.getContext('2d').getImageData(100, 400, 1, 1).data).slice(0, 3)))
+    .toEqual([0, 0, 0]);
   await dialog.getByRole('button', { name: '확대' }).click();
   await expect(dialog.getByText('125%')).toBeVisible();
   expect(requests).toBe(1);
