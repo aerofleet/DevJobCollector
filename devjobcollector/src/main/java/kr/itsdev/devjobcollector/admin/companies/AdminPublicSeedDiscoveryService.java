@@ -106,14 +106,21 @@ public class AdminPublicSeedDiscoveryService {
                 || note == null || note.isBlank() || note.trim().length() > 500)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "INVALID_REVIEW_INPUT");
         String reference = validateReference(referenceUrl);
+        var states = jdbc.query("SELECT a.status FROM public_seed_ats_candidate a JOIN public_company_seed s ON s.id = a.seed_id "
+                        + "WHERE a.seed_id = ? AND a.id = ? AND s.status = 'DISCOVERED' AND s.version = ? FOR UPDATE",
+                (rs, row) -> rs.getString(1), seedId, candidateId, expectedSeedVersion);
+        if (states.isEmpty() || !List.of("DISCOVERED", "VERIFYING", "BOARD_VERIFIED").contains(states.getFirst()))
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "DISCOVERY_STATUS_CONFLICT");
+        String previous = states.getFirst();
         int changed = jdbc.update("UPDATE public_seed_ats_candidate a JOIN public_company_seed s ON s.id = a.seed_id "
-                        + "SET a.status = 'VERIFYING', a.review_note = ?, a.review_reference_url = ? "
-                        + "WHERE a.seed_id = ? AND a.id = ? AND a.status = 'DISCOVERED' "
+                        + "SET a.status = 'VERIFYING', a.review_note = ?, a.review_reference_url = ?, "
+                        + "a.board_verified_at = NULL, a.board_job_count = NULL, a.board_schema_version = NULL, a.board_seed_version = NULL "
+                        + "WHERE a.seed_id = ? AND a.id = ? AND a.status = ? "
                         + "AND s.status = 'DISCOVERED' AND s.version = ?",
-                note.trim(), reference, seedId, candidateId, expectedSeedVersion);
+                note.trim(), reference, seedId, candidateId, previous, expectedSeedVersion);
         if (changed == 0) throw new ResponseStatusException(HttpStatus.CONFLICT, "DISCOVERY_STATUS_CONFLICT");
         audit.save(AdminAuditLog.record(actor.id(), "PUBLIC_SEED_ATS_REVIEW_STARTED", "PUBLIC_SEED_ATS_CANDIDATE",
-                Long.toString(candidateId), note.trim(), "{\"status\":\"DISCOVERED\"}",
+                Long.toString(candidateId), note.trim(), "{\"status\":\"" + previous + "\"}",
                 "{\"status\":\"VERIFYING\"}", AdminAuditResult.SUCCESS, requestId,
                 truncate(ip, 45), truncate(agent, 500)));
     }

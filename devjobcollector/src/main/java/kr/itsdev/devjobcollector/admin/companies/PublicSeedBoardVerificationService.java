@@ -46,10 +46,10 @@ public class PublicSeedBoardVerificationService {
         if (seedId < 1 || candidateId < 1 || expectedVersion == null || expectedVersion < 0)
             throw error(HttpStatus.BAD_REQUEST, "INVALID_DISCOVERY_INPUT");
         var rows = jdbc.query("SELECT s.company_name, s.version, s.status, a.status, a.provider, "
-                        + "a.source_identifier, a.source_url FROM public_company_seed s "
+                        + "a.source_identifier, a.source_url, a.review_note, a.review_reference_url FROM public_company_seed s "
                         + "JOIN public_seed_ats_candidate a ON a.seed_id = s.id WHERE s.id = ? AND a.id = ?",
                 (rs, i) -> new Board(rs.getString(1), rs.getLong(2), rs.getString(3), rs.getString(4),
-                        rs.getString(5), rs.getString(6), rs.getString(7)), seedId, candidateId);
+                        rs.getString(5), rs.getString(6), rs.getString(7), rs.getString(8), rs.getString(9)), seedId, candidateId);
         if (rows.isEmpty()) throw error(HttpStatus.NOT_FOUND, "DISCOVERY_NOT_FOUND");
         var board = rows.getFirst();
         if (!"DISCOVERED".equals(board.seedStatus()) || !("VERIFYING".equals(board.status()) || "BOARD_VERIFIED".equals(board.status()))
@@ -81,8 +81,10 @@ public class PublicSeedBoardVerificationService {
             int changed = jdbc.update("UPDATE public_seed_ats_candidate a JOIN public_company_seed s ON s.id = a.seed_id "
                             + "SET a.status = 'BOARD_VERIFIED', a.board_verified_at = UTC_TIMESTAMP(6), "
                             + "a.board_job_count = ?, a.board_schema_version = ?, a.board_seed_version = ? "
-                            + "WHERE a.seed_id = ? AND a.id = ? AND a.status = ? AND s.status = 'DISCOVERED' AND s.version = ?",
-                    count, schema, expectedVersion, seedId, candidateId, board.status(), expectedVersion);
+                            + "WHERE a.seed_id = ? AND a.id = ? AND a.status = ? AND s.status = 'DISCOVERED' AND s.version = ? "
+                            + "AND BINARY a.review_note <=> BINARY ? AND BINARY a.review_reference_url <=> BINARY ?",
+                    count, schema, expectedVersion, seedId, candidateId, board.status(), expectedVersion,
+                    board.reviewNote(), board.reviewReference());
             if (changed != 1) throw error(HttpStatus.CONFLICT, "DISCOVERY_STATUS_CONFLICT");
             audit.save(AdminAuditLog.record(actor.id(), "PUBLIC_SEED_ATS_BOARD_VERIFIED", "PUBLIC_SEED_ATS_CANDIDATE",
                     Long.toString(candidateId), "ATS 공고 응답 확인; 기업 소유권 미검증", "{\"status\":\"" + board.status() + "\"}",
@@ -95,5 +97,5 @@ public class PublicSeedBoardVerificationService {
     private static ResponseStatusException error(HttpStatus status, String code) { return new ResponseStatusException(status, code); }
     private static String truncate(String value, int limit) { return value == null || value.length() <= limit ? value : value.substring(0, limit); }
     private record Board(String companyName, long version, String seedStatus, String status,
-                         String provider, String identifier, String sourceUrl) { }
+                         String provider, String identifier, String sourceUrl, String reviewNote, String reviewReference) { }
 }
