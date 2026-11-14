@@ -110,6 +110,19 @@ button { cursor: pointer; }
 .user-list td button, .user-detail button:not(.primary-button), .user-pagination button { border: 0; color: #245de9; background: transparent; font-weight: 700; }
 .user-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding-top: 16px; font-size: 12px; }
 .user-pagination button:disabled { color: #a3aaba; cursor: default; }
+.seed-pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-top: 20px; padding: 16px; border: 1px solid #e6ebf4; border-radius: 14px; background: #f8faff; color: #526078; font-size: 13px; }
+.seed-pagination-summary, .seed-pagination-actions, .seed-pagination-jump { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.seed-pagination-summary { gap: 14px; }
+.seed-pagination-summary strong { color: #182a50; }
+.seed-pagination select, .seed-pagination input { border: 1px solid #d6deec; border-radius: 8px; background: #fff; color: #273955; padding: 7px 9px; }
+.seed-pagination input { width: 72px; }
+.seed-pagination button { min-width: 34px; min-height: 34px; padding: 6px 10px; border: 1px solid #e0e6f0; border-radius: 8px; background: #fff; color: #445574; font-weight: 600; cursor: pointer; }
+.seed-pagination button:hover:not(:disabled) { border-color: #8caaf8; color: #245de9; }
+.seed-pagination button[aria-current="page"] { border-color: #245de9; background: #245de9; color: #fff; }
+.seed-pagination button:disabled { opacity: .42; cursor: not-allowed; }
+.seed-pagination button:focus-visible, .seed-pagination input:focus-visible, .seed-pagination select:focus-visible { outline: 3px solid #9cb7ff; outline-offset: 2px; }
+.seed-pagination-jump [role="alert"] { flex-basis: 100%; color: #b42318; }
+@media (max-width: 700px) { .seed-pagination { align-items: flex-start; flex-direction: column; } .seed-pagination-actions { max-width: 100%; } }
 .user-detail { min-height: 0; }
 .detail-modal-overlay { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px; background: rgba(7, 13, 27, .62); }
 .detail-modal { width: min(680px, 100%); max-height: calc(100dvh - 32px); overflow-y: auto; box-shadow: 0 24px 80px rgba(7, 13, 27, .28); }

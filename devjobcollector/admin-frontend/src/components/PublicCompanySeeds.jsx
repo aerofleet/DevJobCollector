@@ -2,11 +2,14 @@ import { useEffect, useState } from 'react';
 import { adminApi } from '../api/adminApi';
 import { useAdminAuth } from '../auth/AdminAuthContext';
 
-const PAGE_SIZE = 20;
-
 export default function PublicCompanySeeds({ refresh }) {
   const { admin } = useAdminAuth();
-  const [cursors, setCursors] = useState([0]);
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [pageCount, setPageCount] = useState(0);
+  const [pageInput, setPageInput] = useState('1');
+  const [pageError, setPageError] = useState('');
   const [rows, setRows] = useState(null);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState(null);
@@ -25,15 +28,31 @@ export default function PublicCompanySeeds({ refresh }) {
   const [approvalId, setApprovalId] = useState(null);
   const [confirmCompany, setConfirmCompany] = useState('');
   const [confirmOwnership, setConfirmOwnership] = useState(false);
-  const cursor = cursors[cursors.length - 1];
-
   useEffect(() => {
     let active = true;
-    adminApi.publicSeeds({ afterId: String(cursor), size: String(PAGE_SIZE + 1) })
-      .then((result) => { if (active) { setRows(result.data); setError(''); } })
+    adminApi.publicSeedPage({ page: String(page), size: String(size) })
+      .then((result) => { if (active) {
+        setRows(result.data.items); setTotal(result.data.totalElements); setPageCount(result.data.totalPages);
+        setPageInput(String(result.data.page + 1)); setPage(result.data.page); setError('');
+      } })
       .catch((cause) => { if (active) { setRows(null); setError(cause.message); } });
     return () => { active = false; };
-  }, [cursor, refresh, revision]);
+  }, [page, size, refresh, revision]);
+
+  const goToPage = (next) => {
+    if (next < 0 || next >= pageCount || next === page) return;
+    setRows(null); setPageError(''); setSelected(null); setAnalysisSeed(null); setPage(next);
+  };
+  const submitPage = (event) => {
+    event.preventDefault();
+    const target = Number(pageInput);
+    if (!/^\d+$/.test(pageInput) || !Number.isSafeInteger(target) || target < 1 || target > pageCount) {
+      setPageError(`1부터 ${pageCount}까지 입력해 주세요.`); return;
+    }
+    setPageError('');
+    if (target - 1 === page) setPageInput(String(page + 1));
+    else goToPage(target - 1);
+  };
 
   const saveHomepage = async (event) => {
     event.preventDefault();
@@ -109,14 +128,15 @@ export default function PublicCompanySeeds({ refresh }) {
         result = await adminApi.discoverPublicSeedHomepage(seed.id, seed.version);
       } catch (cause) {
         if (cause.status !== 409) throw cause;
-        const latestPage = await adminApi.publicSeeds({ afterId: String(cursor), size: String(PAGE_SIZE + 1) });
-        const latest = latestPage.data.find((item) => item.id === seed.id);
+        const latestPage = await adminApi.publicSeedPage({ page: String(page), size: String(size) });
+        const latest = latestPage.data.items.find((item) => item.id === seed.id);
         if (!latest || latest.status !== 'DISCOVERED' || latest.homepageCandidateUrl !== seed.homepageCandidateUrl) {
           throw new Error('기업 또는 홈페이지 정보가 변경됐습니다. 목록을 새로고침한 뒤 다시 열어주세요.');
         }
         seed = latest;
         setAnalysisSeed(latest);
-        setRows(latestPage.data);
+        setRows(latestPage.data.items);
+        setTotal(latestPage.data.totalElements); setPageCount(latestPage.data.totalPages);
         result = await adminApi.discoverPublicSeedHomepage(seed.id, seed.version);
       }
       setAts((await adminApi.publicSeedAtsCandidates(analysisSeed.id)).data);
@@ -132,7 +152,9 @@ export default function PublicCompanySeeds({ refresh }) {
     finally { setSaving(false); }
   };
 
-  const visible = rows?.slice(0, PAGE_SIZE) || [];
+  const visible = rows || [];
+  const firstPage = Math.max(0, Math.min(page - 2, pageCount - 5));
+  const pageNumbers = Array.from({ length: Math.min(5, pageCount) }, (_, index) => firstPage + index);
   return <div className="dashboard-panel user-list">
     <h3>공공 기업 Seed</h3>
     <p>공공 구인기업 목록에서 수입한 기업입니다. 개발·IT 관련 Seed는 검색 API 설정 시 공식 홈페이지 후보를 자동으로 찾고, 기존 탐색기가 ATS 링크를 이어서 확인합니다. 검색 결과는 소유권이 검증되지 않은 후보이며 공고 수집 승인은 별도로 필요합니다.</p>
@@ -151,11 +173,32 @@ export default function PublicCompanySeeds({ refresh }) {
           }}>홈페이지 입력</button>}
           {seed.homepageCandidateUrl && <button type="button" onClick={() => openAnalysis(seed)}>ATS 후보 확인</button>}</td>
         </tr>)}</tbody></table></div>}
-    {rows && <div className="user-pagination"><span>{cursors.length} 페이지</span>
-      <button type="button" disabled={cursors.length === 1} onClick={() => { setRows(null); setCursors(cursors.slice(0, -1)); }}>이전 기업</button>
-      <button type="button" disabled={rows.length <= PAGE_SIZE}
-        onClick={() => { setRows(null); setCursors([...cursors, visible[visible.length - 1].id]); }}>다음 기업</button>
-    </div>}
+    {rows && <nav className="seed-pagination" aria-label="공공 기업 페이지">
+      <div className="seed-pagination-summary"><span>전체 <strong>{total.toLocaleString()}</strong>개</span>
+        <span>{pageCount ? page + 1 : 0} / {pageCount.toLocaleString()} 페이지</span>
+        <label>페이지당 <select value={size} onChange={(event) => {
+          setRows(null); setSelected(null); setAnalysisSeed(null); setPage(0); setSize(Number(event.target.value)); setPageError('');
+        }}><option value="20">20개</option><option value="50">50개</option><option value="100">100개</option></select></label>
+      </div>
+      <div className="seed-pagination-actions">
+        <button type="button" aria-label="첫 페이지" disabled={page === 0 || !pageCount} onClick={() => goToPage(0)}>«</button>
+        <button type="button" aria-label="이전 페이지" disabled={page === 0 || !pageCount} onClick={() => goToPage(page - 1)}>‹</button>
+        {firstPage > 0 && <span aria-hidden="true">…</span>}
+        {pageNumbers.map(number => <button type="button" key={number} aria-label={`${number + 1}페이지`}
+          aria-current={number === page ? 'page' : undefined} onClick={() => goToPage(number)}>{number + 1}</button>)}
+        {firstPage + pageNumbers.length < pageCount && <span aria-hidden="true">…</span>}
+        <button type="button" aria-label="다음 페이지" disabled={page + 1 >= pageCount} onClick={() => goToPage(page + 1)}>›</button>
+        <button type="button" aria-label="마지막 페이지" disabled={page + 1 >= pageCount} onClick={() => goToPage(pageCount - 1)}>»</button>
+      </div>
+      <form className="seed-pagination-jump" onSubmit={submitPage} noValidate>
+        <label htmlFor="seed-page-number">페이지 이동</label>
+        <input id="seed-page-number" type="number" min="1" max={pageCount || 1} inputMode="numeric"
+          value={pageInput} disabled={!pageCount} onChange={(event) => { setPageInput(event.target.value); setPageError(''); }}
+          aria-invalid={Boolean(pageError)} aria-describedby={pageError ? 'seed-page-error' : undefined} />
+        <button type="submit" disabled={!pageCount}>이동</button>
+        {pageError && <span id="seed-page-error" role="alert">{pageError}</span>}
+      </form>
+    </nav>}
     {selected && <form className="company-review-confirm" onSubmit={saveHomepage}>
       <p>{selected.companyName}의 홈페이지 후보를 입력합니다. 저장 후에도 공식 여부 확인이 필요합니다.</p>
       <label>홈페이지 후보 URL<input type="url" value={url} onChange={(event) => setUrl(event.target.value)}
