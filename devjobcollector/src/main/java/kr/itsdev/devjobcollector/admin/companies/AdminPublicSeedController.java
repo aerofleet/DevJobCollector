@@ -126,6 +126,14 @@ public class AdminPublicSeedController {
                 "requestId", request.getAttribute(AdminRequestSecurityFilter.REQUEST_ID_ATTRIBUTE)));
     }
 
+    @GetMapping("/paged")
+    public ResponseEntity<Map<String, Object>> page(@RequestParam(defaultValue = "0") int page,
+                                                    @RequestParam(defaultValue = "20") int size,
+                                                    HttpServletRequest request) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(Map.of("data", query.page(page, size),
+                "requestId", request.getAttribute(AdminRequestSecurityFilter.REQUEST_ID_ATTRIBUTE)));
+    }
+
     @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Map<String, Object> importFile(@RequestParam("file") MultipartFile file,
                                           @RequestParam(defaultValue = "CP949") String encoding,

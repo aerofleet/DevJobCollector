@@ -46,6 +46,7 @@ class AdminPublicSeedControllerSecurityTest {
     @Test
     void listRequiresAdminSession() throws Exception {
         mvc.perform(get("/api/v1/admin/companies/public-seeds")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/admin/companies/public-seeds/paged")).andExpect(status().isUnauthorized());
         verifyNoInteractions(query);
     }
 
