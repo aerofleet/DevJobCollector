@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useMemberSession } from '../../contexts/memberSession';
+import PageLoading from '../common/PageLoading';
 
 const ProtectedRoute = ({ children, preload }) => {
   const location = useLocation();
@@ -25,7 +26,7 @@ const ProtectedRoute = ({ children, preload }) => {
   }
 
   if (status === 'idle' || status === 'loading') {
-    return <main className="member-session-state" aria-live="polite">회원 정보를 불러오는 중입니다.</main>;
+    return <PageLoading message="회원 정보를 불러오는 중입니다." />;
   }
 
   if (status === 'error') {
