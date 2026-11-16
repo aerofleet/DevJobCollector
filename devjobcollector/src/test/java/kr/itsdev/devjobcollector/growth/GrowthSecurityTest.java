@@ -17,7 +17,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest({GrowthEventController.class, GrowthDashboardController.class})
+@WebMvcTest({GrowthEventController.class, GrowthDashboardController.class, BasicPageViewController.class})
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class, AdminSecurityConfiguration.class, AdminTokenCodec.class})
 class GrowthSecurityTest {
     @Autowired MockMvc mvc;
@@ -34,6 +34,14 @@ class GrowthSecurityTest {
     @Test void acceptsAnonymousBoundedEvent() throws Exception {
         mvc.perform(post("/api/v1/analytics/events").contentType("application/json").content(event("velog","PAGE_VIEW"))).andExpect(status().isNoContent());
         verify(service).record(any());
+    }
+    @Test void basicViewsAcceptOnlyKnownPageCategories() throws Exception {
+        mvc.perform(post("/api/v1/analytics/page-views").contentType("application/json").content("{\"page\":\"jobs\"}"))
+            .andExpect(status().isNoContent());
+        verify(service).recordBasicPageView("jobs");
+        mvc.perform(post("/api/v1/analytics/page-views").contentType("application/json").content("{\"page\":\"jobs?email=private\"}"))
+            .andExpect(status().isBadRequest());
+        verifyNoMoreInteractions(service);
     }
     @Test void rejectsRawUrlAndEmailInAttribution() throws Exception {
         mvc.perform(post("/api/v1/analytics/events").contentType("application/json").content(event("someone@example.com","PAGE_VIEW"))).andExpect(status().isBadRequest());

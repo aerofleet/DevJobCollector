@@ -14,10 +14,33 @@ test('동의 전 식별자와 이벤트를 만들지 않는다', async ({ page }
   const events = await setup(page);
   await page.goto('/terms');
   await expect(page.getByRole('heading', { name: '데브잡스 이용약관', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '통계 수집 허용' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '거부 / 철회' })).toBeVisible();
   expect(events).toHaveLength(0);
   expect(await page.evaluate(() => localStorage.getItem('djc-analytics-visitor'))).toBeNull();
   await expect(page.locator('script[src*="googletagmanager.com/gtag/js"]')).toHaveCount(0);
   await expect(page.locator('script[src*="clarity.ms/tag/"]')).toHaveCount(0);
+});
+
+test('첫 방문 거부 선택을 새로고침 후에도 유지한다', async ({ page }) => {
+  await setup(page);
+  await page.goto('/terms');
+  await page.getByRole('button', { name: '거부 / 철회' }).click();
+  await page.reload();
+  await expect(page.getByRole('button', { name: '통계 수집 허용' })).toBeHidden();
+  expect(await page.evaluate(() => localStorage.getItem('djc-analytics-consent'))).toBe('denied');
+  await expect(page.locator('script[src*="googletagmanager.com/gtag/js"]')).toHaveCount(0);
+});
+
+test('동의 전 기본 집계는 페이지 종류만 전송한다', async ({ page }) => {
+  await setup(page);
+  let request;
+  await page.route('**/api/v1/analytics/page-views', route => { request = route.request(); return route.fulfill({ status: 204 }); });
+  await page.goto('/terms?token=private');
+  await expect.poll(() => request?.postDataJSON()).toEqual({ page: 'terms' });
+  expect(request.headers()['authorization']).toBeUndefined();
+  expect(request.headers()['cookie']).toBeUndefined();
+  expect(request.headers()['referer']).toBeUndefined();
 });
 
 test('Clarity는 별도 동의 후 로드되고 철회 후에는 다시 로드되지 않는다', async ({ page }) => {
@@ -54,7 +77,6 @@ test('SPA 주소 변경과 쿼리 링크 클릭 전에 Clarity를 중단한다',
   await setup(page);
   await page.route('https://www.clarity.ms/tag/**', route => route.fulfill({ contentType: 'application/javascript', body: 'window.clarityCalls=[]; window.clarity=(...a)=>window.clarityCalls.push([location.href,...a]); window.clarity.v="test";' }));
   await page.goto('/terms');
-  await page.getByRole('button', { name: '이용 통계 설정' }).click();
   await page.getByRole('button', { name: '통계 수집 허용' }).click();
   await expect.poll(() => page.evaluate(() => window.clarity?.v)).toBe('test');
   await page.evaluate(() => history.pushState({}, '', '/terms?keyword=FAKE_PRIVATE_SEARCH'));
@@ -69,7 +91,6 @@ test('Google Analytics는 동의 후 안전한 페이지 경로만 수동 기록
   await page.goto('/jobs?keyword=private%40example.com&token=secret');
   const initial = await page.evaluate(() => window.dataLayer.map(args => Array.from(args)));
   expect(initial[0]).toEqual(['consent', 'default', { analytics_storage: 'denied', ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' }]);
-  await page.getByRole('button', { name: '이용 통계 설정' }).click();
   await page.getByRole('button', { name: '통계 수집 허용' }).click();
   await expect(page.locator('script[src*="G-CWT9EYZSQF"]')).toHaveCount(1);
   const calls = await page.evaluate(() => window.dataLayer.map(args => Array.from(args)));

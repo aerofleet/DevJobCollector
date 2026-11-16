@@ -11,6 +11,10 @@ public class GrowthEventService {
     private final JdbcTemplate jdbc;
     public GrowthEventService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
 
+    public void recordBasicPageView(String page) {
+        jdbc.update("INSERT INTO basic_page_view_counts(view_date,page,view_count) VALUES(UTC_DATE(),?,1) ON DUPLICATE KEY UPDATE view_count=view_count+1", page);
+    }
+
     public void record(GrowthEventController.Event e) {
         jdbc.update("""
                 INSERT INTO growth_events(event_id,visitor_id,session_id,kind,page,job_id,source,medium,campaign,created_at)
@@ -23,6 +27,7 @@ public class GrowthEventService {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("timezone", "UTC");
         result.put("windowDays", 28);
+        result.put("basicPageViews", jdbc.queryForList("SELECT page, SUM(view_count) AS views FROM basic_page_view_counts WHERE view_date >= UTC_DATE() - INTERVAL 27 DAY GROUP BY page ORDER BY views DESC"));
         result.put("scope", "동의한 브라우저 기준 · 봇/테스트 트래픽이 포함될 수 있음 · 지원 클릭은 지원 완료가 아님");
         result.put("stages", jdbc.queryForList("""
                 SELECT kind, COUNT(*) AS events, COUNT(DISTINCT visitor_id) AS visitors,
@@ -62,6 +67,7 @@ public class GrowthEventService {
 
     @Scheduled(cron = "0 20 3 * * *", zone = "UTC")
     public void purgeExpired() {
+        jdbc.update("DELETE FROM basic_page_view_counts WHERE view_date < UTC_DATE() - INTERVAL 89 DAY");
         // Bounded batches keep retention cleanup from holding a large transaction.
         for (int i = 0; i < 100; i++) {
             if (jdbc.update("DELETE FROM growth_events WHERE created_at < UTC_TIMESTAMP() - INTERVAL 90 DAY LIMIT 10000") < 10000) break;

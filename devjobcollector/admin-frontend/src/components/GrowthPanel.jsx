@@ -10,6 +10,10 @@ export default function GrowthPanel() {
   return <section className="dashboard-panel wide-panel">
     <div className="panel-header"><div><span>ACQUISITION & ACTIVATION</span><h3>최근 28일 유입과 활성화</h3></div><button type="button" className="secondary-button" onClick={load}>통계 새로고침</button></div>
     {error ? <p role="alert">이용 통계를 불러오지 못했습니다. 새로고침으로 다시 시도해주세요.</p> : !data ? <p role="status">이용 통계를 불러오는 중입니다.</p> : <>
+      <h4>기본 페이지 조회 · 최근 28일</h4>
+      <p>동의 여부와 관계없이 집계한 조회 건수입니다. 방문자 수나 동시 접속자 수가 아니며 봇과 테스트가 포함될 수 있습니다.</p>
+      {!data.basicPageViews?.length ? <p>기본 조회 데이터가 없습니다.</p> : <table><thead><tr><th>페이지 종류</th><th>조회</th></tr></thead><tbody>{data.basicPageViews.map((row) => <tr key={row.page}><td>{row.page}</td><td>{row.views}</td></tr>)}</tbody></table>}
+      <h4>선택적 상세 분석</h4>
       <p>{data.scope} · 날짜 기준 UTC</p>
       <p>활성화 = 공고 저장 성공 또는 지원 클릭. 아래 단계는 순서 전환율이 아닌 독립 행동 집계입니다.</p>
       {!data.stages?.length ? <p>수집된 데이터가 없습니다. 이용 통계에 동의한 방문부터 집계합니다.</p> : <div style={{ overflowX: 'auto' }}><table><thead><tr><th>행동</th><th>이벤트</th><th>브라우저</th><th>세션</th></tr></thead><tbody>{data.stages.map((row) => <tr key={row.kind}><td>{labels[row.kind] || row.kind}</td><td>{row.events}</td><td>{row.visitors}</td><td>{row.sessions}</td></tr>)}</tbody></table></div>}

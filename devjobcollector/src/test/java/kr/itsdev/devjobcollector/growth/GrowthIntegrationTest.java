@@ -26,7 +26,15 @@ class GrowthIntegrationTest {
         r.add("spring.flyway.user",()->System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME","root"));
         r.add("spring.flyway.password",()->System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD",""));
     }
-    @BeforeEach void clear() { jdbc.update("DELETE FROM growth_events"); }
+    @BeforeEach void clear() { jdbc.update("DELETE FROM growth_events"); jdbc.update("DELETE FROM basic_page_view_counts"); }
+    @Test void basicViewsAggregateAndExpireByUtcDay() {
+        service.recordBasicPageView("home");
+        service.recordBasicPageView("home");
+        jdbc.update("INSERT INTO basic_page_view_counts(view_date,page,view_count) VALUES (UTC_DATE() - INTERVAL 90 DAY,'jobs',4)");
+        service.purgeExpired();
+        assertThat(jdbc.queryForObject("SELECT view_count FROM basic_page_view_counts WHERE page='home'", Long.class)).isEqualTo  (2L);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM basic_page_view_counts WHERE page='jobs'", Integer.class)).isZero();
+    }
     @Test void repeatedDeliveryCountsOnce() {
         var e = new GrowthEventController.Event(UUID.randomUUID(),UUID.randomUUID(),UUID.randomUUID(),GrowthEventController.Kind.PAGE_VIEW,"home",null,"velog","social","launch");
         service.record(e); service.record(e);
