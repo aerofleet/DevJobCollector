@@ -18,7 +18,8 @@ function pdfFixture() {
   return Buffer.from(body);
 }
 
-async function openJob(page, filename, handler) {
+async function openJob(page, filename, handler, authenticated = true) {
+  if (authenticated) await page.addInitScript(() => localStorage.setItem('accessToken', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0IiwiZXhwIjo0MTAyNDQ0ODAwfQ.test'));
   await page.route('**/api/v1/jobs/12303?*', route => route.fulfill({ json: {
     id: 12303, title: '채용', companyName: '기관', sourcePlatform: 'PUBLIC_ALIO', location: '서울',
     experience: '신입', techStacks: [], files: [{ id: 11, fileName: filename, fileUrl: 'https://www.alio.go.kr/download/file' }],
@@ -29,7 +30,7 @@ async function openJob(page, filename, handler) {
 
 test('PDF is loaded on demand, rendered and restores focus', async ({ page }) => {
   let requests = 0;
-  await openJob(page, '공고.pdf', route => { requests++; return route.fulfill({ body: pdfFixture() }); });
+  await openJob(page, '공고.pdf', route => { requests++; expect(route.request().headers().authorization).toMatch(/^Bearer /); return route.fulfill({ body: pdfFixture() }); });
   const trigger = page.getByRole('button', { name: '미리보기' });
   expect(requests).toBe(0);
   await trigger.click();
@@ -44,6 +45,15 @@ test('PDF is loaded on demand, rendered and restores focus', async ({ page }) =>
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
   await expect(trigger).toBeFocused();
+});
+
+test('비로그인 사용자는 미리보기 요청 없이 로그인으로 이동한다', async ({ page }) => {
+  let requests = 0;
+  await openJob(page, '공고.pdf', route => { requests++; return route.fulfill({ body: pdfFixture() }); }, false);
+  await page.getByRole('button', { name: '미리보기' }).click();
+  await expect(page).toHaveURL(/\/login\?next=/);
+  expect(requests).toBe(0);
+  expect(await page.evaluate(() => sessionStorage.getItem('postLoginNextPath'))).toBe('/job/12303');
 });
 
 for (const ext of ['png', 'jpg', 'jpeg', 'webp']) {
