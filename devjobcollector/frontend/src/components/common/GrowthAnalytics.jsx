@@ -7,9 +7,10 @@ import '../../styles/GrowthAnalytics.css';
 
 export default function GrowthAnalytics() {
   const location = useLocation();
-  const consentSnapshot = useSyncExternalStore(subscribeAnalyticsConsent, analyticsConsentSnapshot, () => ':');
+  const consentSnapshot = useSyncExternalStore(subscribeAnalyticsConsent, analyticsConsentSnapshot, () => ':server');
   const consent = consentSnapshot.split(':')[0];
-  const [open, setOpen] = useState(() => !analyticsConsentSnapshot().split(':')[0]);
+  const [openOverride, setOpen] = useState(null);
+  const open = openOverride ?? (consentSnapshot !== ':server' && !consent);
   useEffect(() => {
     trackGrowthPage();
     updateGoogleAnalytics();
