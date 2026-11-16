@@ -8,6 +8,7 @@ import Header from './pages/Header';
 import MemberSessionProvider from './contexts/MemberSessionProvider';
 import ScrollReveals from './motion/ScrollReveals';
 import GrowthAnalytics from './components/common/GrowthAnalytics';
+import PageLoading from './components/common/PageLoading';
 import { clearJobListPosition } from './utils/jobListPosition';
 
 const AllJobsPage = lazy(() => import('./pages/AllJobsPage'));
@@ -54,7 +55,7 @@ const AppRoutes = () => {
       <ScrollReveals />
       <Header onSearch={handleSearch} />
       <RouteErrorBoundary key={location.pathname}>
-      <Suspense fallback={<main role="status" aria-busy="true" style={{ padding: 32, minHeight: '60vh' }}>화면 불러오는 중…</main>}>
+      <Suspense fallback={<PageLoading />}>
       <Routes>
         <Route path="/" element={<MainPage onSearch={handleSearch} />} />
         <Route path="/jobs" element={<AllJobsPage />} />
