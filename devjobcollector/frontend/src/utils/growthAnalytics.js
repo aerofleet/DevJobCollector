@@ -6,6 +6,7 @@ const VISITOR = 'djc-analytics-visitor';
 const SESSION = 'djc-analytics-session';
 const allowed = new Set(['PAGE_VIEW', 'SEARCH', 'JOB_VIEW', 'BOOKMARK', 'APPLY_CLICK', 'SIGNUP', 'LOGIN', 'SHARE']);
 let lastPage;
+let lastBasicPage;
 
 export function analyticsConsent() {
   try { return localStorage.getItem(CONSENT); } catch { return 'denied'; }
@@ -89,6 +90,12 @@ export function trackGrowth(kind, jobId) {
 }
 
 export function trackGrowthPage() {
+  const basicKey = location.pathname + location.search;
+  if (lastBasicPage !== basicKey) {
+    lastBasicPage = basicKey;
+    fetch(`${API}/analytics/page-views`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      credentials: 'omit', keepalive: true, referrerPolicy: 'no-referrer', body: JSON.stringify({ page: analyticsPage() }) }).catch(() => {});
+  }
   if (analyticsConsent() !== 'granted') return;
   const key = location.pathname + location.search;
   // StrictMode repeats effects; a real revisit after another route is still counted.
