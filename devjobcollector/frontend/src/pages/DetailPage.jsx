@@ -1,5 +1,6 @@
 import { jobPath } from '../utils/jobPath';
 import { getAccessToken } from '../utils/accessToken';
+import { useMemberSession } from '../contexts/memberSession';
 import { trackGrowth } from '../utils/growthAnalytics';
 import React, { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
@@ -20,6 +21,7 @@ const AttachmentPreviewModal = lazy(() => import('../components/job/AttachmentPr
 
 const DetailPage = () => {
   const { id } = useParams();
+  const { token } = useMemberSession();
   const navigate = useNavigate();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -245,7 +247,9 @@ const DetailPage = () => {
           </>}
           {!salary && !job.supplementalSalaryText && <p className="job-content-empty">급여 정보를 확인하지 못했어요. 원문을 확인해 주세요.</p>}
           <p className="detail-source-note">일부 항목만 표시됩니다. 정확한 자격 조건과 상세 내용은 원문에서 확인해 주세요.</p>
-          {originalUrl && <a className="detail-original-link" href={originalUrl} target="_blank" rel="noopener noreferrer">공고 원문 보기 ↗</a>}
+          {originalUrl && (token
+            ? <a className="detail-original-link" href={originalUrl} target="_blank" rel="noopener noreferrer" onClick={event => { if (!requireMember()) event.preventDefault(); }}>공고 원문 보기 ↗</a>
+            : <button type="button" className="detail-original-link" onClick={requireMember}>공고 원문 보기 ↗</button>)}
         </section>
         {job.applyQual && <section className="detail-section">
           <details>
