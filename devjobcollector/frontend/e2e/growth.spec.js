@@ -34,13 +34,23 @@ test('첫 방문 거부 선택을 새로고침 후에도 유지한다', async ({
 
 test('안내 닫기는 동의를 기록하지 않고 설정에서 다시 열 수 있다', async ({ page }) => {
   await setup(page);
-  await page.goto('/terms');
+  await page.goto('/privacy');
   await page.getByRole('button', { name: '이용 통계 안내 닫기' }).click();
   await expect(page.getByRole('button', { name: '통계 수집 허용' })).toBeHidden();
   expect(await page.evaluate(() => localStorage.getItem('djc-analytics-consent'))).toBeNull();
   await expect(page.locator('script[src*="googletagmanager.com/gtag/js"]')).toHaveCount(0);
-  await page.getByRole('button', { name: '이용 통계 설정' }).click();
+  await page.getByRole('button', { name: '쿠키·이용 통계 설정' }).click();
   await expect(page.getByRole('button', { name: '통계 수집 허용' })).toBeVisible();
+});
+
+test('개인정보 처리방침에서 허용한 통계를 철회할 수 있다', async ({ page }) => {
+  await setup(page, 'granted');
+  await page.goto('/privacy');
+  await expect(page.getByRole('button', { name: '이용 통계 허용 중' })).toHaveCount(0);
+  await page.getByRole('button', { name: '쿠키·이용 통계 설정' }).click();
+  await expect(page.locator('.growth-consent--prompt')).toBeInViewport();
+  await page.getByRole('button', { name: '거부 / 철회' }).click();
+  expect(await page.evaluate(() => localStorage.getItem('djc-analytics-consent'))).toBe('denied');
 });
 
 test('동의 전 기본 집계는 페이지 종류만 전송한다', async ({ page }) => {
@@ -61,13 +71,13 @@ test('Clarity는 별도 동의 후 로드되고 철회 후에는 다시 로드�
   await page.goto('/terms');
   await expect(page.getByRole('heading', { name: '데브잡스 이용약관', exact: true })).toBeVisible();
   expect(requests).toBe(0);
-  await page.getByRole('button', { name: '이용 통계 허용 중' }).click();
+  await page.evaluate(() => window.dispatchEvent(new Event('open-analytics-settings')));
   await page.getByRole('button', { name: '통계 수집 허용' }).click();
   await expect.poll(() => requests).toBe(1);
   await expect(page.locator('script[src="https://www.clarity.ms/tag/zbh7shexgg?ref=bwt"]')).toHaveCount(1);
   expect(await page.evaluate(() => window.clarity.q[0])).toEqual(['consentv2', { ad_Storage: 'denied', analytics_Storage: 'granted' }]);
   await expect(page.locator('#root')).toHaveAttribute('data-clarity-mask', 'true');
-  await page.getByRole('button', { name: '이용 통계 허용 중' }).click();
+  await page.evaluate(() => window.dispatchEvent(new Event('open-analytics-settings')));
   await Promise.all([page.waitForLoadState('load'), page.getByRole('button', { name: '거부 / 철회' }).click()]);
   await expect(page.locator('script[src*="clarity.ms/tag/"]')).toHaveCount(0);
   expect(await page.evaluate(() => localStorage.getItem('djc-clarity-consent'))).toBe('denied');
@@ -111,7 +121,7 @@ test('Google Analytics는 동의 후 안전한 페이지 경로만 수동 기록
   expect(views).toHaveLength(1);
   expect(views[0][2].page_location).toBe(new URL('/jobs', page.url()).href);
   expect(JSON.stringify(calls)).not.toMatch(/secret|private%40|private@/);
-  await page.getByRole('button', { name: '이용 통계 허용 중' }).click();
+  await page.evaluate(() => window.dispatchEvent(new Event('open-analytics-settings')));
   await page.getByRole('button', { name: '거부 / 철회' }).click();
   expect(await page.evaluate(() => window['ga-disable-G-CWT9EYZSQF'])).toBe(true);
   const after = await page.evaluate(() => window.dataLayer.map(args => Array.from(args)));
@@ -124,7 +134,7 @@ test('기존 자체 통계 동의만으로 Google 태그를 불러오지 않는�
   await expect(page.getByRole('heading', { name: '데브잡스 이용약관', exact: true })).toBeVisible();
   await expect(page.locator('script[src*="googletagmanager.com/gtag/js"]')).toHaveCount(0);
   await page.route('https://www.googletagmanager.com/gtag/js**', route => route.fulfill({ status: 200, contentType: 'text/javascript', body: '' }));
-  await page.getByRole('button', { name: '이용 통계 허용 중' }).click();
+  await page.evaluate(() => window.dispatchEvent(new Event('open-analytics-settings')));
   await page.getByRole('button', { name: '통계 수집 허용' }).click();
   await expect(page.locator('script[src*="G-CWT9EYZSQF"]')).toHaveCount(1);
 });
@@ -154,7 +164,7 @@ test('철회 시 이후 전송과 브라우저 식별자를 제거한다', async
   const events = await setup(page, 'granted');
   await page.goto('/terms');
   await expect.poll(() => events.length).toBe(1);
-  await page.getByRole('button', { name: '이용 통계 허용 중' }).click();
+  await page.evaluate(() => window.dispatchEvent(new Event('open-analytics-settings')));
   await page.getByRole('button', { name: '거부 / 철회' }).click();
   expect(await page.evaluate(() => localStorage.getItem('djc-analytics-visitor'))).toBeNull();
   expect(await page.evaluate(() => sessionStorage.getItem('djc-analytics-session'))).toBeNull();

@@ -144,3 +144,4 @@
     gap: 2px;
   }
 }
+.legal-consent-settings { padding: 0; border: 0; background: transparent; color: #493b73; text-decoration: underline; cursor: pointer; font: inherit; }
