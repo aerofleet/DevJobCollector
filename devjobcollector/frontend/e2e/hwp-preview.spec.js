@@ -7,6 +7,7 @@ import { Buffer } from 'node:buffer';
 const job = { id: 12303, title: '정보통신 채용', companyName: '공공기관', sourcePlatform: 'PUBLIC_ALIO', location: '서울', experience: '신입', techStacks: [], applyQual: '공고 내용', files: [{ id: 11723, fileName: '공고문.hwp', fileUrl: 'https://opendata.alio.go.kr/recruit/downloadAtchFile?recrutAtchFileNo=3085641' }, { id: 3, fileName: '서류.pdf', fileUrl: 'https://example.com/file.pdf' }] };
 
 test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('accessToken', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0IiwiZXhwIjo0MTAyNDQ0ODAwfQ.test'));
   await page.route('**/api/v1/jobs/12303?*', route => route.fulfill({ json: job }));
 });
 

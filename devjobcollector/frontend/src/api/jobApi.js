@@ -1,5 +1,6 @@
 // src/api/jobApi.js
 import axios from 'axios';
+import authenticatedApi from './authenticatedApi';
 import { isDeveloperJob } from '../utils/developerJob';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
@@ -131,7 +132,7 @@ export const fetchJobDetail = async (jobId) => {
 };
 
 export const previewJobFile = async (fileId, signal) => {
-  const response = await apiClient.get(`/job-files/${encodeURIComponent(fileId)}/preview`, {
+  const response = await authenticatedApi.get(`/job-files/${encodeURIComponent(fileId)}/preview`, {
     signal, responseType: 'arraybuffer', timeout: 30000, maxRetries: 0,
   });
   return new Uint8Array(response.data);

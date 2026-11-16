@@ -215,7 +215,7 @@ const DetailPage = () => {
           </section>
           {job.files?.length > 0 && <section className="detail-section"><h3>첨부파일</h3><ul className="detail-attachments">{job.files.map((file) => {
             const href = jobFileUrl(file.fileUrl);
-            return <li key={file.id}>{href ? <a href={href} target="_blank" rel="noopener noreferrer">{file.fileName || '첨부파일'}</a> : (file.fileName || '첨부파일')}{canPreviewJobFile(file) && <button className="detail-preview-button" type="button" onClick={() => setPreviewFile({ ...file, originalUrl: href })}>미리보기</button>}</li>;
+            return <li key={file.id}>{href ? <a href={href} target="_blank" rel="noopener noreferrer">{file.fileName || '첨부파일'}</a> : (file.fileName || '첨부파일')}{canPreviewJobFile(file) && <button className="detail-preview-button" type="button" onClick={() => { if (requireMember()) setPreviewFile({ ...file, originalUrl: href }); }}>미리보기</button>}</li>;
           })}</ul></section>}
         </> : <>
         <JobContentImages urls={job.contentImageUrls} originalUrl={originalUrl} />
