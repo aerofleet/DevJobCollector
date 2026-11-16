@@ -32,6 +32,17 @@ test('첫 방문 거부 선택을 새로고침 후에도 유지한다', async ({
   await expect(page.locator('script[src*="googletagmanager.com/gtag/js"]')).toHaveCount(0);
 });
 
+test('안내 닫기는 동의를 기록하지 않고 설정에서 다시 열 수 있다', async ({ page }) => {
+  await setup(page);
+  await page.goto('/terms');
+  await page.getByRole('button', { name: '이용 통계 안내 닫기' }).click();
+  await expect(page.getByRole('button', { name: '통계 수집 허용' })).toBeHidden();
+  expect(await page.evaluate(() => localStorage.getItem('djc-analytics-consent'))).toBeNull();
+  await expect(page.locator('script[src*="googletagmanager.com/gtag/js"]')).toHaveCount(0);
+  await page.getByRole('button', { name: '이용 통계 설정' }).click();
+  await expect(page.getByRole('button', { name: '통계 수집 허용' })).toBeVisible();
+});
+
 test('동의 전 기본 집계는 페이지 종류만 전송한다', async ({ page }) => {
   await setup(page);
   let request;
