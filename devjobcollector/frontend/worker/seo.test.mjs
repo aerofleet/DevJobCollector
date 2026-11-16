@@ -4,6 +4,15 @@ import worker, { metadata, renderHtml } from './index.js';
 
 const html = '<html><head><title>old</title><meta name="description" content="old" /></head><body><div id="root"><h1>home</h1><!--/prerender--></div></body></html>';
 const env = { ASSETS: { fetch: async () => new Response(html) } };
+
+test('missing asset SPA fallback is a non-cacheable 404; existing scripts keep their type', async () => {
+  const missing = await worker.fetch(request('/assets/old.js'), { ASSETS: { fetch: async () => new Response(html, { headers: { 'content-type': 'text/html' } }) } });
+  assert.equal(missing.status, 404);
+  assert.equal(missing.headers.get('cache-control'), 'no-store');
+  const script = await worker.fetch(request('/assets/current.js'), { ASSETS: { fetch: async () => new Response('export {}', { headers: { 'content-type': 'text/javascript' } }) } });
+  assert.equal(script.status, 200);
+  assert.match(script.headers.get('content-type'), /javascript/);
+});
 const request = (path) => new Request(`https://djc.itsdev.kr${path}`);
 globalThis.caches ??= undefined;
 test('metadata escapes untrusted job content and strips query from canonical', () => {

@@ -64,6 +64,13 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
     if (!['GET', 'HEAD'].includes(request.method)) return new Response('Method not allowed', { status: 405 });
+    if (path.startsWith('/assets/')) {
+      const asset = await env.ASSETS.fetch(request);
+      if (!asset.ok || (asset.headers.get('content-type') || '').toLowerCase().includes('text/html')) {
+        return new Response(null, { status: 404, headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
+      }
+      return asset;
+    }
     if (path === '/robots.txt') return new Response(`User-agent: *\nAllow: /\nSitemap: ${SITE}/sitemap.xml\n`, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
     try {
       const sitemap = ['/sitemap.xml', '/sitemap-pages.xml', '/sitemap-jobs.xml'].includes(path);
