@@ -6,6 +6,11 @@ import './index.css'
 import App from './App.jsx'
 import './motion/motion.css'
 import './motion/devjobs.css'
+import { recoverChunkFailure } from './utils/chunkRecovery';
+
+window.addEventListener('vite:preloadError', (event) => {
+  try { recoverChunkFailure(event, window.sessionStorage, () => window.location.reload()); } catch { /* Show the existing error state when storage is unavailable. */ }
+});
 
 const motionMode = import.meta.env.VITE_MOTION_MODE;
 document.documentElement.dataset.motion = ['off', 'subtle', 'standard'].includes(motionMode) ? motionMode : 'standard';

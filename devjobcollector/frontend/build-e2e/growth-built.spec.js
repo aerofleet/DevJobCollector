@@ -30,6 +30,9 @@ test(`JavaScript를 기다리지 않고 홈 내용을 표시하고 동일 DOM으
 }
 
 test('robots와 내부 페이지는 올바른 HTTP 내용과 메타데이터 제공', async ({ request }) => {
+  const missingScript = await request.get('/assets/nonexistent-preview-chunk.js');
+  expect(missingScript.status()).toBe(404);
+  expect(missingScript.headers()['cache-control']).toContain('no-store');
   const robots = await request.get('/robots.txt');
   expect(robots.headers()['content-type']).toContain('text/plain');
   expect(await robots.text()).toContain('Sitemap:');
