@@ -1,5 +1,6 @@
 // src/api/jobApi.js
 import axios from 'axios';
+import { isDeveloperJob } from '../utils/developerJob';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
 const RETRYABLE_METHODS = new Set(['get', 'head', 'options']);
@@ -76,15 +77,6 @@ export const fetchJobs = async (page = 0, size = 10) => {
 // 랜딩 페이지용 무작위 공고 조회
 // '개발' 키워드로 큰 풀을 한 번 조회하고 개발 직무를 골라 섞는다.
 // API 1회 고정 — 후보가 부족하면 있는 만큼만 표시한다.
-const DEVELOPER_TITLE_PATTERN = /개발|엔지니어|소프트웨어|백엔드|프론트엔드|풀스택|서버|데이터|머신러닝|인공지능|\b(?:software|engineer|developer|backend|frontend|full[ -]?stack|devops|sre|qa|data|machine learning|ai)\b/i;
-
-const isDeveloperJob = (job) => {
-  const techStackText = (job.techStacks ?? [])
-    .map((techStack) => techStack.name ?? techStack.stackName ?? '')
-    .join(' ');
-  return DEVELOPER_TITLE_PATTERN.test(`${job.title ?? ''} ${techStackText}`);
-};
-
 export const fetchRandomDeveloperJobs = async (count = 8) => {
   const data = await searchJobs('개발', 0, 120, { timeout: 8000, maxRetries: 0 });
   const candidates = (data.content ?? []).filter(isDeveloperJob);
