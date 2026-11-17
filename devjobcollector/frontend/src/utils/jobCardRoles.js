@@ -27,6 +27,7 @@ const OTHER_ENGLISH_ROLES = [
   ['고객 엔지니어링 매니저', /\b(?:manager\s*,?\s*customer\s+engineering|customer\s+engineering\s+manager)\b/i],
   ['지역 마케팅 매니저', /\bregional\s+marketing\s+manager\b/i],
   ['사업개발 담당자', /\bbusiness\s+development\s+representative\b/i],
+  ['계정 관리 매니저', /\bmanager\s*,?\s*account\s+management\b/i],
   ['컴플라이언스 매니저', /\bcompliance\s+manager\b/i],
   ['부동산 거래 매니저', /\breal\s+estate\s+transactions?\s+manager\b/i],
   ['리스크 관리', /\brisk\s+management\b/i],
@@ -44,6 +45,19 @@ export function jobCardRoles(job) {
   const roles = ROLES.filter(([, pattern]) => pattern.test(title) || pattern.test(category)).map(([label]) => label);
   const explicitRoles = [...new Set(title.match(OTHER_ROLE) || [])].filter(role => role !== '디자이너' || !roles.includes('UX·UI 디자인'));
   const englishRoles = OTHER_ENGLISH_ROLES.filter(([, pattern]) => pattern.test(title)).map(([label]) => label);
+  if (/\boperations\s+manager\b/i.test(title)) {
+    englishRoles.push(/\bfin\s*crime\b/i.test(title) ? '금융범죄 운영 매니저' : '운영 매니저');
+  }
+  if (/번역\s*pm\b/i.test(title)) {
+    const language = /일본어|\bjapanese\b/i.test(title) ? '일본어 ' : '';
+    const animation = /애니메이션|\banimation\b/i.test(title) ? '애니메이션 ' : '';
+    englishRoles.push(`${language}${animation}번역 PM`);
+  }
+  if (/공연\s*기획\s*(?:·|및|\/|\s)*운영/.test(title)) englishRoles.push('공연 기획·운영');
+  if (/마케팅\s*콘텐츠\s*제작[\s_·-]*어시스턴트/.test(title)) englishRoles.push('마케팅 콘텐츠 제작 어시스턴트');
+  if (/\bgrowth\s*&\s*marketing\s+design\b/i.test(title)) {
+    englishRoles.push(/인턴|\bintern(?:ship)?\b/i.test(title) ? '그로스·마케팅 디자인 인턴' : '그로스·마케팅 디자인');
+  }
   if (/\blocali[sz]ation\s+pm\b/i.test(title)) {
     englishRoles.push(/일본어|\bjapanese\b/i.test(title) ? '일본어 현지화 PM' : '현지화 PM');
   }
