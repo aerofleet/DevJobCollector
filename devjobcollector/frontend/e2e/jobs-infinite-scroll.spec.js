@@ -90,6 +90,24 @@ test('인사·고객 엔지니어링·현지화·마케팅·사업개발 직무�
   ]);
 });
 
+test('운영·번역·계정 관리·공연·마케팅 직무를 축약한다', async ({ page }) => {
+  const titles = [
+    'Operations Manager (FinCrime)',
+    '[네이버웹툰] 일본어 애니메이션 번역 PM (한국어-일본어) (계약직)',
+    'Senior Manager, Account Management - Marketplace Business',
+    '공연기획 운영 담당 (Live Entertainment) — Coupang Play',
+    '카카오비즈니스 마케팅 콘텐츠 제작_어시스턴트',
+    '[네이버웹툰] EN Growth&Marketing Design (체험형 인턴)',
+  ];
+  await page.route('**/api/v1/jobs/search**', route => respond(route,
+    titles.map((title, index) => ({ ...makeJobs(13271 + index, 1)[0], title })), 0, 1));
+  await page.goto('/jobs');
+  await expect(page.locator('.all-jobs-grid .job-role-badge')).toHaveText([
+    '금융범죄 운영 매니저', '일본어 애니메이션 번역 PM', '계정 관리 매니저',
+    '공연 기획·운영', '마케팅 콘텐츠 제작 어시스턴트', '그로스·마케팅 디자인 인턴',
+  ]);
+});
+
 test('개발자 채용 메뉴는 목록 중간에서 눌러도 상단으로 이동한다', async ({ page }, testInfo) => {
   await page.route('**/api/v1/jobs/search**', route => respond(route, makeJobs(1, 12), 0, 1));
   await page.goto('/jobs?keyword=backend');

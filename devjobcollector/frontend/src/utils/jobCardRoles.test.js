@@ -21,6 +21,14 @@ test('직무명과 분류를 표시하고 기술 및 조직명은 직무로 오�
   assert.deepEqual(jobCardRoles({ title: 'Sr. Regional Marketing Manager - UKI', jobCategory: 'Marketing' }), ['지역 마케팅 매니저']);
   assert.deepEqual(jobCardRoles({ title: 'Business Development Representative - French Speaking', jobCategory: 'BDR' }), ['사업개발 담당자']);
   assert.deepEqual(jobCardRoles({ title: 'Localization PM' }), ['현지화 PM']);
+  assert.deepEqual(jobCardRoles({ title: 'Operations Manager (FinCrime)', jobCategory: '3313 SDC - Financial Crimes' }), ['금융범죄 운영 매니저']);
+  assert.deepEqual(jobCardRoles({ title: '[네이버웹툰] 일본어 애니메이션 번역 PM (한국어-일본어) (계약직)', jobCategory: 'Corporate / 통번역' }), ['일본어 애니메이션 번역 PM']);
+  assert.deepEqual(jobCardRoles({ title: 'Senior Manager, Account Management - Marketplace Business', jobCategory: 'Marketplace' }), ['계정 관리 매니저']);
+  assert.deepEqual(jobCardRoles({ title: '공연기획 운영 담당 (Live Entertainment) — Coupang Play', jobCategory: 'Coupang Play' }), ['공연 기획·운영']);
+  assert.deepEqual(jobCardRoles({ title: '카카오비즈니스 마케팅 콘텐츠 제작_어시스턴트', jobCategory: '서비스비즈' }), ['마케팅 콘텐츠 제작 어시스턴트']);
+  assert.deepEqual(jobCardRoles({ title: '[네이버웹툰] EN Growth&Marketing Design (체험형 인턴)', jobCategory: 'Design / Visual Comm. & Brand Design' }), ['그로스·마케팅 디자인 인턴']);
+  assert.deepEqual(jobCardRoles({ title: 'Operations Manager' }), ['운영 매니저']);
+  assert.deepEqual(jobCardRoles({ title: '2026년 채용', jobCategory: 'Financial Crimes' }), ['2026년 채용']);
   assert.deepEqual(jobCardRoles({ title: 'Customer Engineering Intern' }), ['Customer Engineering Intern']);
   assert.deepEqual(jobCardRoles({ title: '미화원 및 운전원 모집' }), ['미화원', '운전원']);
   assert.deepEqual(jobCardRoles({ title: 'UX 디자이너' }), ['UX·UI 디자인']);
