@@ -1,5 +1,9 @@
 import { expect, test } from '@playwright/test';
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('djc-analytics-consent', 'denied'));
+});
+
 const makeJobs = (start, count) => Array.from({ length: count }, (_, index) => ({
   id: start + index,
   companyName: `테스트 기업 ${start + index}`,
@@ -23,14 +27,26 @@ const respond = (route, content, page, totalPages = 3) => route.fulfill({
   }),
 });
 
-test('공고 카드에 등록 태그와 본문 기술을 중복 없이 표시한다', async ({ page }) => {
+test('공고 카드에 기술 대신 직무를 표시한다', async ({ page }) => {
   await page.route('**/api/v1/jobs/search**', route => respond(route, [{
     ...makeJobs(985, 1)[0], techStacks: [{ id: 1, stackName: 'Docker' }],
     mentionedTechStacks: ['Docker', 'Kubernetes', 'AWS', 'CI/CD'],
   }], 0, 1));
   await page.goto('/jobs');
   const card = page.locator('.all-jobs-grid .job-card').first();
-  await expect(card.locator('.tech-badge')).toHaveText(['Docker', 'Kubernetes', 'AWS', 'CI/CD']);
+  await expect(card.locator('.job-role-badge')).toHaveText(['백엔드']);
+  await expect(card.locator('.tech-badge')).toHaveCount(0);
+});
+
+test('기술 프로그램 매니저 공고는 직무를 표시하고 도구를 직무로 표시하지 않는다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/search**', route => respond(route, [{
+    ...makeJobs(13238, 1)[0], companyName: 'Pinterest', title: 'Technical Program Manager II',
+    jobCategory: 'Oversight Engineering', mentionedTechStacks: ['AWS', 'Grafana', 'SQL'],
+  }], 0, 1));
+  await page.goto('/jobs');
+  const card = page.locator('.all-jobs-grid .job-card').first();
+  await expect(card.locator('.job-role-badge')).toHaveText(['기술 프로그램 매니저']);
+  await expect(card).not.toContainText(/AWS|Grafana|SQL/);
 });
 
 test('개발자 채용 메뉴는 목록 중간에서 눌러도 상단으로 이동한다', async ({ page }, testInfo) => {

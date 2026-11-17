@@ -1,7 +1,7 @@
 import { jobPath } from '../../utils/jobPath';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import TechStackBadge from './TechStackBadge';
+import { jobCardRoles } from '../../utils/jobCardRoles';
 import { formatDate, getDaysRemaining } from '../../utils/dateParser';
 import { getCompanyInitials, getCompanyLogoUrl } from '../../utils/companyLogo';
 import { jobSourceLabel } from '../../utils/jobSource';
@@ -17,8 +17,7 @@ const JobCard = ({ job, onOpen }) => {
       : job.endDate ? formatDate(job.endDate) : '미등록';
   const logoUrl = getCompanyLogoUrl(job);
   const showLogo = logoUrl && failedLogoUrl !== logoUrl;
-  const registered = new Set((job.techStacks || []).map(tech => tech.stackName?.trim().toLowerCase()));
-  const mentioned = [...new Set((job.mentionedTechStacks || []).filter(name => name && !registered.has(name.trim().toLowerCase())))];
+  const roles = jobCardRoles(job);
 
   return (
     <Link className='job-card im-card' data-motion-reveal="" to={jobPath(job.id, job.title)} onClick={onOpen}>
@@ -66,12 +65,9 @@ const JobCard = ({ job, onOpen }) => {
             {job.title}
         </h3>
         {job.industrialPersonnelRecruitment && <span className="industrial-recruitment-badge">산업기능요원 모집</span>}
-        {/* 기술 스택 */}
-        <div className="tech-stack">
-          {job.techStacks?.map((tech) => (
-            <TechStackBadge key={tech.id} tech={tech} />
-          ))}
-          {mentioned.map(name => <TechStackBadge key={name} tech={{ stackName: name }} />)}
+        {/* 직무 */}
+        <div className="job-role-tags" aria-label="직무">
+          {roles.map(role => <span className="job-role-badge" key={role}>{role}</span>)}
         </div>
 
         {/* 지역 + 경력 */}
