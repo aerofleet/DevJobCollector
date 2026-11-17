@@ -64,6 +64,16 @@ test('개발 외 직무와 분리하기 어려운 공고명은 실제 제목을 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
+test('영문 비개발 공고명에서 명확한 직무를 간략하게 표시한다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/search**', route => respond(route, [
+    { ...makeJobs(3, 1)[0], title: 'Seller Compliance Manager' },
+    { ...makeJobs(4, 1)[0], title: 'Real Estate Transactions Manager' },
+    { ...makeJobs(5, 1)[0], title: 'Cinematographer/Video Editor' },
+  ], 0, 1));
+  await page.goto('/jobs');
+  await expect(page.locator('.all-jobs-grid .job-role-badge')).toHaveText(['컴플라이언스 매니저', '부동산 거래 매니저', '영상 촬영·편집']);
+});
+
 test('개발자 채용 메뉴는 목록 중간에서 눌러도 상단으로 이동한다', async ({ page }, testInfo) => {
   await page.route('**/api/v1/jobs/search**', route => respond(route, makeJobs(1, 12), 0, 1));
   await page.goto('/jobs?keyword=backend');
