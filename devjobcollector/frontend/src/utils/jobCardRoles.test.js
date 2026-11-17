@@ -10,5 +10,13 @@ test('직무명과 분류를 표시하고 기술 및 조직명은 직무로 오�
   assert.deepEqual(jobCardRoles({ title: '[한국장애인고용공단 대구직업능력개발원] 특정업무직(미화원) 채용공고' }), ['미화원']);
   assert.deepEqual(jobCardRoles({ title: '[한국장애인고용공단 경기남부직업능력개발원] 특정업무직(운전원) 채용' }), ['운전원']);
   assert.deepEqual(jobCardRoles({ title: '계약직 고객 상담원 채용' }), ['고객 상담원']);
+  assert.deepEqual(jobCardRoles({ title: 'Seller Compliance Manager' }), ['컴플라이언스 매니저']);
+  assert.deepEqual(jobCardRoles({ title: 'Real Estate Transactions Manager' }), ['부동산 거래 매니저']);
+  assert.deepEqual(jobCardRoles({ title: 'Cinematographer/Video Editor' }), ['영상 촬영·편집']);
+  assert.deepEqual(jobCardRoles({ title: 'Enterprise Risk Management (ERM) Program Lead' }), ['리스크 관리']);
+  assert.deepEqual(jobCardRoles({ title: 'Account Executive, Existing Business' }), ['영업 담당자']);
+  assert.deepEqual(jobCardRoles({ title: '미화원 및 운전원 모집' }), ['미화원', '운전원']);
+  assert.deepEqual(jobCardRoles({ title: 'UX 디자이너' }), ['UX·UI 디자인']);
+  assert.deepEqual(jobCardRoles({ title: '2026년 10차 공개채용 공고', jobCategory: '금융.보험,경비.청소' }), ['2026년 10차 공개채용 공고']);
   assert.deepEqual(jobCardRoles({ title: '' }), []);
 });
