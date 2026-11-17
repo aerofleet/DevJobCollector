@@ -64,6 +64,19 @@ test('개발 외 직무와 분리하기 어려운 공고명은 실제 제목을 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
+test('알리오 공고는 제목이 아닌 채용 분야 태그를 표시한다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/search**', route => respond(route, [
+    { ...makeJobs(12805, 1)[0], sourcePlatform: 'PUBLIC_ALIO', title: '특정업무직(미화원) 채용공고', jobCategory: '경비.청소' },
+    { ...makeJobs(13142, 1)[0], sourcePlatform: 'PUBLIC_ALIO', title: '공개채용 공고', jobCategory: '금융.보험,경비.청소' },
+    { ...makeJobs(3, 1)[0], sourcePlatform: 'PUBLIC_ALIO', title: '운전원 모집', jobCategory: null },
+  ], 0, 1));
+  await page.goto('/jobs');
+  const cards = page.locator('.all-jobs-grid .job-card');
+  await expect(cards.nth(0).getByLabel('채용 분야').locator('.job-role-badge')).toHaveText(['경비.청소']);
+  await expect(cards.nth(1).getByLabel('채용 분야').locator('.job-role-badge')).toHaveText(['금융.보험', '경비.청소']);
+  await expect(cards.nth(2).getByLabel('채용 분야').locator('.job-role-badge')).toHaveText(['채용 분야 미제공']);
+});
+
 test('영문 비개발 공고명에서 명확한 직무를 간략하게 표시한다', async ({ page }) => {
   await page.route('**/api/v1/jobs/search**', route => respond(route, [
     { ...makeJobs(3, 1)[0], title: 'Seller Compliance Manager' },
