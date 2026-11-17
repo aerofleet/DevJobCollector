@@ -100,8 +100,25 @@ test('공고 원문 대신 출처와 자격 조건을 표시하고 원문으로 
   await expect(page.locator('details').getByText('Java와 Spring 기반 서비스를 개발합니다.')).not.toBeVisible();
   await page.getByText('수집된 공고 내용 전체 보기').click();
   await expect(page.locator('details').getByText('Java와 Spring 기반 서비스를 개발합니다.')).toBeVisible();
-  await expect(page.getByRole('link', { name: '공고 원문 보기 ↗' })).toHaveAttribute('href', jobDetail.originalUrl);
+  await expect(page.getByRole('button', { name: '공고 원문 보기 ↗' })).toBeVisible();
   expect(await page.evaluate(() => window.__jobContentInjected)).toBeUndefined();
+});
+
+test('비로그인 원문 보기는 로그인 후 공고로 돌아가도록 안내한다', async ({ page }) => {
+  await page.goto('/job/42');
+  await expect(page.getByRole('link', { name: '공고 원문 보기 ↗' })).toHaveCount(0);
+  await page.getByRole('button', { name: '공고 원문 보기 ↗' }).click();
+  await expect(page).toHaveURL(/\/login\?next=/);
+  expect(await page.evaluate(() => sessionStorage.getItem('postLoginNextPath'))).toBe('/job/42');
+});
+
+test('로그인한 회원은 원문 링크를 새 창으로 열 수 있다', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('accessToken', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0IiwiZXhwIjo0MTAyNDQ0ODAwfQ.test'));
+  await page.goto('/job/42');
+  const link = page.getByRole('link', { name: '공고 원문 보기 ↗' });
+  await expect(link).toHaveAttribute('href', jobDetail.originalUrl);
+  await expect(link).toHaveAttribute('target', '_blank');
+  await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
 });
 
 test('모바일에서도 핵심 항목과 하단 액션을 화면 너비 안에 표시한다', async ({ page }, testInfo) => {
