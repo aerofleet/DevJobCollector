@@ -20,9 +20,16 @@ const ROLES = [
   ['소프트웨어 개발', /소프트웨어\s*(?:개발|엔지니어)|\bsoftware\s+(?:engineer|developer|development)\b/i],
 ];
 
+// 개발 직무 외에도 제목에서 명시된 모집 직무를 그대로 표시한다.
+const OTHER_ROLE = /미화원|운전원|고객\s*상담원|상담원|경비원|간호사|사회복지사|회계사|세무사|변호사|디자이너|마케터|영업\s*담당자/gi;
+
 export function jobCardRoles(job) {
   const title = typeof job.title === 'string' ? job.title : '';
   const category = typeof job.jobCategory === 'string' ? job.jobCategory : '';
   const roles = ROLES.filter(([, pattern]) => pattern.test(title) || pattern.test(category)).map(([label]) => label);
-  return roles.length ? roles : ['직무 확인 필요'];
+  if (roles.length) return roles;
+  const explicitRoles = [...new Set(title.match(OTHER_ROLE) || [])];
+  if (explicitRoles.length) return explicitRoles;
+  // 직무를 확실히 분리할 수 없으면 추측하지 않고 공개된 공고명을 표시한다.
+  return title.trim() ? [title.trim()] : [];
 }

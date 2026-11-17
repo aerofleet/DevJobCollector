@@ -1,5 +1,6 @@
 /* 카드 컨테이너 */
 .job-card {
+  min-width: 0;
   border: 1px solid #ebe9ef;
   border-radius: 16px;
   cursor: pointer;
@@ -93,6 +94,7 @@
 
 /* 컨텐츠 영역 */
 .job-content {
+  min-width: 0;
   padding: 16px;
 }
 
@@ -160,6 +162,8 @@
 
 /* 직무 */
 .job-role-tags {
+  min-width: 0;
+  max-width: 100%;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -170,6 +174,9 @@
 
 .job-role-badge {
   display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   padding: 2px 6px;
   background-color: #f1f3f5;
   color: #495057;

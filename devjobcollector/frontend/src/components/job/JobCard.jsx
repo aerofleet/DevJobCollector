@@ -67,7 +67,7 @@ const JobCard = ({ job, onOpen }) => {
         {job.industrialPersonnelRecruitment && <span className="industrial-recruitment-badge">산업기능요원 모집</span>}
         {/* 직무 */}
         <div className="job-role-tags" aria-label="직무">
-          {roles.map(role => <span className="job-role-badge" key={role}>{role}</span>)}
+          {roles.map(role => <span className="job-role-badge" key={role} title={role}>{role}</span>)}
         </div>
 
         {/* 지역 + 경력 */}
