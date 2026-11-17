@@ -74,6 +74,22 @@ test('영문 비개발 공고명에서 명확한 직무를 간략하게 표시�
   await expect(page.locator('.all-jobs-grid .job-role-badge')).toHaveText(['컴플라이언스 매니저', '부동산 거래 매니저', '영상 촬영·편집']);
 });
 
+test('인사·고객 엔지니어링·현지화·마케팅·사업개발 직무를 축약한다', async ({ page }) => {
+  const titles = [
+    'People Team Intern, EMEA Employment Compliance & Manager Enablement (Spring 2027)',
+    'Senior Manager, Customer Engineering',
+    '[네이버웹툰] 일본어 Localization PM (한국어-일본어) (계약직)',
+    'Sr. Regional Marketing Manager - UKI',
+    'Business Development Representative - French Speaking',
+  ];
+  await page.route('**/api/v1/jobs/search**', route => respond(route,
+    titles.map((title, index) => ({ ...makeJobs(13276 + index, 1)[0], title })), 0, 1));
+  await page.goto('/jobs');
+  await expect(page.locator('.all-jobs-grid .job-role-badge')).toHaveText([
+    '인사팀 인턴', '고객 엔지니어링 매니저', '일본어 현지화 PM', '지역 마케팅 매니저', '사업개발 담당자',
+  ]);
+});
+
 test('개발자 채용 메뉴는 목록 중간에서 눌러도 상단으로 이동한다', async ({ page }, testInfo) => {
   await page.route('**/api/v1/jobs/search**', route => respond(route, makeJobs(1, 12), 0, 1));
   await page.goto('/jobs?keyword=backend');
