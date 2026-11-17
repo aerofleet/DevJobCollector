@@ -23,6 +23,10 @@ const ROLES = [
 // 개발 직무 외에도 제목에서 명시된 모집 직무를 그대로 표시한다.
 const OTHER_ROLE = /미화원|운전원|(?:예금|보험|고객)\s*상담원|상담원|경비원|간호사|사회복지사|회계사|세무사|변호사|디자이너|마케터|영업\s*담당자/gi;
 const OTHER_ENGLISH_ROLES = [
+  ['인사팀 인턴', /\bpeople\s+team\s+intern\b/i],
+  ['고객 엔지니어링 매니저', /\b(?:manager\s*,?\s*customer\s+engineering|customer\s+engineering\s+manager)\b/i],
+  ['지역 마케팅 매니저', /\bregional\s+marketing\s+manager\b/i],
+  ['사업개발 담당자', /\bbusiness\s+development\s+representative\b/i],
   ['컴플라이언스 매니저', /\bcompliance\s+manager\b/i],
   ['부동산 거래 매니저', /\breal\s+estate\s+transactions?\s+manager\b/i],
   ['리스크 관리', /\brisk\s+management\b/i],
@@ -40,6 +44,9 @@ export function jobCardRoles(job) {
   const roles = ROLES.filter(([, pattern]) => pattern.test(title) || pattern.test(category)).map(([label]) => label);
   const explicitRoles = [...new Set(title.match(OTHER_ROLE) || [])].filter(role => role !== '디자이너' || !roles.includes('UX·UI 디자인'));
   const englishRoles = OTHER_ENGLISH_ROLES.filter(([, pattern]) => pattern.test(title)).map(([label]) => label);
+  if (/\blocali[sz]ation\s+pm\b/i.test(title)) {
+    englishRoles.push(/일본어|\bjapanese\b/i.test(title) ? '일본어 현지화 PM' : '현지화 PM');
+  }
   const filming = /\bcinematographer\b/i.test(title);
   const editing = /\bvideo\s+editor\b/i.test(title);
   if (filming && editing) englishRoles.push('영상 촬영·편집');
