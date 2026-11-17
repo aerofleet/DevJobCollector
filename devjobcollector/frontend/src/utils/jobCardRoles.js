@@ -42,6 +42,10 @@ const OTHER_ENGLISH_ROLES = [
 export function jobCardRoles(job) {
   const title = typeof job.title === 'string' ? job.title : '';
   const category = typeof job.jobCategory === 'string' ? job.jobCategory : '';
+  if (job.sourcePlatform === 'PUBLIC_ALIO') {
+    const fields = [...new Set(category.split(',').map(field => field.trim()).filter(Boolean))];
+    return fields.length ? fields : ['채용 분야 미제공'];
+  }
   const roles = ROLES.filter(([, pattern]) => pattern.test(title) || pattern.test(category)).map(([label]) => label);
   const explicitRoles = [...new Set(title.match(OTHER_ROLE) || [])].filter(role => role !== '디자이너' || !roles.includes('UX·UI 디자인'));
   const englishRoles = OTHER_ENGLISH_ROLES.filter(([, pattern]) => pattern.test(title)).map(([label]) => label);
