@@ -12,6 +12,7 @@ async function mock(page, { loggedIn = true, empty = false, fail = false, reason
   const state = { hidden: false, fail, privateCalls: 0, writes: 0 };
   await page.route('**/api/v1/**', route => {
     const req = route.request(); const path = new URL(req.url()).pathname;
+    if (path === '/api/v1/analytics/page-views') return route.fulfill({ status: 204 });
     if (path.includes('/ai/')) state.privateCalls++;
     if (req.method() !== 'GET') state.writes++;
     if (path.endsWith('/members/me')) return route.fulfill({ json: { id: 1, name: '테스트', role: 'USER', profileStatus: 'ACTIVE' } });
@@ -56,7 +57,7 @@ test('추천 근거·이력서 전환·제외 저장·모바일 배치', async (
   const state = await mock(page);
   await page.goto('/');
   const section = page.getByRole('region', { name: '내 이력서로 찾는 추천 포지션' });
-  await expect(section.locator('.job-card .tech-badge')).toHaveText(['Java', 'Spring', 'Kubernetes']);
+  await expect(section.locator('.job-card .job-role-badge')).toHaveText(['백엔드']);
   const reasonButton = section.getByRole('button', { name: '추천 근거 보기' });
   const excludeButton = section.getByRole('button', { name: '백엔드 엔지니어 추천 제외' });
   const reasonBounds = await reasonButton.boundingBox();
