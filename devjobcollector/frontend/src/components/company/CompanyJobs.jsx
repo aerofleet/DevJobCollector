@@ -33,7 +33,8 @@ const REFERRAL_CHOICES = [
 ];
 const DESCRIPTION_TEMPLATE = '[팀과 포지션 소개]\n\n[담당 업무]\n- \n\n[필수 자격]\n- \n\n[우대 사항]\n- \n\n[근무 조건]\n- \n\n[급여 및 복리후생]\n- \n\n[채용 절차 및 지원 안내]\n- ';
 const DESCRIPTION_EXAMPLE = '예: 담당 업무, 필수 자격, 우대 사항, 근무 조건, 급여 및 채용 절차를 구분해 작성해 주세요.';
-const failure = (e) => e.response?.status === 409 ? '다른 작업으로 공고가 변경되었습니다. 목록을 새로고침한 뒤 다시 열어주세요.'
+const failure = (e) => e.response?.status === 422 ? '같은 제목과 지원 URL의 공고가 이미 있습니다. 기존 공고를 확인해 주세요.'
+  : e.response?.status === 409 ? '다른 작업으로 공고가 변경되었습니다. 목록을 새로고침한 뒤 다시 열어주세요.'
   : e.response?.status === 403 ? '기업 인증 상태와 공고 관리 권한을 확인해주세요.'
     : e.response?.status === 400 ? '필수 항목, 마감일, 기술스택 및 https 지원 URL을 확인해주세요.' : '처리하지 못했습니다. 잠시 후 다시 시도해주세요.';
 

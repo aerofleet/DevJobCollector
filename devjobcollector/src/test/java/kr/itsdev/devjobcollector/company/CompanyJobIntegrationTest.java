@@ -140,7 +140,7 @@ class CompanyJobIntegrationTest {
         assertThatThrownBy(() -> service.review(p.id(),deleted.version(),"DELETE","중복",ADMIN)).hasMessageContaining("JOB_STATE_CONFLICT");
     }
     @Test void historyIsPaginatedNewestFirstAndCanFilterByJob() {
-        var d=create(); var other=create();
+        var d=create(); var other=service.create("owner",company.getId(),input("프론트엔드 개발자"));
         for(int i=0;i<25;i++) audits.save(new CompanyJobAudit(d.id(),ADMIN.id(),"ADMIN","REQUEST_CHANGES","보완 "+i));
         audits.flush();
         var first=service.reviewHistory(0,"REQUEST_CHANGES",d.id());
@@ -153,6 +153,13 @@ class CompanyJobIntegrationTest {
         assertThat(service.reviewHistory(0,"REQUEST_CHANGES",other.id()).getTotalElements()).isZero();
         assertThatThrownBy(() -> service.reviewHistory(0,"UNKNOWN",null)).hasMessageContaining("INVALID_ACTION");
         assertThatThrownBy(() -> service.reviewHistory(-1,null,null)).hasMessageContaining("INVALID_PAGE");
+    }
+    @Test void duplicateDraftIsRejectedButDifferentTitleAndClosedJobAreAllowed() {
+        var first=create();
+        assertThatThrownBy(() -> create()).hasMessageContaining("DUPLICATE_COMPANY_JOB");
+        assertThat(service.create("owner",company.getId(),input("프론트엔드 개발자"))).isNotNull();
+        service.close("owner",company.getId(),first.id(),first.version());
+        assertThat(create()).isNotNull();
     }
     @Test void moderationRequiresRoleReasonAndCurrentVersion() {
         var p=publish();

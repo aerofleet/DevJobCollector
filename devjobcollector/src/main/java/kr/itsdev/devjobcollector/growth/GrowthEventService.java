@@ -50,7 +50,7 @@ public class GrowthEventService {
         result.put("retention", jdbc.queryForMap("""
                 WITH first_visits AS (
                     SELECT visitor_id, DATE(MIN(created_at)) AS first_day FROM growth_events
-                    WHERE kind='PAGE_VIEW' AND created_at >= UTC_TIMESTAMP() - INTERVAL 90 DAY
+                    WHERE kind='PAGE_VIEW' AND created_at >= UTC_TIMESTAMP() - INTERVAL 30 DAY
                     GROUP BY visitor_id
                 ), mature AS (
                     SELECT * FROM first_visits WHERE first_day >= UTC_DATE() - INTERVAL 35 DAY
@@ -67,10 +67,10 @@ public class GrowthEventService {
 
     @Scheduled(cron = "0 20 3 * * *", zone = "UTC")
     public void purgeExpired() {
-        jdbc.update("DELETE FROM basic_page_view_counts WHERE view_date < UTC_DATE() - INTERVAL 89 DAY");
+        jdbc.update("DELETE FROM basic_page_view_counts WHERE view_date < UTC_DATE() - INTERVAL 29 DAY");
         // Bounded batches keep retention cleanup from holding a large transaction.
         for (int i = 0; i < 100; i++) {
-            if (jdbc.update("DELETE FROM growth_events WHERE created_at < UTC_TIMESTAMP() - INTERVAL 90 DAY LIMIT 10000") < 10000) break;
+            if (jdbc.update("DELETE FROM growth_events WHERE created_at < UTC_TIMESTAMP() - INTERVAL 30 DAY LIMIT 10000") < 10000) break;
         }
     }
 }

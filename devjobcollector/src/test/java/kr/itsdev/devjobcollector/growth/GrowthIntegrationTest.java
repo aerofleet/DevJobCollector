@@ -30,7 +30,7 @@ class GrowthIntegrationTest {
     @Test void basicViewsAggregateAndExpireByUtcDay() {
         service.recordBasicPageView("home");
         service.recordBasicPageView("home");
-        jdbc.update("INSERT INTO basic_page_view_counts(view_date,page,view_count) VALUES (UTC_DATE() - INTERVAL 90 DAY,'jobs',4)");
+        jdbc.update("INSERT INTO basic_page_view_counts(view_date,page,view_count) VALUES (UTC_DATE() - INTERVAL 30 DAY,'jobs',4)");
         service.purgeExpired();
         assertThat(jdbc.queryForObject("SELECT view_count FROM basic_page_view_counts WHERE page='home'", Long.class)).isEqualTo  (2L);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM basic_page_view_counts WHERE page='jobs'", Integer.class)).isZero();
@@ -61,7 +61,7 @@ class GrowthIntegrationTest {
         assertThat(((Number)retention.get("returnedVisitors")).intValue()).isEqualTo(1);
     }
     @Test void retentionDeletesOldRowsOnly() {
-        event(UUID.randomUUID(),UUID.randomUUID(),"PAGE_VIEW",91);
+        event(UUID.randomUUID(),UUID.randomUUID(),"PAGE_VIEW",31);
         event(UUID.randomUUID(),UUID.randomUUID(),"PAGE_VIEW",1);
         service.purgeExpired();
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM growth_events",Integer.class)).isEqualTo(1);
