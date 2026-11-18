@@ -235,23 +235,4 @@ public class JobPostService {
         deactivateExpiredPosts();
     }
 
-    /**
-     * 매일 00:30 1년 이상된 비활성 공고 백업 로그 후 물리 삭제
-     */
-    @Scheduled(cron = "0 30 0 * * *")
-    @Transactional(readOnly = false)
-    public void purgeInactiveOlderThanOneYear() {
-        LocalDate threshold = LocalDate.now().minusYears(1);
-        List<Long> backupIds = jobPostRepository.findInactiveIdsOlderThan(threshold);
-        if (!backupIds.isEmpty()) {
-            // 간단 백업: ID 목록 로그 (필요 시 외부 백업 스토리지 연동)
-            List<Long> preview = backupIds.size() > 50 ? backupIds.subList(0, 50) : backupIds;
-            log.info("백업 대상 비활성 공고 {}건 (표본 50개): {}", backupIds.size(), preview);
-        }
-
-        int deleted = jobPostRepository.deleteInactiveOlderThan(threshold);
-        if (deleted > 0) {
-            log.info("1년 초과 비활성 공고 {}건 물리 삭제 완료 (기준일: {})", deleted, threshold);
-        }
-    }
 }

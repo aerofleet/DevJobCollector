@@ -60,7 +60,9 @@ public class CompanyJobService {
 
     public View create(String subject, Long companyId, CompanyJobContent.Input content) {
         Long actor = authorizeWrite(subject, companyId, CompanyPermission.CREATE_JOB_POST);
-        CompanyJob job = drafts.saveAndFlush(new CompanyJob(companies.getReferenceById(companyId), CompanyJobContent.from(content)));
+        CompanyJobContent prepared = CompanyJobContent.from(content);
+        rejectDuplicate(companyId, null, prepared);
+        CompanyJob job = drafts.saveAndFlush(new CompanyJob(companies.getReferenceById(companyId), prepared));
         audit(job, actor, "MEMBER", "CREATED", null);
         return view(job);
     }
@@ -70,7 +72,9 @@ public class CompanyJobService {
         CompanyJob job = locked(companyId, id, version);
         if (job.getState() == CompanyJob.State.IN_REVIEW || job.getState() == CompanyJob.State.SUSPENDED
                 || job.getState() == CompanyJob.State.CLOSED || job.getState() == CompanyJob.State.DELETED) throw conflict();
-        job.edit(CompanyJobContent.fromEdit(content, job.getContent()));
+        CompanyJobContent prepared = CompanyJobContent.fromEdit(content, job.getContent());
+        rejectDuplicate(companyId, id, prepared);
+        job.edit(prepared);
         audit(job, actor, "MEMBER", "EDITED", null);
         drafts.flush(); return view(job);
     }
@@ -80,6 +84,7 @@ public class CompanyJobService {
         CompanyJob job = locked(companyId, id, version);
         if (job.getState() != CompanyJob.State.DRAFT && job.getState() != CompanyJob.State.CHANGES_REQUESTED) throw conflict();
         job.getContent().validateSubmission(LocalDate.now());
+        rejectDuplicate(companyId, id, job.getContent());
         job.transition(CompanyJob.State.IN_REVIEW, null);
         audit(job, actor, "MEMBER", "SUBMITTED", null);
         drafts.flush(); return view(job);
@@ -129,6 +134,7 @@ public class CompanyJobService {
             case "APPROVE" -> {
                 if (job.getState() != CompanyJob.State.IN_REVIEW) throw conflict();
                 if (company.getStatus() != CompanyStatus.VERIFIED) throw new ResponseStatusException(HttpStatus.CONFLICT, "COMPANY_NOT_VERIFIED");
+                rejectDuplicate(companyId, id, job.getContent());
                 publish(job);
             }
             case "REQUEST_CHANGES" -> {
@@ -206,6 +212,13 @@ public class CompanyJobService {
                 .orElseThrow(CompanyAuthorizationException::accessDenied);
         authorization.authorize(membership, permission);
         return actor;
+    }
+    private void rejectDuplicate(Long companyId, Long excludeId, CompanyJobContent content) {
+        if (!content.getTitle().isBlank() && !content.getApplyUrl().isBlank()
+                && drafts.duplicate(companyId, excludeId, content.getTitle(), content.getApplyUrl(),
+                        Set.of(CompanyJob.State.CLOSED, CompanyJob.State.DELETED))) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "DUPLICATE_COMPANY_JOB");
+        }
     }
     private CompanyJob locked(Long companyId, Long id, long version) {
         CompanyJob job = drafts.lock(companyId, id).orElseThrow(CompanyJobService::notFound);

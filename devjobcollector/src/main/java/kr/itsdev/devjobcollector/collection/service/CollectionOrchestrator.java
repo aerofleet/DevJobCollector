@@ -150,17 +150,21 @@ public class CollectionOrchestrator {
     private void persistSuccessfulResult(CrawlRun run, CompanySourceTarget target,
                                          CollectionResult result, Instant fetchedAt) {
         for (JobRawDto job : result.jobs()) {
-            snapshotRepository.save(new JobRawSnapshot(
-                    run, target, job.provider(), job.sourceJobId(), job.sourceUrl(), 200,
-                    result.responseHash(), job.rawPayload(), fetchedAt));
+            var previous = occurrenceRepository.findByProviderAndTargetIdAndSourceJobId(
+                    job.provider(), target.getId(), job.sourceJobId());
+            if (previous.isEmpty() || !java.util.Objects.equals(previous.get().getContentHash(), job.contentHash())) {
+                snapshotRepository.save(new JobRawSnapshot(
+                        run, target, job.provider(), job.sourceJobId(), job.sourceUrl(), 200,
+                        result.responseHash(), job.rawPayload(), fetchedAt));
+            }
             JobPost jobPost = projectionService.upsert(target, job);
-            upsertOccurrence(target, job, jobPost.getId(), fetchedAt);
+            upsertOccurrence(target, job, jobPost.getId(), fetchedAt, previous);
         }
     }
 
-    private void upsertOccurrence(CompanySourceTarget target, JobRawDto job, Long jobPostingId, Instant seenAt) {
-        JobSourceOccurrence occurrence = occurrenceRepository
-                .findByProviderAndTargetIdAndSourceJobId(job.provider(), target.getId(), job.sourceJobId())
+    private void upsertOccurrence(CompanySourceTarget target, JobRawDto job, Long jobPostingId, Instant seenAt,
+                                  java.util.Optional<JobSourceOccurrence> previous) {
+        JobSourceOccurrence occurrence = previous
                 .orElseGet(() -> new JobSourceOccurrence(
                         target, job.provider(), job.sourceJobId(), job.sourceUrl(), job.applyUrl(),
                         job.title(), job.location(), job.publishedAt(), job.updatedAtSource(),
