@@ -69,6 +69,7 @@ export function jobCardRoles(job) {
     englishRoles.push(`${language}${animation}번역 PM`);
   }
   if (/공연\s*기획\s*(?:·|및|\/|\s)*운영/.test(title)) englishRoles.push('공연 기획·운영');
+  if (/콘텐츠\s*그로스\s*매니저/.test(title)) englishRoles.push('콘텐츠 그로스 매니저');
   if (/직매입\s*운영\s*MD\b/i.test(title)) englishRoles.push('직매입 운영 MD');
   if (/시설\s*관리\s*(?:\(FM\)\s*)?담당자/i.test(title)) englishRoles.push('시설관리 담당자');
   if (/마케팅\s*콘텐츠\s*제작[\s_·-]*어시스턴트/.test(title)) englishRoles.push('마케팅 콘텐츠 제작 어시스턴트');
