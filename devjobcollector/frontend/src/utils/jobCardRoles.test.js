@@ -2,6 +2,20 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { jobCardRoles } from './jobCardRoles.js';
 
+test('긴 직무 태그에서 직무 외 지역과 부서 정보를 제외한다', () => {
+  assert.deepEqual(jobCardRoles({ title: 'Mid-Market Sales Engineer (Dubai)', jobCategory: 'Commercial & Mid-Market Sales Engineering' }), ['세일즈 엔지니어']);
+  assert.deepEqual(jobCardRoles({ title: '2027 - AI and People Transformation Intern, NYC' }), ['AI·인사 혁신 인턴']);
+  assert.deepEqual(jobCardRoles({ title: 'Engineering Manager, Stream Analytics' }), ['엔지니어링 매니저']);
+  assert.deepEqual(jobCardRoles({ title: 'Senior Recruiter, Public Sector GTM' }), ['채용 담당자']);
+  assert.deepEqual(jobCardRoles({ title: 'Staff Designated Support Engineer' }), ['기술 지원 엔지니어']);
+  assert.deepEqual(jobCardRoles({ title: '[쿠팡] 로켓배송 직매입 운영 MD(경력 3년 이상, 계약직)' }), ['직매입 운영 MD']);
+  assert.deepEqual(jobCardRoles({ title: '[쿠팡풀필먼트서비스] 물류센터 시설관리(FM) 담당자 - (부천2센터)' }), ['시설관리 담당자']);
+  assert.deepEqual(jobCardRoles({ title: '[쿠팡] Senior Instock Planning Analyst (5년 이상)' }), ['재고 기획 분석가']);
+  assert.deepEqual(jobCardRoles({ title: '확인되지 않은 매우 긴 채용 공고 제목과 부가 설명을 포함한 모집 공고' }), ['직무 확인 필요']);
+  assert.deepEqual(jobCardRoles({ title: 'Sales Operations Manager' }), ['운영 매니저']);
+  assert.deepEqual(jobCardRoles({ sourcePlatform: 'PUBLIC_ALIO', title: '공고', jobCategory: '정보통신' }), ['정보통신']);
+});
+
 test('직무명과 분류를 표시하고 기술 및 조직명은 직무로 오인하지 않는다', () => {
   assert.deepEqual(jobCardRoles({ title: 'Technical Program Manager II', jobCategory: 'Oversight Engineering', mentionedTechStacks: ['AWS', 'Grafana', 'SQL'] }), ['기술 프로그램 매니저']);
   assert.deepEqual(jobCardRoles({ title: '백엔드 엔지니어', techStacks: [{ stackName: 'Java' }] }), ['백엔드']);

@@ -49,7 +49,7 @@ test('기술 프로그램 매니저 공고는 직무를 표시하고 도구를 �
   await expect(card).not.toContainText(/AWS|Grafana|SQL/);
 });
 
-test('개발 외 직무와 분리하기 어려운 공고명은 실제 제목을 기준으로 표시한다', async ({ page }) => {
+test('개발 외 직무를 추출하고 분류할 수 없는 긴 제목은 직무 확인을 안내한다', async ({ page }) => {
   const longTitle = '특정 직무 분류가 없는 공개 채용 안내 '.repeat(8);
   await page.route('**/api/v1/jobs/search**', route => respond(route, [
     { ...makeJobs(12805, 1)[0], title: '[한국장애인고용공단 대구직업능력개발원] 특정업무직(미화원) 채용공고' },
@@ -59,9 +59,20 @@ test('개발 외 직무와 분리하기 어려운 공고명은 실제 제목을 
   const cards = page.locator('.all-jobs-grid .job-card');
   await expect(cards.nth(0).locator('.job-role-badge')).toHaveText('미화원');
   const fallback = cards.nth(1).locator('.job-role-badge');
-  await expect(fallback).toHaveText(longTitle.trim());
-  await expect(fallback).toHaveAttribute('title', longTitle.trim());
+  await expect(fallback).toHaveText('직무 확인 필요');
+  await expect(cards.nth(1).locator('.job-title')).toHaveText(longTitle.trim());
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('세일즈 엔지니어 공고의 직무 태그에서 지역과 부서를 제외한다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/search**', route => respond(route, [{
+    ...makeJobs(13615, 1)[0], companyName: 'Datadog', title: 'Mid-Market Sales Engineer (Dubai)',
+    jobCategory: 'Commercial & Mid-Market Sales Engineering',
+  }], 0, 1));
+  await page.goto('/jobs');
+  const card = page.locator('.all-jobs-grid .job-card').first();
+  await expect(card.locator('.job-role-badge')).toHaveText('세일즈 엔지니어');
+  await expect(card.locator('.job-title')).toHaveText('Mid-Market Sales Engineer (Dubai)');
 });
 
 test('알리오 공고는 제목이 아닌 채용 분야 태그를 표시한다', async ({ page }) => {
