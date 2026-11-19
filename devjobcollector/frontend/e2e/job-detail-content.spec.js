@@ -112,6 +112,8 @@ test('공고 원문 대신 출처와 자격 조건을 표시하고 원문으로 
   await expect(page.getByRole('heading', { name: '자격 조건' }).locator('..')).toContainText('백엔드 개발 경력 3년 이상');
   await expect(page.getByRole('heading', { name: '우대 사항' }).locator('..')).toContainText('클라우드 운영 경험');
   await expect(page.getByRole('heading', { name: '담당 업무' }).locator('..')).toContainText('Java와 Spring 기반 서비스를 개발합니다.');
+  await expect(page.locator('details').getByText('Java와 Spring 기반 서비스를 개발합니다.')).not.toBeVisible();
+  await page.getByText('수집된 공고 내용 전체 보기').click();
   await expect(page.locator('details').getByText('Java와 Spring 기반 서비스를 개발합니다.')).toBeVisible();
   await expect(page.getByRole('button', { name: '공고 원문 보기 ↗' })).toBeVisible();
   expect(await page.evaluate(() => window.__jobContentInjected)).toBeUndefined();
@@ -344,6 +346,7 @@ test('인턴 공고에서 업무와 자격 및 상시 채용을 구분한다', a
   await expect(page.locator('.info-item').filter({ hasText: '고용 형태' }).locator('.value')).toHaveText('인턴');
   await expect(page.locator('.info-item').filter({ hasText: '마감일' }).locator('.value')).toHaveText('상시 채용');
   await expect(page.getByText('채용 완료 시 조기 마감될 수 있습니다.', { exact: true })).toBeVisible();
+  await page.getByText('수집된 공고 내용 전체 보기').click();
   await expect(page.getByText('인턴 (6개월, 정규직 전환 비대상)', { exact: false })).toBeVisible();
 });
 
@@ -358,6 +361,8 @@ test('토스 공고의 자격과 기술 및 지원 제한을 본문에서 보여
   await expect(page.getByRole('heading', { name: '기술 스택' }).locator('..')).toContainText('React, Next.js');
   await expect(page.locator('details')).toContainText('국가보훈대상자만 지원 가능해요.');
   await expect(page.locator('details')).toContainText('응답시간 < 300ms > 0ms');
+  await expect(page.locator('details').getByText('국가보훈대상자만 지원 가능해요.')).not.toBeVisible();
+  await page.getByText('수집된 공고 내용 전체 보기').click();
   await expect(page.locator('details').getByText('국가보훈대상자만 지원 가능해요.')).toBeVisible();
 });
 
