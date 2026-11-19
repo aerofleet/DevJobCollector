@@ -494,3 +494,11 @@ test('labels known sources and falls back when the source is missing', () => {
   assert.equal(jobSourceLabel({ sourcePlatform: 'GREENHOUSE' }), 'Greenhouse');
   assert.equal(jobSourceLabel({}), '출처 정보 없음');
 });
+test('토스 공고의 지원 요건과 기술을 구분하고 다음 섹션을 포함하지 않는다', () => {
+  const text = '# 이런 기술을 사용하고 있어요.\n- React, Next.js\n# 이런 분을 기다리고 있어요!\n- 웹 서비스를 운영한 경험이 있으신 분을 찾고 있어요.\n- 성능 최적화 경험이 있는 분이면 좋아요.\n# 꼭 확인해 주세요\n- 국가보훈대상자만 지원 가능해요.';
+  assert.deepEqual(extractJobRequirements(text), {
+    required: ['웹 서비스를 운영한 경험이 있으신 분을 찾고 있어요.', '성능 최적화 경험이 있는 분이면 좋아요.'],
+    preferred: [],
+  });
+  assert.deepEqual(extractJobTechnologySections(text), ['React, Next.js']);
+});
