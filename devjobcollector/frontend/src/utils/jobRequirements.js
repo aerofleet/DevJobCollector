@@ -32,7 +32,7 @@ export function extractJobRequirements(content) {
     const recovered = recoverSectionHeading(line);
     if (recovered === 'required' || recovered === 'preferred') { section = recovered; continue; }
     if (recovered === 'duties') { section = null; continue; }
-    const heading = line.match(HEADINGS) || line.match(/^(who you are)\s*[:：]?$/i) || line.match(/^(이런\s*분을\s*찾고\s*있어요)[!！.]?\s*[:：]?$/) || line.match(/^(필요\s*역량|votre expertise|vos compétences et aptitudes|what we look for|you may be a good fit if you have)\s*[:：]?$/i) || line.match(/^(어떤\s*경력과\s*역량이\s*필요한가요\?|이런\s*점이\s*있으면\s*더\s*좋아요)[!！.]?$/) || line.match(/^(이런\s*분이면\s*더\s*좋아요)[!！.]?$/) || line.match(LABELED_REQUIREMENT_HEADING) || line.match(/^(?:must-have pantry staples|optional garnishes) \((minimum qualifications|preferred qualifications)\)\s*$/i) || line.match(/^(preferred experience)\s*[:：]?$/i) || line.match(/^(how do i know if the role is right for me)\?\s*$/i);
+    const heading = line.match(HEADINGS) || line.match(/^(who you are)\s*[:：]?$/i) || line.match(/^(?:#{1,6}\s*)?(이런\s*분을\s*(?:찾고|기다리고)\s*있어요)[!！.]?\s*[:：]?$/) || line.match(/^(필요\s*역량|votre expertise|vos compétences et aptitudes|what we look for|you may be a good fit if you have)\s*[:：]?$/i) || line.match(/^(어떤\s*경력과\s*역량이\s*필요한가요\?|이런\s*점이\s*있으면\s*더\s*좋아요)[!！.]?$/) || line.match(/^(이런\s*분이면\s*더\s*좋아요)[!！.]?$/) || line.match(LABELED_REQUIREMENT_HEADING) || line.match(/^(?:must-have pantry staples|optional garnishes) \((minimum qualifications|preferred qualifications)\)\s*$/i) || line.match(/^(preferred experience)\s*[:：]?$/i) || line.match(/^(how do i know if the role is right for me)\?\s*$/i);
     if (heading) {
       section = /우대|이런\s*(?:경험이\s*있다면|분이면|점이\s*있으면)\s*더\s*좋아요|preferred|nice to have|added plus|bonus points/i.test(heading[1]) ? 'preferred' : 'required';
       continue;
@@ -96,7 +96,7 @@ export function extractJobTechnologySections(content) {
   let inside = false;
   for (const raw of lines) {
     const line = raw.trim();
-    if (/^(?:#{1,6}\s*)?(?:.{1,30}(?:가|에서)\s*사용하는\s*기술|기술\s*스택|사용\s*기술|tech(?:nology)?\s*stack|technologies used)\s*[:：]?$/i.test(line)) { inside = true; continue; }
+    if (/^(?:#{1,6}\s*)?(?:.{1,30}(?:가|에서)\s*사용하는\s*기술|이런\s*기술을\s*사용하고\s*있어요[.!！]?|기술\s*스택|사용\s*기술|tech(?:nology)?\s*stack|technologies used)\s*[:：]?$/i.test(line)) { inside = true; continue; }
     if (/^#{1,6}\s+/.test(line)) { inside = false; continue; }
     if (inside && (HEADINGS.test(line) || OTHER_HEADING.test(line) || /^(?:꼭\s*확인해\s*주세요|토스로의\s*합류\s*여정|전형\s*절차)\s*[:：]?$/i.test(line))) { inside = false; continue; }
     if (inside && line) items.push(line.replace(/^[-*•●▪◦‣·]\s*/, '').trim());

@@ -31,10 +31,10 @@ test('토스 플랫폼 인턴의 원문 프로젝트와 전형 일정을 바로 
   } }));
   await page.goto('/job/11107');
   await expect(page.locator('.info-item').filter({ hasText: '마감일' })).toContainText('11/15 (일) 23:59 (원문)');
-  await expect(page.getByRole('heading', { name: '진행할 프로젝트' }).locator('..')).toContainText('LLM 개발환경 구축');
+  await expect(page.getByRole('heading', { name: '진행할 프로젝트', level: 3 }).locator('..')).toContainText('LLM 개발환경 구축');
   await expect(page.getByRole('heading', { name: '자격 조건' }).locator('..')).toContainText('토스 사무실에서 근무 가능');
-  await expect(page.getByRole('heading', { name: '전형 일정' }).locator('..')).toContainText('과제 대상자 발표');
-  await expect(page.getByRole('heading', { name: '서류 지원 가이드' }).locator('..')).toContainText('경험 속 임팩트');
+  await expect(page.getByRole('heading', { name: '전형 일정', level: 3 }).locator('..')).toContainText('과제 대상자 발표');
+  await expect(page.getByRole('heading', { name: '서류 지원 가이드', level: 3 }).locator('..')).toContainText('경험 속 임팩트');
 });
 
 test('Pinterest 제품 디자이너 공고의 최소 경력을 표시한다', async ({ page }) => {
@@ -94,11 +94,9 @@ test('공고 원문 대신 출처와 자격 조건을 표시하고 원문으로 
 
   await expect(page.getByText('출처 · Greenhouse')).toBeVisible();
   await expect(page.getByRole('heading', { name: '자격 조건' })).toBeVisible();
-  await expect(page.getByText('백엔드 개발 경력 3년 이상', { exact: true })).toBeVisible();
-  await expect(page.getByText('클라우드 운영 경험', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '자격 조건' }).locator('..')).toContainText('백엔드 개발 경력 3년 이상');
+  await expect(page.getByRole('heading', { name: '우대 사항' }).locator('..')).toContainText('클라우드 운영 경험');
   await expect(page.getByRole('heading', { name: '담당 업무' }).locator('..')).toContainText('Java와 Spring 기반 서비스를 개발합니다.');
-  await expect(page.locator('details').getByText('Java와 Spring 기반 서비스를 개발합니다.')).not.toBeVisible();
-  await page.getByText('수집된 공고 내용 전체 보기').click();
   await expect(page.locator('details').getByText('Java와 Spring 기반 서비스를 개발합니다.')).toBeVisible();
   await expect(page.getByRole('button', { name: '공고 원문 보기 ↗' })).toBeVisible();
   expect(await page.evaluate(() => window.__jobContentInjected)).toBeUndefined();
@@ -331,8 +329,21 @@ test('인턴 공고에서 업무와 자격 및 상시 채용을 구분한다', a
   await expect(page.locator('.info-item').filter({ hasText: '고용 형태' }).locator('.value')).toHaveText('인턴');
   await expect(page.locator('.info-item').filter({ hasText: '마감일' }).locator('.value')).toHaveText('상시 채용');
   await expect(page.getByText('채용 완료 시 조기 마감될 수 있습니다.', { exact: true })).toBeVisible();
-  await page.getByText('수집된 공고 내용 전체 보기').click();
   await expect(page.getByText('인턴 (6개월, 정규직 전환 비대상)', { exact: false })).toBeVisible();
+});
+
+test('토스 공고의 자격과 기술 및 지원 제한을 본문에서 보여준다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/2199?*', route => route.fulfill({ json: {
+    ...jobDetail, id: 2199, companyName: '토스증권', sourcePlatform: 'COMPANY_PAGE',
+    applyQual: '# 이런 기술을 사용하고 있어요.\n- React, Next.js\n# 이런 분을 기다리고 있어요!\n- 웹 서비스를 운영한 경험이 있으신 분을 찾고 있어요.\n- 성능 최적화 경험이 있는 분이면 좋아요.\n# 토스증권으로의 합류 여정\n- 서류접수 > 인터뷰 > 최종합격\n# 꼭 확인해 주세요\n- 국가보훈대상자만 지원 가능해요.\n- 응답시간 < 300ms > 0ms',
+  } }));
+  await page.goto('/job/2199');
+  await expect(page.getByRole('heading', { name: '자격 조건' }).locator('..')).toContainText('웹 서비스를 운영한 경험');
+  await expect(page.getByRole('heading', { name: '자격 조건' }).locator('..')).toContainText('성능 최적화');
+  await expect(page.getByRole('heading', { name: '기술 스택' }).locator('..')).toContainText('React, Next.js');
+  await expect(page.locator('details')).toContainText('국가보훈대상자만 지원 가능해요.');
+  await expect(page.locator('details')).toContainText('응답시간 < 300ms > 0ms');
+  await expect(page.locator('details').getByText('국가보훈대상자만 지원 가능해요.')).toBeVisible();
 });
 
 test('요약 정보의 괄호 설명을 제외하고 본문 근거 안내는 유지한다', async ({ page }) => {

@@ -252,7 +252,7 @@ const DetailPage = () => {
             : <button type="button" className="detail-original-link" onClick={requireMember}>공고 원문 보기 ↗</button>)}
         </section>
         {job.applyQual && <section className="detail-section">
-          <details>
+          <details open>
             <summary>수집된 공고 내용 전체 보기</summary>
             <p className="detail-source-note">수집된 내용이며 원문 전체와 다를 수 있습니다. 최신 내용은 공고 원문을 확인해 주세요.</p>
             <StructuredJobContent content={job.applyQual} />
