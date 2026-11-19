@@ -4,6 +4,7 @@ import { jobCardRoles } from './jobCardRoles.js';
 
 test('긴 직무 태그에서 직무 외 지역과 부서 정보를 제외한다', () => {
   assert.deepEqual(jobCardRoles({ title: 'Mid-Market Sales Engineer (Dubai)', jobCategory: 'Commercial & Mid-Market Sales Engineering' }), ['세일즈 엔지니어']);
+  assert.deepEqual(jobCardRoles({ title: 'Demand Generation Campaign Manager', jobCategory: 'Marketing' }), ['수요 창출 캠페인 매니저']);
   assert.deepEqual(jobCardRoles({ title: '[네이버웹툰] 일본 콘텐츠 그로스 매니저 (경력)', jobCategory: 'Service & Business / Content Development' }), ['콘텐츠 그로스 매니저']);
   assert.deepEqual(jobCardRoles({ title: '2027 - AI and People Transformation Intern, NYC' }), ['AI·인사 혁신 인턴']);
   assert.deepEqual(jobCardRoles({ title: 'Engineering Manager, Stream Analytics' }), ['엔지니어링 매니저']);
