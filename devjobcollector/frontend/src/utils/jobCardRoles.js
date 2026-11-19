@@ -23,6 +23,7 @@ const ROLES = [
 // 개발 직무 외에도 제목에서 명시된 모집 직무를 그대로 표시한다.
 const OTHER_ROLE = /미화원|운전원|(?:예금|보험|고객)\s*상담원|상담원|경비원|간호사|사회복지사|회계사|세무사|변호사|디자이너|마케터|영업\s*담당자/gi;
 const OTHER_ENGLISH_ROLES = [
+  ['거버넌스·리스크·컴플라이언스 프로그램 매니저', /\bprogram\s+manager\s*,\s*governance\s*,\s*risk\s+(?:and|&)\s+compliance\b/i],
   ['Strategy Specialist', /\bstrategy\s+specialist\b/i],
   ['수요 창출 캠페인 매니저', /\bdemand\s+generation\s+campaign\s+manager\b/i],
   ['세일즈 엔지니어', /\bsales\s+engineer\b/i],
