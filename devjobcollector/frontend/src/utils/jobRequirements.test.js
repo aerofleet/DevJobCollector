@@ -2,6 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractDaangnSections, extractTossInternSections, extractTossSourceDeadline, extractExperienceWording, extractJobDuties, extractJobEmploymentType, extractJobRequirements, extractJobSalary, extractJobTechnologySections, extractMentionedTools, extractRollingDeadline, extractWorkArrangement, formatInfoGridValue, formatJobLocation } from './jobRequirements.js';
 
+test('MongoDB 인턴 지원 자격을 복리후생과 구분한다', () => {
+  const content = 'What we are looking for in you\n• Bachelor’s or Master’s degree\n• Graduation date in Fall 2027 or Spring 2028.\n• Must be authorized to work in the United States.\nWhat you’ll find at MongoDB\n• Relocation Support\nAbout Us\nMongoDB';
+  assert.deepEqual(extractJobRequirements(content), { required: ['Bachelor’s or Master’s degree', 'Graduation date in Fall 2027 or Spring 2028.', 'Must be authorized to work in the United States.'], preferred: [] });
+});
+
 test('기업 직접 등록의 추가 근무 조건을 자격 조건과 구분한다', () => {
   const text = '[필수 자격]\n- Java 경험\n\n[추가 근무 조건]\n근무 방식: 하이브리드\n한국어 수준: 비즈니스\n영어 수준: 필수 아님';
   assert.deepEqual(extractJobRequirements(text).required, ['Java 경험']);

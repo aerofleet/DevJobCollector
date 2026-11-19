@@ -241,6 +241,7 @@ const DetailPage = () => {
         <section className="detail-section">
           <h3>급여 정보</h3>
           {salary && <p>{salary}</p>}
+          {salary && /\$\s*0\.01\s*[—–-]\s*\$\s*0\.01\b/.test(salary) && <p className="detail-source-note">원문에 표시된 금액이 실제 급여인지 확인이 필요합니다. 채용 공고 원문이나 채용 담당자에게 확인해 주세요.</p>}
           {job.supplementalSalaryText && <>
             <p className="detail-source-note">원문 페이지에서 추가로 수집한 급여·복리후생 정보입니다. 최신 조건은 원문을 확인해 주세요.</p>
             <StructuredJobContent content={job.supplementalSalaryText} />

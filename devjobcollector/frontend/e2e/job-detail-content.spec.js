@@ -23,6 +23,21 @@ test.beforeEach(async ({ page }) => {
   }));
 });
 
+test('MongoDB 인턴 지원 자격과 확인이 필요한 급여 원문을 표시한다', async ({ page }) => {
+  await page.route('**/api/v1/jobs/13619?*', route => route.fulfill({ json: {
+    ...jobDetail, id: 13619, companyName: 'MongoDB', title: 'AI and People Transformation Intern',
+    applyQual: 'What we are looking for in you\n• Graduation date in Fall 2027 or Spring 2028.\n• Must be authorized to work in the United States.\nWhat you’ll find at MongoDB\n• Relocation Support\nMongoDB’s base salary range for this role in the U.S. is:\n$0.01—$0.01 USD',
+  } }));
+  await page.goto('/job/13619');
+  const qualifications = page.getByRole('heading', { name: '자격 조건' }).locator('..');
+  await expect(qualifications).toContainText('authorized to work in the United States');
+  await expect(qualifications).toContainText('Fall 2027 or Spring 2028');
+  await expect(qualifications).not.toContainText('Relocation Support');
+  const salary = page.getByRole('heading', { name: '급여 정보' }).locator('..');
+  await expect(salary).toContainText('$0.01—$0.01 USD');
+  await expect(salary).toContainText('실제 급여인지 확인이 필요합니다');
+});
+
 test('토스 플랫폼 인턴의 원문 프로젝트와 전형 일정을 바로 보여준다', async ({ page }) => {
   await page.route('**/api/v1/jobs/11107?*', route => route.fulfill({ json: {
     ...jobDetail, id: 11107, title: '플랫폼 엔지니어 (인턴십)', companyName: '토스', sourcePlatform: 'COMPANY_PAGE',
