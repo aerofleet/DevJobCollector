@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { jobCardRoles } from './jobCardRoles.js';
+import { jobCardRoles, resolveJobCardRoles } from './jobCardRoles.js';
 
 test('검토한 공고 20건에 해당 직무를 표시한다', () => {
   const cases = [
@@ -39,7 +39,7 @@ test('Treasury Specialist 공고는 재무·자금 직무로 표시한다', () =
 
 test('쿠팡 GOT 개발자 공고의 직무 태그를 표시한다', () => {
   assert.deepEqual(jobCardRoles({ id: 4517, sourcePlatform: 'GREENHOUSE', title: 'Global Operations Technology(GOT) 개발자 집중 채용', jobCategory: 'zz-Evergreen Requisition' }), ['백엔드', 'Global Operations Technology']);
-  assert.deepEqual(jobCardRoles({ id: 4518, sourcePlatform: 'GREENHOUSE', title: 'Global Operations Technology(GOT) 개발자 집중 채용' }), ['직무 확인 필요']);
+  assert.deepEqual(jobCardRoles({ id: 4518, sourcePlatform: 'GREENHOUSE', title: 'Global Operations Technology(GOT) 개발자 집중 채용' }), ['Global Operations Technology(GOT) 개발자 집중 채용']);
 });
 
 test('긴 직무 태그에서 직무 외 지역과 부서 정보를 제외한다', () => {
@@ -55,7 +55,10 @@ test('긴 직무 태그에서 직무 외 지역과 부서 정보를 제외한다
   assert.deepEqual(jobCardRoles({ title: '[쿠팡] 로켓배송 직매입 운영 MD(경력 3년 이상, 계약직)' }), ['직매입 운영 MD']);
   assert.deepEqual(jobCardRoles({ title: '[쿠팡풀필먼트서비스] 물류센터 시설관리(FM) 담당자 - (부천2센터)' }), ['시설관리 담당자']);
   assert.deepEqual(jobCardRoles({ title: '[쿠팡] Senior Instock Planning Analyst (5년 이상)' }), ['재고 기획 분석가']);
-  assert.deepEqual(jobCardRoles({ title: '확인되지 않은 매우 긴 채용 공고 제목과 부가 설명을 포함한 모집 공고' }), ['직무 확인 필요']);
+  const longTitle = '확인되지 않은 매우 긴 채용 공고 제목과 부가 설명을 포함한 모집 공고';
+  assert.deepEqual(jobCardRoles({ title: longTitle }), [longTitle]);
+  assert.equal(resolveJobCardRoles({ title: longTitle }).needsReview, true);
+  assert.deepEqual(jobCardRoles({ title: '직무 확인 필요' }), []);
   assert.deepEqual(jobCardRoles({ title: 'Sales Operations Manager' }), ['운영 매니저']);
   assert.deepEqual(jobCardRoles({ sourcePlatform: 'PUBLIC_ALIO', title: '공고', jobCategory: '정보통신' }), ['정보통신']);
 });
