@@ -2,6 +2,41 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { jobCardRoles } from './jobCardRoles.js';
 
+test('검토한 공고 20건에 해당 직무를 표시한다', () => {
+  const cases = [
+    ['Senior Treasury Specialist, Bridge Capital & Liquidity Risk – Digital Assets', '8504 Bridge - R&D', '재무·자금'],
+    ['Senior Financial Operations Lead, Vendor Operations', 'Business Operations/Analysis', '재무·금융'],
+    ['Sr. Counsel - Product, Engineering & AI ', 'Legal', '법률 자문'],
+    ['Applied Scientist II - Advertiser Optimization', 'Machine Learning', '응용과학 연구원'],
+    ['People Safety & Resilience Manager', 'Engagement', '산업안전·위기관리'],
+    ['Professional Services Consultant, Application Security', 'Professional Services', '정보보안'],
+    ['Account Development Representative', 'Sales Development', '영업 개발 담당자'],
+    ['Account Development Representative', 'Sales Development', '영업 개발 담당자'],
+    ['Staff IT Operations Engineer (대구 물류센터)', 'zz-Evergreen Requisition', 'IT 운영 엔지니어'],
+    ['HR Operations Specialist, APAC (Full-time)', 'People & Places', '인사 운영'],
+    ['People Operations Specialist, APAC (Full-time)', 'People & Places', '인사 운영'],
+    ['Sales Development Representative - Summer 2027 Graduates - LATAM Portuguese Speaking', 'Sales Development', '영업 개발 담당자'],
+    ['Sales Development Representative - Summer 2027 Graduates - LATAM Spanish Speaking', 'Sales Development', '영업 개발 담당자'],
+    ['[쿠팡] 리테일 가격 운영 및 비즈니스 이슈 관리 매니저 (RBI팀)', 'PBS and Pricing Ops', '리테일 가격 운영'],
+    ['Senior Marketplace Account Manager', 'Marketplace', '계정 관리 매니저'],
+    ['Candidate Experience Specialist, Contractor (AUS)', 'Talent Acquisition', '채용 운영'],
+    ['Technical Quality Specialist - Figma Weave (Tokyo, Japan)', 'Figma Weave', '기술 지원·품질'],
+    ['IT 어시스턴트 (단기계약직) (IT Assistant)', null, 'IT 지원'],
+    ['[화장품 ODM상장사] IT인프라 담당 (서버/네트워크/전산장비 등)', 'IT 운영 및 관리', 'IT 인프라 운영'],
+    ['Sales & Account Manager - 로컬 잡스', 'Business', '영업·계정 관리'],
+  ];
+  for (const [title, jobCategory, expected] of cases) {
+    assert.deepEqual(jobCardRoles({ title, jobCategory }), [expected], title);
+  }
+});
+
+test('Treasury Specialist 공고는 재무·자금 직무로 표시한다', () => {
+  assert.deepEqual(jobCardRoles({ id: 13653, sourcePlatform: 'GREENHOUSE', title: 'Senior Treasury Specialist, Bridge Capital & Liquidity Risk – Digital Assets' }), ['재무·자금']);
+  assert.deepEqual(jobCardRoles({ title: 'Treasury Specialist' }), ['재무·자금']);
+  assert.deepEqual(jobCardRoles({ title: 'Treasury Platform Software Engineer' }), ['소프트웨어 개발']);
+  assert.deepEqual(jobCardRoles({ sourcePlatform: 'PUBLIC_ALIO', title: 'Treasury Specialist', jobCategory: '금융.보험' }), ['금융.보험']);
+});
+
 test('쿠팡 GOT 개발자 공고의 직무 태그를 표시한다', () => {
   assert.deepEqual(jobCardRoles({ id: 4517, sourcePlatform: 'GREENHOUSE', title: 'Global Operations Technology(GOT) 개발자 집중 채용', jobCategory: 'zz-Evergreen Requisition' }), ['백엔드', 'Global Operations Technology']);
   assert.deepEqual(jobCardRoles({ id: 4518, sourcePlatform: 'GREENHOUSE', title: 'Global Operations Technology(GOT) 개발자 집중 채용' }), ['직무 확인 필요']);
