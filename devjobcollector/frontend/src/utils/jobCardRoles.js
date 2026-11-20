@@ -69,15 +69,15 @@ const OTHER_ENGLISH_ROLES = [
   ['지원 엔지니어링 매니저', /\bmanager\s*,?\s*support\s+engineering\b/i],
 ];
 
-export function jobCardRoles(job) {
+export function resolveJobCardRoles(job) {
   const title = typeof job.title === 'string' ? job.title : '';
   const category = typeof job.jobCategory === 'string' ? job.jobCategory : '';
   if (job.id === 4517 && job.sourcePlatform === 'GREENHOUSE') {
-    return ['백엔드', 'Global Operations Technology'];
+    return { roles: ['백엔드', 'Global Operations Technology'], needsReview: false };
   }
   if (job.sourcePlatform === 'PUBLIC_ALIO') {
     const fields = [...new Set(category.split(',').map(field => field.trim()).filter(Boolean))];
-    return fields.length ? fields : ['채용 분야 미제공'];
+    return { roles: fields.length ? fields : ['채용 분야 미제공'], needsReview: false };
   }
   const roles = ROLES.filter(([, pattern]) => pattern.test(title) || pattern.test(category)).map(([label]) => label);
   const explicitRoles = [...new Set(title.match(OTHER_ROLE) || [])].filter(role => role !== '디자이너' || !roles.includes('UX·UI 디자인'));
@@ -106,8 +106,14 @@ export function jobCardRoles(job) {
   if (filming && editing) englishRoles.push('영상 촬영·편집');
   else if (filming) englishRoles.push('영상 촬영');
   else if (editing) englishRoles.push('영상 편집');
-  if (roles.length || explicitRoles.length || englishRoles.length) return [...new Set([...roles, ...explicitRoles, ...englishRoles])];
-  // 긴 공고명을 직무로 오인하게 표시하지 않는다. 원제는 카드 제목에 남는다.
+  if (roles.length || explicitRoles.length || englishRoles.length) {
+    return { roles: [...new Set([...roles, ...explicitRoles, ...englishRoles])], needsReview: false };
+  }
+  // 매칭되는 직무가 없으면 원제목을 표시하고 분류 필요 여부는 별도로 보존한다.
   const fallback = title.trim();
-  return fallback ? [fallback.length > 30 ? '직무 확인 필요' : fallback] : [];
+  return { roles: fallback && fallback !== '직무 확인 필요' ? [fallback] : [], needsReview: fallback.length > 30 };
+}
+
+export function jobCardRoles(job) {
+  return resolveJobCardRoles(job).roles;
 }
