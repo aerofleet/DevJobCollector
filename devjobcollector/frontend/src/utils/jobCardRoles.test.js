@@ -2,6 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { jobCardRoles } from './jobCardRoles.js';
 
+test('쿠팡 GOT 개발자 공고의 직무 태그를 표시한다', () => {
+  assert.deepEqual(jobCardRoles({ id: 4517, sourcePlatform: 'GREENHOUSE', title: 'Global Operations Technology(GOT) 개발자 집중 채용', jobCategory: 'zz-Evergreen Requisition' }), ['백엔드', 'Global Operations Technology']);
+  assert.deepEqual(jobCardRoles({ id: 4518, sourcePlatform: 'GREENHOUSE', title: 'Global Operations Technology(GOT) 개발자 집중 채용' }), ['직무 확인 필요']);
+});
+
 test('긴 직무 태그에서 직무 외 지역과 부서 정보를 제외한다', () => {
   assert.deepEqual(jobCardRoles({ title: 'Mid-Market Sales Engineer (Dubai)', jobCategory: 'Commercial & Mid-Market Sales Engineering' }), ['세일즈 엔지니어']);
   assert.deepEqual(jobCardRoles({ title: 'Demand Generation Campaign Manager', jobCategory: 'Marketing' }), ['수요 창출 캠페인 매니저']);
