@@ -23,6 +23,22 @@ const ROLES = [
 // 개발 직무 외에도 제목에서 명시된 모집 직무를 그대로 표시한다.
 const OTHER_ROLE = /미화원|운전원|(?:예금|보험|고객)\s*상담원|상담원|경비원|간호사|사회복지사|회계사|세무사|변호사|디자이너|마케터|영업\s*담당자/gi;
 const OTHER_ENGLISH_ROLES = [
+  ['재무·자금', /\btreasury\s+specialist\b/i],
+  ['재무·금융', /\bfinancial\s+operations\s+lead\b/i],
+  ['법률 자문', /\bcounsel\s*[-–]\s*product\b/i],
+  ['응용과학 연구원', /\bapplied\s+scientist\b/i],
+  ['산업안전·위기관리', /\bpeople\s+safety\s*&\s*resilience\s+manager\b/i],
+  ['정보보안', /\bprofessional\s+services\s+consultant\s*,\s*application\s+security\b/i],
+  ['영업 개발 담당자', /\b(?:account|sales)\s+development\s+representative\b/i],
+  ['IT 운영 엔지니어', /\bit\s+operations\s+engineer\b/i],
+  ['인사 운영', /\b(?:hr|people)\s+operations\s+specialist\b/i],
+  ['리테일 가격 운영', /리테일\s*가격\s*운영/],
+  ['계정 관리 매니저', /\bmarketplace\s+account\s+manager\b/i],
+  ['채용 운영', /\bcandidate\s+experience\s+specialist\b/i],
+  ['기술 지원·품질', /\btechnical\s+quality\s+specialist\b/i],
+  ['IT 지원', /\bit\s*어시스턴트/i],
+  ['IT 인프라 운영', /\bit\s*인프라\s*담당/i],
+  ['영업·계정 관리', /\bsales\s*&\s*account\s+manager\b/i],
   ['거버넌스·리스크·컴플라이언스 프로그램 매니저', /\bprogram\s+manager\s*,\s*governance\s*,\s*risk\s+(?:and|&)\s+compliance\b/i],
   ['Strategy Specialist', /\bstrategy\s+specialist\b/i],
   ['수요 창출 캠페인 매니저', /\bdemand\s+generation\s+campaign\s+manager\b/i],
