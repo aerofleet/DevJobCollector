@@ -20,6 +20,32 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @EnabledIfEnvironmentVariable(named = "DJC_MIGRATION_TEST_URL", matches = ".+")
 class JobRoleAiMigrationTest {
+    @Test void upgradesV63WithoutChangingExistingJobs() throws Exception {
+        String schema = "djc_roles_upgrade_" + UUID.randomUUID().toString().replace("-", "");
+        String url = System.getenv("DJC_MIGRATION_TEST_URL");
+        String user = System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root");
+        String password = System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", "");
+        var config = Flyway.configure().dataSource(url, user, password).schemas(schema).defaultSchema(schema)
+                .locations("classpath:db/migration").cleanDisabled(false);
+        var latest = config.load();
+        try {
+            config.target("63").load().migrate();
+            try (var connection = DriverManager.getConnection(url, user, password)) {
+                connection.setCatalog(schema);
+                var jdbc = new JdbcTemplate(new SingleConnectionDataSource(connection, true));
+                jdbc.update("""
+                        INSERT INTO job_posts (id,source_platform,original_sn,company_name,title,start_date,end_date,original_url,is_active)
+                        VALUES (13758,'GREENHOUSE','sample:1','Example','Selection Operations Manager','2026-01-01','2030-01-01','https://example.com',1)
+                        """);
+                latest.migrate();
+                assertThat(jdbc.queryForObject("SELECT title FROM job_posts WHERE id=13758", String.class)).isEqualTo("Selection Operations Manager");
+                assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM job_role_ai_proposals", Integer.class)).isZero();
+            }
+        } finally {
+            latest.clean();
+        }
+    }
+
     @Test void migrationAndIdempotentStoreKeepStaleProposalsOut() throws Exception {
         String schema = "djc_roles_" + UUID.randomUUID().toString().replace("-", "");
         String url = System.getenv("DJC_MIGRATION_TEST_URL");
