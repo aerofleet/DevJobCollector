@@ -19,7 +19,7 @@ export function previewJobRoleCandidates(jobs) {
     }
     seenIds.add(job.id);
     if (url) seenUrls.add(url);
-    if (!resolveJobCardRoles(job).needsReview) {
+    if (!resolveJobCardRoles(job).unmatched) {
       counts.alreadyHandled++;
       continue;
     }
@@ -27,5 +27,5 @@ export function previewJobRoleCandidates(jobs) {
       originalUrl: url || null });
   }
   counts.candidates = candidates.length;
-  return { policy: 'public-card-needs-review', counts, candidates };
+  return { policy: 'public-card-unmatched', counts, candidates };
 }

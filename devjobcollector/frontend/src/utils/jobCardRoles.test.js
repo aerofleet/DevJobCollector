@@ -2,11 +2,12 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { jobCardRoles, resolveJobCardRoles } from './jobCardRoles.js';
 
-test('승인된 AI 직무는 기존 규칙이 없는 긴 공고에서만 표시한다', () => {
+test('승인된 AI 직무는 기존 규칙이 없는 공고에서 표시한다', () => {
   const longTitle = 'Manager, Selection Operations (Product Lifecycle Selection)';
   assert.deepEqual(jobCardRoles({ title: longTitle, approvedJobRole: '상품 운영 매니저' }), ['상품 운영 매니저']);
   assert.equal(resolveJobCardRoles({ title: longTitle, approvedJobRole: '상품 운영 매니저' }).needsReview, false);
   assert.deepEqual(jobCardRoles({ title: longTitle, approvedJobRole: '' }), [longTitle]);
+  assert.deepEqual(jobCardRoles({ title: 'Customer Engineering Intern', approvedJobRole: '고객 엔지니어링 인턴' }), ['고객 엔지니어링 인턴']);
   assert.deepEqual(jobCardRoles({ title: '백엔드 개발자', approvedJobRole: '상품 운영 매니저' }), ['백엔드']);
   assert.deepEqual(jobCardRoles({ sourcePlatform: 'PUBLIC_ALIO', title: longTitle, jobCategory: '정보통신', approvedJobRole: '상품 운영 매니저' }), ['정보통신']);
   assert.deepEqual(jobCardRoles({ id: 4517, sourcePlatform: 'GREENHOUSE', title: longTitle, approvedJobRole: '상품 운영 매니저' }), ['백엔드', 'Global Operations Technology']);

@@ -25,3 +25,10 @@ test('후보 미리보기는 입력 순서와 원본 객체를 보존한다', ()
   assert.deepEqual(jobs, before);
   assert.throws(() => previewJobRoleCandidates({}), TypeError);
 });
+
+test('짧은 미분류 제목도 분석 후보로 포함하고 승인 후에는 제외한다', () => {
+  const title = 'Customer Engineering Intern';
+  assert.deepEqual(previewJobRoleCandidates([{ id: 1, title }]).candidates.map(job => job.id), [1]);
+  assert.equal(previewJobRoleCandidates([{ id: 1, title, approvedJobRole: '고객 엔지니어링 인턴' }]).candidates.length, 0);
+  assert.equal(previewJobRoleCandidates([{ id: 2, title: '' }]).counts.alreadyHandled, 1);
+});
