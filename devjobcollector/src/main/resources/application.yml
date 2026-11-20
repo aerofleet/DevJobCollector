@@ -12,6 +12,9 @@ ai:
   job-metadata:
     enabled: ${JOB_METADATA_AI_ENABLED:false}
     allowed-sources: ${JOB_METADATA_AI_ALLOWED_SOURCES:}
+  job-role:
+    enabled: ${JOB_ROLE_AI_ENABLED:false}
+    allowed-sources: ${JOB_ROLE_AI_ALLOWED_SOURCES:}
 
 spring:
   application:
