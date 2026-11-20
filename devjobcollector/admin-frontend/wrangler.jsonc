@@ -2,6 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "devjobs-admin",
   "compatibility_date": "2026-09-24",
+  // Branch previews use the same static assets without production bindings.
   "previews": {},
   "assets": {
     "directory": "./dist",
