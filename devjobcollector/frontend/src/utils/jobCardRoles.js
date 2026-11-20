@@ -111,6 +111,10 @@ export function resolveJobCardRoles(job) {
   }
   // 매칭되는 직무가 없으면 원제목을 표시하고 분류 필요 여부는 별도로 보존한다.
   const fallback = title.trim();
+  const approvedRole = typeof job.approvedJobRole === 'string' ? job.approvedJobRole.trim() : '';
+  if (fallback.length > 30 && approvedRole && approvedRole.length <= 32) {
+    return { roles: [approvedRole], needsReview: false };
+  }
   return { roles: fallback && fallback !== '직무 확인 필요' ? [fallback] : [], needsReview: fallback.length > 30 };
 }
 
