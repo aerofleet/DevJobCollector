@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.sql.DriverManager;
 import java.util.ArrayList;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -17,6 +19,14 @@ import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import kr.itsdev.devjobcollector.admin.AdminRole;
+import kr.itsdev.devjobcollector.admin.auth.AdminPrincipal;
+import kr.itsdev.devjobcollector.admin.jobs.JobRoleAiReviewService;
+import kr.itsdev.devjobcollector.domain.JobPost;
+import kr.itsdev.devjobcollector.domain.SourcePlatform;
+import kr.itsdev.devjobcollector.repository.JobPostRepository;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @EnabledIfEnvironmentVariable(named = "DJC_MIGRATION_TEST_URL", matches = ".+")
 class JobRoleAiMigrationTest {
@@ -63,14 +73,32 @@ class JobRoleAiMigrationTest {
                         INSERT INTO job_posts (id,source_platform,original_sn,company_name,title,start_date,end_date,original_url,is_active)
                         VALUES (13758,'GREENHOUSE','sample:1','Example','Selection Operations Manager','2026-01-01','2030-01-01','https://example.com',1)
                         """);
-                var input = JobRoleAiInput.prepare(13758, "GREENHOUSE", "Selection Operations Manager",
+                var input = JobRoleAiInput.prepare(13758, "GREENHOUSE", "Selection Operations Manager", null,
                         "Run selection operations and lead a team.", "v1", "gpt-5.4-mini");
                 var proposal = new JobRoleAiProposalService.Proposal(input.inputHash(), "NEW", "상품 운영 매니저", "Run selection operations");
                 var store = new JobRoleAiProposalStore(jdbc, new ObjectMapper());
                 assertThat(store.save(13758, 0, "v1", input, proposal)).isEqualTo(JobRoleAiProposalStore.SaveResult.STORED);
                 assertThat(store.save(13758, 0, "v1", input, proposal)).isEqualTo(JobRoleAiProposalStore.SaveResult.ALREADY_EXISTS);
+                JobPost job = mock(JobPost.class);
+                when(job.getId()).thenReturn(13758L);
+                when(job.getVersion()).thenReturn(0L);
+                when(job.getSourcePlatform()).thenReturn(SourcePlatform.GREENHOUSE);
+                when(job.getTitle()).thenReturn("Selection Operations Manager");
+                when(job.getApplyQual()).thenReturn("Run selection operations and lead a team.");
+                var read = new JobRoleAiReadService(jdbc, new ObjectMapper(), true);
+                assertThat(read.approvedRoles(java.util.List.of(job))).isEmpty();
+                JobPostRepository jobs = mock(JobPostRepository.class);
+                when(jobs.findByIdForModeration(13758L)).thenReturn(Optional.of(job));
+                var admin = new AdminPrincipal(1L, "admin@example.com", "admin", AdminRole.ADMIN, Set.of(), "session", "hash");
+                long proposalId = jdbc.queryForObject("SELECT id FROM job_role_ai_proposals WHERE job_post_id=13758", Long.class);
+                var review = new JobRoleAiReviewService(jobs, jdbc, new ObjectMapper(), mock(JobRoleAiProcessor.class));
+                assertThat(review.approve(13758, proposalId, 0, input.inputHash(), admin)).containsEntry("status", "APPROVED");
+                assertThat(new JobRoleAiCatalog(jdbc).allowedRoles()).contains("상품 운영 매니저");
+                assertThat(read.approvedRoles(java.util.List.of(job))).containsEntry(13758L, "상품 운영 매니저");
                 jdbc.update("UPDATE job_posts SET version=1 WHERE id=13758");
-                var changedInput = JobRoleAiInput.prepare(13758, "GREENHOUSE", "Selection Operations Manager",
+                when(job.getVersion()).thenReturn(1L);
+                assertThat(read.approvedRoles(java.util.List.of(job))).isEmpty();
+                var changedInput = JobRoleAiInput.prepare(13758, "GREENHOUSE", "Selection Operations Manager", null,
                         "New duties.", "v1", "gpt-5.4-mini");
                 var changedProposal = new JobRoleAiProposalService.Proposal(changedInput.inputHash(), "NEW", "상품 운영 매니저", "New duties.");
                 assertThat(store.save(13758, 0, "v1", changedInput, changedProposal)).isEqualTo(JobRoleAiProposalStore.SaveResult.JOB_CHANGED);

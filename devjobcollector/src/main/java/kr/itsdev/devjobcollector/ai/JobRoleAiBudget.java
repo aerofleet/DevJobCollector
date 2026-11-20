@@ -16,6 +16,14 @@ public class JobRoleAiBudget {
 
     public JobRoleAiBudget(JdbcTemplate jdbc) { this.jdbc = jdbc; }
 
+    public boolean alreadyClaimed(long jobId, String inputHash) {
+        if (jobId <= 0 || inputHash == null || !inputHash.matches("[0-9a-f]{64}"))
+            throw new IllegalArgumentException("INVALID_ROLE_BUDGET_INPUT");
+        Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM job_role_ai_claims WHERE job_post_id=? AND input_hash=?",
+                Integer.class, jobId, inputHash);
+        return count != null && count > 0;
+    }
+
     @Transactional
     public Reservation reserve(long jobId, String inputHash, int inputTokens) {
         if (jobId <= 0 || inputHash == null || !inputHash.matches("[0-9a-f]{64}") || inputTokens < 1 || inputTokens > 2000)

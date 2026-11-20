@@ -46,4 +46,14 @@ class JobRoleAiRulesTest {
                 """);
         assertThatThrownBy(() -> JobRoleAiRules.validate(invalid, SOURCE)).isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test void previouslyApprovedNewRoleCanBeSelectedFromTheCatalog() throws Exception {
+        var roles = new java.util.HashSet<>(JobRoleAiRules.EXISTING_ROLES);
+        roles.add("상품 운영 매니저");
+        var output = mapper.readTree("""
+                {"mode":"EXISTING","role":"상품 운영 매니저","evidence":"Lead and coach operators"}
+                """);
+        assertThat(JobRoleAiRules.validate(output, SOURCE, roles).role()).isEqualTo("상품 운영 매니저");
+        assertThatThrownBy(() -> JobRoleAiRules.validate(output, SOURCE)).hasMessage("INVALID_ROLE_CATALOG");
+    }
 }

@@ -24,6 +24,7 @@ class JobRoleAiProcessorTest {
     private final JobRoleAiProposalService proposals = mock(JobRoleAiProposalService.class);
     private final JobRoleAiProposalStore store = mock(JobRoleAiProposalStore.class);
     private final JobRoleAiBudget budget = mock(JobRoleAiBudget.class);
+    private final JobRoleAiCatalog catalog = mock(JobRoleAiCatalog.class);
 
     private JobPost job(long version) {
         var job = mock(JobPost.class);
@@ -32,6 +33,7 @@ class JobRoleAiProcessorTest {
         when(job.getTitle()).thenReturn("Selection Operations Manager");
         when(job.getApplyQual()).thenReturn("Run selection operations and lead a team.");
         when(job.getSourcePlatform()).thenReturn(SourcePlatform.GREENHOUSE);
+        when(job.getOriginalSn()).thenReturn("coupang:13758");
         when(job.getModerationStatus()).thenReturn(JobModerationStatus.ACTIVE);
         when(job.isActive()).thenReturn(true);
         when(job.getEndDate()).thenReturn(LocalDate.now().plusDays(1));
@@ -39,7 +41,8 @@ class JobRoleAiProcessorTest {
     }
 
     private JobRoleAiProcessor processor(boolean enabled, String sources) {
-        return new JobRoleAiProcessor(jobs, client, proposals, store, budget, enabled, sources);
+        when(catalog.allowedRoles()).thenReturn(JobRoleAiRules.EXISTING_ROLES);
+        return new JobRoleAiProcessor(jobs, client, proposals, store, budget, catalog, enabled, sources);
     }
 
     @Test void disabledOrUnapprovedSourceDoesNotCallModel() {
@@ -48,21 +51,23 @@ class JobRoleAiProcessorTest {
         JobPost current = job(0);
         when(jobs.findById(13758L)).thenReturn(Optional.of(current));
         assertThat(processor(true, "").process(13758)).isEqualTo(JobRoleAiProcessor.Outcome.NOT_ELIGIBLE);
-        verify(client, never()).countJobRoleInputTokens(anyString(), anyString());
+        assertThat(processor(true, "GREENHOUSE").process(13758)).isEqualTo(JobRoleAiProcessor.Outcome.NOT_ELIGIBLE);
+        assertThat(processor(true, "GREENHOUSE:stripe").process(13758)).isEqualTo(JobRoleAiProcessor.Outcome.NOT_ELIGIBLE);
+        verify(client, never()).countJobRoleInputTokens(anyString(), anyString(), anyString(), any());
     }
 
     @Test void reservesBudgetBeforeGeneratingAndStoresOnlyAProposal() {
         when(client.available()).thenReturn(true);
         JobPost current = job(0);
         when(jobs.findById(13758L)).thenReturn(Optional.of(current));
-        when(client.countJobRoleInputTokens(anyString(), anyString())).thenReturn(1000);
+        when(client.countJobRoleInputTokens(anyString(), anyString(), anyString(), any())).thenReturn(1000);
         when(budget.reserve(anyLong(), anyString(), anyInt())).thenReturn(JobRoleAiBudget.Reservation.RESERVED);
         when(proposals.propose(any())).thenAnswer(call -> {
             JobRoleAiInput.Prepared input = call.getArgument(0);
             return new JobRoleAiProposalService.Proposal(input.inputHash(), "NEW", "상품 운영 매니저", "Run selection operations");
         });
         when(store.save(anyLong(), anyLong(), anyString(), any(), any())).thenReturn(JobRoleAiProposalStore.SaveResult.STORED);
-        assertThat(processor(true, "GREENHOUSE").process(13758)).isEqualTo(JobRoleAiProcessor.Outcome.STORED);
+        assertThat(processor(true, "GREENHOUSE:coupang").process(13758)).isEqualTo(JobRoleAiProcessor.Outcome.STORED);
         var order = org.mockito.Mockito.inOrder(budget, proposals, store);
         order.verify(budget).reserve(anyLong(), anyString(), anyInt());
         order.verify(proposals).propose(any());
@@ -71,11 +76,11 @@ class JobRoleAiProcessorTest {
 
     @Test void staleJobOrSpentBudgetDoesNotGenerate() {
         when(client.available()).thenReturn(true);
-        when(client.countJobRoleInputTokens(anyString(), anyString())).thenReturn(1000);
+        when(client.countJobRoleInputTokens(anyString(), anyString(), anyString(), any())).thenReturn(1000);
         JobPost original = job(0);
         JobPost updated = job(1);
         when(jobs.findById(13758L)).thenReturn(Optional.of(original), Optional.of(updated));
-        assertThat(processor(true, "GREENHOUSE").process(13758)).isEqualTo(JobRoleAiProcessor.Outcome.JOB_CHANGED);
+        assertThat(processor(true, "GREENHOUSE:coupang").process(13758)).isEqualTo(JobRoleAiProcessor.Outcome.JOB_CHANGED);
         verify(budget, never()).reserve(anyLong(), anyString(), anyInt());
         verify(proposals, never()).propose(any());
     }
@@ -84,10 +89,20 @@ class JobRoleAiProcessorTest {
         when(client.available()).thenReturn(true);
         JobPost current = job(0);
         when(jobs.findById(13758L)).thenReturn(Optional.of(current));
-        when(client.countJobRoleInputTokens(anyString(), anyString())).thenReturn(1000);
+        when(client.countJobRoleInputTokens(anyString(), anyString(), anyString(), any())).thenReturn(1000);
         when(budget.reserve(anyLong(), anyString(), anyInt())).thenReturn(JobRoleAiBudget.Reservation.DAILY_LIMIT);
-        assertThat(processor(true, "GREENHOUSE").process(13758)).isEqualTo(JobRoleAiProcessor.Outcome.DAILY_LIMIT);
+        assertThat(processor(true, "GREENHOUSE:coupang").process(13758)).isEqualTo(JobRoleAiProcessor.Outcome.DAILY_LIMIT);
         verify(proposals, never()).propose(any());
         verify(store, never()).save(anyLong(), anyLong(), anyString(), any(), any());
+    }
+
+    @Test void repeatedInputDoesNotSendEvenATokenCountRequest() {
+        when(client.available()).thenReturn(true);
+        JobPost current = job(0);
+        when(jobs.findById(13758L)).thenReturn(Optional.of(current));
+        when(budget.alreadyClaimed(anyLong(), anyString())).thenReturn(true);
+        assertThat(processor(true, "GREENHOUSE:coupang").process(13758)).isEqualTo(JobRoleAiProcessor.Outcome.ALREADY_CLAIMED);
+        verify(client, never()).countJobRoleInputTokens(anyString(), anyString(), anyString(), any());
+        verify(proposals, never()).propose(any());
     }
 }

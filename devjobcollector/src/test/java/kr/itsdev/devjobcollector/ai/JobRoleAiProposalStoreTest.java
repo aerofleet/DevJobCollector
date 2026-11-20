@@ -17,7 +17,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 class JobRoleAiProposalStoreTest {
     private final JdbcTemplate jdbc = mock(JdbcTemplate.class);
     private final JobRoleAiProposalStore store = new JobRoleAiProposalStore(jdbc, new ObjectMapper());
-    private final JobRoleAiInput.Prepared input = JobRoleAiInput.prepare(13758, "GREENHOUSE", "Selection Operations Manager",
+    private final JobRoleAiInput.Prepared input = JobRoleAiInput.prepare(13758, "GREENHOUSE", "Selection Operations Manager", null,
             "Run selection operations and lead a team.", "v1", "gpt-5.4-mini");
     private final JobRoleAiProposalService.Proposal proposal = new JobRoleAiProposalService.Proposal(
             input.inputHash(), "NEW", "상품 운영 매니저", "Run selection operations");

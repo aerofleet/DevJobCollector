@@ -34,6 +34,9 @@ export default function JobsPage() {
   const [aiConfirmed, setAiConfirmed] = useState(false);
   const [reviewDraft, setReviewDraft] = useState(null);
   const [salaryPreview, setSalaryPreview] = useState(null);
+  const [roleHistory, setRoleHistory] = useState([]);
+  const [roleLoaded, setRoleLoaded] = useState(false);
+  const [roleNotice, setRoleNotice] = useState('');
 
   useEffect(() => { savePaginationSession(PAGINATION_KEY, { page, size, search, status }); }, [page, size, search, status]);
 
@@ -71,6 +74,7 @@ export default function JobsPage() {
   const selectJob = async (id) => {
     setError(''); setReason(''); setNewEndDate(''); setPendingStatus(null);
     setAiPreview(null); setAiResult(null); setAiHistory([]); setAiConfirmed(false); setReviewDraft(null); setSalaryPreview(null);
+    setRoleHistory([]); setRoleLoaded(false); setRoleNotice('');
     try {
       const job = (await adminApi.job(id)).data;
       if (job.sourcePlatform === 'COMPANY_DIRECT') {
@@ -79,6 +83,48 @@ export default function JobsPage() {
       setSelected(job);
     }
     catch (cause) { setError(cause.message); }
+  };
+
+  const loadRoleHistory = async () => {
+    if (!selected || busy) return;
+    setBusy(true); setError('');
+    try { setRoleHistory(await adminRequest(`/jobs/${selected.id}/ai-role/history`)); setRoleLoaded(true); }
+    catch (cause) { setError(cause.message); }
+    finally { setBusy(false); }
+  };
+
+  const analyzeRole = async () => {
+    if (!selected || busy) return;
+    setBusy(true); setError(''); setRoleNotice('');
+    try {
+      const result = await adminRequest(`/jobs/${selected.id}/ai-role/analyze`, { method: 'POST' });
+      const messages = {
+        STORED: 'AI 직무 제안을 저장했습니다. 원문 근거를 확인한 후 승인할 수 있습니다.',
+        DISABLED: 'AI 직무 분석이 비활성화되어 있습니다.',
+        NOT_ELIGIBLE: '분석할 수 없는 공고 또는 허용되지 않은 출처입니다.',
+        INPUT_UNUSABLE: '분석에 필요한 본문을 확인할 수 없습니다.',
+        JOB_CHANGED: '공고가 변경되어 제안을 저장하지 않았습니다. 다시 확인해 주세요.',
+        ALREADY_CLAIMED: '이 입력은 이미 처리했거나 처리 중입니다.',
+        DAILY_LIMIT: '오늘의 AI 직무 분석 한도에 도달했습니다.',
+      };
+      setRoleNotice(messages[result.status] || '분석 상태를 확인해 주세요.');
+      setRoleHistory(await adminRequest(`/jobs/${selected.id}/ai-role/history`)); setRoleLoaded(true);
+    } catch (cause) { setError(cause.message); }
+    finally { setBusy(false); }
+  };
+
+  const reviewRole = async (item, action) => {
+    if (!selected || busy) return;
+    setBusy(true); setError(''); setRoleNotice('');
+    try {
+      await adminRequest(`/jobs/${selected.id}/ai-role/${item.id}/${action}`, {
+        method: 'POST', body: JSON.stringify({ expectedVersion: selected.version, inputHash: item.input_hash }),
+      });
+      setRoleNotice(action === 'approve' ? '직무 제안을 승인했습니다.' : '직무 제안을 거절했습니다.');
+      setRoleHistory(await adminRequest(`/jobs/${selected.id}/ai-role/history`)); setRoleLoaded(true);
+    } catch (cause) {
+      setError(cause.status === 409 ? '공고 또는 제안이 변경되었습니다. 상세를 다시 열어 확인해 주세요.' : cause.message);
+    } finally { setBusy(false); }
   };
 
   const previewSalary = async () => {
@@ -253,6 +299,25 @@ export default function JobsPage() {
             <a href={salaryPreview.sourceUrl} target="_blank" rel="noreferrer">Stripe 원문 열기</a>
           </div>}
         </section>}
+      {admin.role !== 'REVIEWER' && <section className="moderation-form" aria-label="AI 직무 제안 검토">
+        <h3>AI 직무 제안 검토</h3>
+        <p>공개 공고의 제목과 본문을 분석해 직무를 제안합니다. 기존 직무 분류가 우선하며, 제안은 검토 후 승인할 수 있습니다.</p>
+        <div className="job-actions">
+          <button className="secondary-button" type="button" disabled={busy} onClick={loadRoleHistory}>직무 제안 조회</button>
+          <button className="primary-button" type="button" disabled={busy} onClick={analyzeRole}>AI 직무 분석</button>
+        </div>
+        {roleNotice && <p role="status">{roleNotice}</p>}
+        {roleLoaded && roleHistory.length === 0 && <p>저장된 직무 제안이 없습니다.</p>}
+        {roleHistory.map((item) => <div key={item.id}>
+          <p>직무 제안: {item.suggested_role || '판단 보류'}</p>
+          <p>원문 근거: {item.source_evidence || '없음'}</p>
+          <p>검토 상태: {item.review_status} · 공고 버전 {item.job_version}</p>
+          {item.review_status === 'PENDING_REVIEW' && item.job_version === selected.version && <div className="job-actions">
+            <button className="primary-button" type="button" disabled={busy} onClick={() => reviewRole(item, 'approve')}>직무 승인</button>
+            <button className="secondary-button" type="button" disabled={busy} onClick={() => reviewRole(item, 'reject')}>직무 거절</button>
+          </div>}
+        </div>)}
+      </section>}
       {admin.role !== 'REVIEWER' && <section className="moderation-form" aria-label="AI 공고 조건 검토">
         <h3>AI 공고 조건 검토</h3>
         <p>경력·근무지 제안을 원문과 비교하고 검토한 조건을 검색 필터에 반영할 수 있습니다.</p>

@@ -17,7 +17,8 @@ public class JobRoleAiProposalService {
     public Proposal propose(JobRoleAiInput.Prepared input) {
         if (!enabled || !client.available()) throw new IllegalStateException("JOB_ROLE_AI_DISABLED");
         if (input == null) throw new IllegalArgumentException("INVALID_ROLE_INPUT");
-        var result = JobRoleAiRules.validate(client.suggestJobRole(input.title(), input.content()), input.evidenceSource());
+        var result = JobRoleAiRules.validate(client.suggestJobRole(input.title(), input.category(), input.content(), input.allowedRoles()),
+                input.evidenceSource(), java.util.Set.copyOf(input.allowedRoles()));
         return new Proposal(input.inputHash(), result.mode(), result.role(), result.evidence());
     }
 

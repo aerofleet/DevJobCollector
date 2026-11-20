@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 
 /** Strict syntactic and source-evidence validation; semantic correctness requires evaluation. */
 public final class JobRoleAiRules {
-    public static final String VERSION = "job-role-v1";
+    public static final String VERSION = "job-role-v2";
     public static final Set<String> EXISTING_ROLES = Set.of(
             "백엔드", "프론트엔드", "풀스택", "모바일", "데이터 엔지니어", "데이터 분석가", "데이터 사이언티스트",
             "AI·머신러닝", "DevOps", "SRE", "정보보안", "QA·테스트", "프로덕트 매니저", "UX·UI 디자인",
@@ -19,7 +19,17 @@ public final class JobRoleAiRules {
     private JobRoleAiRules() {}
 
     public static Result validate(JsonNode output, String source) {
+        return validate(output, source, EXISTING_ROLES);
+    }
+
+    public static boolean validRoleLabel(String role) {
+        return role != null && role.equals(role.trim()) && ROLE_TEXT.matcher(role).matches() && !FORBIDDEN.contains(role);
+    }
+
+    public static Result validate(JsonNode output, String source, Set<String> allowedRoles) {
         if (output == null || !output.isObject() || output.size() != 3 || source == null
+                || allowedRoles == null || allowedRoles.isEmpty() || allowedRoles.size() > 200
+                || !allowedRoles.containsAll(EXISTING_ROLES) || allowedRoles.stream().anyMatch(role -> !validRoleLabel(role))
                 || !output.path("mode").isTextual() || !output.path("role").isTextual() || !output.path("evidence").isTextual())
             throw new IllegalArgumentException("INVALID_ROLE_OUTPUT");
         String mode = output.path("mode").asText();
@@ -29,11 +39,11 @@ public final class JobRoleAiRules {
             if (!role.isEmpty() || !evidence.isEmpty()) throw new IllegalArgumentException("INVALID_ROLE_ABSTENTION");
             return new Result(mode, role, evidence);
         }
-        if (!Set.of("EXISTING", "NEW").contains(mode) || !role.equals(role.trim()) || !ROLE_TEXT.matcher(role).matches()
-                || FORBIDDEN.contains(role) || evidence.isBlank() || evidence.length() > 300 || !source.contains(evidence))
+        if (!Set.of("EXISTING", "NEW").contains(mode) || !validRoleLabel(role)
+                || evidence.isBlank() || evidence.length() > 300 || !source.contains(evidence))
             throw new IllegalArgumentException("INVALID_ROLE_EVIDENCE");
-        if (("EXISTING".equals(mode) && !EXISTING_ROLES.contains(role))
-                || ("NEW".equals(mode) && EXISTING_ROLES.contains(role))) throw new IllegalArgumentException("INVALID_ROLE_CATALOG");
+        if (("EXISTING".equals(mode) && !allowedRoles.contains(role))
+                || ("NEW".equals(mode) && allowedRoles.contains(role))) throw new IllegalArgumentException("INVALID_ROLE_CATALOG");
         return new Result(mode, role, evidence);
     }
 

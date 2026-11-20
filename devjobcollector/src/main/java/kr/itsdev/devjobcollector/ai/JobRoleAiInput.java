@@ -6,6 +6,8 @@ import java.util.HexFormat;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.Locale;
+import java.util.List;
+import java.util.Set;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jsoup.Jsoup;
@@ -16,9 +18,16 @@ public final class JobRoleAiInput {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private JobRoleAiInput() {}
 
-    public static Prepared prepare(long jobId, String source, String title, String rawContent, String catalogVersion, String model) {
+    public static Prepared prepare(long jobId, String source, String title, String category, String rawContent, String catalogVersion, String model) {
+        return prepare(jobId, source, title, category, rawContent, catalogVersion, model, JobRoleAiRules.EXISTING_ROLES);
+    }
+
+    public static Prepared prepare(long jobId, String source, String title, String category, String rawContent,
+                                   String catalogVersion, String model, Set<String> allowedRoles) {
         if (jobId <= 0 || source == null || source.isBlank() || title == null || title.isBlank() || title.length() > 255 || rawContent == null
-                || catalogVersion == null || catalogVersion.isBlank() || !"gpt-5.4-mini".equals(model))
+                || (category != null && category.length() > 255) || catalogVersion == null || catalogVersion.isBlank() || !"gpt-5.4-mini".equals(model)
+                || allowedRoles == null || allowedRoles.size() > 200 || !allowedRoles.containsAll(JobRoleAiRules.EXISTING_ROLES)
+                || allowedRoles.stream().anyMatch(role -> !JobRoleAiRules.validRoleLabel(role)))
             throw new IllegalArgumentException("INVALID_ROLE_INPUT");
         String normalizedTitle = title.trim();
         var document = Jsoup.parse(HtmlUtils.htmlUnescape(HtmlUtils.htmlUnescape(rawContent)));
@@ -29,15 +38,18 @@ public final class JobRoleAiInput {
         hashed.put("jobId", Long.toString(jobId));
         hashed.put("source", source);
         hashed.put("title", normalizedTitle);
+        String normalizedCategory = category == null ? "" : category.trim();
+        hashed.put("category", normalizedCategory);
         hashed.put("content", content);
         hashed.put("rulesVersion", JobRoleAiRules.VERSION);
         hashed.put("catalogVersion", catalogVersion);
-        hashed.put("catalog", String.join("\n", JobRoleAiRules.EXISTING_ROLES.stream().sorted().toList()));
+        List<String> sortedRoles = allowedRoles.stream().sorted().toList();
+        hashed.put("catalog", String.join("\n", sortedRoles));
         hashed.put("model", model);
         try {
             String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
                     .digest(MAPPER.writeValueAsBytes(hashed)));
-            return new Prepared(jobId, source, normalizedTitle, content, catalogVersion, model, hash);
+            return new Prepared(jobId, source, normalizedTitle, normalizedCategory, content, catalogVersion, model, List.copyOf(sortedRoles), hash);
         } catch (NoSuchAlgorithmException | JsonProcessingException e) {
             throw new IllegalStateException("ROLE_INPUT_HASH_FAILED", e);
         }
@@ -71,7 +83,7 @@ public final class JobRoleAiInput {
         return selected.toString().trim();
     }
 
-    public record Prepared(long jobId, String source, String title, String content, String catalogVersion, String model, String inputHash) {
-        public String evidenceSource() { return title + "\n" + content; }
+    public record Prepared(long jobId, String source, String title, String category, String content, String catalogVersion, String model, List<String> allowedRoles, String inputHash) {
+        public String evidenceSource() { return title + "\n" + category + "\n" + content; }
     }
 }
