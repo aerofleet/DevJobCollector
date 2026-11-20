@@ -1,6 +1,7 @@
 package kr.itsdev.devjobcollector.ai;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -104,5 +105,22 @@ class JobRoleAiProcessorTest {
         assertThat(processor(true, "GREENHOUSE:coupang").process(13758)).isEqualTo(JobRoleAiProcessor.Outcome.ALREADY_CLAIMED);
         verify(client, never()).countJobRoleInputTokens(anyString(), anyString(), anyString(), any());
         verify(proposals, never()).propose(any());
+    }
+
+    @Test void failedGenerationCanRetryWithoutRefundingTheReservation() {
+        when(client.available()).thenReturn(true);
+        JobPost current = job(0);
+        when(jobs.findById(13758L)).thenReturn(Optional.of(current));
+        when(client.countJobRoleInputTokens(anyString(), anyString(), anyString(), any())).thenReturn(1000);
+        when(budget.reserve(anyLong(), anyString(), anyInt())).thenReturn(JobRoleAiBudget.Reservation.RESERVED);
+        when(proposals.propose(any())).thenThrow(new IllegalStateException("provider failed"));
+
+        assertThatThrownBy(() -> processor(true, "GREENHOUSE:coupang").process(13758))
+                .isInstanceOf(IllegalStateException.class);
+        var order = org.mockito.Mockito.inOrder(budget, proposals);
+        order.verify(budget).reserve(anyLong(), anyString(), anyInt());
+        order.verify(proposals).propose(any());
+        order.verify(budget).releaseFailedClaim(anyLong(), anyString());
+        verify(store, never()).save(anyLong(), anyLong(), anyString(), any(), any());
     }
 }

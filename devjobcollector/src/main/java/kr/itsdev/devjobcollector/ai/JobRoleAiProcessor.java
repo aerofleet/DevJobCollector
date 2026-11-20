@@ -53,7 +53,14 @@ public class JobRoleAiProcessor {
         var reservation = budget.reserve(id, input.inputHash(), tokens);
         if (reservation == JobRoleAiBudget.Reservation.ALREADY_CLAIMED) return Outcome.ALREADY_CLAIMED;
         if (reservation == JobRoleAiBudget.Reservation.DAILY_LIMIT) return Outcome.DAILY_LIMIT;
-        var proposal = proposals.propose(input);
+        JobRoleAiProposalService.Proposal proposal;
+        try {
+            proposal = proposals.propose(input);
+        } catch (RuntimeException failure) {
+            try { budget.releaseFailedClaim(id, input.inputHash()); }
+            catch (RuntimeException releaseFailure) { failure.addSuppressed(releaseFailure); }
+            throw failure;
+        }
         return switch (store.save(id, job.getVersion(), CATALOG_VERSION, input, proposal)) {
             case STORED -> Outcome.STORED;
             case JOB_CHANGED -> Outcome.JOB_CHANGED;

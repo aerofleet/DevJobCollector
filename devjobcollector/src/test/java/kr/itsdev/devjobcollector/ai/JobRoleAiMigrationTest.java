@@ -111,6 +111,12 @@ class JobRoleAiMigrationTest {
                 assertThat(budget.reserve(13758, String.format("%064x", 18), 2000)).isEqualTo(JobRoleAiBudget.Reservation.DAILY_LIMIT);
                 assertThat(jdbc.queryForObject("SELECT reserved_requests FROM job_role_ai_daily_budget", Integer.class)).isEqualTo(17);
                 assertThat(jdbc.queryForObject("SELECT reserved_micro_usd FROM job_role_ai_daily_budget", Long.class)).isEqualTo(48450L);
+                String failedHash = String.format("%064x", 1);
+                budget.releaseFailedClaim(13758, failedHash);
+                assertThat(budget.alreadyClaimed(13758, failedHash)).isFalse();
+                assertThat(jdbc.queryForObject("SELECT reserved_requests FROM job_role_ai_daily_budget", Integer.class)).isEqualTo(17);
+                assertThat(jdbc.queryForObject("SELECT reserved_micro_usd FROM job_role_ai_daily_budget", Long.class)).isEqualTo(48450L);
+                assertThat(budget.reserve(13758, failedHash, 2000)).isEqualTo(JobRoleAiBudget.Reservation.DAILY_LIMIT);
                 jdbc.update("DELETE FROM job_role_ai_claims");
                 jdbc.update("DELETE FROM job_role_ai_daily_budget");
                 int dbStart = url.indexOf('/', "jdbc:mysql://".length());
