@@ -56,6 +56,9 @@ const OTHER_ENGLISH_ROLES = [
 export function jobCardRoles(job) {
   const title = typeof job.title === 'string' ? job.title : '';
   const category = typeof job.jobCategory === 'string' ? job.jobCategory : '';
+  if (job.id === 4517 && job.sourcePlatform === 'GREENHOUSE') {
+    return ['백엔드', 'Global Operations Technology'];
+  }
   if (job.sourcePlatform === 'PUBLIC_ALIO') {
     const fields = [...new Set(category.split(',').map(field => field.trim()).filter(Boolean))];
     return fields.length ? fields : ['채용 분야 미제공'];
