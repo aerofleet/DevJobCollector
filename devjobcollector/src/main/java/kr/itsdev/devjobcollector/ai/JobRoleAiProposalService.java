@@ -26,8 +26,8 @@ public class JobRoleAiProposalService {
             object.put("mode", input.allowedRoles().contains(object.path("role").asText()) ? "EXISTING" : "NEW");
             output = object;
         }
-        var result = JobRoleAiRules.validate(output,
-                input.evidenceSource(), java.util.Set.copyOf(input.allowedRoles()));
+        var result = JobRoleAiRules.requirePricingEvidence(JobRoleAiRules.validate(output,
+                input.evidenceSource(), java.util.Set.copyOf(input.allowedRoles())));
         return new Proposal(input.inputHash(), result.mode(), result.role(), result.evidence());
     }
 

@@ -61,10 +61,11 @@ class JobRoleAiRulesTest {
         var unsupported = mapper.readTree("""
                 {"mode":"EXISTING","role":"리테일 가격 운영","evidence":"Lead and coach operators on throughput, accuracy and turnaround."}
                 """);
-        assertThatThrownBy(() -> JobRoleAiRules.validate(unsupported, SOURCE)).hasMessage("INVALID_ROLE_EVIDENCE");
+        assertThatThrownBy(() -> JobRoleAiRules.requirePricingEvidence(JobRoleAiRules.validate(unsupported, SOURCE))).hasMessage("INVALID_ROLE_EVIDENCE");
+        assertThat(JobRoleAiRules.validate(unsupported, SOURCE).role()).isEqualTo("리테일 가격 운영");
         var supported = mapper.readTree("""
                 {"mode":"EXISTING","role":"리테일 가격 운영","evidence":"Manage retail pricing and promotions."}
                 """);
-        assertThat(JobRoleAiRules.validate(supported, "Manage retail pricing and promotions.").role()).isEqualTo("리테일 가격 운영");
+        assertThat(JobRoleAiRules.requirePricingEvidence(JobRoleAiRules.validate(supported, "Manage retail pricing and promotions.")).role()).isEqualTo("리테일 가격 운영");
     }
 }

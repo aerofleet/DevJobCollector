@@ -43,12 +43,16 @@ public final class JobRoleAiRules {
         if (!Set.of("EXISTING", "NEW").contains(mode) || !validRoleLabel(role)
                 || evidence.isBlank() || evidence.length() > 300 || !source.contains(evidence))
             throw new IllegalArgumentException("INVALID_ROLE_EVIDENCE");
-        if ("리테일 가격 운영".equals(role)
-                && !PRICE_EVIDENCE.matcher(evidence).find())
-            throw new IllegalArgumentException("INVALID_ROLE_EVIDENCE");
         if (("EXISTING".equals(mode) && !allowedRoles.contains(role))
                 || ("NEW".equals(mode) && allowedRoles.contains(role))) throw new IllegalArgumentException("INVALID_ROLE_CATALOG");
         return new Result(mode, role, evidence);
+    }
+
+    /** Applied to new approvals; existing approved labels retain their original validation policy. */
+    public static Result requirePricingEvidence(Result result) {
+        if ("리테일 가격 운영".equals(result.role()) && !PRICE_EVIDENCE.matcher(result.evidence()).find())
+            throw new IllegalArgumentException("INVALID_ROLE_EVIDENCE");
+        return result;
     }
 
     public record Result(String mode, String role, String evidence) {}
