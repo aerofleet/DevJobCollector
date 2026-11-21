@@ -1,0 +1,31 @@
+name: Validate DJC AI role candidate policy
+
+on:
+  pull_request:
+    paths:
+      - 'devjobcollector/ops/ai/**'
+      - 'devjobcollector/frontend/src/utils/jobCardRoles*'
+      - 'devjobcollector/frontend/src/utils/jobRoleCandidates*'
+      - '.github/workflows/djc-ai-role-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify candidate and evaluation policies
+        working-directory: devjobcollector
+        run: >-
+          node --test
+          ops/ai/sample-job-role-evaluation.test.mjs
+          ops/ai/analyze-job-role-candidates.test.mjs
+          frontend/src/utils/jobCardRoles.test.js
+          frontend/src/utils/jobRoleCandidates.test.js
