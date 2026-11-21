@@ -152,5 +152,5 @@ jobs:
         run: |
           set -o pipefail
           ssh djc-a1 'sudo docker compose --project-name djc --env-file /etc/devjobcollector/devjobcollector.env -f /opt/devjobcollector/compose.yaml logs --no-color --since 2h app' |
-            { grep -oE 'JOB_FIELD_GENERATION_FAILED|INVALID_JOB_FIELD_INPUT|INVALID_JOB_FIELD_OUTPUT|INVALID_JOB_FIELD_EVIDENCE|ROLE_TOKEN_COUNT_FAILED|PROVIDER_FAILED|DataIntegrityViolationException|HttpTimeoutException|SQLIntegrityConstraintViolationException' || true; } |
+            { grep -oE 'JOB_FIELD_GENERATION_FAILED|INVALID_JOB_FIELD_INPUT|INVALID_JOB_FIELD_OUTPUT|INVALID_JOB_FIELD_EVIDENCE|INVALID_JOB_FIELD_LABEL|INVALID_JOB_FIELD_QUOTE_LENGTH|INVALID_JOB_FIELD_QUOTE_SOURCE|INVALID_JOB_FIELD_CONTRACT_QUOTE|INVALID_JOB_FIELD_APPOINTMENT_QUOTE|ROLE_TOKEN_COUNT_FAILED|PROVIDER_FAILED|DataIntegrityViolationException|HttpTimeoutException|SQLIntegrityConstraintViolationException' || true; } |
             sort | uniq -c
