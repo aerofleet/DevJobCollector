@@ -39,7 +39,7 @@ class DeployTests(unittest.TestCase):
         self.bin.mkdir()
         for name, content in {
             'docker': DOCKER,
-            'flock': '#!/usr/bin/env bash\nexit 0\n',
+            'flock': '#!/usr/bin/env bash\nexit "${FAIL_LOCK:-0}"\n',
             'systemctl': '#!/usr/bin/env bash\n[[ "$1" != is-active ]]\n',
             'ss': '#!/usr/bin/env bash\nexit 1\n',
             'mock_curl': '#!/usr/bin/env bash\necho \'{"status":"UP"}\'\n',
@@ -79,6 +79,12 @@ class DeployTests(unittest.TestCase):
         calls = self.log.read_text()
         self.assertIn(' down', calls)
         self.assertNotIn('cleanup --apply', calls)
+
+    def test_contended_deploy_does_not_log_out_other_deployment(self):
+        result = self.run_deploy(FAIL_LOCK='1')
+        self.assertNotEqual(0, result.returncode)
+        self.assertFalse(self.log.exists())
+        self.assertFalse((self.bundle / 'devjobcollector.env').exists())
 
 
 if __name__ == '__main__':

@@ -384,7 +384,7 @@ jobs:
           EOF
           chmod 600 ~/.ssh/config
 
-          REMOTE_BUNDLE="/home/$SERVER_USER/djc-deploy"
+          REMOTE_BUNDLE="/home/$SERVER_USER/djc-deploy-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
 
           ssh djc-a1 "mkdir -p '$REMOTE_BUNDLE' && chmod 700 '$REMOTE_BUNDLE'"
           scp deploy-bundle/* "djc-a1:$REMOTE_BUNDLE/"

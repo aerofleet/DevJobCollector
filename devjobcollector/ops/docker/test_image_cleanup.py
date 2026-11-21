@@ -27,7 +27,9 @@ case "$1 $2" in
         echo "ghcr.io/aerofleet/devjobcollector:tag$n"
         if [[ "$n" == 13 ]]; then echo other/repository:tag; fi
         if [[ "$n" == 14 ]]; then echo ghcr.io/aerofleet/devjobcollector:latest; fi ;;
-      *) if [[ "$id" == *:tag* ]]; then echo "sha256:${id##*:tag}"; else echo "$id"; fi ;;
+      *) if [[ "$id" == *:tag* ]]; then
+           if [[ "${MOCK_MOVED:-0}" == 1 && "$id" == *:tag13 ]]; then echo sha256:moved; else echo "sha256:${id##*:tag}"; fi
+         else echo "$id"; fi ;;
     esac ;;
   'image rm') [[ "${MOCK_FAIL:-0}" != 1 ]] ;;
   *) exit 1 ;;
@@ -83,6 +85,19 @@ class CleanupTests(unittest.TestCase):
         result = self.run_cleanup('--apply', '--protect', 'bad')
         self.assertNotEqual(0, result.returncode)
         self.assertNotIn('image rm', self.log.read_text())
+
+    def test_moved_tag_is_not_removed(self):
+        self.env['MOCK_MOVED'] = '1'
+        result = self.run_cleanup('--apply', '--protect', 'sha256:11')
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn('tag changed during cleanup', result.stderr)
+        self.assertNotIn('image rm ghcr.io/aerofleet/devjobcollector:tag13', self.log.read_text())
+
+    def test_latest_image_and_all_its_tags_are_preserved(self):
+        result = self.run_cleanup('--apply', '--protect', 'sha256:11')
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn('[KEEP] sha256:14 (latest)', result.stdout)
+        self.assertNotIn('image rm ghcr.io/aerofleet/devjobcollector:tag14', self.log.read_text())
 
     @unittest.skipIf(os.name == 'nt' or not shutil.which('flock'), 'requires Linux flock')
     def test_concurrent_cleanup_lock_fails_closed(self):

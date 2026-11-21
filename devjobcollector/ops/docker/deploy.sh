@@ -18,13 +18,16 @@ LEGACY_CONTAINER_ID=""
 LEGACY_WAS_ACTIVE=false
 CURRENT_CONTAINER_ID=""
 ROLLBACK_IMAGE_IDS=()
+GHCR_LOGGED_IN=false
 
 compose() {
   docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
 }
 
 cleanup() {
-  docker logout ghcr.io >/dev/null 2>&1 || true
+  if [ "$GHCR_LOGGED_IN" = true ]; then
+    docker logout ghcr.io >/dev/null 2>&1 || true
+  fi
   rm -f "$GHCR_TOKEN_FILE" "$GHCR_USERNAME_FILE" "$NEW_ENV" "$ROLLBACK_ENV"
 }
 trap cleanup EXIT
@@ -76,6 +79,7 @@ docker compose version
 
 GHCR_USERNAME="$(cat "$GHCR_USERNAME_FILE")"
 cat "$GHCR_TOKEN_FILE" | docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin
+GHCR_LOGGED_IN=true
 
 install -d -m 0755 "$APP_DIR"
 install -d -m 0750 "$CONFIG_DIR"
