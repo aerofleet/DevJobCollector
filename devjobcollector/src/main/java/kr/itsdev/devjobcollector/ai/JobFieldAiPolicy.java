@@ -14,6 +14,25 @@ public final class JobFieldAiPolicy {
             "교원직", "별정직", "계약직", "전문직", "상담직", "기타");
     private JobFieldAiPolicy() {}
 
+    /** Discard only contract items whose own quote lacks explicit contract evidence. */
+    public static com.fasterxml.jackson.databind.node.ObjectNode omitUnsupportedContractQuote(JsonNode response, String source) {
+        if (response == null || !response.isObject() || response.size() != 1 || !response.path("fields").isArray()
+                || response.path("fields").size() > 3) throw new IllegalArgumentException("INVALID_JOB_FIELD_OUTPUT");
+        var filtered = ((com.fasterxml.jackson.databind.node.ObjectNode) response).deepCopy();
+        var fields = (com.fasterxml.jackson.databind.node.ArrayNode) filtered.path("fields");
+        for (int i = fields.size() - 1; i >= 0; i--) {
+            JsonNode item = fields.get(i);
+            if (!item.isObject() || item.size() != 2 || !item.path("field").isTextual() || !item.path("evidence").isTextual())
+                throw new IllegalArgumentException("INVALID_JOB_FIELD_OUTPUT");
+            String evidence = item.path("evidence").asText();
+            if ("계약직".equals(item.path("field").asText()) && !evidence.isBlank() && evidence.length() <= 300
+                    && source != null && source.contains(evidence)
+                    && !java.util.regex.Pattern.compile("계약직|기간제|\\bcontract(?:ual)?\\b", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(evidence).find())
+                fields.remove(i);
+        }
+        return filtered;
+    }
+
     public static List<Field> validate(JsonNode response, String source) {
         if (source == null || response == null || !response.isObject() || response.size() != 1
                 || !response.path("fields").isArray() || response.path("fields").size() > 3)

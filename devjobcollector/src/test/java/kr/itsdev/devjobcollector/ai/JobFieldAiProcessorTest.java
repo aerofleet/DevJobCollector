@@ -78,4 +78,22 @@ class JobFieldAiProcessorTest {
         verify(budget).releaseFailedClaim(eq(1L), anyString());
         verify(jdbc, never()).update(contains("INSERT INTO job_field_ai_proposals"), any(Object[].class));
     }
+
+    @Test void keeps_grounded_field_but_drops_contract_without_contract_in_its_quote() throws Exception {
+        when(client.available()).thenReturn(true);
+        var job = alio();
+        when(jobs.findById(1L)).thenReturn(Optional.of(job));
+        when(client.countJobFieldInputTokens(anyString(), anyString(), anyString())).thenReturn(500);
+        when(budget.reserveField(anyLong(), anyString(), anyInt())).thenReturn(JobRoleAiBudget.Reservation.RESERVED);
+        when(client.suggestJobFields(anyString(), anyString(), anyString())).thenReturn(mapper.readTree("""
+                {"fields":[{"field":"전산직","evidence":"시스템 개발"},{"field":"계약직","evidence":"시스템 개발"}]}
+                """));
+        when(jdbc.update(anyString(), any(Object[].class))).thenReturn(1);
+        assertThat(new JobFieldAiProcessor(jobs, client, budget, jdbc, mapper, true, "PUBLIC_ALIO:PUBLIC_ALIO").process(1))
+                .isEqualTo(JobFieldAiProcessor.Outcome.STORED_PARTIAL);
+        var args = org.mockito.ArgumentCaptor.forClass(Object[].class);
+        verify(jdbc).update(contains("INSERT INTO job_field_ai_proposals"), args.capture());
+        assertThat((String) args.getValue()[3]).contains("전산직").doesNotContain("계약직");
+        verify(budget, never()).releaseFailedClaim(anyLong(), anyString());
+    }
 }

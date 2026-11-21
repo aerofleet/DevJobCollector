@@ -114,7 +114,7 @@ export default function JobsPage() {
     setBusy(true); setError(''); setFieldNotice('');
     try {
       const outcome = await adminRequest(`/jobs/${selected.id}/ai-fields/analyze`, { method: 'POST' });
-      const messages = { STORED: 'AI 분야 제안을 저장했습니다. 원문 근거를 확인해 주세요.', DISABLED: 'AI 분야 분석이 비활성화되어 있습니다.',
+      const messages = { STORED: 'AI 분야 제안을 저장했습니다. 원문 근거를 확인해 주세요.', STORED_PARTIAL: '근거가 부족한 계약직 제안을 제외하고 나머지 분야를 저장했습니다. 원문을 확인해 주세요.', DISABLED: 'AI 분야 분석이 비활성화되어 있습니다.',
         NOT_ELIGIBLE: '분석 대상이 아니거나 허용되지 않은 출처입니다.', INPUT_UNUSABLE: '분석할 수 있는 본문이 부족합니다.',
         JOB_CHANGED: '공고가 변경되어 제안을 저장하지 않았습니다.', ALREADY_CLAIMED: '같은 입력은 처리됐거나 처리 중입니다.', DAILY_LIMIT: '오늘의 AI 분석 한도에 도달했습니다.',
         INVALID_PROPOSAL: 'AI 제안의 분야 또는 원문 근거를 확인할 수 없어 저장하지 않았습니다. 원문을 확인하고 다시 분석해 주세요.' };
