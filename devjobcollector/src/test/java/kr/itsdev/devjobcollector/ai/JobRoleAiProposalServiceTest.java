@@ -46,4 +46,22 @@ class JobRoleAiProposalServiceTest {
         assertThatThrownBy(() -> new JobRoleAiProposalService(client, true).propose(input))
                 .isInstanceOf(IllegalArgumentException.class).hasMessage("INVALID_ROLE_EVIDENCE");
     }
+
+    @Test void derivesCatalogMembershipWithoutRelaxingEvidenceValidation() throws Exception {
+        when(client.available()).thenReturn(true);
+        var input = JobRoleAiInput.prepare(13758, "GREENHOUSE", TITLE, CATEGORY, CONTENT, "v1", "gpt-5.4-mini");
+        var service = new JobRoleAiProposalService(client, true);
+        when(client.suggestJobRole(eq(TITLE), eq(CATEGORY), eq(CONTENT), anyList())).thenReturn(mapper.readTree("""
+                {"mode":"EXISTING","role":"상품 운영 매니저","evidence":"Lead and coach operators."}
+                """));
+        assertThat(service.propose(input).mode()).isEqualTo("NEW");
+        when(client.suggestJobRole(eq(TITLE), eq(CATEGORY), eq(CONTENT), anyList())).thenReturn(mapper.readTree("""
+                {"mode":"NEW","role":"인사 운영","evidence":"Lead and coach operators."}
+                """));
+        assertThat(service.propose(input).mode()).isEqualTo("EXISTING");
+        when(client.suggestJobRole(eq(TITLE), eq(CATEGORY), eq(CONTENT), anyList())).thenReturn(mapper.readTree("""
+                {"mode":"EXISTING","role":"상품 운영 매니저","evidence":"invented"}
+                """));
+        assertThatThrownBy(() -> service.propose(input)).hasMessage("INVALID_ROLE_EVIDENCE");
+    }
 }
