@@ -170,6 +170,9 @@ jobs:
           AI_OPENAI_ENABLED: ${{ vars.DJC_AI_OPENAI_ENABLED || 'false' }}
           JOB_METADATA_AI_ENABLED: ${{ vars.DJC_JOB_METADATA_AI_ENABLED || 'false' }}
           JOB_METADATA_AI_ALLOWED_SOURCES: ${{ vars.DJC_JOB_METADATA_AI_ALLOWED_SOURCES || '' }}
+          JOB_ROLE_AI_ENABLED: ${{ vars.DJC_JOB_ROLE_AI_ENABLED || 'false' }}
+          JOB_ROLE_AI_ALLOWED_SOURCES: ${{ vars.DJC_JOB_ROLE_AI_ALLOWED_SOURCES || '' }}
+          JOB_ROLE_AI_DISPLAY_ENABLED: ${{ vars.DJC_JOB_ROLE_AI_DISPLAY_ENABLED || 'false' }}
           DB_SERVER_IP: ${{ secrets.DB_SERVER_IP }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
@@ -218,6 +221,18 @@ jobs:
             echo "::error::Job metadata AI requires OpenAI enabled and an explicit source allowlist"
             exit 1
           fi
+          if [[ ! "$JOB_ROLE_AI_ENABLED" =~ ^(true|false)$ || ! "$JOB_ROLE_AI_DISPLAY_ENABLED" =~ ^(true|false)$ ]]; then
+            echo "::error::Job role AI flags must be true or false"
+            exit 1
+          fi
+          if [[ ! "$JOB_ROLE_AI_ALLOWED_SOURCES" =~ ^[A-Za-z0-9_:,-]*$ ]]; then
+            echo "::error::Invalid DJC_JOB_ROLE_AI_ALLOWED_SOURCES"
+            exit 1
+          fi
+          if [ "$JOB_ROLE_AI_ENABLED" = "true" ] && { [ "$AI_OPENAI_ENABLED" != "true" ] || [ -z "$JOB_ROLE_AI_ALLOWED_SOURCES" ]; }; then
+            echo "::error::Job role AI requires OpenAI enabled and an explicit source allowlist"
+            exit 1
+          fi
 
           mail_enabled=false
           if [ -n "$MAIL_HOST" ] && [ -n "$MAIL_USERNAME" ] && [ -n "$MAIL_PASSWORD" ] && [ -n "$AUTH_SIGNUP_MAIL_FROM" ]; then
@@ -236,6 +251,9 @@ jobs:
             printf '%s\n' "AI_OPENAI_ENABLED=$AI_OPENAI_ENABLED"
             printf '%s\n' "JOB_METADATA_AI_ENABLED=$JOB_METADATA_AI_ENABLED"
             printf '%s\n' "JOB_METADATA_AI_ALLOWED_SOURCES=$JOB_METADATA_AI_ALLOWED_SOURCES"
+            printf '%s\n' "JOB_ROLE_AI_ENABLED=$JOB_ROLE_AI_ENABLED"
+            printf '%s\n' "JOB_ROLE_AI_ALLOWED_SOURCES=$JOB_ROLE_AI_ALLOWED_SOURCES"
+            printf '%s\n' "JOB_ROLE_AI_DISPLAY_ENABLED=$JOB_ROLE_AI_DISPLAY_ENABLED"
             printf '%s\n' "OPENAI_API_KEY=$OPENAI_API_KEY"
             printf '%s\n' "SPRING_DATASOURCE_URL=jdbc:mysql://${DB_SERVER_IP}:3306/devjob?serverTimezone=Asia/Seoul&useSSL=false&allowPublicKeyRetrieval=true"
             printf '%s\n' "SPRING_DATASOURCE_USERNAME=$DB_USERNAME"
