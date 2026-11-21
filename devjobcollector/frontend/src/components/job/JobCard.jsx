@@ -1,7 +1,7 @@
 import { jobPath } from '../../utils/jobPath';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { jobCardRoles } from '../../utils/jobCardRoles';
+import { jobCardTags } from '../../utils/jobCardTags';
 import { formatDate, getDaysRemaining } from '../../utils/dateParser';
 import { getCompanyInitials, getCompanyLogoUrl } from '../../utils/companyLogo';
 import { jobSourceLabel } from '../../utils/jobSource';
@@ -17,7 +17,7 @@ const JobCard = ({ job, onOpen }) => {
       : job.endDate ? formatDate(job.endDate) : '미등록';
   const logoUrl = getCompanyLogoUrl(job);
   const showLogo = logoUrl && failedLogoUrl !== logoUrl;
-  const roles = jobCardRoles(job);
+  const { label: tagLabel, tags } = jobCardTags(job);
 
   return (
     <Link className='job-card im-card' data-motion-reveal="" to={jobPath(job.id, job.title)} onClick={onOpen}>
@@ -65,9 +65,9 @@ const JobCard = ({ job, onOpen }) => {
             {job.title}
         </h3>
         {job.industrialPersonnelRecruitment && <span className="industrial-recruitment-badge">산업기능요원 모집</span>}
-        {/* 직무 */}
-        <div className="job-role-tags" aria-label={job.sourcePlatform === 'PUBLIC_ALIO' ? '채용 분야' : '직무'}>
-          {roles.map(role => <span className="job-role-badge" key={role} title={role}>{role}</span>)}
+        {/* 공고 분야 또는 기술 스택 */}
+        <div className="job-role-tags" aria-label={tagLabel}>
+          {tags.map(tag => <span className="job-role-badge" key={tag} title={tag}>{tag}</span>)}
         </div>
 
         {/* 지역 + 경력 */}
