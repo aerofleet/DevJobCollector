@@ -31,6 +31,7 @@ class JobFieldAiPolicyTest {
         var payload = client.jobFieldPayload("전산 연구원", "정보통신", "시스템 개발");
         assertThat(payload).containsEntry("model", "gpt-5.4-mini").containsEntry("store", false).containsEntry("max_output_tokens", 400);
         assertThat(payload.toString()).contains("전산직", "행정직", "기타", "계약직");
+        assertThat(payload.get("instructions").toString()).contains("exact contiguous substring", "Do not paraphrase", "기간제");
         assertThatThrownBy(() -> client.jobFieldPayload("", "", "본문")).hasMessage("INVALID_JOB_FIELD_INPUT");
     }
 }
