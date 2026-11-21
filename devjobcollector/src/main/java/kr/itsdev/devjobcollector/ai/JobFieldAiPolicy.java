@@ -25,12 +25,13 @@ public final class JobFieldAiPolicy {
                 throw new IllegalArgumentException("INVALID_JOB_FIELD_OUTPUT");
             String field = item.path("field").asText();
             String evidence = item.path("evidence").asText();
-            if (!FIELDS.contains(field) || !seen.add(field) || evidence.isBlank() || evidence.length() > 300 || !source.contains(evidence))
-                throw new IllegalArgumentException("INVALID_JOB_FIELD_EVIDENCE");
+            if (!FIELDS.contains(field) || !seen.add(field)) throw new IllegalArgumentException("INVALID_JOB_FIELD_LABEL");
+            if (evidence.isBlank() || evidence.length() > 300) throw new IllegalArgumentException("INVALID_JOB_FIELD_QUOTE_LENGTH");
+            if (!source.contains(evidence)) throw new IllegalArgumentException("INVALID_JOB_FIELD_QUOTE_SOURCE");
             if ("계약직".equals(field) && !java.util.regex.Pattern.compile("계약직|기간제|\\bcontract(?:ual)?\\b", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(evidence).find())
-                throw new IllegalArgumentException("INVALID_JOB_FIELD_EVIDENCE");
+                throw new IllegalArgumentException("INVALID_JOB_FIELD_CONTRACT_QUOTE");
             if (("공무직".equals(field) || "별정직".equals(field)) && !evidence.contains(field))
-                throw new IllegalArgumentException("INVALID_JOB_FIELD_EVIDENCE");
+                throw new IllegalArgumentException("INVALID_JOB_FIELD_APPOINTMENT_QUOTE");
             result.add(new Field(field, evidence));
         }
         if (seen.contains("기타") && seen.size() > 1) throw new IllegalArgumentException("INVALID_JOB_FIELD_OUTPUT");

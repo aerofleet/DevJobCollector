@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 /** Generates evidence-backed field proposals, never approvals or public tags. */
 @Service
 public class JobFieldAiProcessor {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(JobFieldAiProcessor.class);
     private final JobPostRepository jobs;
     private final OpenAiEvidenceClient client;
     private final JobRoleAiBudget budget;
@@ -59,6 +60,8 @@ public class JobFieldAiProcessor {
             try {
                 fields = JobFieldAiPolicy.validate(result, input.evidenceSource());
             } catch (IllegalArgumentException invalid) {
+                // Policy exception messages are fixed codes and contain no source or model text.
+                log.info("Job field proposal rejected: {}", invalid.getMessage());
                 budget.releaseFailedClaim(id, input.inputHash());
                 return Outcome.INVALID_PROPOSAL;
             }
