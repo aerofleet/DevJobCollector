@@ -56,8 +56,13 @@ public class JobFieldAiProcessor {
         if (reservation == JobRoleAiBudget.Reservation.DAILY_LIMIT) return Outcome.DAILY_LIMIT;
         try {
             var result = client.suggestJobFields(input.title(), input.category(), input.content());
+            boolean partial = false;
             java.util.List<JobFieldAiPolicy.Field> fields;
             try {
+                var filtered = JobFieldAiPolicy.omitUnsupportedContractQuote(result, input.evidenceSource());
+                partial = filtered.path("fields").size() != result.path("fields").size();
+                if (partial && filtered.path("fields").isEmpty()) throw new IllegalArgumentException("INVALID_JOB_FIELD_CONTRACT_QUOTE");
+                result = filtered;
                 fields = JobFieldAiPolicy.validate(result, input.evidenceSource());
             } catch (IllegalArgumentException invalid) {
                 // Policy exception messages are fixed codes and contain no source or model text.
@@ -71,7 +76,7 @@ public class JobFieldAiProcessor {
                     SELECT id,version,?,?,?,?,?,NOW(6) FROM job_posts WHERE id=? AND version=?
                     """, input.inputHash(), JobFieldAiPolicy.VERSION, OpenAiEvidenceClient.CONTENT_MODEL, json,
                     fields.isEmpty() ? "ABSTAINED" : "PENDING_REVIEW", id, job.getVersion());
-            return inserted == 1 ? Outcome.STORED : Outcome.JOB_CHANGED;
+            return inserted == 1 ? (partial ? Outcome.STORED_PARTIAL : Outcome.STORED) : Outcome.JOB_CHANGED;
         } catch (DuplicateKeyException duplicate) {
             return Outcome.ALREADY_CLAIMED;
         } catch (RuntimeException | JsonProcessingException failure) {
@@ -110,5 +115,5 @@ public class JobFieldAiProcessor {
         throw new IllegalArgumentException("JOB_FIELD_INPUT_CHANGED");
     }
 
-    public enum Outcome { DISABLED, NOT_ELIGIBLE, INPUT_UNUSABLE, JOB_CHANGED, ALREADY_CLAIMED, DAILY_LIMIT, INVALID_PROPOSAL, STORED }
+    public enum Outcome { DISABLED, NOT_ELIGIBLE, INPUT_UNUSABLE, JOB_CHANGED, ALREADY_CLAIMED, DAILY_LIMIT, INVALID_PROPOSAL, STORED, STORED_PARTIAL }
 }

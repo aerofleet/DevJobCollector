@@ -45,7 +45,7 @@ public class JobFieldAiScheduler {
                         cursor.set(id - 1);
                         break;
                     }
-                    if (status == JobFieldAiProcessor.Outcome.STORED && ++generated >= 20) break;
+                    if ((status == JobFieldAiProcessor.Outcome.STORED || status == JobFieldAiProcessor.Outcome.STORED_PARTIAL) && ++generated >= 20) break;
                 } catch (RuntimeException failure) { failed++; }
             }
             log.info("AI job field batch: scanned={}, generated={}, failed={}", rows.size(), generated, failed);
