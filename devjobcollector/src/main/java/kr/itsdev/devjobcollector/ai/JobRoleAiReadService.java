@@ -41,8 +41,8 @@ public class JobRoleAiReadService {
                     || !JobRoleAiRules.VERSION.equals(row.get("policy_version"))) continue;
             try {
                 var roles = JobRoleAiCatalog.decodeSnapshot(mapper, row.get("catalog_snapshot"));
-                var input = JobRoleAiInput.prepare(id, job.getSourcePlatform().name(), job.getTitle(), job.getJobCategory(), job.getApplyQual(),
-                        (String) row.get("catalog_version"), (String) row.get("model"), roles);
+                var input = JobRoleAiInput.prepareMatching(id, job.getSourcePlatform().name(), job.getTitle(), job.getJobCategory(), job.getApplyQual(),
+                        (String) row.get("catalog_version"), (String) row.get("model"), roles, (String) row.get("input_hash"));
                 if (!input.inputHash().equals(row.get("input_hash"))) continue;
                 var validated = JobRoleAiRules.validate(mapper.valueToTree(Map.of(
                         "mode", row.get("result_mode"), "role", row.get("suggested_role"),
