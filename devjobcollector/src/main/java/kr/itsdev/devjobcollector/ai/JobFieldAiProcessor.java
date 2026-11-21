@@ -55,7 +55,13 @@ public class JobFieldAiProcessor {
         if (reservation == JobRoleAiBudget.Reservation.DAILY_LIMIT) return Outcome.DAILY_LIMIT;
         try {
             var result = client.suggestJobFields(input.title(), input.category(), input.content());
-            var fields = JobFieldAiPolicy.validate(result, input.evidenceSource());
+            java.util.List<JobFieldAiPolicy.Field> fields;
+            try {
+                fields = JobFieldAiPolicy.validate(result, input.evidenceSource());
+            } catch (IllegalArgumentException invalid) {
+                budget.releaseFailedClaim(id, input.inputHash());
+                return Outcome.INVALID_PROPOSAL;
+            }
             String json = mapper.writeValueAsString(result);
             int inserted = jdbc.update("""
                     INSERT INTO job_field_ai_proposals (job_post_id,job_version,input_hash,policy_version,model,fields_json,review_status,created_at)
@@ -101,5 +107,5 @@ public class JobFieldAiProcessor {
         throw new IllegalArgumentException("JOB_FIELD_INPUT_CHANGED");
     }
 
-    public enum Outcome { DISABLED, NOT_ELIGIBLE, INPUT_UNUSABLE, JOB_CHANGED, ALREADY_CLAIMED, DAILY_LIMIT, STORED }
+    public enum Outcome { DISABLED, NOT_ELIGIBLE, INPUT_UNUSABLE, JOB_CHANGED, ALREADY_CLAIMED, DAILY_LIMIT, INVALID_PROPOSAL, STORED }
 }
