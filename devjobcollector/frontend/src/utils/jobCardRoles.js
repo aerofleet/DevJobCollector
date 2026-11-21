@@ -1,3 +1,6 @@
+const JOB_FIELDS = new Set(['일반직', '행정직', '경영직', '사무직', '관리직', '연구직', '기술직', '시설직', '전산직',
+  '교수직', '의사직', '간호직', '약무직', '보건직', '위생직', '기능직', '운영직', '공무직', '안전직',
+  '교원직', '별정직', '계약직', '전문직', '상담직', '기타']);
 // 직무명과 명확한 직무 분류만 사용한다. 기술명이나 조직명으로 직무를 추정하지 않는다.
 const ROLES = [
   ['기술 프로그램 매니저', /\btechnical\s+program(?:me)?\s+manag(?:er|ement)\b|기술\s*프로그램\s*매니저/i],
@@ -72,6 +75,11 @@ const OTHER_ENGLISH_ROLES = [
 export function resolveJobCardRoles(job) {
   const title = typeof job.title === 'string' ? job.title : '';
   const category = typeof job.jobCategory === 'string' ? job.jobCategory : '';
+  const fields = Array.isArray(job.approvedJobFields) ? [...new Set(job.approvedJobFields)] : [];
+  if (fields.length > 0 && fields.length <= 3 && fields.every(field => JOB_FIELDS.has(field))
+      && !(fields.length > 1 && fields.includes('기타'))) {
+    return { roles: fields, needsReview: false };
+  }
   if (job.id === 4517 && job.sourcePlatform === 'GREENHOUSE') {
     return { roles: ['백엔드', 'Global Operations Technology'], needsReview: false };
   }

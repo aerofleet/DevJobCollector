@@ -16,6 +16,11 @@ ai:
     enabled: ${JOB_ROLE_AI_ENABLED:false}
     allowed-sources: ${JOB_ROLE_AI_ALLOWED_SOURCES:}
     display-enabled: ${JOB_ROLE_AI_DISPLAY_ENABLED:false}
+  job-field:
+    enabled: ${JOB_FIELD_AI_ENABLED:false}
+    batch-enabled: ${JOB_FIELD_AI_BATCH_ENABLED:false}
+    allowed-sources: ${JOB_FIELD_AI_ALLOWED_SOURCES:}
+    display-enabled: ${JOB_FIELD_AI_DISPLAY_ENABLED:false}
 
 spring:
   application:

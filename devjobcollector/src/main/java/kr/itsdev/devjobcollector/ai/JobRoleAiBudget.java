@@ -33,11 +33,20 @@ public class JobRoleAiBudget {
 
     @Transactional
     public Reservation reserve(long jobId, String inputHash, int inputTokens) {
+        return reserveWithOutputLimit(jobId, inputHash, inputTokens, 300);
+    }
+
+    @Transactional
+    public Reservation reserveField(long jobId, String inputHash, int inputTokens) {
+        return reserveWithOutputLimit(jobId, inputHash, inputTokens, 400);
+    }
+
+    private Reservation reserveWithOutputLimit(long jobId, String inputHash, int inputTokens, int maxOutputTokens) {
         if (jobId <= 0 || inputHash == null || !inputHash.matches("[0-9a-f]{64}") || inputTokens < 1 || inputTokens > 2000)
             throw new IllegalArgumentException("INVALID_ROLE_BUDGET_INPUT");
         LocalDate day = LocalDate.now(ZoneOffset.UTC);
         // Standard rates: $0.75 per million input and $4.50 per million output tokens.
-        long reservedMicros = (inputTokens * 750_000L + 300L * 4_500_000L + 999_999L) / 1_000_000L;
+        long reservedMicros = (inputTokens * 750_000L + maxOutputTokens * 4_500_000L + 999_999L) / 1_000_000L;
         try {
             jdbc.update("INSERT INTO job_role_ai_claims (job_post_id,input_hash,usage_day,reserved_micro_usd,created_at) VALUES (?,?,?,?,NOW(6))",
                     jobId, inputHash, day, reservedMicros);
