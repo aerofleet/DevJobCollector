@@ -55,6 +55,9 @@ jobs:
           DJC_ENV_FILE: ${{ github.workspace }}/devjobcollector/.env.docker.example
         run: docker compose -f compose.yaml config --quiet
 
+      - name: Test deployment image cleanup
+        run: python3 -m unittest discover -s devjobcollector/ops/docker -p 'test_*.py' -v
+
       - name: Run backend tests and build deployment JARs
         working-directory: ./devjobcollector
         run: |
@@ -338,8 +341,9 @@ jobs:
           printf '%s' "$GHCR_USERNAME" > deploy-bundle/ghcr-username
           cp devjobcollector/compose.yaml deploy-bundle/compose.yaml
           cp devjobcollector/ops/docker/deploy.sh deploy-bundle/deploy.sh
+          cp devjobcollector/ops/docker/docker-image-cleanup.sh deploy-bundle/docker-image-cleanup.sh
           chmod 600 deploy-bundle/*
-          chmod 700 deploy-bundle/deploy.sh
+          chmod 700 deploy-bundle/deploy.sh deploy-bundle/docker-image-cleanup.sh
 
       - name: Install cloudflared client
         run: |
@@ -380,7 +384,7 @@ jobs:
           EOF
           chmod 600 ~/.ssh/config
 
-          REMOTE_BUNDLE="/home/$SERVER_USER/djc-deploy"
+          REMOTE_BUNDLE="/home/$SERVER_USER/djc-deploy-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
 
           ssh djc-a1 "mkdir -p '$REMOTE_BUNDLE' && chmod 700 '$REMOTE_BUNDLE'"
           scp deploy-bundle/* "djc-a1:$REMOTE_BUNDLE/"
