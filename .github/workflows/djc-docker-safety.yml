@@ -1,0 +1,22 @@
+name: DJC Docker safety tests
+
+on:
+  pull_request:
+    paths:
+      - 'devjobcollector/ops/docker/**'
+      - '.github/workflows/djc-backend-deploy.yml'
+      - '.github/workflows/djc-docker-safety.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  docker-safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check shell syntax
+        run: bash -n devjobcollector/ops/docker/deploy.sh devjobcollector/ops/docker/docker-image-cleanup.sh
+      - name: Test cleanup and deployment behavior
+        run: python3 -m unittest discover -s devjobcollector/ops/docker -p 'test_*.py' -v

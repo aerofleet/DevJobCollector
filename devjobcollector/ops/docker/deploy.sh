@@ -17,6 +17,7 @@ LEGACY_COMPOSE_PROJECT="devjobcollector"
 LEGACY_CONTAINER_ID=""
 LEGACY_WAS_ACTIVE=false
 CURRENT_CONTAINER_ID=""
+ROLLBACK_IMAGE_IDS=()
 
 compose() {
   docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
@@ -27,6 +28,10 @@ cleanup() {
   rm -f "$GHCR_TOKEN_FILE" "$GHCR_USERNAME_FILE" "$NEW_ENV" "$ROLLBACK_ENV"
 }
 trap cleanup EXIT
+
+# Serialize deployment and repository-managed image cleanup on this host.
+exec 9>/run/lock/djc-image-cleanup.lock
+flock -n 9 || { echo 'Another deployment or cleanup is running'; exit 1; }
 
 rollback() {
   echo "=== Docker deployment failed; starting rollback ==="
@@ -104,6 +109,7 @@ LEGACY_CONTAINER_ID="$(
 
 if [ -n "$LEGACY_CONTAINER_ID" ]; then
   legacy_image="$(docker inspect --format '{{.Config.Image}}' "$LEGACY_CONTAINER_ID")"
+  ROLLBACK_IMAGE_IDS+=("$(docker inspect --format '{{.Image}}' "$LEGACY_CONTAINER_ID")")
   case "$legacy_image" in
     ghcr.io/aerofleet/devjobcollector:*) ;;
     *)
@@ -126,6 +132,7 @@ CURRENT_CONTAINER_ID="$(
 
 if [ -n "$CURRENT_CONTAINER_ID" ]; then
   current_image="$(docker inspect --format '{{.Config.Image}}' "$CURRENT_CONTAINER_ID")"
+  ROLLBACK_IMAGE_IDS+=("$(docker inspect --format '{{.Image}}' "$CURRENT_CONTAINER_ID")")
   case "$current_image" in
     ghcr.io/aerofleet/devjobcollector:*) ;;
     *)
@@ -179,3 +186,14 @@ if [ -n "$LEGACY_CONTAINER_ID" ]; then
 fi
 compose ps
 echo "DJC is running with Docker Compose"
+
+# Cleanup is best effort and must never cause a healthy deploy to roll back.
+if [ "${#ROLLBACK_IMAGE_IDS[@]}" -gt 0 ] && [ -x "$DEPLOY_BUNDLE/docker-image-cleanup.sh" ]; then
+  protect_args=()
+  for image_id in "${ROLLBACK_IMAGE_IDS[@]}"; do protect_args+=(--protect "$image_id"); done
+  if ! DJC_DEPLOY_LOCK_HELD=1 "$DEPLOY_BUNDLE/docker-image-cleanup.sh" --apply "${protect_args[@]}"; then
+    echo 'WARNING: image cleanup failed; deployment remains successful' >&2
+  fi
+else
+  echo 'Image cleanup skipped: rollback image or cleanup script unavailable'
+fi
