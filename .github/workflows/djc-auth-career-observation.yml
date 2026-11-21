@@ -143,3 +143,14 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
           exit "$audit_status"
+
+      - name: Count sanitized AI role failure markers
+        if: always()
+        env:
+          TUNNEL_SERVICE_TOKEN_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          TUNNEL_SERVICE_TOKEN_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+        run: |
+          set -o pipefail
+          ssh djc-a1 'sudo docker compose --project-name djc --env-file /etc/devjobcollector/devjobcollector.env -f /opt/devjobcollector/compose.yaml logs --no-color --since 30m app' |
+            { grep -oE 'ROLE_TOKEN_COUNT_FAILED|PROVIDER_FAILED|INVALID_ROLE_OUTPUT|INVALID_ROLE_EVIDENCE|INVALID_ROLE_CATALOG|DataIntegrityViolationException|HttpTimeoutException' || true; } |
+            sort | uniq -c
