@@ -15,6 +15,7 @@ public final class JobRoleAiRules {
             "리테일 가격 운영", "계정 관리 매니저", "채용 운영", "기술 지원·품질", "IT 지원", "IT 인프라 운영", "영업·계정 관리");
     private static final Set<String> FORBIDDEN = Set.of("기타", "미분류", "직무 확인 필요", "확인 필요", "알 수 없음");
     private static final Pattern ROLE_TEXT = Pattern.compile("[가-힣A-Za-z0-9][가-힣A-Za-z0-9 ·&/+-]{0,30}[가-힣A-Za-z0-9]");
+    private static final Pattern PRICE_EVIDENCE = Pattern.compile("가격|\\bpric(?:e|es|ed|ing)\\b", Pattern.CASE_INSENSITIVE);
 
     private JobRoleAiRules() {}
 
@@ -41,6 +42,9 @@ public final class JobRoleAiRules {
         }
         if (!Set.of("EXISTING", "NEW").contains(mode) || !validRoleLabel(role)
                 || evidence.isBlank() || evidence.length() > 300 || !source.contains(evidence))
+            throw new IllegalArgumentException("INVALID_ROLE_EVIDENCE");
+        if ("리테일 가격 운영".equals(role)
+                && !PRICE_EVIDENCE.matcher(evidence).find())
             throw new IllegalArgumentException("INVALID_ROLE_EVIDENCE");
         if (("EXISTING".equals(mode) && !allowedRoles.contains(role))
                 || ("NEW".equals(mode) && allowedRoles.contains(role))) throw new IllegalArgumentException("INVALID_ROLE_CATALOG");
