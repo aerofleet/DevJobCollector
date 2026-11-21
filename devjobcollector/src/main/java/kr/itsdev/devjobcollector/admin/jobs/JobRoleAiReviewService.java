@@ -56,8 +56,8 @@ public class JobRoleAiReviewService {
             var input = JobRoleAiInput.prepare(jobId, job.getSourcePlatform().name(), job.getTitle(), job.getJobCategory(), job.getApplyQual(),
                     (String) row.get("catalog_version"), (String) row.get("model"), roles);
             if (!expectedHash.equals(input.inputHash())) throw error(HttpStatus.CONFLICT, "ROLE_PROPOSAL_STALE");
-            var result = JobRoleAiRules.validate(mapper.valueToTree(Map.of("mode", row.get("result_mode"),
-                    "role", row.get("suggested_role"), "evidence", row.get("source_evidence"))), input.evidenceSource(), roles);
+            var result = JobRoleAiRules.requirePricingEvidence(JobRoleAiRules.validate(mapper.valueToTree(Map.of("mode", row.get("result_mode"),
+                    "role", row.get("suggested_role"), "evidence", row.get("source_evidence"))), input.evidenceSource(), roles));
             if ("ABSTAIN".equals(result.mode())) throw error(HttpStatus.CONFLICT, "ROLE_PROPOSAL_STALE");
             if ("NEW".equals(result.mode())) newRole = result.role();
         } catch (IllegalArgumentException | NullPointerException invalid) {
