@@ -67,7 +67,10 @@ public class OpenAiEvidenceClient {
                         + "Return up to three distinct supported fields; include multiple only when each is explicit. "
                         + "Contract employment and appointment categories require explicit evidence; do not infer them from seniority or a company name. "
                         + "Use 기타 alone only when work is identifiable but no other field fits. Return an empty array when evidence is insufficient. "
-                        + "For each field quote an exact contiguous passage from title, category or content, at most 300 characters. Do not invent a field or evidence.",
+                        + "For each field, copy a short exact contiguous substring from one supplied title, category, or content value as evidence, preferably a few words. "
+                        + "Do not paraphrase, translate, join separate passages, insert ellipses, or add quotation marks to the evidence. "
+                        + "For 계약직 the copied evidence must itself include 계약직, 기간제, contract, or contractual; for 공무직 or 별정직 it must itself include that exact term. "
+                        + "Omit any field for which such an exact quote cannot be copied. Evidence is at most 300 characters. Do not invent a field or evidence.",
                 "input", json(Map.of("title", title, "category", category == null ? "" : category, "content", content,
                         "allowedFields", JobFieldAiPolicy.FIELDS)),
                 "text", Map.of("format", Map.of("type", "json_schema", "name", "job_field_proposal", "strict", true, "schema", schema)));
