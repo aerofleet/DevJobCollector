@@ -43,11 +43,18 @@ public class JobRoleAiProcessor {
         catch (IllegalArgumentException invalid) { return Outcome.INPUT_UNUSABLE; }
         if (budget.alreadyClaimed(id, input.inputHash())) return Outcome.ALREADY_CLAIMED;
         int tokens = client.countJobRoleInputTokens(input.title(), input.category(), input.content(), input.allowedRoles());
-        if (tokens > 2000) return Outcome.INPUT_UNUSABLE;
+        if (tokens > 2000) {
+            try { input = prepareCompact(job, allowedRoles); }
+            catch (IllegalArgumentException invalid) { return Outcome.INPUT_UNUSABLE; }
+            if (budget.alreadyClaimed(id, input.inputHash())) return Outcome.ALREADY_CLAIMED;
+            tokens = client.countJobRoleInputTokens(input.title(), input.category(), input.content(), input.allowedRoles());
+            if (tokens > 2000) return Outcome.INPUT_UNUSABLE;
+        }
         JobPost latest = jobs.findById(id).orElse(null);
         if (!eligible(latest) || latest.getVersion() != job.getVersion()) return Outcome.JOB_CHANGED;
         JobRoleAiInput.Prepared latestInput;
-        try { latestInput = prepare(latest, allowedRoles); }
+        try { latestInput = JobRoleAiInput.prepareMatching(latest.getId(), latest.getSourcePlatform().name(), latest.getTitle(), latest.getJobCategory(),
+                latest.getApplyQual(), CATALOG_VERSION, OpenAiEvidenceClient.CONTENT_MODEL, allowedRoles, input.inputHash()); }
         catch (IllegalArgumentException invalid) { return Outcome.JOB_CHANGED; }
         if (!input.inputHash().equals(latestInput.inputHash())) return Outcome.JOB_CHANGED;
         var reservation = budget.reserve(id, input.inputHash(), tokens);
@@ -84,6 +91,11 @@ public class JobRoleAiProcessor {
 
     private static JobRoleAiInput.Prepared prepare(JobPost job, Set<String> allowedRoles) {
         return JobRoleAiInput.prepare(job.getId(), job.getSourcePlatform().name(), job.getTitle(), job.getJobCategory(), job.getApplyQual(),
+                CATALOG_VERSION, OpenAiEvidenceClient.CONTENT_MODEL, allowedRoles);
+    }
+
+    private static JobRoleAiInput.Prepared prepareCompact(JobPost job, Set<String> allowedRoles) {
+        return JobRoleAiInput.prepareCompact(job.getId(), job.getSourcePlatform().name(), job.getTitle(), job.getJobCategory(), job.getApplyQual(),
                 CATALOG_VERSION, OpenAiEvidenceClient.CONTENT_MODEL, allowedRoles);
     }
 

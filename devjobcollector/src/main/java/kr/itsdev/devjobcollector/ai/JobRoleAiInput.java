@@ -24,6 +24,16 @@ public final class JobRoleAiInput {
 
     public static Prepared prepare(long jobId, String source, String title, String category, String rawContent,
                                    String catalogVersion, String model, Set<String> allowedRoles) {
+        return prepare(jobId, source, title, category, rawContent, catalogVersion, model, allowedRoles, false);
+    }
+
+    public static Prepared prepareCompact(long jobId, String source, String title, String category, String rawContent,
+                                          String catalogVersion, String model, Set<String> allowedRoles) {
+        return prepare(jobId, source, title, category, rawContent, catalogVersion, model, allowedRoles, true);
+    }
+
+    private static Prepared prepare(long jobId, String source, String title, String category, String rawContent,
+                                    String catalogVersion, String model, Set<String> allowedRoles, boolean compact) {
         if (jobId <= 0 || source == null || source.isBlank() || title == null || title.isBlank() || title.length() > 255 || rawContent == null
                 || (category != null && category.length() > 255) || catalogVersion == null || catalogVersion.isBlank() || !"gpt-5.4-mini".equals(model)
                 || allowedRoles == null || allowedRoles.size() > 200 || !allowedRoles.containsAll(JobRoleAiRules.EXISTING_ROLES)
@@ -32,7 +42,7 @@ public final class JobRoleAiInput {
         String normalizedTitle = title.trim();
         var document = Jsoup.parse(HtmlUtils.htmlUnescape(HtmlUtils.htmlUnescape(rawContent)));
         String content = document.text().replace('\u00a0', ' ').trim();
-        if (content.length() > 4000) content = extractRelevantSections(document.wholeText());
+        if (compact || content.length() > 4000) content = extractRelevantSections(document.wholeText());
         if (content.isBlank() || content.length() > 4000) throw new IllegalArgumentException("ROLE_CONTENT_UNUSABLE");
         Map<String, String> hashed = new TreeMap<>();
         hashed.put("jobId", Long.toString(jobId));
@@ -53,6 +63,15 @@ public final class JobRoleAiInput {
         } catch (NoSuchAlgorithmException | JsonProcessingException e) {
             throw new IllegalStateException("ROLE_INPUT_HASH_FAILED", e);
         }
+    }
+
+    public static Prepared prepareMatching(long jobId, String source, String title, String category, String rawContent,
+                                           String catalogVersion, String model, Set<String> allowedRoles, String expectedHash) {
+        Prepared original = prepare(jobId, source, title, category, rawContent, catalogVersion, model, allowedRoles);
+        if (original.inputHash().equals(expectedHash)) return original;
+        Prepared compact = prepareCompact(jobId, source, title, category, rawContent, catalogVersion, model, allowedRoles);
+        if (compact.inputHash().equals(expectedHash)) return compact;
+        throw new IllegalArgumentException("ROLE_INPUT_CHANGED");
     }
 
     private static String extractRelevantSections(String text) {

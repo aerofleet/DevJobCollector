@@ -49,4 +49,17 @@ class JobRoleAiInputTest {
                 "Company marketing. ".repeat(250) + "\nJob Description\nRun operations.", "v1", MODEL))
                 .hasMessage("ROLE_CONTENT_UNUSABLE");
     }
+
+    @Test void compactInputKeepsOriginalHashReadableAndRequiresBothSections() {
+        String raw = "회사 소개\n소개 문구\n업무 내용\n상품 규제를 검토합니다.\n자격 요건\n운영 경력 3년 이상.\n우대 사항\n외국어 능력.";
+        var roles = JobRoleAiRules.EXISTING_ROLES;
+        var original = JobRoleAiInput.prepare(1, "GREENHOUSE", "운영 담당", "", raw, "v1", MODEL, roles);
+        var compact = JobRoleAiInput.prepareCompact(1, "GREENHOUSE", "운영 담당", "", raw, "v1", MODEL, roles);
+        assertThat(compact.content()).contains("상품 규제를 검토합니다.", "운영 경력 3년 이상.").doesNotContain("소개 문구", "외국어 능력");
+        assertThat(compact.inputHash()).isNotEqualTo(original.inputHash());
+        assertThat(JobRoleAiInput.prepareMatching(1, "GREENHOUSE", "운영 담당", "", raw, "v1", MODEL, roles, original.inputHash())).isEqualTo(original);
+        assertThat(JobRoleAiInput.prepareMatching(1, "GREENHOUSE", "운영 담당", "", raw, "v1", MODEL, roles, compact.inputHash())).isEqualTo(compact);
+        assertThatThrownBy(() -> JobRoleAiInput.prepareCompact(1, "GREENHOUSE", "운영 담당", "", "업무 내용\n상품 검토", "v1", MODEL, roles))
+                .hasMessage("ROLE_CONTENT_UNUSABLE");
+    }
 }

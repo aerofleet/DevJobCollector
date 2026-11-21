@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -122,5 +123,22 @@ class JobRoleAiProcessorTest {
         order.verify(proposals).propose(any());
         order.verify(budget).releaseFailedClaim(anyLong(), anyString());
         verify(store, never()).save(anyLong(), anyLong(), anyString(), any(), any());
+    }
+
+    @Test void overBudgetInputUsesCompleteDelimitedSectionsAndReservesTheirTokenCount() {
+        when(client.available()).thenReturn(true);
+        JobPost current = job(0);
+        when(current.getApplyQual()).thenReturn("회사 소개\n소개 문구\n업무 내용\n상품 규제 검토.\n자격 요건\n운영 경력 3년.\n우대 사항\n영어.");
+        when(jobs.findById(13758L)).thenReturn(Optional.of(current));
+        when(client.countJobRoleInputTokens(anyString(), anyString(), anyString(), any())).thenReturn(2100, 1000);
+        when(budget.reserve(anyLong(), anyString(), anyInt())).thenReturn(JobRoleAiBudget.Reservation.RESERVED);
+        when(proposals.propose(any())).thenAnswer(call -> {
+            JobRoleAiInput.Prepared input = call.getArgument(0);
+            assertThat(input.content()).contains("상품 규제 검토.", "운영 경력 3년.").doesNotContain("소개 문구", "영어.");
+            return new JobRoleAiProposalService.Proposal(input.inputHash(), "NEW", "상품 운영", "상품 규제 검토.");
+        });
+        when(store.save(anyLong(), anyLong(), anyString(), any(), any())).thenReturn(JobRoleAiProposalStore.SaveResult.STORED);
+        assertThat(processor(true, "GREENHOUSE:coupang").process(13758)).isEqualTo(JobRoleAiProcessor.Outcome.STORED);
+        verify(budget).reserve(anyLong(), anyString(), eq(1000));
     }
 }

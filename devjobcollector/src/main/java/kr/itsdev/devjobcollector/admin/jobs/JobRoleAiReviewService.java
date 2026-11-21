@@ -53,8 +53,8 @@ public class JobRoleAiReviewService {
         String newRole = null;
         try {
             var roles = JobRoleAiCatalog.decodeSnapshot(mapper, row.get("catalog_snapshot"));
-            var input = JobRoleAiInput.prepare(jobId, job.getSourcePlatform().name(), job.getTitle(), job.getJobCategory(), job.getApplyQual(),
-                    (String) row.get("catalog_version"), (String) row.get("model"), roles);
+            var input = JobRoleAiInput.prepareMatching(jobId, job.getSourcePlatform().name(), job.getTitle(), job.getJobCategory(), job.getApplyQual(),
+                    (String) row.get("catalog_version"), (String) row.get("model"), roles, expectedHash);
             if (!expectedHash.equals(input.inputHash())) throw error(HttpStatus.CONFLICT, "ROLE_PROPOSAL_STALE");
             var result = JobRoleAiRules.requirePricingEvidence(JobRoleAiRules.validate(mapper.valueToTree(Map.of("mode", row.get("result_mode"),
                     "role", row.get("suggested_role"), "evidence", row.get("source_evidence"))), input.evidenceSource(), roles));
