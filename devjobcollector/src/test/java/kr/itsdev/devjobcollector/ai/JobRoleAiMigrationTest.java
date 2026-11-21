@@ -30,6 +30,30 @@ import static org.mockito.Mockito.when;
 
 @EnabledIfEnvironmentVariable(named = "DJC_MIGRATION_TEST_URL", matches = ".+")
 class JobRoleAiMigrationTest {
+    @Test void upgradesV64AndStoresFieldProposalsWithoutChangingJobs() throws Exception {
+        String schema = "djc_fields_upgrade_" + UUID.randomUUID().toString().replace("-", "");
+        String url = System.getenv("DJC_MIGRATION_TEST_URL");
+        String user = System.getenv().getOrDefault("DJC_MIGRATION_TEST_USERNAME", "root");
+        String password = System.getenv().getOrDefault("DJC_MIGRATION_TEST_PASSWORD", "");
+        var config = Flyway.configure().dataSource(url, user, password).schemas(schema).defaultSchema(schema)
+                .locations("classpath:db/migration").cleanDisabled(false);
+        var latest = config.load();
+        try {
+            config.target("64").load().migrate();
+            try (var connection = DriverManager.getConnection(url, user, password)) {
+                connection.setCatalog(schema);
+                var jdbc = new JdbcTemplate(new SingleConnectionDataSource(connection, true));
+                jdbc.update("INSERT INTO job_posts (id,source_platform,original_sn,company_name,title,start_date,end_date,original_url,is_active) VALUES (1,'PUBLIC_ALIO','1','Example','전산 연구원','2026-01-01','2030-01-01','https://example.com',1)");
+                latest.migrate();
+                jdbc.update("INSERT INTO job_field_ai_proposals (job_post_id,job_version,input_hash,policy_version,model,fields_json,review_status,created_at) VALUES (1,0,?,?,'gpt-5.4-mini',?,'PENDING_REVIEW',NOW(6))",
+                        "a".repeat(64), JobFieldAiPolicy.VERSION, "{\"fields\":[{\"field\":\"전산직\",\"evidence\":\"전산\"}]}");
+                assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM job_field_ai_proposals WHERE review_status='PENDING_REVIEW'", Integer.class)).isEqualTo(1);
+                assertThat(jdbc.queryForObject("SELECT title FROM job_posts WHERE id=1", String.class)).isEqualTo("전산 연구원");
+                assertThat(new JobRoleAiBudget(jdbc).reserveField(1, "b".repeat(64), 2000)).isEqualTo(JobRoleAiBudget.Reservation.RESERVED);
+                assertThat(jdbc.queryForObject("SELECT reserved_micro_usd FROM job_role_ai_daily_budget", Long.class)).isEqualTo(3300L);
+            }
+        } finally { latest.clean(); }
+    }
     @Test void upgradesV63WithoutChangingExistingJobs() throws Exception {
         String schema = "djc_roles_upgrade_" + UUID.randomUUID().toString().replace("-", "");
         String url = System.getenv("DJC_MIGRATION_TEST_URL");

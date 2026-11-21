@@ -8,6 +8,10 @@ const statusText = { ACTIVE: '노출', HIDDEN: '숨김', CLOSED: '강제 마감'
 const actionText = { ACTIVE: '재활성', HIDDEN: '공고 숨김', CLOSED: '강제 마감', DELETED: '공고 삭제' };
 const companyActions = { HIDDEN: 'SUSPEND', CLOSED: 'FORCE_CLOSE', DELETED: 'DELETE' };
 const PAGINATION_KEY = 'admin.jobs.pagination';
+const readFieldProposal = (value) => {
+  try { const parsed = typeof value === 'string' ? JSON.parse(value) : value; return Array.isArray(parsed?.fields) ? parsed.fields : []; }
+  catch { return []; }
+};
 
 export default function JobsPage() {
   const { admin } = useAdminAuth();
@@ -37,6 +41,9 @@ export default function JobsPage() {
   const [roleHistory, setRoleHistory] = useState([]);
   const [roleLoaded, setRoleLoaded] = useState(false);
   const [roleNotice, setRoleNotice] = useState('');
+  const [fieldHistory, setFieldHistory] = useState([]);
+  const [fieldLoaded, setFieldLoaded] = useState(false);
+  const [fieldNotice, setFieldNotice] = useState('');
 
   useEffect(() => { savePaginationSession(PAGINATION_KEY, { page, size, search, status }); }, [page, size, search, status]);
 
@@ -75,6 +82,7 @@ export default function JobsPage() {
     setError(''); setReason(''); setNewEndDate(''); setPendingStatus(null);
     setAiPreview(null); setAiResult(null); setAiHistory([]); setAiConfirmed(false); setReviewDraft(null); setSalaryPreview(null);
     setRoleHistory([]); setRoleLoaded(false); setRoleNotice('');
+    setFieldHistory([]); setFieldLoaded(false); setFieldNotice('');
     try {
       const job = (await adminApi.job(id)).data;
       if (job.sourcePlatform === 'COMPANY_DIRECT') {
@@ -90,6 +98,40 @@ export default function JobsPage() {
     setBusy(true); setError('');
     try { setRoleHistory(await adminRequest(`/jobs/${selected.id}/ai-role/history`)); setRoleLoaded(true); }
     catch (cause) { setError(cause.message); }
+    finally { setBusy(false); }
+  };
+
+  const loadFields = async () => {
+    if (!selected || busy) return;
+    setBusy(true); setError('');
+    try { setFieldHistory(await adminRequest(`/jobs/${selected.id}/ai-fields/history`)); setFieldLoaded(true); }
+    catch (cause) { setError(cause.message); }
+    finally { setBusy(false); }
+  };
+
+  const analyzeFields = async () => {
+    if (!selected || busy) return;
+    setBusy(true); setError(''); setFieldNotice('');
+    try {
+      const outcome = await adminRequest(`/jobs/${selected.id}/ai-fields/analyze`, { method: 'POST' });
+      const messages = { STORED: 'AI 분야 제안을 저장했습니다. 원문 근거를 확인해 주세요.', DISABLED: 'AI 분야 분석이 비활성화되어 있습니다.',
+        NOT_ELIGIBLE: '분석 대상이 아니거나 허용되지 않은 출처입니다.', INPUT_UNUSABLE: '분석할 수 있는 본문이 부족합니다.',
+        JOB_CHANGED: '공고가 변경되어 제안을 저장하지 않았습니다.', ALREADY_CLAIMED: '같은 입력은 처리됐거나 처리 중입니다.', DAILY_LIMIT: '오늘의 AI 분석 한도에 도달했습니다.' };
+      setFieldNotice(messages[outcome.status] || '분석 상태를 확인해 주세요.');
+      setFieldHistory(await adminRequest(`/jobs/${selected.id}/ai-fields/history`)); setFieldLoaded(true);
+    } catch (cause) { setError(cause.message); }
+    finally { setBusy(false); }
+  };
+
+  const reviewFields = async (item, action) => {
+    if (!selected || busy) return;
+    setBusy(true); setError('');
+    try {
+      await adminRequest(`/jobs/${selected.id}/ai-fields/${item.id}/${action}`, { method: 'POST',
+        body: JSON.stringify({ expectedVersion: selected.version, inputHash: item.input_hash }) });
+      setFieldNotice(action === 'approve' ? '직무 분야를 승인했습니다.' : '직무 분야를 거절했습니다.');
+      setFieldHistory(await adminRequest(`/jobs/${selected.id}/ai-fields/history`)); setFieldLoaded(true);
+    } catch (cause) { setError(cause.status === 409 ? '공고 또는 제안이 변경되었습니다. 다시 확인해 주세요.' : cause.message); }
     finally { setBusy(false); }
   };
 
@@ -299,6 +341,25 @@ export default function JobsPage() {
             <a href={salaryPreview.sourceUrl} target="_blank" rel="noreferrer">Stripe 원문 열기</a>
           </div>}
         </section>}
+      {admin.role !== 'REVIEWER' && <section className="moderation-form" aria-label="AI 직무 분야 검토">
+        <h3>AI 직무 분야 검토</h3>
+        <p>공고의 업무와 자격을 바탕으로 공통 직무 분야를 제안합니다. 원문을 확인하고 승인해 주세요.</p>
+        <div className="job-actions">
+          <button className="secondary-button" type="button" disabled={busy} onClick={loadFields}>직무 분야 조회</button>
+          <button className="primary-button" type="button" disabled={busy} onClick={analyzeFields}>AI 직무 분야 분석</button>
+        </div>
+        {fieldNotice && <p role="status">{fieldNotice}</p>}
+        {fieldLoaded && fieldHistory.length === 0 && <p>저장된 분야 제안이 없습니다.</p>}
+        {fieldHistory.map(item => <div key={item.id}>
+          {readFieldProposal(item.fields_json).map(field => <p key={field.field}>분야: {field.field} · 원문 근거: {field.evidence}</p>)}
+          {readFieldProposal(item.fields_json).length === 0 && <p>판단 보류</p>}
+          <p>검토 상태: {item.review_status} · 공고 버전 {item.job_version}</p>
+          {item.review_status === 'PENDING_REVIEW' && item.job_version === selected.version && <div className="job-actions">
+            <button className="primary-button" type="button" disabled={busy} onClick={() => reviewFields(item, 'approve')}>분야 승인</button>
+            <button className="secondary-button" type="button" disabled={busy} onClick={() => reviewFields(item, 'reject')}>분야 거절</button>
+          </div>}
+        </div>)}
+      </section>}
       {admin.role !== 'REVIEWER' && <section className="moderation-form" aria-label="AI 직무 제안 검토">
         <h3>AI 직무 제안 검토</h3>
         <p>공개 공고의 제목과 본문을 분석해 직무를 제안합니다. 기존 직무 분류가 우선하며, 제안은 검토 후 승인할 수 있습니다.</p>

@@ -11,6 +11,7 @@ import kr.itsdev.devjobcollector.domain.JobPost;
 import kr.itsdev.devjobcollector.domain.SourcePlatform;
 import kr.itsdev.devjobcollector.monitoring.JobSearchMetrics;
 import kr.itsdev.devjobcollector.ai.JobRoleAiReadService;
+import kr.itsdev.devjobcollector.ai.JobFieldAiReadService;
 import kr.itsdev.devjobcollector.repository.JobPostRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.server.ResponseStatusException;
@@ -25,7 +26,7 @@ class JobPostModerationVisibilityTest {
                 .originalUrl("https://example.com/jobs/1").build();
         job.changeModerationStatus(JobModerationStatus.HIDDEN);
         when(jobs.findById(7L)).thenReturn(Optional.of(job));
-        JobPostService service = new JobPostService(jobs, mock(JobSearchMetrics.class), mock(JobRoleAiReadService.class));
+        JobPostService service = new JobPostService(jobs, mock(JobSearchMetrics.class), mock(JobRoleAiReadService.class), mock(JobFieldAiReadService.class));
 
         assertThatThrownBy(() -> service.getJobPostDetail(7L))
                 .isInstanceOf(ResponseStatusException.class)
@@ -46,7 +47,7 @@ class JobPostModerationVisibilityTest {
                 .originalUrl("https://example.com/jobs/3").build();
         when(jobs.findById(8L)).thenReturn(Optional.of(inactive));
         when(jobs.findById(9L)).thenReturn(Optional.of(expired));
-        JobPostService service = new JobPostService(jobs, mock(JobSearchMetrics.class), mock(JobRoleAiReadService.class));
+        JobPostService service = new JobPostService(jobs, mock(JobSearchMetrics.class), mock(JobRoleAiReadService.class), mock(JobFieldAiReadService.class));
 
         assertThatThrownBy(() -> service.getJobPostDetail(8L))
                 .isInstanceOf(ResponseStatusException.class).hasMessageContaining("JOB_NOT_AVAILABLE");

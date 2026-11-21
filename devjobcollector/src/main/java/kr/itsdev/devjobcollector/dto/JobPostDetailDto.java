@@ -23,6 +23,7 @@ public class JobPostDetailDto {
     private String title;
     private String jobCategory;
     private String approvedJobRole;
+    private List<String> approvedJobFields;
     private String experience;
     private String location;
     private String hireType;

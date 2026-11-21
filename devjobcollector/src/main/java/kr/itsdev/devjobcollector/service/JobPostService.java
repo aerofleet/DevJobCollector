@@ -9,6 +9,7 @@ import kr.itsdev.devjobcollector.dto.JobFileDto;
 import kr.itsdev.devjobcollector.repository.JobPostRepository;
 import kr.itsdev.devjobcollector.monitoring.JobSearchMetrics;
 import kr.itsdev.devjobcollector.ai.JobRoleAiReadService;
+import kr.itsdev.devjobcollector.ai.JobFieldAiReadService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -35,6 +36,7 @@ public class JobPostService {
     private final JobPostRepository jobPostRepository;
     private final JobSearchMetrics jobSearchMetrics;
     private final JobRoleAiReadService jobRoleAiReadService;
+    private final JobFieldAiReadService jobFieldAiReadService;
 
     /**
      * 채용 공고 목록 조회 (페이징)
@@ -47,8 +49,9 @@ public class JobPostService {
         Slice<JobPost> slice = jobPostRepository.findActiveAndNotExpiredSlice(today, pageable);
         long total = jobPostRepository.countActiveAndValid(today);
         Map<Long, String> approvedRoles = jobRoleAiReadService.approvedRoles(slice.getContent());
+        Map<Long, List<String>> approvedFields = jobFieldAiReadService.approvedFields(slice.getContent());
         List<JobPostDto> content = slice.getContent().stream()
-                .map(jobPost -> convertToDto(jobPost, null, approvedRoles.get(jobPost.getId())))
+                .map(jobPost -> convertToDto(jobPost, null, approvedRoles.get(jobPost.getId()), approvedFields.get(jobPost.getId())))
                 .toList();
         return new PageImpl<>(content, pageable, total);
     }
@@ -77,7 +80,8 @@ public class JobPostService {
             Page<JobPost> found = jobPostRepository.searchByAllFieldsOptimized(
                     keyword, location, experience, jobCategory, techStackName, companies, today, pageable);
             Map<Long, String> approvedRoles = jobRoleAiReadService.approvedRoles(found.getContent());
-            return found.map(jobPost -> convertToDto(jobPost, keyword, approvedRoles.get(jobPost.getId())));
+            Map<Long, List<String>> approvedFields = jobFieldAiReadService.approvedFields(found.getContent());
+            return found.map(jobPost -> convertToDto(jobPost, keyword, approvedRoles.get(jobPost.getId()), approvedFields.get(jobPost.getId())));
         });
     }
 
@@ -95,8 +99,9 @@ public class JobPostService {
         Slice<JobPost> slice = jobPostRepository.findActiveAndNotExpiredSlice(today, pageable);
         long total = jobPostRepository.countActiveAndValid(today);
         Map<Long, String> approvedRoles = jobRoleAiReadService.approvedRoles(slice.getContent());
+        Map<Long, List<String>> approvedFields = jobFieldAiReadService.approvedFields(slice.getContent());
         List<JobPostDto> content = slice.getContent().stream()
-                .map(jobPost -> convertToDto(jobPost, null, approvedRoles.get(jobPost.getId())))
+                .map(jobPost -> convertToDto(jobPost, null, approvedRoles.get(jobPost.getId()), approvedFields.get(jobPost.getId())))
                 .toList();
         return new PageImpl<>(content, pageable, total);
     }
@@ -109,7 +114,8 @@ public class JobPostService {
         LocalDate today = LocalDate.now();
         Page<JobPost> found = jobPostRepository.findByTechStackNamesOptimized(List.of(stackName), today, pageable);
         Map<Long, String> approvedRoles = jobRoleAiReadService.approvedRoles(found.getContent());
-        return found.map(jobPost -> convertToDto(jobPost, null, approvedRoles.get(jobPost.getId())));
+        Map<Long, List<String>> approvedFields = jobFieldAiReadService.approvedFields(found.getContent());
+        return found.map(jobPost -> convertToDto(jobPost, null, approvedRoles.get(jobPost.getId()), approvedFields.get(jobPost.getId())));
     }
 
     /**
@@ -126,13 +132,14 @@ public class JobPostService {
         }
         
         String approvedRole = jobRoleAiReadService.approvedRoles(List.of(jobPost)).get(jobPost.getId());
-        return convertToDetailDto(jobPost, approvedRole);
+        var approvedFields = jobFieldAiReadService.approvedFields(List.of(jobPost)).get(jobPost.getId());
+        return convertToDetailDto(jobPost, approvedRole, approvedFields);
     }
 
     /**
      * Entity → DTO 변환 (목록용)
      */
-    private JobPostDto convertToDto(JobPost jobPost, String keyword, String approvedRole) {
+    private JobPostDto convertToDto(JobPost jobPost, String keyword, String approvedRole, List<String> approvedFields) {
         return JobPostDto.builder()
             .id(jobPost.getId())
             .sourcePlatform(jobPost.getSourcePlatform().name())
@@ -140,6 +147,7 @@ public class JobPostService {
             .title(jobPost.getTitle())
             .jobCategory(jobPost.getJobCategory())
             .approvedJobRole(approvedRole)
+            .approvedJobFields(approvedFields)
             .experience(jobPost.getExperienceLabel())
             .location(jobPost.getDisplayLocation())
             .hireType(jobPost.getHireType())
@@ -158,7 +166,7 @@ public class JobPostService {
     /**
      * Entity → DetailDTO 변환 (상세용)
      */
-    private JobPostDetailDto convertToDetailDto(JobPost jobPost, String approvedRole) {
+    private JobPostDetailDto convertToDetailDto(JobPost jobPost, String approvedRole, List<String> approvedFields) {
         return JobPostDetailDto.builder()
             .id(jobPost.getId())
             .sourcePlatform(jobPost.getSourcePlatform().name())
@@ -166,6 +174,7 @@ public class JobPostService {
             .title(jobPost.getTitle())
             .jobCategory(jobPost.getJobCategory())
             .approvedJobRole(approvedRole)
+            .approvedJobFields(approvedFields)
             .experience(jobPost.getExperienceLabel())
             .location(jobPost.getDisplayLocation())
             .hireType(jobPost.getHireType())
