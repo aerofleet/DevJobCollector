@@ -63,4 +63,19 @@ class JobFieldAiProcessorTest {
                 .isEqualTo(JobFieldAiProcessor.Outcome.DAILY_LIMIT);
         verify(client, never()).suggestJobFields(anyString(), anyString(), anyString());
     }
+
+    @Test void invalid_evidence_is_not_saved_and_can_be_retried_within_budget() throws Exception {
+        when(client.available()).thenReturn(true);
+        var job = alio();
+        when(jobs.findById(1L)).thenReturn(Optional.of(job));
+        when(client.countJobFieldInputTokens(anyString(), anyString(), anyString())).thenReturn(500);
+        when(budget.reserveField(anyLong(), anyString(), anyInt())).thenReturn(JobRoleAiBudget.Reservation.RESERVED);
+        when(client.suggestJobFields(anyString(), anyString(), anyString())).thenReturn(mapper.readTree("""
+                {"fields":[{"field":"계약직","evidence":"시스템 개발"}]}
+                """));
+        assertThat(new JobFieldAiProcessor(jobs, client, budget, jdbc, mapper, true, "PUBLIC_ALIO:PUBLIC_ALIO").process(1))
+                .isEqualTo(JobFieldAiProcessor.Outcome.INVALID_PROPOSAL);
+        verify(budget).releaseFailedClaim(eq(1L), anyString());
+        verify(jdbc, never()).update(contains("INSERT INTO job_field_ai_proposals"), any(Object[].class));
+    }
 }
