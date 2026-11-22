@@ -35,6 +35,8 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class PublicDataCollectorService {
 
+    private enum SaveOutcome { SAVED, DUPLICATE, FAILED }
+
     private final JobPostRepository jobPostRepository;
     private final TechStackRepository techStackRepository;
     private final PublicDataApiClient apiClient;
@@ -71,6 +73,8 @@ public class PublicDataCollectorService {
         int newCount = 0;
         int skipCount = 0;
         int errorCount = 0;
+        int receivedCount = 0;
+        String outcome = "FAILED";
 
         try {
             // 1. 목록 조회
@@ -82,6 +86,8 @@ public class PublicDataCollectorService {
                 return;
             }
 
+            receivedCount = listResponse.getResultSize();
+            outcome = "COMPLETED";
             if (listResponse.getResult() == null || listResponse.getResult().isEmpty()) {
                 log.warn("조회된 공고가 없습니다.");
                 return;
@@ -132,15 +138,21 @@ public class PublicDataCollectorService {
                     }
 
                     // 3. 상세 정보 조회 및 저장
-                    if (fetchDetailAndSave(originalSn)) {
+                    SaveOutcome saveOutcome = fetchDetailAndSave(originalSn);
+                    if (saveOutcome == SaveOutcome.SAVED) {
                         newCount++;
                         log.info("✅ 저장 완료 [{}/{}]: {} - {}", 
                             newCount, 
                             listResponse.getResult().size(),
                             item.getInstNm(), 
                             item.getRecrutPbancTtl());
+                    } else if (saveOutcome == SaveOutcome.DUPLICATE) {
+                        skipCount++;
                     } else {
                         errorCount++;
+                    }
+                    if (saveOutcome != SaveOutcome.FAILED) {
+                        existingSnSet.add(originalSn);
                     }
 
                     // API Rate Limiting 방지
@@ -148,6 +160,7 @@ public class PublicDataCollectorService {
 
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
+                    outcome = "INTERRUPTED";
                     log.error("❌ 스레드 인터럽트 발생", e);
                     break;
                 } catch (Exception e) {
@@ -155,49 +168,46 @@ public class PublicDataCollectorService {
                     errorCount++;
                 }
 
-                // 신규 저장 시 중복 집합에 추가해 동일 배치 내 중복 방지
-                if (originalSn != null) {
-                    existingSnSet.add(originalSn);
-                }
             }
 
         } catch (Exception e) {
+            outcome = "FAILED";
             log.error("❌ 수집 프로세스 중 치명적 오류 발생", e);
         } finally {
             long duration = System.currentTimeMillis() - startTime;
-            printSummary(size, newCount, skipCount, errorCount, duration);
+            printSummary(size, receivedCount, newCount, skipCount, errorCount, duration, outcome);
         }
     }
 
     /**
      * 상세 정보 조회 및 저장
      */
-    private boolean fetchDetailAndSave(String originalSn) {
+    private SaveOutcome fetchDetailAndSave(String originalSn) {
         try {
             PublicDataDetailResponse detailResponse = apiClient.fetchJobDetail(originalSn);
             
             if (detailResponse == null) {
                 log.warn("⚠️ 상세 응답이 null: {}", originalSn);
-                return false;
+                return SaveOutcome.FAILED;
             }
             
             if (!detailResponse.isSuccess()) {
                 log.warn("⚠️ 상세 조회 실패: {} - {}", 
                     detailResponse.getResultCode(), 
                     detailResponse.getResultMsg());
-                return false;
+                return SaveOutcome.FAILED;
             }
             
             if (detailResponse.getResult() == null) {
                 log.warn("⚠️ 상세 데이터 없음: {}", originalSn);
-                return false;
+                return SaveOutcome.FAILED;
             }
 
-            return saveJobPost(detailResponse.getResult());
+            return saveJobPostWithOutcome(detailResponse.getResult());
 
         } catch (Exception e) {
             log.error("❌ 상세 조회 중 오류: {}", originalSn, e);
-            return false;
+            return SaveOutcome.FAILED;
         }
     }
 
@@ -206,11 +216,15 @@ public class PublicDataCollectorService {
      */
     @Transactional
     public boolean saveJobPost(PublicJobDto dto) {
+        return saveJobPostWithOutcome(dto) == SaveOutcome.SAVED;
+    }
+
+    private SaveOutcome saveJobPostWithOutcome(PublicJobDto dto) {
         try {
             // 재차 중복 체크 (동시성 이슈 대비)
             if (isDuplicate(dto.getRecrutPblntSn())) {
                 log.debug("⏭️ 중복 감지 (재확인): {}", dto.getRecrutPblntSn());
-                return false;
+                return SaveOutcome.DUPLICATE;
             }
 
             // DTO → Entity 변환
@@ -218,7 +232,7 @@ public class PublicDataCollectorService {
             
             if (jobPost == null) {
                 log.error("❌ 엔티티 변환 실패: {}", dto.getRecrutPblntSn());
-                return false;
+                return SaveOutcome.FAILED;
             }
 
             jobPost.updatePublicDetails(dto.getPrefCn(), dto.getPrefCondCn(), dto.getDisqlfcRsn());
@@ -255,15 +269,15 @@ public class PublicDataCollectorService {
 
             if (savedJobPost.getId() == null) {
                 log.error("❌ 저장 실패: ID가 생성되지 않음");
-                return false;
+                return SaveOutcome.FAILED;
             }
 
             log.debug("💾 DB 저장 완료: {}", dto.getRecrutPblntSn());
-            return true;
+            return SaveOutcome.SAVED;
 
         } catch (Exception e) {
             log.error("❌ 저장 중 오류: {}", dto.getRecrutPblntSn(), e);
-            return false;
+            return SaveOutcome.FAILED;
         }
     }
 
@@ -445,18 +459,28 @@ public class PublicDataCollectorService {
     /**
      * 수집 결과 요약 출력
      */
-    private void printSummary(int requested, int saved, int skipped, int error, long duration) {
+    private void printSummary(int requested, int received, int saved, int skipped, int error,
+                              long duration, String outcome) {
+        int processed = saved + skipped + error;
         log.info("┌─────────────────────────────────────────────┐");
         log.info("│           📊 수집 결과 보고서                 │");
         log.info("├─────────────────────────────────────────────┤");
         log.info("│  요청 개수: {} 건", String.format("%5d", requested));
+        log.info("│  수신 개수: {} 건", String.format("%5d", received));
+        log.info("│  처리 개수: {} 건 (미처리 {} 건)", processed, Math.max(0, received - processed));
+        log.info("│  수집 상태: {}", outcome);
         log.info("│  신규 저장: {} 건 ✅", String.format("%5d", saved));
         log.info("│  중복 스킵: {} 건 ⏭️", String.format("%5d", skipped));
         log.info("│  실패/오류: {} 건 ❌", String.format("%5d", error));
         log.info("│  소요 시간: {} ms ⏱️", String.format("%5d", duration));
-        log.info("│  성공률: {}%", 
-            requested > 0 ? String.format("%5.1f", (saved * 100.0 / requested)) : "N/A");
+        log.info("│  처리 성공률: {}", percentage(saved + skipped, processed));
+        log.info("│  신규율: {}", percentage(saved, processed));
+        log.info("│  오류율: {}", percentage(error, processed));
         log.info("└─────────────────────────────────────────────┘");
+    }
+
+    private String percentage(int count, int processed) {
+        return processed == 0 ? "N/A" : String.format(java.util.Locale.ROOT, "%.1f%%", count * 100.0 / processed);
     }
     
     /**
