@@ -64,6 +64,18 @@ class JobFieldAiProcessorTest {
         verify(client, never()).suggestJobFields(anyString(), anyString(), anyString());
     }
 
+    @Test void batch_uses_its_lower_reservation_limit() {
+        when(client.available()).thenReturn(true);
+        var job = alio();
+        when(jobs.findById(1L)).thenReturn(Optional.of(job));
+        when(client.countJobFieldInputTokens(anyString(), anyString(), anyString())).thenReturn(500);
+        when(budget.reserveBatchField(anyLong(), anyString(), anyInt())).thenReturn(JobRoleAiBudget.Reservation.DAILY_LIMIT);
+        assertThat(new JobFieldAiProcessor(jobs, client, budget, jdbc, mapper, true, "PUBLIC_ALIO:PUBLIC_ALIO").processBatch(1))
+                .isEqualTo(JobFieldAiProcessor.Outcome.DAILY_LIMIT);
+        verify(budget, never()).reserveField(anyLong(), anyString(), anyInt());
+        verify(client, never()).suggestJobFields(anyString(), anyString(), anyString());
+    }
+
     @Test void invalid_evidence_is_not_saved_and_can_be_retried_within_budget() throws Exception {
         when(client.available()).thenReturn(true);
         var job = alio();

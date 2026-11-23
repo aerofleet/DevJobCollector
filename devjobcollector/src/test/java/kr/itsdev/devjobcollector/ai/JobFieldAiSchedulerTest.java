@@ -16,10 +16,10 @@ class JobFieldAiSchedulerTest {
     @Test void daily_limit_stops_batch_without_losing_the_candidate() {
         var jdbc = mock(JdbcTemplate.class); var processor = mock(JobFieldAiProcessor.class);
         when(jdbc.queryForList(anyString(), any(Object[].class))).thenReturn(List.of(Map.of("id", 5L)));
-        when(processor.process(5L)).thenReturn(JobFieldAiProcessor.Outcome.DAILY_LIMIT);
+        when(processor.processBatch(5L)).thenReturn(JobFieldAiProcessor.Outcome.DAILY_LIMIT);
         var scheduler = new JobFieldAiScheduler(jdbc, processor, true);
         scheduler.collect(); scheduler.collect();
-        verify(processor, times(2)).process(5L);
+        verify(processor, times(2)).processBatch(5L);
         verify(jdbc).queryForList(anyString(), eq(0L), eq(JobFieldAiPolicy.VERSION));
         verify(jdbc).queryForList(anyString(), eq(4L), eq(JobFieldAiPolicy.VERSION));
     }

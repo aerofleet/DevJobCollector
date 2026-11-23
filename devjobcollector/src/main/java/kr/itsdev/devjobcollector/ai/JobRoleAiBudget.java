@@ -10,8 +10,10 @@ import org.springframework.transaction.annotation.Transactional;
 /** Reserves the standard-price maximum before generation; failed requests are not refunded. */
 @Service
 public class JobRoleAiBudget {
-    private static final int MAX_REQUESTS_PER_DAY = 20;
-    private static final long MAX_MICRO_USD_PER_DAY = 50_000;
+    private static final int MAX_REQUESTS_PER_DAY = 40;
+    private static final long MAX_MICRO_USD_PER_DAY = 100_000;
+    private static final int BATCH_MAX_REQUESTS_PER_DAY = 20;
+    private static final long BATCH_MAX_MICRO_USD_PER_DAY = 50_000;
     private final JdbcTemplate jdbc;
 
     public JobRoleAiBudget(JdbcTemplate jdbc) { this.jdbc = jdbc; }
@@ -33,15 +35,20 @@ public class JobRoleAiBudget {
 
     @Transactional
     public Reservation reserve(long jobId, String inputHash, int inputTokens) {
-        return reserveWithOutputLimit(jobId, inputHash, inputTokens, 300);
+        return reserveWithOutputLimit(jobId, inputHash, inputTokens, 300, MAX_REQUESTS_PER_DAY, MAX_MICRO_USD_PER_DAY);
     }
 
     @Transactional
     public Reservation reserveField(long jobId, String inputHash, int inputTokens) {
-        return reserveWithOutputLimit(jobId, inputHash, inputTokens, 400);
+        return reserveWithOutputLimit(jobId, inputHash, inputTokens, 400, MAX_REQUESTS_PER_DAY, MAX_MICRO_USD_PER_DAY);
     }
 
-    private Reservation reserveWithOutputLimit(long jobId, String inputHash, int inputTokens, int maxOutputTokens) {
+    @Transactional
+    public Reservation reserveBatchField(long jobId, String inputHash, int inputTokens) {
+        return reserveWithOutputLimit(jobId, inputHash, inputTokens, 400, BATCH_MAX_REQUESTS_PER_DAY, BATCH_MAX_MICRO_USD_PER_DAY);
+    }
+
+    private Reservation reserveWithOutputLimit(long jobId, String inputHash, int inputTokens, int maxOutputTokens, int maxRequests, long maxMicros) {
         if (jobId <= 0 || inputHash == null || !inputHash.matches("[0-9a-f]{64}") || inputTokens < 1 || inputTokens > 2000)
             throw new IllegalArgumentException("INVALID_ROLE_BUDGET_INPUT");
         LocalDate day = LocalDate.now(ZoneOffset.UTC);
@@ -58,7 +65,7 @@ public class JobRoleAiBudget {
                 UPDATE job_role_ai_daily_budget
                 SET reserved_requests=reserved_requests+1,reserved_micro_usd=reserved_micro_usd+?
                 WHERE usage_day=? AND reserved_requests < ? AND reserved_micro_usd + ? <= ?
-                """, reservedMicros, day, MAX_REQUESTS_PER_DAY, reservedMicros, MAX_MICRO_USD_PER_DAY);
+                """, reservedMicros, day, maxRequests, reservedMicros, maxMicros);
         if (reserved != 1) {
             jdbc.update("DELETE FROM job_role_ai_claims WHERE job_post_id=? AND input_hash=?", jobId, inputHash);
             return Reservation.DAILY_LIMIT;
