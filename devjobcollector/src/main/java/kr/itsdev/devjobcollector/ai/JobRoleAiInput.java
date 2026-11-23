@@ -43,8 +43,9 @@ public final class JobRoleAiInput {
         var document = Jsoup.parse(HtmlUtils.htmlUnescape(HtmlUtils.htmlUnescape(rawContent)));
         String content = document.text().replace('\u00a0', ' ').trim();
         if (compact || content.length() > 4000) {
-            content = extractRelevantSections(document.wholeText(), false);
-            if (content.isEmpty()) content = extractRelevantSections(document.wholeText(), true);
+            content = extractRelevantSections(document.wholeText(), 0);
+            if (content.isEmpty()) content = extractRelevantSections(document.wholeText(), 1);
+            if (content.isEmpty()) content = extractRelevantSections(document.wholeText(), 2);
         }
         if (content.isBlank() || content.length() > 4000) throw new IllegalArgumentException("ROLE_CONTENT_UNUSABLE");
         Map<String, String> hashed = new TreeMap<>();
@@ -77,7 +78,7 @@ public final class JobRoleAiInput {
         throw new IllegalArgumentException("ROLE_INPUT_CHANGED");
     }
 
-    private static String extractRelevantSections(String text, boolean extended) {
+    private static String extractRelevantSections(String text, int version) {
         StringBuilder selected = new StringBuilder();
         int section = 0;
         boolean foundDuties = false;
@@ -86,15 +87,18 @@ public final class JobRoleAiInput {
             String line = rawLine.replace('\u00a0', ' ').trim();
             String heading = line.replaceAll("^[#\\[\\] ]+|[#\\[\\]:： ]+$", "").toLowerCase(Locale.ROOT);
             if (heading.matches("(?:job description|responsibilities|what you.ll do|주요 업무|업무 내용|담당 업무)")
-                    || (extended && heading.matches("what you will be doing"))) {
+                    || (version >= 1 && heading.matches("what you will be doing"))
+                    || (version >= 2 && heading.matches("key responsibilities"))) {
                 section = 1;
                 continue;
             } else if (heading.matches("(?:basic qualifications|minimum qualifications|required qualifications|자격 요건|필수 요건)")
-                    || (extended && heading.matches("what you bring"))) {
+                    || (version >= 1 && heading.matches("what you bring"))
+                    || (version >= 2 && heading.matches("skill requirements & qualifications"))) {
                 section = 2;
                 continue;
             } else if (heading.matches("(?:preferred qualifications|benefits|compensation|about us|우대 사항|복리후생|회사 소개)")
-                    || (extended && heading.matches("additional information(?:\\s*[-–—].*)?"))) {
+                    || (version >= 1 && heading.matches("additional information(?:\\s*[-–—].*)?"))
+                    || (version >= 2 && heading.matches("what makes cloudflare special\\?"))) {
                 section = 0;
                 continue;
             }

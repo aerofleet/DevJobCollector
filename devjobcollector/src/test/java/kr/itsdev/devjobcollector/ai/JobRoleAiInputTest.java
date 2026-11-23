@@ -72,4 +72,15 @@ class JobRoleAiInputTest {
         assertThat(input.content()).contains("Manage partner sales", "Eight years of partner management")
                 .doesNotContain("Company information", "Benefits and legal notices");
     }
+
+    @Test void longCloudflareStyleJobExtractsDutiesAndQualificationsWithoutCompanyPromotion() {
+        String raw = "About us\n" + "Company information. ".repeat(210)
+                + "\nKey Responsibilities :\nSupport payroll and onboarding."
+                + "\nSkill Requirements & Qualifications :\nCurrently pursuing an MBA."
+                + "\nTechnical & Functional Skills :\nExperience with spreadsheets."
+                + "\nWhat Makes Cloudflare Special?\n" + "Company information. ".repeat(210);
+        var input = JobRoleAiInput.prepare(13972, "GREENHOUSE", "People Operations Intern", "People & Places", raw, "v1", MODEL);
+        assertThat(input.content()).contains("Support payroll and onboarding", "Currently pursuing an MBA", "Experience with spreadsheets")
+                .doesNotContain("Company information");
+    }
 }
