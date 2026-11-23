@@ -62,4 +62,14 @@ class JobRoleAiInputTest {
         assertThatThrownBy(() -> JobRoleAiInput.prepareCompact(1, "GREENHOUSE", "운영 담당", "", "업무 내용\n상품 검토", "v1", MODEL, roles))
                 .hasMessage("ROLE_CONTENT_UNUSABLE");
     }
+
+    @Test void longElasticStyleJobExtractsDutiesAndQualificationsWithoutBenefits() {
+        String raw = "About us\n" + "Company information. ".repeat(210)
+                + "\nWhat You Will Be Doing\nManage partner sales and grow joint revenue."
+                + "\nWhat You Bring\nEight years of partner management experience."
+                + "\nAdditional Information - We Take Care of Our People\nBenefits and legal notices.";
+        var input = JobRoleAiInput.prepare(13969, "GREENHOUSE", "Senior Partner Sales Manager", "Partners - APJ", raw, "v1", MODEL);
+        assertThat(input.content()).contains("Manage partner sales", "Eight years of partner management")
+                .doesNotContain("Company information", "Benefits and legal notices");
+    }
 }
