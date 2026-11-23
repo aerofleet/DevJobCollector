@@ -47,7 +47,7 @@ async function main() {
       headers: { Accept: 'application/json', Cookie: cookie, 'X-CSRF-TOKEN': csrf }, signal: AbortSignal.timeout(60_000) });
     if (!response.ok) throw new Error(`Admin API returned HTTP ${response.status}`);
     const body = await response.json();
-    if (!['DISABLED', 'NOT_ELIGIBLE', 'INPUT_UNUSABLE', 'JOB_CHANGED', 'ALREADY_CLAIMED', 'DAILY_LIMIT', 'STORED'].includes(body.status))
+    if (!['DISABLED', 'NOT_ELIGIBLE', 'SOURCE_NOT_ALLOWED', 'INPUT_UNUSABLE', 'INPUT_TOO_LARGE', 'JOB_CHANGED', 'ALREADY_CLAIMED', 'DAILY_LIMIT', 'STORED'].includes(body.status))
       throw new Error('Unexpected admin API response');
     return body.status;
   }, 20, offset);
