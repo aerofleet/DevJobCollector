@@ -3,6 +3,7 @@ import { adminApi, adminRequest } from '../api/adminApi';
 import { useAdminAuth } from '../auth/AdminAuthContext';
 import DetailModal from '../components/DetailModal';
 import { paginationPage, paginationSize, readPaginationSession, savePaginationSession } from '../utils/paginationSession';
+import { jobCardTags } from '../../../frontend/src/utils/jobCardTags.js';
 
 const statusText = { ACTIVE: '노출', HIDDEN: '숨김', CLOSED: '강제 마감' };
 const actionText = { ACTIVE: '재활성', HIDDEN: '공고 숨김', CLOSED: '강제 마감', DELETED: '공고 삭제' };
@@ -27,6 +28,7 @@ export default function JobsPage() {
   const requestSequence = useRef(0);
   const [result, setResult] = useState(null);
   const [selected, setSelected] = useState(null);
+  const [publicTags, setPublicTags] = useState(null);
   const [reason, setReason] = useState('');
   const [newEndDate, setNewEndDate] = useState('');
   const [pendingStatus, setPendingStatus] = useState(null);
@@ -79,6 +81,7 @@ export default function JobsPage() {
   };
 
   const selectJob = async (id) => {
+    setPublicTags(null);
     setError(''); setReason(''); setNewEndDate(''); setPendingStatus(null);
     setAiPreview(null); setAiResult(null); setAiHistory([]); setAiConfirmed(false); setReviewDraft(null); setSalaryPreview(null);
     setRoleHistory([]); setRoleLoaded(false); setRoleNotice('');
@@ -92,6 +95,21 @@ export default function JobsPage() {
     }
     catch (cause) { setError(cause.message); }
   };
+
+  useEffect(() => {
+    if (!selected) return;
+    const controller = new AbortController();
+    const base = (import.meta.env.VITE_ADMIN_API_BASE_URL || '/api/v1/admin').replace(/\/$/, '').replace(/\/admin$/, '');
+    fetch(`${base}/jobs/${selected.id}?_fresh=${Date.now()}`, { signal: controller.signal, cache: 'no-store', credentials: 'omit' })
+      .then(response => {
+        if (response.status === 404) return { unavailable: true };
+        if (!response.ok) throw new Error('public job unavailable');
+        return response.json();
+      })
+      .then(job => setPublicTags(job.unavailable ? { unavailable: true } : jobCardTags(job)))
+      .catch(error => { if (error.name !== 'AbortError') setPublicTags({ error: true }); });
+    return () => controller.abort();
+  }, [selected]);
 
   const loadRoleHistory = async () => {
     if (!selected || busy) return;
@@ -132,6 +150,7 @@ export default function JobsPage() {
         body: JSON.stringify({ expectedVersion: selected.version, inputHash: item.input_hash }) });
       setFieldNotice(action === 'approve' ? '직무 분야를 승인했습니다.' : '직무 분야를 거절했습니다.');
       setFieldHistory(await adminRequest(`/jobs/${selected.id}/ai-fields/history`)); setFieldLoaded(true);
+      setPublicTags(null); setSelected(current => current?.id === selected.id ? { ...current } : current);
     } catch (cause) { setError(cause.status === 409 ? '공고 또는 제안이 변경되었습니다. 다시 확인해 주세요.' : cause.message); }
     finally { setBusy(false); }
   };
@@ -165,6 +184,7 @@ export default function JobsPage() {
       });
       setRoleNotice(action === 'approve' ? '직무 제안을 승인했습니다.' : '직무 제안을 거절했습니다.');
       setRoleHistory(await adminRequest(`/jobs/${selected.id}/ai-role/history`)); setRoleLoaded(true);
+      setPublicTags(null); setSelected(current => current?.id === selected.id ? { ...current } : current);
     } catch (cause) {
       setError(cause.status === 409 ? '공고 또는 제안이 변경되었습니다. 상세를 다시 열어 확인해 주세요.' : cause.message);
     } finally { setBusy(false); }
@@ -327,6 +347,13 @@ export default function JobsPage() {
         <div><dt>마감일</dt><dd>{selected.endDate}</dd></div>
         <div><dt>출처</dt><dd>{selected.sourcePlatform}</dd></div>
         <div><dt>원본</dt><dd><a href={selected.originalUrl} target="_blank" rel="noreferrer">원본 공고 확인</a></dd></div></dl>
+      <section className="moderation-form" aria-label="사용자 화면 태그">
+        <h3>사용자 화면 태그</h3>
+        {!publicTags ? <p role="status">태그를 불러오는 중…</p>
+          : publicTags.unavailable ? <p>현재 공개되지 않은 공고입니다.</p>
+          : publicTags.error ? <p role="alert">사용자 화면 태그를 불러오지 못했습니다.</p>
+          : <p>{publicTags.label}: {publicTags.tags.length ? publicTags.tags.join(' · ') : '표시된 태그 없음'}</p>}
+      </section>
       {selected.sourcePlatform === 'COMPANY_DIRECT' && <p>기업 직접 등록 공고입니다. 이 화면에서 처리한 내용은 기업 공고 검수의 처리 이력에도 기록됩니다.</p>}
       {selected.companyJob?.state === 'DELETED' && <p>삭제 처리된 공고입니다. 공고와 감사 기록은 보존되며 수정·재게시할 수 없습니다.</p>}
       {admin.role !== 'REVIEWER' && selected.sourcePlatform === 'GREENHOUSE' && selected.originalUrl?.startsWith('https://stripe.com/') &&

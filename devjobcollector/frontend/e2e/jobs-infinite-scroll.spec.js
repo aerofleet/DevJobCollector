@@ -27,14 +27,14 @@ const respond = (route, content, page, totalPages = 3) => route.fulfill({
   }),
 });
 
-test('공고 카드에 기술 대신 직무를 표시한다', async ({ page }) => {
+test('개발 공고 카드에 기술 스택을 표시한다', async ({ page }) => {
   await page.route('**/api/v1/jobs/search**', route => respond(route, [{
     ...makeJobs(985, 1)[0], techStacks: [{ id: 1, stackName: 'Docker' }],
     mentionedTechStacks: ['Docker', 'Kubernetes', 'AWS', 'CI/CD'],
   }], 0, 1));
   await page.goto('/jobs');
   const card = page.locator('.all-jobs-grid .job-card').first();
-  await expect(card.locator('.job-role-badge')).toHaveText(['백엔드']);
+  await expect(card.locator('.job-role-badge')).toHaveText(['Docker', 'Kubernetes', 'AWS', 'CI/CD']);
   await expect(card.locator('.tech-badge')).toHaveCount(0);
 });
 
@@ -49,7 +49,7 @@ test('기술 프로그램 매니저 공고는 직무를 표시하고 도구를 �
   await expect(card).not.toContainText(/AWS|Grafana|SQL/);
 });
 
-test('개발 외 직무를 추출하고 분류할 수 없는 긴 제목은 원제목을 표시한다', async ({ page }) => {
+test('개발 외 직무를 추출하고 분류할 수 없는 제목은 확인 필요로 표시한다', async ({ page }) => {
   const longTitle = '특정 직무 분류가 없는 공개 채용 안내 '.repeat(8);
   await page.route('**/api/v1/jobs/search**', route => respond(route, [
     { ...makeJobs(12805, 1)[0], title: '[한국장애인고용공단 대구직업능력개발원] 특정업무직(미화원) 채용공고' },
@@ -59,12 +59,12 @@ test('개발 외 직무를 추출하고 분류할 수 없는 긴 제목은 원�
   const cards = page.locator('.all-jobs-grid .job-card');
   await expect(cards.nth(0).locator('.job-role-badge')).toHaveText('미화원');
   const fallback = cards.nth(1).locator('.job-role-badge');
-  await expect(fallback).toHaveText(longTitle.trim());
+  await expect(fallback).toHaveText('직무 확인 필요');
   await expect(cards.nth(1).locator('.job-title')).toHaveText(longTitle.trim());
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-test('승인된 AI 직무는 기존 분류가 없는 공고에만 표시한다', async ({ page }) => {
+test('승인된 AI 직무를 비개발 공고에 우선 표시한다', async ({ page }) => {
   const title = 'Manager, Selection Operations (Product Lifecycle Selection)';
   await page.route('**/api/v1/jobs/search**', route => respond(route, [
     { ...makeJobs(13758, 1)[0], sourcePlatform: 'GREENHOUSE', title, approvedJobRole: '상품 운영 매니저' },
@@ -75,9 +75,9 @@ test('승인된 AI 직무는 기존 분류가 없는 공고에만 표시한다',
   await page.goto('/jobs');
   const cards = page.locator('.all-jobs-grid .job-card');
   await expect(cards.nth(0).locator('.job-role-badge')).toHaveText('상품 운영 매니저');
-  await expect(cards.nth(1).locator('.job-role-badge')).toHaveText('백엔드');
-  await expect(cards.nth(2).locator('.job-role-badge')).toHaveText('정보통신');
-  await expect(cards.nth(3).locator('.job-role-badge')).toHaveText(title);
+  await expect(cards.nth(1).locator('.job-role-badge')).toHaveText('기술 스택 확인 필요');
+  await expect(cards.nth(2).locator('.job-role-badge')).toHaveText('상품 운영 매니저');
+  await expect(cards.nth(3).locator('.job-role-badge')).toHaveText('직무 확인 필요');
 });
 
 test('세일즈 엔지니어 공고의 직무 태그에서 지역과 부서를 제외한다', async ({ page }) => {

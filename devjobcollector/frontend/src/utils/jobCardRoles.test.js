@@ -12,11 +12,11 @@ test('승인된 AI 직무는 기존 규칙이 없는 공고에서 표시한다',
   const longTitle = 'Manager, Selection Operations (Product Lifecycle Selection)';
   assert.deepEqual(jobCardRoles({ title: longTitle, approvedJobRole: '상품 운영 매니저' }), ['상품 운영 매니저']);
   assert.equal(resolveJobCardRoles({ title: longTitle, approvedJobRole: '상품 운영 매니저' }).needsReview, false);
-  assert.deepEqual(jobCardRoles({ title: longTitle, approvedJobRole: '' }), [longTitle]);
+  assert.deepEqual(jobCardRoles({ title: longTitle, approvedJobRole: '' }), ['직무 확인 필요']);
   assert.deepEqual(jobCardRoles({ title: 'Customer Engineering Intern', approvedJobRole: '고객 엔지니어링 인턴' }), ['고객 엔지니어링 인턴']);
-  assert.deepEqual(jobCardRoles({ title: '백엔드 개발자', approvedJobRole: '상품 운영 매니저' }), ['백엔드']);
-  assert.deepEqual(jobCardRoles({ sourcePlatform: 'PUBLIC_ALIO', title: longTitle, jobCategory: '정보통신', approvedJobRole: '상품 운영 매니저' }), ['정보통신']);
-  assert.deepEqual(jobCardRoles({ id: 4517, sourcePlatform: 'GREENHOUSE', title: longTitle, approvedJobRole: '상품 운영 매니저' }), ['백엔드', 'Global Operations Technology']);
+  assert.deepEqual(jobCardRoles({ title: '백엔드 개발자', approvedJobRole: '상품 운영 매니저' }), ['상품 운영 매니저']);
+  assert.deepEqual(jobCardRoles({ sourcePlatform: 'PUBLIC_ALIO', title: longTitle, jobCategory: '정보통신', approvedJobRole: '상품 운영 매니저' }), ['상품 운영 매니저']);
+  assert.deepEqual(jobCardRoles({ id: 4517, sourcePlatform: 'GREENHOUSE', title: longTitle, approvedJobRole: '상품 운영 매니저' }), ['상품 운영 매니저']);
 });
 
 test('검토한 공고 20건에 해당 직무를 표시한다', () => {
@@ -56,7 +56,7 @@ test('Treasury Specialist 공고는 재무·자금 직무로 표시한다', () =
 
 test('쿠팡 GOT 개발자 공고의 직무 태그를 표시한다', () => {
   assert.deepEqual(jobCardRoles({ id: 4517, sourcePlatform: 'GREENHOUSE', title: 'Global Operations Technology(GOT) 개발자 집중 채용', jobCategory: 'zz-Evergreen Requisition' }), ['백엔드', 'Global Operations Technology']);
-  assert.deepEqual(jobCardRoles({ id: 4518, sourcePlatform: 'GREENHOUSE', title: 'Global Operations Technology(GOT) 개발자 집중 채용' }), ['Global Operations Technology(GOT) 개발자 집중 채용']);
+  assert.deepEqual(jobCardRoles({ id: 4518, sourcePlatform: 'GREENHOUSE', title: 'Global Operations Technology(GOT) 개발자 집중 채용' }), ['직무 확인 필요']);
 });
 
 test('긴 직무 태그에서 직무 외 지역과 부서 정보를 제외한다', () => {
@@ -73,7 +73,7 @@ test('긴 직무 태그에서 직무 외 지역과 부서 정보를 제외한다
   assert.deepEqual(jobCardRoles({ title: '[쿠팡풀필먼트서비스] 물류센터 시설관리(FM) 담당자 - (부천2센터)' }), ['시설관리 담당자']);
   assert.deepEqual(jobCardRoles({ title: '[쿠팡] Senior Instock Planning Analyst (5년 이상)' }), ['재고 기획 분석가']);
   const longTitle = '확인되지 않은 매우 긴 채용 공고 제목과 부가 설명을 포함한 모집 공고';
-  assert.deepEqual(jobCardRoles({ title: longTitle }), [longTitle]);
+  assert.deepEqual(jobCardRoles({ title: longTitle }), ['직무 확인 필요']);
   assert.equal(resolveJobCardRoles({ title: longTitle }).needsReview, true);
   assert.deepEqual(jobCardRoles({ title: '직무 확인 필요' }), []);
   assert.deepEqual(jobCardRoles({ title: 'Sales Operations Manager' }), ['운영 매니저']);
@@ -84,7 +84,7 @@ test('직무명과 분류를 표시하고 기술 및 조직명은 직무로 오�
   assert.deepEqual(jobCardRoles({ title: 'Technical Program Manager II', jobCategory: 'Oversight Engineering', mentionedTechStacks: ['AWS', 'Grafana', 'SQL'] }), ['기술 프로그램 매니저']);
   assert.deepEqual(jobCardRoles({ title: '백엔드 엔지니어', techStacks: [{ stackName: 'Java' }] }), ['백엔드']);
   assert.deepEqual(jobCardRoles({ title: '공개 채용', jobCategory: 'backend' }), ['백엔드']);
-  assert.deepEqual(jobCardRoles({ title: '공개 채용', jobCategory: 'Oversight Engineering', techStacks: [{ stackName: 'AWS' }] }), ['공개 채용']);
+  assert.deepEqual(jobCardRoles({ title: '공개 채용', jobCategory: 'Oversight Engineering', techStacks: [{ stackName: 'AWS' }] }), ['직무 확인 필요']);
   assert.deepEqual(jobCardRoles({ title: '[한국장애인고용공단 대구직업능력개발원] 특정업무직(미화원) 채용공고' }), ['미화원']);
   assert.deepEqual(jobCardRoles({ title: '[한국장애인고용공단 경기남부직업능력개발원] 특정업무직(운전원) 채용' }), ['운전원']);
   assert.deepEqual(jobCardRoles({ title: '계약직 고객 상담원 채용' }), ['고객 상담원']);
@@ -106,11 +106,11 @@ test('직무명과 분류를 표시하고 기술 및 조직명은 직무로 오�
   assert.deepEqual(jobCardRoles({ title: '카카오비즈니스 마케팅 콘텐츠 제작_어시스턴트', jobCategory: '서비스비즈' }), ['마케팅 콘텐츠 제작 어시스턴트']);
   assert.deepEqual(jobCardRoles({ title: '[네이버웹툰] EN Growth&Marketing Design (체험형 인턴)', jobCategory: 'Design / Visual Comm. & Brand Design' }), ['그로스·마케팅 디자인 인턴']);
   assert.deepEqual(jobCardRoles({ title: 'Operations Manager' }), ['운영 매니저']);
-  assert.deepEqual(jobCardRoles({ title: '2026년 채용', jobCategory: 'Financial Crimes' }), ['2026년 채용']);
-  assert.deepEqual(jobCardRoles({ title: 'Customer Engineering Intern' }), ['Customer Engineering Intern']);
+  assert.deepEqual(jobCardRoles({ title: '2026년 채용', jobCategory: 'Financial Crimes' }), ['직무 확인 필요']);
+  assert.deepEqual(jobCardRoles({ title: 'Customer Engineering Intern' }), ['직무 확인 필요']);
   assert.deepEqual(jobCardRoles({ title: '미화원 및 운전원 모집' }), ['미화원', '운전원']);
   assert.deepEqual(jobCardRoles({ title: 'UX 디자이너' }), ['UX·UI 디자인']);
-  assert.deepEqual(jobCardRoles({ title: '2026년 10차 공개채용 공고', jobCategory: '금융.보험,경비.청소' }), ['2026년 10차 공개채용 공고']);
+  assert.deepEqual(jobCardRoles({ title: '2026년 10차 공개채용 공고', jobCategory: '금융.보험,경비.청소' }), ['직무 확인 필요']);
   assert.deepEqual(jobCardRoles({ title: '' }), []);
 });
 
