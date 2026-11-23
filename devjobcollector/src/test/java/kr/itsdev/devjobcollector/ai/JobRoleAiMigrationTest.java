@@ -141,19 +141,26 @@ class JobRoleAiMigrationTest {
                 assertThat(store.save(13758, 0, "v1", changedInput, changedProposal)).isEqualTo(JobRoleAiProposalStore.SaveResult.JOB_CHANGED);
                 assertThat(jdbc.queryForObject("SELECT count(*) FROM job_role_ai_proposals", Integer.class)).isEqualTo(1);
                 var budget = new JobRoleAiBudget(jdbc);
-                for (int i = 1; i <= 17; i++) {
+                for (int i = 1; i <= 35; i++) {
                     assertThat(budget.reserve(13758, String.format("%064x", i), 2000)).isEqualTo(JobRoleAiBudget.Reservation.RESERVED);
                 }
                 assertThat(budget.reserve(13758, String.format("%064x", 1), 2000)).isEqualTo(JobRoleAiBudget.Reservation.ALREADY_CLAIMED);
-                assertThat(budget.reserve(13758, String.format("%064x", 18), 2000)).isEqualTo(JobRoleAiBudget.Reservation.DAILY_LIMIT);
-                assertThat(jdbc.queryForObject("SELECT reserved_requests FROM job_role_ai_daily_budget", Integer.class)).isEqualTo(17);
-                assertThat(jdbc.queryForObject("SELECT reserved_micro_usd FROM job_role_ai_daily_budget", Long.class)).isEqualTo(48450L);
+                assertThat(budget.reserve(13758, String.format("%064x", 36), 2000)).isEqualTo(JobRoleAiBudget.Reservation.DAILY_LIMIT);
+                assertThat(jdbc.queryForObject("SELECT reserved_requests FROM job_role_ai_daily_budget", Integer.class)).isEqualTo(35);
+                assertThat(jdbc.queryForObject("SELECT reserved_micro_usd FROM job_role_ai_daily_budget", Long.class)).isEqualTo(99750L);
                 String failedHash = String.format("%064x", 1);
                 budget.releaseFailedClaim(13758, failedHash);
                 assertThat(budget.alreadyClaimed(13758, failedHash)).isFalse();
-                assertThat(jdbc.queryForObject("SELECT reserved_requests FROM job_role_ai_daily_budget", Integer.class)).isEqualTo(17);
-                assertThat(jdbc.queryForObject("SELECT reserved_micro_usd FROM job_role_ai_daily_budget", Long.class)).isEqualTo(48450L);
+                assertThat(jdbc.queryForObject("SELECT reserved_requests FROM job_role_ai_daily_budget", Integer.class)).isEqualTo(35);
+                assertThat(jdbc.queryForObject("SELECT reserved_micro_usd FROM job_role_ai_daily_budget", Long.class)).isEqualTo(99750L);
                 assertThat(budget.reserve(13758, failedHash, 2000)).isEqualTo(JobRoleAiBudget.Reservation.DAILY_LIMIT);
+                jdbc.update("DELETE FROM job_role_ai_claims");
+                jdbc.update("DELETE FROM job_role_ai_daily_budget");
+                for (int i = 1; i <= 15; i++) {
+                    assertThat(budget.reserveBatchField(13758, String.format("%064x", i), 2000)).isEqualTo(JobRoleAiBudget.Reservation.RESERVED);
+                }
+                assertThat(budget.reserveBatchField(13758, String.format("%064x", 16), 2000)).isEqualTo(JobRoleAiBudget.Reservation.DAILY_LIMIT);
+                assertThat(budget.reserveField(13758, String.format("%064x", 16), 2000)).isEqualTo(JobRoleAiBudget.Reservation.RESERVED);
                 jdbc.update("DELETE FROM job_role_ai_claims");
                 jdbc.update("DELETE FROM job_role_ai_daily_budget");
                 int dbStart = url.indexOf('/', "jdbc:mysql://".length());
@@ -166,7 +173,7 @@ class JobRoleAiMigrationTest {
                 var start = new CountDownLatch(1);
                 var futures = new ArrayList<Future<JobRoleAiBudget.Reservation>>();
                 try {
-                    for (int i = 1; i <= 20; i++) {
+                    for (int i = 1; i <= 40; i++) {
                         final String hash = String.format("%064x", i);
                         futures.add(executor.submit(() -> {
                             start.await();
@@ -180,9 +187,9 @@ class JobRoleAiMigrationTest {
                         if (outcome == JobRoleAiBudget.Reservation.RESERVED) accepted++;
                         if (outcome == JobRoleAiBudget.Reservation.DAILY_LIMIT) denied++;
                     }
-                    assertThat(accepted).isEqualTo(17);
-                    assertThat(denied).isEqualTo(3);
-                    assertThat(jdbc.queryForObject("SELECT reserved_micro_usd FROM job_role_ai_daily_budget", Long.class)).isEqualTo(48450L);
+                    assertThat(accepted).isEqualTo(35);
+                    assertThat(denied).isEqualTo(5);
+                    assertThat(jdbc.queryForObject("SELECT reserved_micro_usd FROM job_role_ai_daily_budget", Long.class)).isEqualTo(99750L);
                 } finally {
                     executor.shutdownNow();
                 }

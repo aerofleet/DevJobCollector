@@ -40,7 +40,7 @@ public class JobFieldAiScheduler {
                 long id = ((Number) row.get("id")).longValue();
                 cursor.set(id);
                 try {
-                    var status = processor.process(id);
+                    var status = processor.processBatch(id);
                     if (status == JobFieldAiProcessor.Outcome.DAILY_LIMIT || status == JobFieldAiProcessor.Outcome.DISABLED) {
                         cursor.set(id - 1);
                         break;

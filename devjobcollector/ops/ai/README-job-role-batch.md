@@ -8,6 +8,6 @@
 Get-Content -Raw <snapshot.json> | node ops/ai/analyze-job-role-candidates.mjs
 ```
 
-결과의 `snapshotHash`와 `nextOffset`을 보관하면 동일한 스냅샷에서 `DJC_ROLE_SNAPSHOT_HASH`와 `DJC_ROLE_CANDIDATE_OFFSET`으로 재개할 수 있다. 목록이 바뀐 경우 처음부터 다시 시작한다. 기존에 처리한 입력은 서버에서 중복 호출을 차단한다. 서버의 하루 최대 20회·$0.05 예약 한도와 실패 시 예산 정책은 그대로 적용된다. 호출 실패는 일괄 실행을 중단하므로 이력과 한도를 확인하고 동일 입력으로 다시 시작한다.
+결과의 `snapshotHash`와 `nextOffset`을 보관하면 동일한 스냅샷에서 `DJC_ROLE_SNAPSHOT_HASH`와 `DJC_ROLE_CANDIDATE_OFFSET`으로 재개할 수 있다. 목록이 바뀐 경우 처음부터 다시 시작한다. 기존에 처리한 입력은 서버에서 중복 호출을 차단한다. 직무·분야 분석은 UTC 기준 하루 최대 40회·$0.10 예약 한도를 공유한다. 자동 분야 배치는 전체 사용량이 20회 또는 $0.05에 도달하면 멈춰 나머지를 수동 분석에 남긴다. 실패한 호출도 예산을 사용한다. 호출 실패는 일괄 실행을 중단하므로 이력과 한도를 확인하고 동일 입력으로 다시 시작한다.
 
 검증: `node --test ops/ai/analyze-job-role-candidates.test.mjs frontend/src/utils/jobCardRoles.test.js frontend/src/utils/jobRoleCandidates.test.js`

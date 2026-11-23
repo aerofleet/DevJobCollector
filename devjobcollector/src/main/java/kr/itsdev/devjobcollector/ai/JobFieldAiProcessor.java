@@ -35,6 +35,14 @@ public class JobFieldAiProcessor {
     }
 
     public Outcome process(long id) {
+        return process(id, false);
+    }
+
+    public Outcome processBatch(long id) {
+        return process(id, true);
+    }
+
+    private Outcome process(long id, boolean batch) {
         if (!enabled || !client.available()) return Outcome.DISABLED;
         JobPost job = jobs.findById(id).orElse(null);
         if (!eligible(job)) return Outcome.NOT_ELIGIBLE;
@@ -51,7 +59,8 @@ public class JobFieldAiProcessor {
         JobPost latest = jobs.findById(id).orElse(null);
         if (!eligible(latest) || latest.getVersion() != job.getVersion()) return Outcome.JOB_CHANGED;
         try { prepareMatching(latest, input.inputHash()); } catch (IllegalArgumentException invalid) { return Outcome.JOB_CHANGED; }
-        var reservation = budget.reserveField(id, input.inputHash(), tokens);
+        var reservation = batch ? budget.reserveBatchField(id, input.inputHash(), tokens)
+                : budget.reserveField(id, input.inputHash(), tokens);
         if (reservation == JobRoleAiBudget.Reservation.ALREADY_CLAIMED) return Outcome.ALREADY_CLAIMED;
         if (reservation == JobRoleAiBudget.Reservation.DAILY_LIMIT) return Outcome.DAILY_LIMIT;
         try {
