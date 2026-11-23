@@ -24,7 +24,7 @@ test('공고 전송 내용을 확인하고 동의한 후에만 AI 분석을 요�
   expect(writes).toHaveLength(0);
   await page.getByLabel('전송 내용과 출처의 이용 허용 범위를 확인했습니다.').check();
   await page.getByRole('button', { name: '확인하고 AI 분석' }).click();
-  await expect(page.getByRole('status')).toContainText('AI 제안을 저장했습니다');
+  await expect(page.getByRole('region', { name: 'AI 공고 조건 검토' }).getByRole('status')).toContainText('AI 제안을 저장했습니다');
   expect(writes).toEqual([{ inputHash: 'a'.repeat(64), confirmed: true }]);
 });
 
@@ -55,6 +55,6 @@ test('관리자가 근거를 검토하고 입력한 경력과 근무지만 반�
   await page.getByLabel('경력 표시').fill('경력 5~10년 이상');
   await page.getByLabel('근무지 표시').fill('미국 뉴욕, 원격');
   await page.getByRole('button', { name: '확인한 조건 반영' }).click();
-  await expect(page.getByRole('status')).toContainText('검색 필터에 반영했습니다');
+  await expect(page.getByRole('region', { name: 'AI 공고 조건 검토' }).getByRole('status')).toContainText('검색 필터에 반영했습니다');
   expect(writes).toEqual([{ expectedVersion: 3, experienceCategory: 'EXPERIENCED', experienceLabel: '경력 5~10년 이상', location: '미국 뉴욕, 원격' }]);
 });

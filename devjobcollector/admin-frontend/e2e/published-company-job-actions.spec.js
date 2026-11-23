@@ -31,7 +31,7 @@ for (const [button, action, status] of [['공고 숨김', 'SUSPEND', '숨김'], 
     for (const name of ['공고 숨김', '강제 마감', '공고 삭제']) await expect(page.getByRole('button', { name, exact: true })).toBeEnabled();
     await page.getByRole('button', { name: button, exact: true }).click();
     await page.getByRole('button', { name: '변경 확정' }).click();
-    await expect(page.getByRole('dialog').getByRole('alert')).toContainText('사유');
+    await expect(page.getByRole('dialog').locator('.form-error')).toContainText('사유');
     expect(writes).toHaveLength(0);
     await page.getByLabel('변경 사유').fill('관리자 확인');
     await page.getByRole('button', { name: '변경 확정' }).click();
@@ -52,6 +52,6 @@ test('검수 공고 버전 충돌은 실패로 표시하고 화면 상태를 유
   await page.getByRole('button', { name: '공고 삭제', exact: true }).click();
   await page.getByLabel('변경 사유').fill('확인');
   await page.getByRole('button', { name: '변경 확정' }).click();
-  await expect(page.getByRole('dialog').getByRole('alert')).toContainText('상태가 변경');
+  await expect(page.getByRole('dialog').locator('.form-error')).toContainText('상태가 변경');
   await expect(page.getByRole('dialog').getByText('노출', { exact: true })).toBeVisible();
 });
