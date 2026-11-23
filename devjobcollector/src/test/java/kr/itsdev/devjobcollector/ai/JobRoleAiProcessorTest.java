@@ -52,10 +52,31 @@ class JobRoleAiProcessorTest {
         when(client.available()).thenReturn(true);
         JobPost current = job(0);
         when(jobs.findById(13758L)).thenReturn(Optional.of(current));
-        assertThat(processor(true, "").process(13758)).isEqualTo(JobRoleAiProcessor.Outcome.NOT_ELIGIBLE);
-        assertThat(processor(true, "GREENHOUSE").process(13758)).isEqualTo(JobRoleAiProcessor.Outcome.NOT_ELIGIBLE);
-        assertThat(processor(true, "GREENHOUSE:stripe").process(13758)).isEqualTo(JobRoleAiProcessor.Outcome.NOT_ELIGIBLE);
+        assertThat(processor(true, "").process(13758)).isEqualTo(JobRoleAiProcessor.Outcome.SOURCE_NOT_ALLOWED);
+        assertThat(processor(true, "GREENHOUSE").process(13758)).isEqualTo(JobRoleAiProcessor.Outcome.SOURCE_NOT_ALLOWED);
+        assertThat(processor(true, "GREENHOUSE:stripe").process(13758)).isEqualTo(JobRoleAiProcessor.Outcome.SOURCE_NOT_ALLOWED);
         verify(client, never()).countJobRoleInputTokens(anyString(), anyString(), anyString(), any());
+    }
+
+    @Test void publicAlioUsesExplicitPublicSourceKey() {
+        when(client.available()).thenReturn(true);
+        JobPost current = job(0);
+        when(current.getSourcePlatform()).thenReturn(SourcePlatform.PUBLIC_ALIO);
+        when(current.getOriginalSn()).thenReturn("12345");
+        when(jobs.findById(13758L)).thenReturn(Optional.of(current));
+        when(client.countJobRoleInputTokens(anyString(), anyString(), anyString(), any())).thenReturn(1000);
+        when(budget.reserve(anyLong(), anyString(), anyInt())).thenReturn(JobRoleAiBudget.Reservation.DAILY_LIMIT);
+        assertThat(processor(true, "PUBLIC_ALIO:PUBLIC_ALIO").process(13758)).isEqualTo(JobRoleAiProcessor.Outcome.DAILY_LIMIT);
+        verify(proposals, never()).propose(any());
+    }
+
+    @Test void oversizedInputIsDistinguishedFromMissingSource() {
+        when(client.available()).thenReturn(true);
+        JobPost current = job(0);
+        when(jobs.findById(13758L)).thenReturn(Optional.of(current));
+        when(client.countJobRoleInputTokens(anyString(), anyString(), anyString(), any())).thenReturn(2001);
+        assertThat(processor(true, "GREENHOUSE:coupang").process(13758)).isEqualTo(JobRoleAiProcessor.Outcome.INPUT_TOO_LARGE);
+        verify(proposals, never()).propose(any());
     }
 
     @Test void reservesBudgetBeforeGeneratingAndStoresOnlyAProposal() {

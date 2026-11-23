@@ -39,7 +39,7 @@ class JobFieldAiProcessorTest {
         var job = alio();
         when(jobs.findById(1L)).thenReturn(Optional.of(job));
         var disabledSource = new JobFieldAiProcessor(jobs, client, budget, jdbc, mapper, true, "");
-        assertThat(disabledSource.process(1)).isEqualTo(JobFieldAiProcessor.Outcome.NOT_ELIGIBLE);
+        assertThat(disabledSource.process(1)).isEqualTo(JobFieldAiProcessor.Outcome.SOURCE_NOT_ALLOWED);
         verify(client, never()).suggestJobFields(anyString(), anyString(), anyString());
         when(client.countJobFieldInputTokens(anyString(), anyString(), anyString())).thenReturn(500);
         when(budget.reserveField(anyLong(), anyString(), anyInt())).thenReturn(JobRoleAiBudget.Reservation.RESERVED);

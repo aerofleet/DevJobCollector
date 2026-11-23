@@ -133,7 +133,8 @@ export default function JobsPage() {
     try {
       const outcome = await adminRequest(`/jobs/${selected.id}/ai-fields/analyze`, { method: 'POST' });
       const messages = { STORED: 'AI 분야 제안을 저장했습니다. 원문 근거를 확인해 주세요.', STORED_PARTIAL: '근거가 부족한 계약직 제안을 제외하고 나머지 분야를 저장했습니다. 원문을 확인해 주세요.', DISABLED: 'AI 분야 분석이 비활성화되어 있습니다.',
-        NOT_ELIGIBLE: '분석 대상이 아니거나 허용되지 않은 출처입니다.', INPUT_UNUSABLE: '분석할 수 있는 본문이 부족합니다.',
+        NOT_ELIGIBLE: '공고가 비활성, 숨김 또는 마감되어 분석할 수 없습니다.', SOURCE_NOT_ALLOWED: '이 공고의 출처는 직무 분야 분석에 허용되지 않았습니다.',
+        INPUT_UNUSABLE: '공고 입력 정보나 본문을 분석에 사용할 수 없습니다.', INPUT_TOO_LARGE: '업무와 자격을 추출해도 AI 입력 한도를 초과합니다.',
         JOB_CHANGED: '공고가 변경되어 제안을 저장하지 않았습니다.', ALREADY_CLAIMED: '같은 입력은 처리됐거나 처리 중입니다.', DAILY_LIMIT: '오늘의 AI 분석 한도에 도달했습니다.',
         INVALID_PROPOSAL: 'AI 제안의 분야 또는 원문 근거를 확인할 수 없어 저장하지 않았습니다. 원문을 확인하고 다시 분석해 주세요.' };
       setFieldNotice(messages[outcome.status] || '분석 상태를 확인해 주세요.');
@@ -163,8 +164,10 @@ export default function JobsPage() {
       const messages = {
         STORED: 'AI 직무 제안을 저장했습니다. 원문 근거를 확인한 후 승인할 수 있습니다.',
         DISABLED: 'AI 직무 분석이 비활성화되어 있습니다.',
-        NOT_ELIGIBLE: '분석할 수 없는 공고 또는 허용되지 않은 출처입니다.',
-        INPUT_UNUSABLE: '분석에 필요한 본문을 확인할 수 없습니다.',
+        NOT_ELIGIBLE: '공고가 비활성, 숨김 또는 마감되어 분석할 수 없습니다.',
+        SOURCE_NOT_ALLOWED: '이 공고의 출처는 직무 제안 분석에 허용되지 않았습니다.',
+        INPUT_UNUSABLE: '공고 입력 정보나 본문을 분석에 사용할 수 없습니다.',
+        INPUT_TOO_LARGE: '업무와 자격을 추출해도 AI 입력 한도를 초과합니다.',
         JOB_CHANGED: '공고가 변경되어 제안을 저장하지 않았습니다. 다시 확인해 주세요.',
         ALREADY_CLAIMED: '이 입력은 이미 처리했거나 처리 중입니다.',
         DAILY_LIMIT: '오늘의 AI 직무 분석 한도에 도달했습니다.',

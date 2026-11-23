@@ -36,7 +36,8 @@ public class JobRoleAiProcessor {
     public Outcome process(long id) {
         if (!enabled || !client.available()) return Outcome.DISABLED;
         JobPost job = jobs.findById(id).orElse(null);
-        if (!eligible(job)) return Outcome.NOT_ELIGIBLE;
+        if (!available(job)) return Outcome.NOT_ELIGIBLE;
+        if (!allowedSources.contains(sourceKey(job))) return Outcome.SOURCE_NOT_ALLOWED;
         Set<String> allowedRoles = catalog.allowedRoles();
         JobRoleAiInput.Prepared input;
         try { input = prepare(job, allowedRoles); }
@@ -45,13 +46,13 @@ public class JobRoleAiProcessor {
         int tokens = client.countJobRoleInputTokens(input.title(), input.category(), input.content(), input.allowedRoles());
         if (tokens > 2000) {
             try { input = prepareCompact(job, allowedRoles); }
-            catch (IllegalArgumentException invalid) { return Outcome.INPUT_UNUSABLE; }
+            catch (IllegalArgumentException invalid) { return Outcome.INPUT_TOO_LARGE; }
             if (budget.alreadyClaimed(id, input.inputHash())) return Outcome.ALREADY_CLAIMED;
             tokens = client.countJobRoleInputTokens(input.title(), input.category(), input.content(), input.allowedRoles());
-            if (tokens > 2000) return Outcome.INPUT_UNUSABLE;
+            if (tokens > 2000) return Outcome.INPUT_TOO_LARGE;
         }
         JobPost latest = jobs.findById(id).orElse(null);
-        if (!eligible(latest) || latest.getVersion() != job.getVersion()) return Outcome.JOB_CHANGED;
+        if (!available(latest) || !allowedSources.contains(sourceKey(latest)) || latest.getVersion() != job.getVersion()) return Outcome.JOB_CHANGED;
         JobRoleAiInput.Prepared latestInput;
         try { latestInput = JobRoleAiInput.prepareMatching(latest.getId(), latest.getSourcePlatform().name(), latest.getTitle(), latest.getJobCategory(),
                 latest.getApplyQual(), CATALOG_VERSION, OpenAiEvidenceClient.CONTENT_MODEL, allowedRoles, input.inputHash()); }
@@ -75,14 +76,14 @@ public class JobRoleAiProcessor {
         };
     }
 
-    private boolean eligible(JobPost job) {
+    private boolean available(JobPost job) {
         return job != null && job.isActive() && job.getModerationStatus() == JobModerationStatus.ACTIVE
-                && job.getEndDate() != null && !job.getEndDate().isBefore(LocalDate.now())
-                && allowedSources.contains(sourceKey(job));
+                && job.getEndDate() != null && !job.getEndDate().isBefore(LocalDate.now());
     }
 
     private static String sourceKey(JobPost job) {
         if (job.getSourcePlatform() == null || job.getOriginalSn() == null) return "";
+        if (job.getSourcePlatform() == kr.itsdev.devjobcollector.domain.SourcePlatform.PUBLIC_ALIO) return "PUBLIC_ALIO:PUBLIC_ALIO";
         String sourceId = job.getOriginalSn();
         int delimiter = sourceId.indexOf(':');
         if (delimiter <= 0) return "";
@@ -99,5 +100,5 @@ public class JobRoleAiProcessor {
                 CATALOG_VERSION, OpenAiEvidenceClient.CONTENT_MODEL, allowedRoles);
     }
 
-    public enum Outcome { DISABLED, NOT_ELIGIBLE, INPUT_UNUSABLE, JOB_CHANGED, ALREADY_CLAIMED, DAILY_LIMIT, STORED }
+    public enum Outcome { DISABLED, NOT_ELIGIBLE, SOURCE_NOT_ALLOWED, INPUT_UNUSABLE, INPUT_TOO_LARGE, JOB_CHANGED, ALREADY_CLAIMED, DAILY_LIMIT, STORED }
 }

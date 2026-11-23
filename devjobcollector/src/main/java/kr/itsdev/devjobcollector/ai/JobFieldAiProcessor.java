@@ -45,19 +45,20 @@ public class JobFieldAiProcessor {
     private Outcome process(long id, boolean batch) {
         if (!enabled || !client.available()) return Outcome.DISABLED;
         JobPost job = jobs.findById(id).orElse(null);
-        if (!eligible(job)) return Outcome.NOT_ELIGIBLE;
+        if (!available(job)) return Outcome.NOT_ELIGIBLE;
+        if (!sourceAllowed(job)) return Outcome.SOURCE_NOT_ALLOWED;
         JobRoleAiInput.Prepared input;
         try { input = prepare(job, false); } catch (IllegalArgumentException invalid) { return Outcome.INPUT_UNUSABLE; }
         if (budget.alreadyClaimed(id, input.inputHash())) return Outcome.ALREADY_CLAIMED;
         int tokens = client.countJobFieldInputTokens(input.title(), input.category(), input.content());
         if (tokens > 2000) {
-            try { input = prepare(job, true); } catch (IllegalArgumentException invalid) { return Outcome.INPUT_UNUSABLE; }
+            try { input = prepare(job, true); } catch (IllegalArgumentException invalid) { return Outcome.INPUT_TOO_LARGE; }
             if (budget.alreadyClaimed(id, input.inputHash())) return Outcome.ALREADY_CLAIMED;
             tokens = client.countJobFieldInputTokens(input.title(), input.category(), input.content());
-            if (tokens > 2000) return Outcome.INPUT_UNUSABLE;
+            if (tokens > 2000) return Outcome.INPUT_TOO_LARGE;
         }
         JobPost latest = jobs.findById(id).orElse(null);
-        if (!eligible(latest) || latest.getVersion() != job.getVersion()) return Outcome.JOB_CHANGED;
+        if (!available(latest) || !sourceAllowed(latest) || latest.getVersion() != job.getVersion()) return Outcome.JOB_CHANGED;
         try { prepareMatching(latest, input.inputHash()); } catch (IllegalArgumentException invalid) { return Outcome.JOB_CHANGED; }
         var reservation = batch ? budget.reserveBatchField(id, input.inputHash(), tokens)
                 : budget.reserveField(id, input.inputHash(), tokens);
@@ -94,9 +95,13 @@ public class JobFieldAiProcessor {
         }
     }
 
-    private boolean eligible(JobPost job) {
-        if (job == null || !job.isActive() || job.getModerationStatus() != JobModerationStatus.ACTIVE
-                || job.getEndDate() == null || job.getEndDate().isBefore(LocalDate.now()) || job.getSourcePlatform() == null) return false;
+    private boolean available(JobPost job) {
+        return job != null && job.isActive() && job.getModerationStatus() == JobModerationStatus.ACTIVE
+                && job.getEndDate() != null && !job.getEndDate().isBefore(LocalDate.now());
+    }
+
+    private boolean sourceAllowed(JobPost job) {
+        if (job.getSourcePlatform() == null) return false;
         if (job.getSourcePlatform() == SourcePlatform.PUBLIC_ALIO) return sources.contains("PUBLIC_ALIO:PUBLIC_ALIO");
         String original = job.getOriginalSn();
         if (original == null || original.isBlank() || original.indexOf(':') == 0) return false;
@@ -124,5 +129,5 @@ public class JobFieldAiProcessor {
         throw new IllegalArgumentException("JOB_FIELD_INPUT_CHANGED");
     }
 
-    public enum Outcome { DISABLED, NOT_ELIGIBLE, INPUT_UNUSABLE, JOB_CHANGED, ALREADY_CLAIMED, DAILY_LIMIT, INVALID_PROPOSAL, STORED, STORED_PARTIAL }
+    public enum Outcome { DISABLED, NOT_ELIGIBLE, SOURCE_NOT_ALLOWED, INPUT_UNUSABLE, INPUT_TOO_LARGE, JOB_CHANGED, ALREADY_CLAIMED, DAILY_LIMIT, INVALID_PROPOSAL, STORED, STORED_PARTIAL }
 }
