@@ -75,6 +75,8 @@ const OTHER_ENGLISH_ROLES = [
 export function resolveJobCardRoles(job) {
   const title = typeof job.title === 'string' ? job.title : '';
   const category = typeof job.jobCategory === 'string' ? job.jobCategory : '';
+  const approvedRole = typeof job.approvedJobRole === 'string' ? job.approvedJobRole.trim() : '';
+  if (approvedRole && approvedRole.length <= 32) return { roles: [approvedRole], needsReview: false };
   const fields = Array.isArray(job.approvedJobFields) ? [...new Set(job.approvedJobFields)] : [];
   if (fields.length > 0 && fields.length <= 3 && fields.every(field => JOB_FIELDS.has(field))
       && !(fields.length > 1 && fields.includes('기타'))) {
@@ -117,13 +119,9 @@ export function resolveJobCardRoles(job) {
   if (roles.length || explicitRoles.length || englishRoles.length) {
     return { roles: [...new Set([...roles, ...explicitRoles, ...englishRoles])], needsReview: false };
   }
-  // 매칭되는 직무가 없으면 원제목을 표시하고 분류 필요 여부는 별도로 보존한다.
+  // 분류되지 않은 제목은 태그로 노출하지 않고 AI 검토 후보로 남긴다.
   const fallback = title.trim();
-  const approvedRole = typeof job.approvedJobRole === 'string' ? job.approvedJobRole.trim() : '';
-  if (fallback && approvedRole && approvedRole.length <= 32) {
-    return { roles: [approvedRole], needsReview: false };
-  }
-  return { roles: fallback && fallback !== '직무 확인 필요' ? [fallback] : [], needsReview: fallback.length > 30,
+  return { roles: fallback && fallback !== '직무 확인 필요' ? ['직무 확인 필요'] : [], needsReview: Boolean(fallback),
     unmatched: Boolean(fallback && fallback !== '직무 확인 필요') };
 }
 

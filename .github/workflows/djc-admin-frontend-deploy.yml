@@ -6,6 +6,9 @@ on:
       - main
     paths:
       - "devjobcollector/admin-frontend/**"
+      - "devjobcollector/frontend/src/utils/jobCardTags.js"
+      - "devjobcollector/frontend/src/utils/jobCardRoles.js"
+      - "devjobcollector/frontend/src/utils/developerJob.js"
       - ".github/workflows/djc-admin-frontend-deploy.yml"
   workflow_dispatch:
 

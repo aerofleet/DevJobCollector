@@ -184,6 +184,7 @@ public class JobPostService {
             .sourceDeadlineDisplay(jobPost.getSourceDeadlineDisplay())
             .createdAt(jobPost.getCreatedAt())
             .deadlineEvidence(JobDeadlineEvidence.resolve(jobPost.getEndDate(), jobPost.getApplyQual()))
+            .mentionedTechStacks(JobMentionedTechnologies.from(jobPost.getApplyQual()))
             .originalUrl(jobPost.getOriginalUrl())
             .applyQual(jobPost.getApplyQual())
             .supplementalSalaryText(jobPost.getSupplementalSalaryText())
