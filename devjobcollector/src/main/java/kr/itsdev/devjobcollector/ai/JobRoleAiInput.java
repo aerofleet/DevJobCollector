@@ -42,7 +42,10 @@ public final class JobRoleAiInput {
         String normalizedTitle = title.trim();
         var document = Jsoup.parse(HtmlUtils.htmlUnescape(HtmlUtils.htmlUnescape(rawContent)));
         String content = document.text().replace('\u00a0', ' ').trim();
-        if (compact || content.length() > 4000) content = extractRelevantSections(document.wholeText());
+        if (compact || content.length() > 4000) {
+            content = extractRelevantSections(document.wholeText(), false);
+            if (content.isEmpty()) content = extractRelevantSections(document.wholeText(), true);
+        }
         if (content.isBlank() || content.length() > 4000) throw new IllegalArgumentException("ROLE_CONTENT_UNUSABLE");
         Map<String, String> hashed = new TreeMap<>();
         hashed.put("jobId", Long.toString(jobId));
@@ -74,7 +77,7 @@ public final class JobRoleAiInput {
         throw new IllegalArgumentException("ROLE_INPUT_CHANGED");
     }
 
-    private static String extractRelevantSections(String text) {
+    private static String extractRelevantSections(String text, boolean extended) {
         StringBuilder selected = new StringBuilder();
         int section = 0;
         boolean foundDuties = false;
@@ -82,13 +85,16 @@ public final class JobRoleAiInput {
         for (String rawLine : text.split("\\R")) {
             String line = rawLine.replace('\u00a0', ' ').trim();
             String heading = line.replaceAll("^[#\\[\\] ]+|[#\\[\\]:： ]+$", "").toLowerCase(Locale.ROOT);
-            if (heading.matches("(?:job description|responsibilities|what you.ll do|주요 업무|업무 내용|담당 업무)")) {
+            if (heading.matches("(?:job description|responsibilities|what you.ll do|주요 업무|업무 내용|담당 업무)")
+                    || (extended && heading.matches("what you will be doing"))) {
                 section = 1;
                 continue;
-            } else if (heading.matches("(?:basic qualifications|minimum qualifications|required qualifications|자격 요건|필수 요건)")) {
+            } else if (heading.matches("(?:basic qualifications|minimum qualifications|required qualifications|자격 요건|필수 요건)")
+                    || (extended && heading.matches("what you bring"))) {
                 section = 2;
                 continue;
-            } else if (heading.matches("(?:preferred qualifications|benefits|compensation|about us|우대 사항|복리후생|회사 소개)")) {
+            } else if (heading.matches("(?:preferred qualifications|benefits|compensation|about us|우대 사항|복리후생|회사 소개)")
+                    || (extended && heading.matches("additional information(?:\\s*[-–—].*)?"))) {
                 section = 0;
                 continue;
             }
