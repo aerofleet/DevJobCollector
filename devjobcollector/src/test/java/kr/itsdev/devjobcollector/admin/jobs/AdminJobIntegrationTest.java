@@ -9,6 +9,8 @@ import java.util.Collections;
 import java.util.Set;
 import kr.itsdev.devjobcollector.admin.AdminRole;
 import kr.itsdev.devjobcollector.admin.auth.AdminPrincipal;
+import kr.itsdev.devjobcollector.ai.JobRoleAiReadService;
+import kr.itsdev.devjobcollector.ai.JobFieldAiReadService;
 import kr.itsdev.devjobcollector.config.QuerydslConfig;
 import kr.itsdev.devjobcollector.domain.JobModerationStatus;
 import kr.itsdev.devjobcollector.domain.JobPost;
@@ -24,6 +26,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @DataJpaTest(properties = {
         "spring.jpa.hibernate.ddl-auto=validate",
@@ -38,6 +41,8 @@ class AdminJobIntegrationTest {
     @Autowired EntityManager entityManager;
     @Autowired JobPostRepository jobs;
     @Autowired AdminJobService service;
+    @MockitoBean JobRoleAiReadService roles;
+    @MockitoBean JobFieldAiReadService fields;
 
     @DynamicPropertySource
     static void dataSourceProperties(DynamicPropertyRegistry registry) {
