@@ -2,6 +2,9 @@ package kr.itsdev.devjobcollector.admin.jobs;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
+import kr.itsdev.devjobcollector.ai.JobRoleAiReadService;
+import kr.itsdev.devjobcollector.ai.JobFieldAiReadService;
 import kr.itsdev.devjobcollector.admin.AdminAuditLog;
 import kr.itsdev.devjobcollector.admin.AdminAuditLogRepository;
 import kr.itsdev.devjobcollector.admin.AdminAuditResult;
@@ -23,12 +26,16 @@ public class AdminJobService {
     private final JobPostRepository jobs;
     private final JobModerationHistoryRepository history;
     private final AdminAuditLogRepository audit;
+    private final JobRoleAiReadService roles;
+    private final JobFieldAiReadService fields;
 
     public AdminJobService(JobPostRepository jobs, JobModerationHistoryRepository history,
-                           AdminAuditLogRepository audit) {
+                           AdminAuditLogRepository audit, JobRoleAiReadService roles, JobFieldAiReadService fields) {
         this.jobs = jobs;
         this.history = history;
         this.audit = audit;
+        this.roles = roles;
+        this.fields = fields;
     }
 
     @Transactional(readOnly = true)
@@ -36,8 +43,11 @@ public class AdminJobService {
         if (page < 0 || size < 1 || size > 100) throw error(HttpStatus.BAD_REQUEST, "INVALID_PAGE");
         String term = keyword == null || keyword.isBlank() ? null : keyword.trim();
         if (term != null && term.length() > 100) throw error(HttpStatus.BAD_REQUEST, "INVALID_KEYWORD");
-        return jobs.searchForAdmin(term, status,
-                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"))).map(JobView::from);
+        var found = jobs.searchForAdmin(term, status,
+                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id")));
+        var approvedRoles = roles.approvedRoles(found.getContent());
+        var approvedFields = fields.approvedFields(found.getContent());
+        return found.map(job -> JobView.from(job, approvedRoles.get(job.getId()), approvedFields.get(job.getId())));
     }
 
     @Transactional(readOnly = true)
@@ -119,12 +129,15 @@ public class AdminJobService {
     public record JobView(Long id, String title, String companyName, String sourcePlatform,
                           String moderationStatus, boolean active, LocalDate startDate,
                           LocalDate endDate, long version, LocalDateTime createdAt,
-                          String originalUrl) {
+                          String originalUrl, String jobCategory, String approvedJobRole, List<String> approvedJobFields) {
         static JobView from(JobPost job) {
+            return from(job, null, null);
+        }
+        static JobView from(JobPost job, String approvedRole, List<String> approvedFields) {
             return new JobView(job.getId(), job.getTitle(), job.getCompanyName(),
                     job.getSourcePlatform().name(), job.getModerationStatus().name(),
                     job.isActive(), job.getStartDate(), job.getEndDate(), job.getVersion(),
-                    job.getCreatedAt(), job.getOriginalUrl());
+                    job.getCreatedAt(), job.getOriginalUrl(), job.getJobCategory(), approvedRole, approvedFields);
         }
     }
 }

@@ -52,12 +52,13 @@ class AdminJobControllerSecurityTest {
         when(service.list(null, null, 0, 20)).thenReturn(new PageImpl<>(java.util.List.of(
                 new AdminJobService.JobView(7L, "Backend", "Company", "SARAMIN", "ACTIVE",
                         true, LocalDate.of(2026, 9, 1), LocalDate.of(2026, 12, 1), 0,
-                        null, "https://example.com/jobs/7"))));
+                        null, "https://example.com/jobs/7", "정보통신", "백엔드", java.util.List.of("전산직")))));
 
         mockMvc.perform(get("/api/v1/admin/jobs")
                         .cookie(new Cookie("DJC_ADMIN_SESSION", "admin-token")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content[0].title").value("Backend"));
+                .andExpect(jsonPath("$.data.content[0].title").value("Backend"))
+                .andExpect(jsonPath("$.data.content[0].approvedJobRole").value("백엔드"));
     }
 
     @Test

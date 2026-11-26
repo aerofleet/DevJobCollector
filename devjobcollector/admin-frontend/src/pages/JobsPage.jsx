@@ -4,6 +4,7 @@ import { useAdminAuth } from '../auth/AdminAuthContext';
 import DetailModal from '../components/DetailModal';
 import { paginationPage, paginationSize, readPaginationSession, savePaginationSession } from '../utils/paginationSession';
 import { jobCardTags } from '../../../frontend/src/utils/jobCardTags.js';
+import { jobCardRoles } from '../../../frontend/src/utils/jobCardRoles.js';
 
 const statusText = { ACTIVE: '노출', HIDDEN: '숨김', CLOSED: '강제 마감' };
 const actionText = { ACTIVE: '재활성', HIDDEN: '공고 숨김', CLOSED: '강제 마감', DELETED: '공고 삭제' };
@@ -310,9 +311,9 @@ export default function JobsPage() {
     <div className="dashboard-panel user-list">
       {!result ? <p role="status">공고를 불러오는 중입니다.</p> : result.content.length === 0
         ? <p>조건에 맞는 공고가 없습니다.</p> : <div className="table-scroll"><table>
-          <thead><tr><th>공고</th><th>기업</th><th>관리 상태</th><th>마감일</th><th></th></tr></thead>
+          <thead><tr><th>공고</th><th>기업</th><th>직무 태그</th><th>관리 상태</th><th>마감일</th><th></th></tr></thead>
           <tbody>{result.content.map((job) => <tr key={job.id}>
-            <td>{job.title}</td><td>{job.companyName}</td><td>{statusText[job.moderationStatus]}</td>
+            <td>{job.title}</td><td>{job.companyName}</td><td><div className="job-role-tags">{jobCardRoles(job).map(role => <span key={role}>{role}</span>)}</div></td><td>{statusText[job.moderationStatus]}</td>
             <td>{job.endDate || '—'}</td><td><button type="button" onClick={() => selectJob(job.id)}>상세</button></td>
           </tr>)}</tbody></table></div>}
       {result && <nav className="seed-pagination" aria-label="공고 목록 페이지">
