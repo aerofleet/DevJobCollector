@@ -7,6 +7,16 @@ import org.junit.jupiter.api.Test;
 class JobRoleAiInputTest {
     private static final String MODEL = "gpt-5.4-mini";
 
+    @Test void extractsKraftonDutiesAndRequiredQualifications() {
+        String raw = "회사 소개\n" + "소개 내용 ".repeat(800)
+                + "\n우리 팀과 함께할 미션을 소개합니다.\n• AI 투자 기회를 발굴합니다."
+                + "\n이런 경험을 가진 분과 함께 성장하고 싶습니다! (필수요건)\n• 투자 분석 경력 7년 이상."
+                + "\n이런 경험들이 있다면 저희가 찾는 그 분입니다! (우대요건)\n• MBA 우대.\n전형 안내";
+        var input = JobRoleAiInput.prepareCompact(14428, "GREENHOUSE", "AI Investment & Strategy Analyst", "Management Supporting", raw, "v1", MODEL, JobRoleAiRules.EXISTING_ROLES);
+        assertThat(input.content()).contains("AI 투자 기회를 발굴합니다.", "투자 분석 경력 7년 이상.")
+                .doesNotContain("소개 내용", "MBA 우대", "전형 안내");
+    }
+
     @Test void normalizesPublicBodyAndBindsHashToJobContentAndPolicy() {
         var input = JobRoleAiInput.prepare(13758, "GREENHOUSE", "Manager, Selection Operations", "Retail Selection",
                 "<p>Run selection operations.</p><p>Lead and coach operators.</p>", "v1", MODEL);

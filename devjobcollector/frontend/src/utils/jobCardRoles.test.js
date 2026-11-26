@@ -2,6 +2,33 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { jobCardRoles, resolveJobCardRoles } from './jobCardRoles.js';
 
+test('공고 제목에 명시된 다양한 직무를 분류하고 모호한 제목은 추측하지 않는다', () => {
+  const cases = [
+    ['Staff Security Architect (Global Operations & Transportation)', '보안 아키텍트'],
+    ['비주얼 디자인 어시스턴트', '비주얼 디자인 어시스턴트'],
+    ['카테고리 MD (퍼스널케어)', '카테고리 MD'],
+    ['Customer Guider (토스페이먼츠 전화/채팅상담)', '고객 상담'],
+    ['운영지원(배민스토어)', '운영 지원'],
+    ['상품 가격 전략(B마트)', '상품 가격 전략'],
+    ['Research Assistant (Global & Corporate)', '리서치 어시스턴트'],
+    ['Talent Acquisition Manager', '채용 매니저'],
+    ['Staff Data Governance Operation Analyst', '데이터 거버넌스 운영 분석가'],
+    ['[쿠팡로지스틱스서비스] 재무관리/기획', '재무관리·기획'],
+    ['자금 운영 담당자 (일반계약직)', '자금 운영'],
+    ['Incident Manager', '인시던트 매니저'],
+    ['Legal Counsel - Regulatory', '법률 자문'],
+    ['[네이버웹툰] IT Ops Engineer (경력)', 'IT 운영 엔지니어'],
+    ['HR Management, Specialist (Fukuoka Based)', '인사 관리'],
+    ['Principal, Total Rewards', '보상 기획'],
+    ['Principal, Logistics Compliance', '물류 컴플라이언스'],
+    ['Creative Lead, Design', '크리에이티브 디자인 리드'],
+  ];
+  for (const [title, expected] of cases) assert.deepEqual(jobCardRoles({ title }), [expected], title);
+  for (const title of ['2026년 인사 관리 채용 공고', 'AI 매니저', 'Investment Strategy Manager']) {
+    assert.deepEqual(jobCardRoles({ title }), ['직무 확인 필요'], title);
+  }
+});
+
 test('승인된 공통 분야는 알리오와 일반 공고에 같은 방식으로 표시한다', () => {
   assert.deepEqual(jobCardRoles({ sourcePlatform: 'PUBLIC_ALIO', title: '채용 공고', jobCategory: '정보통신', approvedJobFields: ['전산직', '연구직'] }), ['전산직', '연구직']);
   assert.deepEqual(jobCardRoles({ sourcePlatform: 'GREENHOUSE', title: 'Backend Engineer', approvedJobFields: ['전산직'] }), ['전산직']);
@@ -48,6 +75,7 @@ test('검토한 공고 20건에 해당 직무를 표시한다', () => {
 });
 
 test('Treasury Specialist 공고는 재무·자금 직무로 표시한다', () => {
+  assert.deepEqual(jobCardRoles({ title: '[CNTD Dept.] AI Investment & Strategy Analyst (7년 이상)', jobCategory: 'Management Supporting' }), ['투자·전략 분석가']);
   assert.deepEqual(jobCardRoles({ id: 13653, sourcePlatform: 'GREENHOUSE', title: 'Senior Treasury Specialist, Bridge Capital & Liquidity Risk – Digital Assets' }), ['재무·자금']);
   assert.deepEqual(jobCardRoles({ title: 'Treasury Specialist' }), ['재무·자금']);
   assert.deepEqual(jobCardRoles({ title: 'Treasury Platform Software Engineer' }), ['소프트웨어 개발']);
