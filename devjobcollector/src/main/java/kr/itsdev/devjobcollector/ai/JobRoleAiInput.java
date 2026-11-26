@@ -46,6 +46,7 @@ public final class JobRoleAiInput {
             content = extractRelevantSections(document.wholeText(), 0);
             if (content.isEmpty()) content = extractRelevantSections(document.wholeText(), 1);
             if (content.isEmpty()) content = extractRelevantSections(document.wholeText(), 2);
+            if (content.isEmpty()) content = extractRelevantSections(document.wholeText(), 3);
         }
         if (content.isBlank() || content.length() > 4000) throw new IllegalArgumentException("ROLE_CONTENT_UNUSABLE");
         Map<String, String> hashed = new TreeMap<>();
@@ -88,17 +89,20 @@ public final class JobRoleAiInput {
             String heading = line.replaceAll("^[#\\[\\] ]+|[#\\[\\]:： ]+$", "").toLowerCase(Locale.ROOT);
             if (heading.matches("(?:job description|responsibilities|what you.ll do|주요 업무|업무 내용|담당 업무)")
                     || (version >= 1 && heading.matches("what you will be doing"))
-                    || (version >= 2 && heading.matches("key responsibilities"))) {
+                    || (version >= 2 && heading.matches("key responsibilities"))
+                    || (version >= 3 && heading.equals("우리 팀과 함께할 미션을 소개합니다."))) {
                 section = 1;
                 continue;
             } else if (heading.matches("(?:basic qualifications|minimum qualifications|required qualifications|자격 요건|필수 요건)")
                     || (version >= 1 && heading.matches("what you bring"))
-                    || (version >= 2 && heading.matches("skill requirements & qualifications"))) {
+                    || (version >= 2 && heading.matches("skill requirements & qualifications"))
+                    || (version >= 3 && heading.matches("이런 경험을 가진 분과 함께 성장하고 싶습니다!\\s*\\(필수요건\\)"))) {
                 section = 2;
                 continue;
             } else if (heading.matches("(?:preferred qualifications|benefits|compensation|about us|우대 사항|복리후생|회사 소개)")
                     || (version >= 1 && heading.matches("additional information(?:\\s*[-–—].*)?"))
-                    || (version >= 2 && heading.matches("what makes cloudflare special\\?"))) {
+                    || (version >= 2 && heading.matches("what makes cloudflare special\\?"))
+                    || (version >= 3 && heading.matches("이런 경험들이 있다면 저희가 찾는 그 분입니다!\\s*\\(우대요건\\)"))) {
                 section = 0;
                 continue;
             }
