@@ -51,7 +51,7 @@ test('Treasury Specialist 공고는 재무·자금 직무로 표시한다', () =
   assert.deepEqual(jobCardRoles({ id: 13653, sourcePlatform: 'GREENHOUSE', title: 'Senior Treasury Specialist, Bridge Capital & Liquidity Risk – Digital Assets' }), ['재무·자금']);
   assert.deepEqual(jobCardRoles({ title: 'Treasury Specialist' }), ['재무·자금']);
   assert.deepEqual(jobCardRoles({ title: 'Treasury Platform Software Engineer' }), ['소프트웨어 개발']);
-  assert.deepEqual(jobCardRoles({ sourcePlatform: 'PUBLIC_ALIO', title: 'Treasury Specialist', jobCategory: '금융.보험' }), ['금융.보험']);
+  assert.deepEqual(jobCardRoles({ sourcePlatform: 'PUBLIC_ALIO', title: 'Treasury Specialist', jobCategory: '금융.보험' }), ['금융', '보험']);
 });
 
 test('쿠팡 GOT 개발자 공고의 직무 태그를 표시한다', () => {
@@ -115,8 +115,8 @@ test('직무명과 분류를 표시하고 기술 및 조직명은 직무로 오�
 });
 
 test('알리오 공고는 제목 추출 대신 제공된 채용 분야를 표시한다', () => {
-  assert.deepEqual(jobCardRoles({ sourcePlatform: 'PUBLIC_ALIO', title: '미화원 채용', jobCategory: '경비.청소' }), ['경비.청소']);
-  assert.deepEqual(jobCardRoles({ sourcePlatform: 'PUBLIC_ALIO', title: '공개채용', jobCategory: '금융.보험, 경비.청소, 금융.보험, ' }), ['금융.보험', '경비.청소']);
+  assert.deepEqual(jobCardRoles({ sourcePlatform: 'PUBLIC_ALIO', title: '미화원 채용', jobCategory: '경비.청소' }), ['경비', '청소']);
+  assert.deepEqual(jobCardRoles({ sourcePlatform: 'PUBLIC_ALIO', title: '공개채용', jobCategory: '금융.보험, 경비.청소, 금융.보험, . ' }), ['금융', '보험', '경비', '청소']);
   assert.deepEqual(jobCardRoles({ sourcePlatform: 'PUBLIC_ALIO', title: '백엔드 개발자', jobCategory: '정보통신' }), ['정보통신']);
   assert.deepEqual(jobCardRoles({ sourcePlatform: 'PUBLIC_ALIO', title: '운전원 모집', jobCategory: null }), ['채용 분야 미제공']);
 });
