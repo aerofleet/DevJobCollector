@@ -86,7 +86,7 @@ export function resolveJobCardRoles(job) {
     return { roles: ['백엔드', 'Global Operations Technology'], needsReview: false };
   }
   if (job.sourcePlatform === 'PUBLIC_ALIO') {
-    const fields = [...new Set(category.split(',').map(field => field.trim()).filter(Boolean))];
+    const fields = [...new Set(category.split(/[,.]/).map(field => field.trim()).filter(Boolean))];
     return { roles: fields.length ? fields : ['채용 분야 미제공'], needsReview: false };
   }
   const roles = ROLES.filter(([, pattern]) => pattern.test(title) || pattern.test(category)).map(([label]) => label);
