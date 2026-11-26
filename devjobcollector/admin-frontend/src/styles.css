@@ -107,6 +107,8 @@ button { cursor: pointer; }
 .user-list table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
 .user-list th, .user-list td { padding: 13px 10px; border-bottom: 1px solid #edf0f5; }
 .user-list th { color: #70798a; font-size: 11px; }
+.job-role-tags { display: flex; flex-wrap: wrap; gap: 4px; min-width: 110px; }
+.job-role-tags span { padding: 3px 8px; border-radius: 12px; background: #eef3ff; color: #2455b4; font-size: 12px; }
 .user-list td button, .user-detail button:not(.primary-button), .user-pagination button { border: 0; color: #245de9; background: transparent; font-weight: 700; }
 .user-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding-top: 16px; font-size: 12px; }
 .user-pagination button:disabled { color: #a3aaba; cursor: default; }

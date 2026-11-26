@@ -15,20 +15,41 @@ import kr.itsdev.devjobcollector.admin.AdminAuditLog;
 import kr.itsdev.devjobcollector.admin.AdminAuditLogRepository;
 import kr.itsdev.devjobcollector.admin.AdminRole;
 import kr.itsdev.devjobcollector.admin.auth.AdminPrincipal;
+import kr.itsdev.devjobcollector.ai.JobRoleAiReadService;
+import kr.itsdev.devjobcollector.ai.JobFieldAiReadService;
 import kr.itsdev.devjobcollector.domain.JobModerationStatus;
 import kr.itsdev.devjobcollector.domain.JobPost;
 import kr.itsdev.devjobcollector.domain.SourcePlatform;
 import kr.itsdev.devjobcollector.repository.JobPostRepository;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.web.server.ResponseStatusException;
 
 class AdminJobServiceTest {
     private final JobPostRepository jobs = mock(JobPostRepository.class);
     private final JobModerationHistoryRepository history = mock(JobModerationHistoryRepository.class);
     private final AdminAuditLogRepository audit = mock(AdminAuditLogRepository.class);
-    private final AdminJobService service = new AdminJobService(jobs, history, audit);
+    private final JobRoleAiReadService roles = mock(JobRoleAiReadService.class);
+    private final JobFieldAiReadService fields = mock(JobFieldAiReadService.class);
+    private final AdminJobService service = new AdminJobService(jobs, history, audit, roles, fields);
     private final AdminPrincipal admin = new AdminPrincipal(4L, "admin@example.com", "Admin",
             AdminRole.ADMIN, Set.of(), "session", "csrf");
+
+    @Test
+    void listIncludesCategoryAndApprovedTags() {
+        JobPost job = mock(JobPost.class);
+        when(job.getId()).thenReturn(7L);
+        when(job.getSourcePlatform()).thenReturn(SourcePlatform.PUBLIC_ALIO);
+        when(job.getModerationStatus()).thenReturn(JobModerationStatus.HIDDEN);
+        when(job.getJobCategory()).thenReturn("경비.청소");
+        when(jobs.searchForAdmin(any(), any(), any())).thenReturn(new PageImpl<>(java.util.List.of(job)));
+        when(roles.approvedRoles(any())).thenReturn(java.util.Map.of(7L, "경비원"));
+        when(fields.approvedFields(any())).thenReturn(java.util.Map.of(7L, java.util.List.of("관리직")));
+        var view = service.list(null, null, 0, 20).getContent().get(0);
+        assertThat(view.jobCategory()).isEqualTo("경비.청소");
+        assertThat(view.approvedJobRole()).isEqualTo("경비원");
+        assertThat(view.approvedJobFields()).containsExactly("관리직");
+    }
 
     @Test
     void hidesAndRecordsHistoryAndAudit() {
