@@ -97,10 +97,10 @@ public class PersonalSignupService {
         String email = normalizeEmail(emailValue);
         rateLimiter.check(remoteIp, email);
         turnstileVerifier.verify(turnstileToken, remoteIp);
-        UserAccount user = userRepository.findByEmailIgnoreCase(email)
+        UserAccount user = userRepository.findByEmailForUpdate(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "가입 정보를 찾을 수 없습니다."));
-        if (user.getStatus() == UserAccountStatus.ACTIVE) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 인증된 계정입니다.");
+        if (user.getStatus() != UserAccountStatus.PENDING_EMAIL) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "인증 대기 중인 계정이 아닙니다.");
         }
         tokenRepository.findFirstByUserAndUsedAtIsNullOrderByIdDesc(user)
                 .ifPresent(EmailVerificationToken::markUsed);
@@ -109,13 +109,13 @@ public class PersonalSignupService {
         return response(email, code);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = InvalidVerificationCodeException.class)
     public LoginResponse verifyEmail(String emailValue, String code) {
         String email = normalizeEmail(emailValue);
-        UserAccount user = userRepository.findByEmailIgnoreCase(email)
+        UserAccount user = userRepository.findByEmailForUpdate(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "인증 정보가 올바르지 않습니다."));
-        if (user.getStatus() == UserAccountStatus.ACTIVE) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 인증된 계정입니다.");
+        if (user.getStatus() != UserAccountStatus.PENDING_EMAIL) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "인증 대기 중인 계정이 아닙니다.");
         }
         EmailVerificationToken token = tokenRepository.findFirstByUserAndUsedAtIsNullOrderByIdDesc(user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "유효한 인증 코드가 없습니다."));
@@ -127,7 +127,7 @@ public class PersonalSignupService {
         }
         if (!passwordEncoder.matches(code, token.getCodeHash())) {
             token.recordFailedAttempt();
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "인증 코드가 올바르지 않습니다.");
+            throw new InvalidVerificationCodeException();
         }
 
         token.markUsed();

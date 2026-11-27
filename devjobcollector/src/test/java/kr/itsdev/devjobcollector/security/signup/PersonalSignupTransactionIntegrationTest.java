@@ -140,6 +140,66 @@ class PersonalSignupTransactionIntegrationTest {
     }
 
     @Test
+    void failedVerificationAttemptsPersistAndBlockEvenTheCorrectCode() {
+        var signup = signupService.signup(request("attempts@example.com", true, true), "127.0.0.1");
+        String wrong = signup.developmentVerificationCode().equals("000000") ? "000001" : "000000";
+        for (int i = 0; i < properties.getMaxVerificationAttempts(); i++) {
+            assertThatThrownBy(() -> signupService.verifyEmail("attempts@example.com", wrong))
+                    .isInstanceOf(ResponseStatusException.class)
+                    .satisfies(error -> assertThat(((ResponseStatusException) error).getStatusCode())
+                            .isEqualTo(HttpStatus.BAD_REQUEST));
+        }
+        UserAccount user = userRepository.findByEmailIgnoreCase("attempts@example.com").orElseThrow();
+        assertThat(tokenRepository.findFirstByUserAndUsedAtIsNullOrderByIdDesc(user).orElseThrow().getAttempts())
+                .isEqualTo(properties.getMaxVerificationAttempts());
+        assertThatThrownBy(() -> signupService.verifyEmail("attempts@example.com", signup.developmentVerificationCode()))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(error -> assertThat(((ResponseStatusException) error).getStatusCode())
+                        .isEqualTo(HttpStatus.TOO_MANY_REQUESTS));
+    }
+
+    @Test
+    void suspendedAccountCannotBeReactivatedByEmailCodeOrResend() {
+        var signup = signupService.signup(request("suspended@example.com", true, true), "127.0.0.1");
+        UserAccount user = userRepository.findByEmailIgnoreCase("suspended@example.com").orElseThrow();
+        user.moderate(kr.itsdev.devjobcollector.security.account.UserAccountStatus.SUSPENDED,
+                java.time.LocalDateTime.now());
+        userRepository.saveAndFlush(user);
+        assertThatThrownBy(() -> signupService.verifyEmail("suspended@example.com", signup.developmentVerificationCode()))
+                .isInstanceOf(ResponseStatusException.class);
+        assertThatThrownBy(() -> signupService.resend("suspended@example.com", "turnstile", "127.0.0.1"))
+                .isInstanceOf(ResponseStatusException.class);
+        assertThat(userRepository.findByEmailIgnoreCase("suspended@example.com").orElseThrow().getStatus())
+                .isEqualTo(kr.itsdev.devjobcollector.security.account.UserAccountStatus.SUSPENDED);
+    }
+
+    @Test
+    void concurrentInvalidCodesDoNotLoseAttempts() throws Exception {
+        var signup = signupService.signup(request("concurrent@example.com", true, true), "127.0.0.1");
+        String wrong = signup.developmentVerificationCode().equals("000000") ? "000001" : "000000";
+        var executor = java.util.concurrent.Executors.newFixedThreadPool(4);
+        var start = new java.util.concurrent.CountDownLatch(1);
+        try {
+            var futures = new java.util.ArrayList<java.util.concurrent.Future<?>>();
+            for (int i = 0; i < 4; i++) {
+                futures.add(executor.submit(() -> {
+                    start.await();
+                    assertThatThrownBy(() -> signupService.verifyEmail("concurrent@example.com", wrong))
+                            .isInstanceOf(InvalidVerificationCodeException.class);
+                    return null;
+                }));
+            }
+            start.countDown();
+            for (var future : futures) future.get(30, java.util.concurrent.TimeUnit.SECONDS);
+        } finally {
+            executor.shutdownNow();
+        }
+        UserAccount user = userRepository.findByEmailIgnoreCase("concurrent@example.com").orElseThrow();
+        assertThat(tokenRepository.findFirstByUserAndUsedAtIsNullOrderByIdDesc(user).orElseThrow().getAttempts())
+                .isEqualTo(4);
+    }
+
+    @Test
     void rejectsMissingRequiredConsentWithoutWrites() {
         assertThatThrownBy(() -> signupService.signup(
                 request("missing-consent@example.com", false, true), "127.0.0.1"))

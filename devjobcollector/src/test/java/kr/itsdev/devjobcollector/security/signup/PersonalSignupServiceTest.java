@@ -85,7 +85,7 @@ class PersonalSignupServiceTest {
         UserAccount user = UserAccount.pendingLocal("user@example.com", "홍길동", "encoded-password");
         EmailVerificationToken token = new EmailVerificationToken(
                 user, "hashed-code", LocalDateTime.now().plusMinutes(10));
-        when(userRepository.findByEmailIgnoreCase("user@example.com")).thenReturn(Optional.of(user));
+        when(userRepository.findByEmailForUpdate("user@example.com")).thenReturn(Optional.of(user));
         when(tokenRepository.findFirstByUserAndUsedAtIsNullOrderByIdDesc(user)).thenReturn(Optional.of(token));
         when(passwordEncoder.matches("123456", "hashed-code")).thenReturn(true);
         when(tokenIssueService.issueAccessToken(any())).thenReturn("issued-token");
