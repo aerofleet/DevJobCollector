@@ -356,9 +356,6 @@ auth:
     issuer: ${AUTH_TOKEN_ISSUER:devjobcollector}
     secret: ${AUTH_TOKEN_SECRET:change-this-secret-at-least-32chars}
     expires-minutes: ${AUTH_TOKEN_EXPIRES_MINUTES:120}
-  local-login:
-    enabled: ${AUTH_LOCAL_LOGIN_ENABLED:false}
-    users: []
   signup:
     verification-minutes: ${AUTH_SIGNUP_VERIFICATION_MINUTES:15}
     max-verification-attempts: ${AUTH_SIGNUP_MAX_VERIFICATION_ATTEMPTS:5}
