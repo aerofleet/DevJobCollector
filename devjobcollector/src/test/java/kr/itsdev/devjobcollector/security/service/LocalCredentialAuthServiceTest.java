@@ -26,7 +26,7 @@ class LocalCredentialAuthServiceTest {
     @BeforeEach
     void setUp() {
         properties = new AuthLocalLoginProperties();
-        service = new LocalCredentialAuthService(properties, userRepository, passwordEncoder);
+        service = new LocalCredentialAuthService(userRepository, passwordEncoder);
     }
 
     @Test
@@ -56,7 +56,7 @@ class LocalCredentialAuthServiceTest {
     }
 
     @Test
-    void explicitlyConfiguredFallbackRemainsOptIn() {
+    void configuredFallbackCannotBypassDatabaseAccountProtection() {
         AuthLocalLoginProperties.User fallback = new AuthLocalLoginProperties.User();
         fallback.setId(9001L);
         fallback.setUsername("break-glass");
@@ -70,8 +70,6 @@ class LocalCredentialAuthServiceTest {
 
         AuthenticatedUser authenticated = service.authenticate("break-glass", "explicit-secret");
 
-        assertThat(authenticated).isNotNull();
-        assertThat(authenticated.id()).isEqualTo(9001L);
-        assertThat(authenticated.role()).isEqualTo("PLATFORM_ADMIN");
+        assertThat(authenticated).isNull();
     }
 }
