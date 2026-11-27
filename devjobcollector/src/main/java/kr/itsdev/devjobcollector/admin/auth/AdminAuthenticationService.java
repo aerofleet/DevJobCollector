@@ -94,12 +94,12 @@ public class AdminAuthenticationService {
 
         boolean passwordValid = passwordEncoder.matches(password == null ? "" : password,
                 account.getPasswordHash());
-        boolean mfaValid = false;
+        Long counter = null;
         if (passwordValid) {
             String secret = mfaSecretCipher.decrypt(account.getMfaSecretCiphertext());
-            mfaValid = totpVerifier.verify(secret, mfaCode);
+            counter = totpVerifier.matchingCounter(secret, mfaCode);
         }
-        if (!passwordValid || !mfaValid) {
+        if (!passwordValid || counter == null || !account.consumeTotpCounter(counter)) {
             account.recordFailedLogin(now, properties.getMaximumFailedAttempts(),
                     properties.getLockDuration());
             AdminLoginResult.Status status = account.isLockedAt(now)

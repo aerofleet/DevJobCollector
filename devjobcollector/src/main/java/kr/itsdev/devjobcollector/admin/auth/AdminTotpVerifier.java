@@ -21,18 +21,22 @@ public class AdminTotpVerifier {
     }
 
     public boolean verify(String base32Secret, String code) {
-        if (code == null || !code.matches("\\d{6}")) return false;
+        return matchingCounter(base32Secret, code) != null;
+    }
+
+    public Long matchingCounter(String base32Secret, String code) {
+        if (code == null || !code.matches("\\d{6}")) return null;
         byte[] key;
         try {
             key = decodeBase32(base32Secret);
         } catch (IllegalArgumentException exception) {
-            return false;
+            return null;
         }
         long counter = clock.instant().getEpochSecond() / 30;
         for (long offset = -1; offset <= 1; offset++) {
-            if (generate(key, counter + offset).equals(code)) return true;
+            if (generate(key, counter + offset).equals(code)) return counter + offset;
         }
-        return false;
+        return null;
     }
 
     private String generate(byte[] key, long counter) {
