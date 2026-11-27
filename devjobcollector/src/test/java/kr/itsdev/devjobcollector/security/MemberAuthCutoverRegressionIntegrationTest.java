@@ -26,6 +26,7 @@ import kr.itsdev.devjobcollector.security.account.UserIdentityRepository;
 import kr.itsdev.devjobcollector.security.service.JpaSocialUserUpsertService;
 import kr.itsdev.devjobcollector.security.service.AccountLinkService;
 import kr.itsdev.devjobcollector.security.service.LocalCredentialAuthService;
+import kr.itsdev.devjobcollector.security.service.LoginSecurityMetrics;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -70,6 +71,7 @@ class MemberAuthCutoverRegressionIntegrationTest {
     @Autowired PersonalProfileRepository profileRepository;
 
     @MockitoBean PasswordEncoder passwordEncoder;
+    @MockitoBean LoginSecurityMetrics loginSecurityMetrics;
     @MockitoBean TokenIssueService tokenIssueService;
 
     @DynamicPropertySource

@@ -26,7 +26,8 @@ class LocalCredentialAuthServiceTest {
     @BeforeEach
     void setUp() {
         properties = new AuthLocalLoginProperties();
-        service = new LocalCredentialAuthService(userRepository, passwordEncoder);
+        service = new LocalCredentialAuthService(userRepository, passwordEncoder,
+                new LoginSecurityMetrics(new io.micrometer.core.instrument.simple.SimpleMeterRegistry()));
     }
 
     @Test
