@@ -51,7 +51,7 @@ public class AdminRequestSecurityFilter extends OncePerRequestFilter {
                 reject(response, 403, "ADMIN_ORIGIN_DENIED", requestId);
                 return;
             }
-            if (!request.getRequestURI().endsWith("/auth/login")) {
+            if (!request.getRequestURI().equals("/api/v1/admin/auth/login")) {
                 Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
                 if (authentication != null && authentication.getPrincipal() instanceof AdminPrincipal principal) {
                     String csrfToken = request.getHeader(properties.getCsrfHeaderName());

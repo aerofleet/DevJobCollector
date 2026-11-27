@@ -42,6 +42,19 @@ class AdminSecurityRepositoryIntegrationTest {
     @Autowired AdminBootstrapService bootstrapService;
     @Autowired PasswordEncoder passwordEncoder;
 
+    @Test
+    void persistsConsumedTotpCounterAcrossReloads() {
+        AdminAccount account = accountRepository.saveAndFlush(newAccount("totp-replay@example.com"));
+        assertThat(account.consumeTotpCounter(12345L)).isTrue();
+        accountRepository.flush();
+        entityManager.clear();
+
+        AdminAccount reloaded = accountRepository.findByEmailForUpdate("totp-replay@example.com").orElseThrow();
+        assertThat(reloaded.consumeTotpCounter(12345L)).isFalse();
+        assertThat(reloaded.consumeTotpCounter(12344L)).isFalse();
+        assertThat(reloaded.consumeTotpCounter(12346L)).isTrue();
+    }
+
     @DynamicPropertySource
     static void dataSourceProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", () -> System.getenv("DJC_MIGRATION_TEST_URL"));

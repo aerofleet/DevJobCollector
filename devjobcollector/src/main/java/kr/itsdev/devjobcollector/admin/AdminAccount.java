@@ -54,6 +54,9 @@ public class AdminAccount {
     @Column(name = "mfa_key_id", length = 100)
     private String mfaKeyId;
 
+    @Column(name = "last_totp_counter")
+    private Long lastTotpCounter;
+
     @Column(name = "failed_attempts", nullable = false)
     private int failedAttempts;
 
@@ -100,7 +103,14 @@ public class AdminAccount {
         }
         this.mfaSecretCiphertext = ciphertext.clone();
         this.mfaKeyId = requireText(keyId, "mfaKeyId", 100);
+        this.lastTotpCounter = null;
         this.credentialVersion++;
+    }
+
+    public boolean consumeTotpCounter(long counter) {
+        if (lastTotpCounter != null && counter <= lastTotpCounter) return false;
+        lastTotpCounter = counter;
+        return true;
     }
 
     public void recordSuccessfulLogin(LocalDateTime occurredAt) {

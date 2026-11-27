@@ -82,6 +82,14 @@ class AdminAuthenticationControllerSecurityTest {
     }
 
     @Test
+    void unknownAdminPathsCannotUseMemberBearerTokens() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/future-feature")
+                        .header("Authorization", "Bearer general-member-token"))
+                .andExpect(status().isUnauthorized());
+        verifyNoInteractions(jwtTokenVerifier);
+    }
+
+    @Test
     void returnsAdminForValidDedicatedSession() throws Exception {
         AdminPrincipal principal = principal(tokenCodec.hash("csrf-token"));
         when(authenticationService.authenticate("session-token")).thenReturn(principal);
