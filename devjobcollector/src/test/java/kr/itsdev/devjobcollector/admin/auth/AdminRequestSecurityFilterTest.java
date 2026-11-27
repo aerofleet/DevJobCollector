@@ -88,4 +88,21 @@ class AdminRequestSecurityFilterTest {
         assertThat(response.getStatus()).isEqualTo(403);
         assertThat(response.getContentAsString()).contains("ADMIN_CSRF_INVALID");
     }
+
+    @Test
+    void loginSuffixOnAnotherAdminPathDoesNotBypassCsrf() throws Exception {
+        AdminPrincipal principal = new AdminPrincipal(1L, "admin@example.com", "관리자",
+                AdminRole.ADMIN, Set.of(), "session-id", tokenCodec.hash("csrf-token"));
+        SecurityContextHolder.getContext().setAuthentication(
+                UsernamePasswordAuthenticationToken.authenticated(principal, null, Set.of()));
+        MockHttpServletRequest request = new MockHttpServletRequest(
+                "POST", "/api/v1/admin/future/auth/login");
+        request.addHeader("Origin", "https://djc-admin.itsdev.kr");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, new MockFilterChain());
+
+        assertThat(response.getStatus()).isEqualTo(403);
+        assertThat(response.getContentAsString()).contains("ADMIN_CSRF_INVALID");
+    }
 }
