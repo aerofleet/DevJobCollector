@@ -53,6 +53,18 @@ public class UserAccount {
     @Column(name = "session_revoked_at")
     private LocalDateTime sessionRevokedAt;
 
+    @Column(name = "login_failed_attempts", nullable = false)
+    private int loginFailedAttempts;
+
+    @Column(name = "login_failure_window_start")
+    private LocalDateTime loginFailureWindowStart;
+
+    @Column(name = "login_locked_until")
+    private LocalDateTime loginLockedUntil;
+
+    @Column(name = "verification_sent_at")
+    private LocalDateTime verificationSentAt;
+
     @Version
     @Column(nullable = false)
     private long version;
@@ -102,6 +114,34 @@ public class UserAccount {
         }
         this.status = newStatus;
         this.sessionRevokedAt = occurredAt;
+    }
+
+    public boolean isLoginLocked(LocalDateTime now) {
+        return loginLockedUntil != null && now.isBefore(loginLockedUntil);
+    }
+
+    public void recordLoginFailure(LocalDateTime now) {
+        if (loginFailureWindowStart == null || !now.isBefore(loginFailureWindowStart.plusMinutes(15))
+                || (loginLockedUntil != null && !now.isBefore(loginLockedUntil))) {
+            loginFailedAttempts = 0;
+            loginLockedUntil = null;
+            loginFailureWindowStart = now;
+        }
+        if (++loginFailedAttempts >= 5) loginLockedUntil = now.plusMinutes(15);
+    }
+
+    public void clearLoginFailures() {
+        loginFailedAttempts = 0;
+        loginLockedUntil = null;
+        loginFailureWindowStart = null;
+    }
+
+    public boolean canResendVerification(LocalDateTime now) {
+        return verificationSentAt == null || !now.isBefore(verificationSentAt.plusMinutes(1));
+    }
+
+    public void markVerificationSent(LocalDateTime now) {
+        verificationSentAt = now;
     }
 
     public Long getId() { return id; }

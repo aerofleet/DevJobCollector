@@ -1,6 +1,8 @@
 package kr.itsdev.devjobcollector.security.service;
 
 import java.util.Locale;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import kr.itsdev.auth.common.model.AuthenticatedUser;
 import kr.itsdev.devjobcollector.security.AuthLocalLoginProperties;
 import kr.itsdev.devjobcollector.security.account.UserAccount;
@@ -8,6 +10,7 @@ import kr.itsdev.devjobcollector.security.account.UserAccountRepository;
 import kr.itsdev.devjobcollector.security.account.UserAccountStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class LocalCredentialAuthService {
@@ -22,18 +25,24 @@ public class LocalCredentialAuthService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    @Transactional
     public AuthenticatedUser authenticate(String identifier, String password) {
         if (identifier == null || password == null) {
             return null;
         }
 
         String normalizedIdentifier = identifier.trim().toLowerCase(Locale.ROOT);
-        UserAccount account = userRepository.findByEmailIgnoreCase(normalizedIdentifier).orElse(null);
+        UserAccount account = userRepository.findByEmailForUpdate(normalizedIdentifier).orElse(null);
         if (account != null && account.getPasswordHash() != null) {
-            if (account.getStatus() != UserAccountStatus.ACTIVE
-                    || !passwordEncoder.matches(password, account.getPasswordHash())) {
+            LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+            if (account.getStatus() != UserAccountStatus.ACTIVE || account.isLoginLocked(now)) {
                 return null;
             }
+            if (!passwordEncoder.matches(password, account.getPasswordHash())) {
+                account.recordLoginFailure(now);
+                return null;
+            }
+            account.clearLoginFailures();
             return new AuthenticatedUser(account.getId(), account.getEmail(), account.getName(), account.getRole());
         }
         if (!properties.isEnabled()) {

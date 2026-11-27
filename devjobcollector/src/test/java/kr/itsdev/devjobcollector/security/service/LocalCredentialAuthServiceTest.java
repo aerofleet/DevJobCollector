@@ -37,7 +37,7 @@ class LocalCredentialAuthServiceTest {
 
     @Test
     void formerDefaultCredentialIsRejected() {
-        when(userRepository.findByEmailIgnoreCase("admin")).thenReturn(Optional.empty());
+        when(userRepository.findByEmailForUpdate("admin")).thenReturn(Optional.empty());
 
         assertThat(service.authenticate("admin", "admin1234")).isNull();
     }
@@ -46,7 +46,7 @@ class LocalCredentialAuthServiceTest {
     void databaseBackedLocalAccountStillAuthenticates() {
         UserAccount account = UserAccount.pendingLocal("user@example.com", "사용자", "encoded-password");
         account.activateEmail();
-        when(userRepository.findByEmailIgnoreCase("user@example.com")).thenReturn(Optional.of(account));
+        when(userRepository.findByEmailForUpdate("user@example.com")).thenReturn(Optional.of(account));
         when(passwordEncoder.matches("correct-password", "encoded-password")).thenReturn(true);
 
         AuthenticatedUser authenticated = service.authenticate(" USER@example.com ", "correct-password");
@@ -66,7 +66,7 @@ class LocalCredentialAuthServiceTest {
         fallback.setRole("PLATFORM_ADMIN");
         properties.setEnabled(true);
         properties.getUsers().add(fallback);
-        when(userRepository.findByEmailIgnoreCase("break-glass")).thenReturn(Optional.empty());
+        when(userRepository.findByEmailForUpdate("break-glass")).thenReturn(Optional.empty());
 
         AuthenticatedUser authenticated = service.authenticate("break-glass", "explicit-secret");
 
