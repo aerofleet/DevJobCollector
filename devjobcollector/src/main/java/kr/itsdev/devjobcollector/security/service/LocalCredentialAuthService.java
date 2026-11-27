@@ -18,10 +18,13 @@ public class LocalCredentialAuthService {
     private static final Logger log = LoggerFactory.getLogger(LocalCredentialAuthService.class);
     private final UserAccountRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final LoginSecurityMetrics metrics;
 
-    public LocalCredentialAuthService(UserAccountRepository userRepository, PasswordEncoder passwordEncoder) {
+    public LocalCredentialAuthService(UserAccountRepository userRepository, PasswordEncoder passwordEncoder,
+                                      LoginSecurityMetrics metrics) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.metrics = metrics;
     }
 
     @Transactional
@@ -35,17 +38,24 @@ public class LocalCredentialAuthService {
         if (account != null && account.getPasswordHash() != null) {
             LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
             if (account.getStatus() != UserAccountStatus.ACTIVE || account.isLoginLocked(now)) {
-                if (account.isLoginLocked(now)) log.warn("MEMBER_LOGIN_LOCKED userId={}", account.getId());
+                if (account.isLoginLocked(now)) {
+                    log.warn("MEMBER_LOGIN_LOCKED userId={}", account.getId());
+                    metrics.record(LoginSecurityMetrics.Outcome.LOCK_REJECTED);
+                }
                 return null;
             }
             if (!passwordEncoder.matches(password, account.getPasswordHash())) {
                 account.recordLoginFailure(now);
+                metrics.record(LoginSecurityMetrics.Outcome.FAILURE);
+                if (account.isLoginLocked(now)) metrics.record(LoginSecurityMetrics.Outcome.LOCK_CREATED);
                 log.warn("MEMBER_LOGIN_FAILURE userId={} locked={}", account.getId(), account.isLoginLocked(now));
                 return null;
             }
             account.clearLoginFailures();
+            metrics.record(LoginSecurityMetrics.Outcome.SUCCESS);
             return new AuthenticatedUser(account.getId(), account.getEmail(), account.getName(), account.getRole());
         }
+        metrics.record(LoginSecurityMetrics.Outcome.UNKNOWN);
         return null;
     }
 }
