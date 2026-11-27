@@ -102,6 +102,9 @@ public class PersonalSignupService {
         if (user.getStatus() != UserAccountStatus.PENDING_EMAIL) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "인증 대기 중인 계정이 아닙니다.");
         }
+        if (!user.canResendVerification(LocalDateTime.now(java.time.ZoneOffset.UTC))) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "잠시 후 다시 시도해주세요.");
+        }
         tokenRepository.findFirstByUserAndUsedAtIsNullOrderByIdDesc(user)
                 .ifPresent(EmailVerificationToken::markUsed);
         String code = createVerificationToken(user);
@@ -143,6 +146,7 @@ public class PersonalSignupService {
     }
 
     private String createVerificationToken(UserAccount user) {
+        user.markVerificationSent(LocalDateTime.now(java.time.ZoneOffset.UTC));
         String code = "%06d".formatted(secureRandom.nextInt(1_000_000));
         tokenRepository.save(new EmailVerificationToken(
                 user,

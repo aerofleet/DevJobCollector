@@ -159,6 +159,18 @@ class PersonalSignupTransactionIntegrationTest {
     }
 
     @Test
+    void resendCooldownPersistsAfterSignupAndDoesNotReplaceCode() {
+        var signup = signupService.signup(request("cooldown@example.com", true, true), "127.0.0.1");
+        assertThatThrownBy(() -> signupService.resend("cooldown@example.com", "turnstile", "127.0.0.1"))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(error -> assertThat(((ResponseStatusException) error).getStatusCode())
+                        .isEqualTo(HttpStatus.TOO_MANY_REQUESTS));
+        assertThat(tokenRepository.count()).isEqualTo(1);
+        assertThat(signupService.verifyEmail("cooldown@example.com", signup.developmentVerificationCode())
+                .accessToken()).isEqualTo("issued-token");
+    }
+
+    @Test
     void suspendedAccountCannotBeReactivatedByEmailCodeOrResend() {
         var signup = signupService.signup(request("suspended@example.com", true, true), "127.0.0.1");
         UserAccount user = userRepository.findByEmailIgnoreCase("suspended@example.com").orElseThrow();

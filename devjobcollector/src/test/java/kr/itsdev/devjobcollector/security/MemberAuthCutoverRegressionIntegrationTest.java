@@ -113,6 +113,44 @@ class MemberAuthCutoverRegressionIntegrationTest {
     }
 
     @Test
+    void failedPasswordsPersistAcrossTransactionsAndBlockCorrectPassword() {
+        UserAccount account = UserAccount.pendingLocal("lock@example.com", "User", "encoded-password");
+        account.activateEmail();
+        userRepository.saveAndFlush(account);
+        for (int i = 0; i < 5; i++) {
+            assertThat(localLoginService.authenticate("lock@example.com", "incorrect")).isNull();
+        }
+        assertThat(userRepository.findByEmailIgnoreCase("lock@example.com").orElseThrow()
+                .isLoginLocked(java.time.LocalDateTime.now(java.time.ZoneOffset.UTC))).isTrue();
+        assertThat(localLoginService.authenticate("lock@example.com", "correct-password")).isNull();
+    }
+
+    @Test
+    void concurrentFailedPasswordsCannotBypassAccountLimit() throws Exception {
+        UserAccount account = UserAccount.pendingLocal("concurrent-login@example.com", "User", "encoded-password");
+        account.activateEmail();
+        userRepository.saveAndFlush(account);
+        var executor = java.util.concurrent.Executors.newFixedThreadPool(8);
+        var start = new java.util.concurrent.CountDownLatch(1);
+        try {
+            var futures = new java.util.ArrayList<java.util.concurrent.Future<?>>();
+            for (int i = 0; i < 8; i++) futures.add(executor.submit(() -> {
+                start.await();
+                assertThat(localLoginService.authenticate("concurrent-login@example.com", "incorrect")).isNull();
+                return null;
+            }));
+            start.countDown();
+            for (var future : futures) future.get(30, java.util.concurrent.TimeUnit.SECONDS);
+        } finally {
+            executor.shutdownNow();
+        }
+        assertThat(userRepository.findByEmailIgnoreCase("concurrent-login@example.com").orElseThrow()
+                .isLoginLocked(java.time.LocalDateTime.now(java.time.ZoneOffset.UTC))).isTrue();
+        org.mockito.Mockito.verify(passwordEncoder, org.mockito.Mockito.times(5))
+                .matches("incorrect", "encoded-password");
+    }
+
+    @Test
     void pendingLocalIdentityIsRejectedEvenWithMatchingPassword() {
         UserAccount account = userRepository.save(UserAccount.pendingLocal(
                 "pending-local@example.com", "pending", "encoded-password"));
