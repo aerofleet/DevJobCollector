@@ -37,6 +37,11 @@ for phase in ("http_request_firewall_custom", "http_request_firewall_managed"):
         rules = (phase_payload.get("result") or {}).get("rules") or []
         print("  total:", len(rules), "enabled:", sum(1 for rule in rules if rule.get("enabled", True)))
         print("  actions:", sorted(set(rule.get("action", "unknown") for rule in rules)))
+        for rule in rules:
+            if rule.get("enabled", True) and rule.get("action") == "skip":
+                print("  skip parameters:", json.dumps(rule.get("action_parameters", {})))
+                expression = rule.get("expression", "")
+                print("  skip expression mentions login:", "/api/v1/auth/login" in expression)
 
 status, payload = get("/zones/" + zones[0]["id"] + "/rulesets/phases/http_ratelimit/entrypoint")
 print(f"Rate-limit entrypoint HTTP {status}")
