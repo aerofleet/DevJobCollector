@@ -10,7 +10,12 @@ public class LoginSecurityMetrics {
     enum Outcome { SUCCESS, FAILURE, LOCK_CREATED, LOCK_REJECTED, UNKNOWN }
     private final MeterRegistry registry;
 
-    public LoginSecurityMetrics(MeterRegistry registry) { this.registry = registry; }
+    public LoginSecurityMetrics(MeterRegistry registry) {
+        this.registry = registry;
+        for (Outcome outcome : Outcome.values()) {
+            registry.counter("djc.member.login", "outcome", outcome.name());
+        }
+    }
 
     void record(Outcome outcome) {
         Runnable update = () -> registry.counter("djc.member.login", "outcome", outcome.name()).increment();
