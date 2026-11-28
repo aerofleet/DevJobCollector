@@ -12,5 +12,5 @@ jobs:
       - uses: actions/checkout@v4
       - name: Inspect Cloudflare access and rate limit rules
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_WAF_TOKEN }}
         run: python3 devjobcollector/ops/auth/audit_cloudflare_rate_limits.py
