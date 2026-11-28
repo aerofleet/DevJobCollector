@@ -1,6 +1,7 @@
 """Read-only Cloudflare audit. Never prints tokens, zone identifiers, or rule expressions."""
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -42,6 +43,7 @@ for phase in ("http_request_firewall_custom", "http_request_firewall_managed"):
                 print("  skip parameters:", json.dumps(rule.get("action_parameters", {})))
                 expression = rule.get("expression", "")
                 print("  skip expression mentions login:", "/api/v1/auth/login" in expression)
+                print("  skip expression structure:", re.sub(r'"(?:\\.|[^"\\])*"', '"<redacted>"', expression))
 
 status, payload = get("/zones/" + zones[0]["id"] + "/rulesets/phases/http_ratelimit/entrypoint")
 print(f"Rate-limit entrypoint HTTP {status}")
