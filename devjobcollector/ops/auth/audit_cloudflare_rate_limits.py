@@ -29,6 +29,15 @@ if status != 200 or len(zones) != 1:
     print("Cannot resolve a unique zone with the existing token")
     sys.exit(1)
 
+print("Zone plan:", (zones[0].get("plan") or {}).get("name", "unknown"))
+for phase in ("http_request_firewall_custom", "http_request_firewall_managed"):
+    phase_status, phase_payload = get("/zones/" + zones[0]["id"] + "/rulesets/phases/" + phase + "/entrypoint")
+    print(f"{phase} HTTP {phase_status}")
+    if phase_status == 200:
+        rules = (phase_payload.get("result") or {}).get("rules") or []
+        print("  total:", len(rules), "enabled:", sum(1 for rule in rules if rule.get("enabled", True)))
+        print("  actions:", sorted(set(rule.get("action", "unknown") for rule in rules)))
+
 status, payload = get("/zones/" + zones[0]["id"] + "/rulesets/phases/http_ratelimit/entrypoint")
 print(f"Rate-limit entrypoint HTTP {status}")
 if status == 404:
