@@ -44,6 +44,10 @@ for phase in ("http_request_firewall_custom", "http_request_firewall_managed"):
                 expression = rule.get("expression", "")
                 print("  skip expression mentions login:", "/api/v1/auth/login" in expression)
                 print("  skip expression structure:", re.sub(r'"(?:\\.|[^"\\])*"', '"<redacted>"', expression))
+                match = re.fullmatch(r'\(http\.host eq "([^"]+)" and http\.request\.method eq "([^"]+)" and starts_with\(http\.request\.uri\.path, "([^"]+)"\)\)', expression)
+                if match:
+                    host, method, prefix = match.groups()
+                    print("  skips DJC POST login:", host == "djc-api.itsdev.kr" and method == "POST" and "/api/v1/auth/login".startswith(prefix))
 
 status, payload = get("/zones/" + zones[0]["id"] + "/rulesets/phases/http_ratelimit/entrypoint")
 print(f"Rate-limit entrypoint HTTP {status}")
